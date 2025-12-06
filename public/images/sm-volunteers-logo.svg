@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SM Volunteers Logo - KSRCT -->
+<!-- This is a placeholder SVG. Replace with the actual SVG export of your logo if available -->
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Outer Circle -->
+  <circle cx="100" cy="100" r="95" fill="none" stroke="#FF9500" stroke-width="3"/>
+  
+  <!-- Inner Design Circles -->
+  <circle cx="50" cy="80" r="15" fill="#003366"/>
+  <circle cx="150" cy="80" r="15" fill="#003366"/>
+  <circle cx="100" cy="140" r="15" fill="#00AA44"/>
+  
+  <!-- Crescent Moon -->
+  <path d="M 70 100 Q 85 85 95 100 Q 85 115 70 100" fill="#003366"/>
+  
+  <!-- Center Building -->
+  <rect x="90" y="110" width="20" height="25" fill="#FF6600"/>
+  <rect x="93" y="113" width="4" height="4" fill="white"/>
+  <rect x="103" y="113" width="4" height="4" fill="white"/>
+  <rect x="93" y="120" width="4" height="4" fill="white"/>
+  <rect x="103" cy="120" width="4" height="4" fill="white"/>
+  
+  <!-- Text -->
+  <text x="100" y="170" text-anchor="middle" font-size="12" font-weight="bold" fill="#003366">KSRCT</text>
+</svg>
