@@ -7,15 +7,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+
 import DeveloperCredit from "@/components/DeveloperCredit";
-import { Users, Plus, ArrowLeft, Key, Search, Filter, Edit, Trash2, Upload, Shield } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
+import { Users, Plus, ArrowLeft, Key, Search, Filter, Edit, Trash2, Upload } from "lucide-react";
 import * as XLSX from 'xlsx';
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const ManageUsers = () => {
   const navigate = useNavigate();
@@ -27,26 +28,16 @@ const ManageUsers = () => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
-  const [showReplaceDialog, setShowReplaceDialog] = useState(false);
   const [importedUsers, setImportedUsers] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [replaceMode, setReplaceMode] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     role: "student",
     password: ""
-  });
-
-  const [replaceData, setReplaceData] = useState({
-    oldEmail: "",
-    newName: "",
-    newEmail: "",
-    newRole: "student",
-    newPassword: ""
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -55,13 +46,30 @@ const ManageUsers = () => {
     confirmPassword: ""
   });
 
+  const { permissions, loading: permissionsLoading } = usePermissions();
+  const userIsAdmin = auth.hasRole('admin');
+  // Check for _edit permission specifically for edit operations
+  const canEdit = userIsAdmin || permissions?.can_manage_users_edit;
+  // Allow view if user has view OR edit permission
+  const canView = userIsAdmin || permissions?.can_manage_users_view || permissions?.can_manage_users_edit || permissions?.can_manage_users;
+
   useEffect(() => {
-    if (!auth.isAuthenticated() || !auth.hasRole('admin')) {
+    if (!auth.isAuthenticated()) {
       navigate("/login");
       return;
     }
+
+    if (permissionsLoading) return;
+
+    if (!userIsAdmin) {
+      toast.error("Access denied. Management access required.");
+      const userRole = auth.getRole();
+      navigate(userRole === 'office_bearer' ? "/office-bearer" : "/login");
+      return;
+    }
+
     loadUsers();
-  }, []);
+  }, [permissionsLoading, permissions, canView]);
 
   const loadUsers = async () => {
     try {
@@ -85,7 +93,7 @@ const ManageUsers = () => {
         email: formData.email,
         role: formData.role
       };
-      
+
       // If password is provided, include it
       if (formData.password && formData.password.trim() !== "") {
         userData.password = formData.password;
@@ -128,7 +136,7 @@ const ManageUsers = () => {
   const handleEditUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser) return;
-    
+
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/${selectedUser.id}`, {
         method: 'PUT',
@@ -193,7 +201,7 @@ const ManageUsers = () => {
           // Try different possible column names
           const name = row['Name'] || row['name'] || row['NAME'] || row['Student Name'] || row['Full Name'] || '';
           const email = row['Email'] || row['email'] || row['EMAIL'] || row['Email ID'] || row['Email Address'] || '';
-          
+
           return {
             id: index + 1,
             name: name.toString().trim(),
@@ -215,7 +223,7 @@ const ManageUsers = () => {
       }
     };
     reader.readAsBinaryString(file);
-    
+
     // Reset file input
     e.target.value = '';
   };
@@ -267,7 +275,7 @@ const ManageUsers = () => {
 
   const handleDeleteUser = async () => {
     if (!selectedUser) return;
-    
+
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/${selectedUser.id}`, {
         method: 'DELETE',
@@ -292,7 +300,7 @@ const ManageUsers = () => {
 
   const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedUser) return;
 
     // Validation
@@ -341,50 +349,6 @@ const ManageUsers = () => {
     }
   };
 
-  const handleReplaceUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Find user by old email
-    const userToReplace = users.find(u => u.email === replaceData.oldEmail);
-    if (!userToReplace) {
-      toast.error("User with that email not found");
-      return;
-    }
-
-    try {
-      // Delete the old user
-      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/${userToReplace.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${auth.getToken()}`
-        }
-      });
-
-      // Create new user with new data
-      const newUserData: any = {
-        name: replaceData.newName,
-        email: replaceData.newEmail,
-        role: replaceData.newRole
-      };
-      
-      if (replaceData.newPassword && replaceData.newPassword.trim() !== "") {
-        newUserData.password = replaceData.newPassword;
-      }
-
-      const response = await api.addUser(newUserData);
-      if (response.success) {
-        toast.success(`User "${replaceData.oldEmail}" replaced successfully!`);
-        if (response.defaultPassword) {
-          toast.info(`Default password: ${response.defaultPassword}`);
-        }
-        setShowReplaceDialog(false);
-        setReplaceData({ oldEmail: "", newName: "", newEmail: "", newRole: "student", newPassword: "" });
-        loadUsers();
-      }
-    } catch (error: any) {
-      toast.error("Failed to replace user: " + error.message);
-    }
-  };
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
@@ -396,198 +360,169 @@ const ManageUsers = () => {
     }
   };
 
-  const handleManagePermissions = (user: any) => {
-    const params = new URLSearchParams();
-    params.set('userId', user.id.toString());
-    if (user.email) {
-      params.set('search', user.email);
-    } else if (user.name) {
-      params.set('search', user.name);
-    }
-    navigate(`/admin/permissions?${params.toString()}`);
-  };
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
+
       <DeveloperCredit />
-      
+
       <div className="flex flex-1">
-        <main className="flex-1 p-4 md:p-8 bg-gradient-to-b from-background via-background to-orange-50/20">
-          <div className="max-w-7xl mx-auto">
-          {/* Hero Header Section */}
-          <div className="mb-8 bg-gradient-to-r from-orange-600 via-orange-500 to-red-500 rounded-xl p-8 text-white shadow-lg">
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex items-center gap-4">
-                <Button variant="ghost" onClick={() => navigate("/admin")} className="gap-2 hover:bg-white/20 text-white">
-                  <ArrowLeft className="w-4 h-4" />
-                  Back to Dashboard
-                </Button>
+        <main className="flex-1 p-2 md:p-4 bg-background">
+          <div className="w-full">
+            {/* Back Button */}
+            <div className="mb-4">
+              <BackButton to="/admin" />
+            </div>
+
+            {/* Page Header */}
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-semibold text-foreground mb-1">Users</h1>
+                <p className="text-sm text-muted-foreground">Add, edit, or remove users</p>
               </div>
               <div className="flex gap-2">
-                <Button onClick={downloadTemplate} variant="outline" className="gap-2 bg-white/20 text-white hover:bg-white/30">
+                <Button onClick={downloadTemplate} variant="outline" className="gap-2">
                   <Upload className="w-4 h-4" />
                   Download Template
                 </Button>
-                <Button onClick={() => setShowImportDialog(true)} variant="outline" className="gap-2 bg-white/20 text-white hover:bg-white/30">
+                <Button onClick={() => setShowImportDialog(true)} variant="outline" className="gap-2">
                   <Upload className="w-4 h-4" />
                   Import from Excel
                 </Button>
-                <Button onClick={() => setShowReplaceDialog(true)} variant="outline" className="gap-2 bg-white/20 text-white hover:bg-white/30">
-                  Replace User
-                </Button>
-                <Button onClick={() => setShowAddDialog(true)} className="gap-2 bg-white text-orange-600 hover:bg-orange-50">
+                <Button onClick={() => setShowAddDialog(true)} className="gap-2">
                   <Plus className="w-4 h-4" />
                   Add User
                 </Button>
               </div>
             </div>
-            <div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-2">Manage Users</h1>
-              <p className="text-lg opacity-90">Add, edit, or remove users</p>
+
+            {/* Filter Section */}
+            <Card className="border-border/50 mb-6 bg-card">
+              <CardContent className="pt-6">
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                    <Input
+                      placeholder="Search users by name or email..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-muted-foreground" />
+                    <Select value={roleFilter} onValueChange={setRoleFilter}>
+                      <SelectTrigger className="w-40">
+                        <SelectValue placeholder="Filter by role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Roles</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="office_bearer">Office Bearer</SelectItem>
+                        <SelectItem value="student">Student</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Users Grid - Cards Layout */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {loading ? (
+                <div className="col-span-full text-center py-8">Loading users...</div>
+              ) : users.length === 0 ? (
+                <div className="col-span-full text-center py-8 text-muted-foreground">No users found</div>
+              ) : (
+                users
+                  .filter((user) => {
+                    const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      user.email.toLowerCase().includes(searchQuery.toLowerCase());
+                    const matchesRole = roleFilter === "all" || user.role === roleFilter;
+                    return matchesSearch && matchesRole;
+                  })
+                  .map((user) => (
+                    <Card key={user.id} className="border-border/50 hover:border-primary/50 transition-all hover:scale-105 bg-card">
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg">{user.name}</CardTitle>
+                          <Badge variant={getRoleBadgeColor(user.role)}>
+                            {user.role.replace('_', ' ').toUpperCase()}
+                          </Badge>
+                        </div>
+                        <CardDescription>{user.email}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="text-sm text-muted-foreground">
+                            Created: {new Date(user.created_at).toLocaleDateString()}
+                          </div>
+                          <div className="flex flex-col gap-2 pt-2">
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setFormData({
+                                    name: user.name,
+                                    email: user.email,
+                                    role: user.role,
+                                    password: ""
+                                  });
+                                  setShowEditDialog(true);
+                                }}
+                                className="gap-2 flex-1"
+                              >
+                                <Edit className="w-4 h-4" />
+                                Edit
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setShowDeleteDialog(true);
+                                }}
+                                className="gap-2 flex-1"
+                                disabled={user.role === 'admin'}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Remove
+                              </Button>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setShowSetPasswordDialog(true);
+                                }}
+                                className="gap-2 flex-1"
+                              >
+                                <Key className="w-4 h-4" />
+                                Set Password
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setShowResetDialog(true);
+                                }}
+                                className="gap-2 flex-1"
+                              >
+                                Reset
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+              )}
             </div>
-          </div>
-
-          {/* Filter Section */}
-          <Card className="gradient-card border-border/50 mb-6">
-            <CardContent className="pt-6">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                  <Input
-                    placeholder="Search users by name or email..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-muted-foreground" />
-                  <Select value={roleFilter} onValueChange={setRoleFilter}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Filter by role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Roles</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="office_bearer">Office Bearer</SelectItem>
-                      {/* SPOC role removed */}
-                      <SelectItem value="student">Student</SelectItem>
-                      <SelectItem value="alumni">Alumni</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Users Grid - Cards Layout */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {loading ? (
-              <div className="col-span-full text-center py-8">Loading users...</div>
-            ) : users.length === 0 ? (
-              <div className="col-span-full text-center py-8 text-muted-foreground">No users found</div>
-            ) : (
-              users
-                .filter((user) => {
-                  const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                       user.email.toLowerCase().includes(searchQuery.toLowerCase());
-                  const matchesRole = roleFilter === "all" || user.role === roleFilter;
-                  return matchesSearch && matchesRole;
-                })
-                .map((user) => (
-                <Card key={user.id} className="gradient-card border-border/50 hover:glow-primary transition-all hover:scale-105">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{user.name}</CardTitle>
-                      <Badge variant={getRoleBadgeColor(user.role)}>
-                        {user.role.replace('_', ' ').toUpperCase()}
-                      </Badge>
-                    </div>
-                    <CardDescription>{user.email}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="text-sm text-muted-foreground">
-                        Created: {new Date(user.created_at).toLocaleDateString()}
-                      </div>
-                      <div className="flex flex-col gap-2 pt-2">
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setFormData({
-                                name: user.name,
-                                email: user.email,
-                                role: user.role,
-                                password: ""
-                              });
-                              setShowEditDialog(true);
-                            }}
-                            className="gap-2 flex-1"
-                          >
-                            <Edit className="w-4 h-4" />
-                            Edit
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setShowDeleteDialog(true);
-                            }}
-                            className="gap-2 flex-1"
-                            disabled={user.role === 'admin'}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Remove
-                          </Button>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setShowSetPasswordDialog(true);
-                            }}
-                            className="gap-2 flex-1"
-                          >
-                            <Key className="w-4 h-4" />
-                            Set Password
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setShowResetDialog(true);
-                            }}
-                            className="gap-2 flex-1"
-                          >
-                            Reset
-                          </Button>
-                        </div>
-                        {(user.role === 'student' || user.role === 'office_bearer' || user.role === 'alumni') && (
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleManagePermissions(user)}
-                            className="gap-2 w-full"
-                          >
-                            <Shield className="w-4 h-4" />
-                            Manage Permission
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
           </div>
         </main>
       </div>
@@ -630,7 +565,6 @@ const ManageUsers = () => {
                 <SelectContent>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="office_bearer">Office Bearer</SelectItem>
-                  {/* SPOC role removed */}
                   <SelectItem value="student">Student</SelectItem>
                   <SelectItem value="alumni">Alumni</SelectItem>
                 </SelectContent>
@@ -669,7 +603,7 @@ const ManageUsers = () => {
           <DialogHeader>
             <DialogTitle>Set Password</DialogTitle>
             <DialogDescription>
-              {selectedUser && auth.getUser()?.id === selectedUser.id 
+              {selectedUser && auth.getUser()?.id === selectedUser.id
                 ? "Change your password. Enter your current password and new password."
                 : `Set password for ${selectedUser?.name}.`}
             </DialogDescription>
@@ -713,9 +647,9 @@ const ManageUsers = () => {
               />
             </div>
             <div className="flex gap-2 justify-end">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => {
                   setShowSetPasswordDialog(false);
                   setPasswordData({ oldPassword: "", newPassword: "", confirmPassword: "" });
@@ -878,6 +812,7 @@ const ManageUsers = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="text-center w-16">S.No</TableHead>
                         <TableHead>Name</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Role</TableHead>
@@ -886,6 +821,7 @@ const ManageUsers = () => {
                     <TableBody>
                       {importedUsers.map((user, index) => (
                         <TableRow key={user.id}>
+                          <TableCell className="text-center">{index + 1}</TableCell>
                           <TableCell className="font-medium">{user.name}</TableCell>
                           <TableCell>{user.email}</TableCell>
                           <TableCell>
@@ -904,7 +840,6 @@ const ManageUsers = () => {
                                 <SelectItem value="student">Student</SelectItem>
                                 <SelectItem value="office_bearer">Office Bearer</SelectItem>
                                 {/* SPOC role removed */}
-                                <SelectItem value="alumni">Alumni</SelectItem>
                               </SelectContent>
                             </Select>
                           </TableCell>
@@ -954,8 +889,8 @@ const ManageUsers = () => {
             }}>
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={handleDeleteUser}
               disabled={selectedUser?.role === 'admin'}
             >
@@ -965,108 +900,8 @@ const ManageUsers = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Replace User Dialog */}
-      <Dialog open={showReplaceDialog} onOpenChange={setShowReplaceDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Replace Existing User</DialogTitle>
-            <DialogDescription>
-              Find an existing user and replace them with new user data
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleReplaceUser} className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label htmlFor="oldEmail">Email of User to Replace *</Label>
-              <Input
-                id="oldEmail"
-                type="email"
-                value={replaceData.oldEmail}
-                onChange={(e) => setReplaceData({ ...replaceData, oldEmail: e.target.value })}
-                placeholder="Enter email of user to replace"
-                required
-              />
-              <p className="text-xs text-muted-foreground">
-                The old user account will be deleted
-              </p>
-            </div>
 
-            <div className="border-t pt-4">
-              <h3 className="font-semibold text-sm mb-4">New User Details</h3>
-              
-              <div className="space-y-2">
-                <Label htmlFor="newName">New Name *</Label>
-                <Input
-                  id="newName"
-                  value={replaceData.newName}
-                  onChange={(e) => setReplaceData({ ...replaceData, newName: e.target.value })}
-                  placeholder="Enter new name"
-                  required
-                />
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="newEmail">New Email *</Label>
-                <Input
-                  id="newEmail"
-                  type="email"
-                  value={replaceData.newEmail}
-                  onChange={(e) => setReplaceData({ ...replaceData, newEmail: e.target.value })}
-                  placeholder="Enter new email"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="newRole">New Role *</Label>
-                <Select 
-                  value={replaceData.newRole} 
-                  onValueChange={(value) => setReplaceData({ ...replaceData, newRole: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="office_bearer">Office Bearer</SelectItem>
-                    {/* SPOC role removed */}
-                    <SelectItem value="student">Student</SelectItem>
-                    <SelectItem value="alumni">Alumni</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="newPassword">New Password (Optional)</Label>
-                <Input
-                  id="newPassword"
-                  type="password"
-                  value={replaceData.newPassword}
-                  onChange={(e) => setReplaceData({ ...replaceData, newPassword: e.target.value })}
-                  placeholder="Leave empty for default password"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2 justify-end">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => {
-                  setShowReplaceDialog(false);
-                  setReplaceData({ oldEmail: "", newName: "", newEmail: "", newRole: "student", newPassword: "" });
-                }}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" variant="destructive">
-                Replace User
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      <Footer />
     </div>
   );
 };

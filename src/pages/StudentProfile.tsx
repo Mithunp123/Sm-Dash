@@ -5,32 +5,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import DeveloperCredit from "@/components/DeveloperCredit";
-import { ArrowLeft, Save, Upload, X, Camera, AlertCircle } from "lucide-react";
+import { ArrowLeft, Save, UserCircle, Camera, Settings, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 // Common departments list
 const DEPARTMENTS = [
-  "AI&DS",
-  "AIML",
-  "BIO-TECH",
-  "CIVIL",
-  "CSE",
-  "ECE",
-  "EEE",
-  "MECH",
-  "MCT",
-  "FOOT TECH",
-  "IT",
-  "TEXTILE",
-  "VLSI",
-  "CSBS",
-  "MBA",
-  "MCA"
+  "Artificial Intelligence and Data Science",
+  "Artificial Intelligence and Machine Learning",
+  "Biotechnology",
+  "Civil Engineering",
+  "Computer Science and Engineering",
+  "Electronics and Communication Engineering",
+  "Electrical and Electronics Engineering",
+  "Mechanical Engineering",
+  "Mechatronics Engineering",
+  "Food Technology",
+  "Information Technology",
+  "Textile Technology",
+  "Very Large Scale Integration Technology",
+  "Computer Science and Business Systems",
+  "Master of Business Administration",
+  "Master of Computer Applications"
 ];
 
 const StudentProfile = () => {
@@ -38,9 +36,9 @@ const StudentProfile = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profileData, setProfileData] = useState<Record<string, any>>({});
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string>("");
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [profilePicture, setProfilePicture] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Calculate age from DOB
   const age = useMemo(() => {
@@ -56,6 +54,83 @@ const StudentProfile = () => {
     return age;
   }, [profileData.dob]);
 
+  // Load profile picture from localStorage
+  useEffect(() => {
+    const user = auth.getUser();
+    if (user?.id) {
+      const savedPhoto = localStorage.getItem(`profile_photo_${user.id}`);
+      if (savedPhoto) {
+        setProfilePicture(savedPhoto);
+        // Also sync to auth user if not already there
+        if (!user.photo_url) {
+          auth.setUser({ ...user, photo_url: savedPhoto });
+          window.dispatchEvent(new CustomEvent('profileUpdated'));
+        }
+      }
+    }
+  }, []);
+
+  // Handle profile picture upload
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('File size must be less than 5MB');
+        return;
+      }
+
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please upload an image file');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        const user = auth.getUser();
+        if (user?.id) {
+          localStorage.setItem(`profile_photo_${user.id}`, base64String);
+          setProfilePicture(base64String);
+
+          // Update global auth user with new photo
+          auth.setUser({
+            ...user,
+            photo_url: base64String
+          });
+
+          // Refresh other components
+          window.dispatchEvent(new CustomEvent('profileUpdated'));
+
+          toast.success('Profile picture updated!');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle profile picture delete
+  const handlePhotoDelete = () => {
+    const user = auth.getUser();
+    if (user?.id) {
+      localStorage.removeItem(`profile_photo_${user.id}`);
+      setProfilePicture(null);
+
+      // Update global auth user - remove photo
+      auth.setUser({
+        ...user,
+        photo_url: undefined
+      });
+
+      // Refresh other components
+      window.dispatchEvent(new CustomEvent('profileUpdated'));
+
+      setShowDeleteConfirm(false);
+      toast.success('Profile picture removed');
+    }
+  };
+
   useEffect(() => {
     const checkAuth = () => {
       if (!auth.isAuthenticated()) {
@@ -65,14 +140,14 @@ const StudentProfile = () => {
       }
       if (!auth.hasRole('student')) {
         toast.error("Access denied. Student role required.");
-      navigate("/login");
+        navigate("/login");
         return false;
-    }
+      }
       return true;
     };
-    
+
     if (checkAuth()) {
-    loadProfile();
+      loadProfile();
     }
   }, []);
 
@@ -94,9 +169,6 @@ const StudentProfile = () => {
           name: currentUser.name || profileRes.profile.name || '',
           email: currentUser.email || profileRes.profile.email || ''
         });
-        if (profileRes.profile.photo_url) {
-          setPhotoPreview(profileRes.profile.photo_url);
-        }
       } else {
         // Initialize empty profile data with name and email
         setProfileData({
@@ -123,31 +195,6 @@ const StudentProfile = () => {
     }
   };
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select an image file');
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('File size must be less than 5MB');
-        return;
-      }
-      setPhotoFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleRemovePhoto = () => {
-    setPhotoFile(null);
-    setPhotoPreview('');
-    setProfileData({ ...profileData, photo_url: '' });
-  };
 
   const handleSaveProfile = async (e?: React.MouseEvent) => {
     e?.preventDefault();
@@ -160,36 +207,6 @@ const StudentProfile = () => {
         return;
       }
 
-      let photoUrl = profileData.photo_url || '';
-      
-      if (photoFile) {
-        const formData = new FormData();
-        formData.append('file', photoFile);
-        formData.append('userId', currentUser.id.toString());
-        
-        try {
-          const uploadRes = await fetch(
-            `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/upload-photo`,
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${auth.getToken()}`
-              },
-              body: formData
-            }
-          );
-          
-          const uploadData = await uploadRes.json();
-          if (uploadData.success) {
-            photoUrl = uploadData.photo_url;
-            setPhotoFile(null);
-            toast.success('Photo uploaded successfully!');
-          }
-        } catch (err: any) {
-          console.error('Photo upload failed:', err);
-          toast.error('Failed to upload photo: ' + (err.message || 'Unknown error'));
-        }
-      }
 
       // Update user name and email first
       if (profileData.name || profileData.email) {
@@ -223,7 +240,7 @@ const StudentProfile = () => {
               userId: currentUser.id,
               requesterId: currentUser.id
             });
-            
+
             if (updateUserRes.status === 403) {
               console.warn('User update forbidden (403) - This might be a permission issue. Continuing with profile update...');
               // Continue with profile update even if user update fails
@@ -263,14 +280,13 @@ const StudentProfile = () => {
         gender: profileData.gender || null,
         dob: profileData.dob || null,
         address: profileData.address || null,
-        hosteller_dayscholar: profileData.hosteller_dayscholar || null,
-        photo_url: photoUrl || null
+        hosteller_dayscholar: profileData.hosteller_dayscholar || null
       };
-      
+
       const res = await api.updateStudentProfile(currentUser.id, payload);
       if (res.success) {
         toast.success('Profile updated successfully!');
-        
+
         // Reload user data to get updated name/email
         try {
           const userRes = await api.getUser(currentUser.id);
@@ -287,7 +303,7 @@ const StudentProfile = () => {
         } catch (e) {
           console.error('Failed to reload user data:', e);
         }
-        
+
         try {
           // Reload profile to get updated data
           const profileRes = await api.getStudentProfile(currentUser.id);
@@ -301,38 +317,19 @@ const StudentProfile = () => {
             };
             setProfileData(updatedProfile);
 
-            // Also persist latest photo URL into auth user so header avatar updates after login
-            if (updatedProfile.photo_url) {
-              const currentAuthUser = auth.getUser();
-              if (currentAuthUser) {
-              auth.setUser({ 
-                  ...currentAuthUser,
-                  photo_url: updatedProfile.photo_url
-              });
-              }
-            }
-            
-              // Update photo preview after save
-              if (updatedProfile.photo_url || photoUrl) {
-                setPhotoPreview(updatedProfile.photo_url || photoUrl);
-              }
-            
+
             // Trigger dashboard reload by dispatching custom event
             window.dispatchEvent(new CustomEvent('profileUpdated'));
           } else {
             // If reload fails, keep current data
-            setProfileData({
-              ...profileData,
-              photo_url: photoUrl
-            });
+            setProfileData(profileData);
           }
+          setIsEditing(false);
         } catch (e) {
           console.error('Failed to refresh profile after save', e);
           // On error, preserve current data
-          setProfileData({
-            ...profileData,
-            photo_url: photoUrl
-          });
+          setProfileData(profileData);
+          setIsEditing(false);
         }
       } else {
         throw new Error(res.message || 'Failed to update profile');
@@ -346,44 +343,124 @@ const StudentProfile = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
+    <div className="flex-1 flex flex-col bg-transparent">
       <DeveloperCredit />
 
-      <main className="flex-1 p-4 md:p-8 bg-gradient-to-br from-background via-background to-muted/20 overflow-y-auto">
+      <main className="flex-1 p-2 md:p-4 bg-transparent overflow-y-auto">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-4 mb-8 animate-fade-in">
-            <Button 
-              variant="ghost" 
-              onClick={() => navigate("/student")} 
-              className="gap-2 hover:bg-primary/10 hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Dashboard
-            </Button>
-            <div className="flex items-center gap-4 flex-1 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 rounded-2xl p-4 border-2 border-primary/20 shadow-lg hover:shadow-xl transition-all duration-300">
-              <div className="flex-1">
-                <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-slide-in drop-shadow-lg">
-                  {profileData.name || 'My Profile'}
-                </h1>
-                <p className="text-muted-foreground mt-1 text-sm md:text-base animate-fade-in-delay flex items-center gap-2">
-                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                  {profileData.email || 'Update your profile information'}
-                </p>
+
+          {/* Hero Header Section with Profile Picture */}
+          <div className="mb-6 bg-white dark:bg-slate-900 border border-border rounded-lg p-6 shadow-sm relative overflow-hidden">
+            <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
+              {/* Profile Picture */}
+              <div className="relative group">
+                <input
+                  type="file"
+                  id="profile-photo-upload"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                />
+                <div className="w-24 h-24 rounded-full border-2 border-border bg-muted flex items-center justify-center overflow-hidden relative">
+                  {/* Avatar with initials or uploaded photo */}
+                  {profilePicture ? (
+                    <img
+                      src={profilePicture}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-primary/10">
+                      <span className="text-3xl font-semibold text-primary">
+                        {profileData.name ? profileData.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) : 'ME'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {/* Action buttons - Only visible when isEditing is true */}
+                {isEditing && (
+                  <div className="absolute bottom-0 right-0 flex gap-1">
+                    <label
+                      htmlFor="profile-photo-upload"
+                      className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm hover:bg-primary/90 cursor-pointer hover:scale-110 transition-transform"
+                      title={profilePicture ? "Change photo" : "Upload photo"}
+                    >
+                      <Camera className="w-4 h-4" />
+                    </label>
+                    {profilePicture && (
+                      <button
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="w-8 h-8 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-sm hover:bg-destructive/90 cursor-pointer hover:scale-110 transition-transform"
+                        title="Delete photo"
+                      >
+                        <span className="text-base font-bold">×</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Name and Email */}
+              <div className="flex-1 text-center md:text-left">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <h1 className="text-2xl font-semibold text-foreground mb-1">
+                      {profileData.name || 'My Profile'}
+                    </h1>
+                    <p className="text-sm text-muted-foreground">
+                      {profileData.email || 'Update your profile information'}
+                    </p>
+                    {profileData.dept && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {profileData.dept} {profileData.year ? `• ${profileData.year} Year` : ''}
+                      </p>
+                    )}
+                  </div>
+                  {!isEditing && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsEditing(true)}
+                      className="gap-2"
+                    >
+                      <Settings className="w-4 h-4" />
+                      Edit Profile
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
-          <Card className="gradient-card border-2 border-primary/30 hover:shadow-2xl transition-all duration-500 animate-fade-in bg-white/90 backdrop-blur-md relative overflow-hidden group">
-            {/* Decorative overlay - ignore pointer events so inputs below remain clickable */}
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
-            <CardHeader className="bg-gradient-to-r from-primary/15 via-accent/15 to-primary/15 border-b-2 border-primary/30 relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer pointer-events-none"></div>
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-accent to-primary pointer-events-none"></div>
-              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent text-center relative z-10 animate-slide-in drop-shadow-md">
+          {/* Delete Confirmation Dialog */}
+          {showDeleteConfirm && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-slate-900 rounded-lg p-6 max-w-sm w-full shadow-2xl">
+                <h3 className="text-xl font-bold mb-4">Delete Profile Picture?</h3>
+                <p className="text-muted-foreground mb-6">Are you sure you want to remove your profile picture?</p>
+                <div className="flex gap-3 justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowDeleteConfirm(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handlePhotoDelete}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <Card className="border border-border bg-white dark:bg-slate-900">
+            <CardHeader className="bg-muted/30 border-b border-border">
+              <CardTitle className="text-lg font-semibold text-foreground">
                 Profile Information
               </CardTitle>
-              <CardDescription className="text-base mt-3 text-center relative z-10 animate-fade-in-delay text-muted-foreground/80">
+              <CardDescription className="text-sm mt-1 text-muted-foreground">
                 Fill in your profile details. Fields marked as required must be completed.
               </CardDescription>
             </CardHeader>
@@ -393,50 +470,54 @@ const StudentProfile = () => {
               ) : (
                 <div className="space-y-6">
                   {/* Fixed Profile Fields - Centered */}
-                  <div className="space-y-5">
+                  <div className="space-y-4">
                     {/* Row 1: Name, Mail Id, Register No */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                      <div className="space-y-2 animate-slide-in-left group">
-                        <Label className="text-center block font-bold text-sm text-primary/80">Name</Label>
-                        <Input 
-                          value={profileData.name || ''} 
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-foreground">Name</Label>
+                        <Input
+                          value={profileData.name || ''}
                           onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                          className="text-center border-2 border-primary/20 hover:border-primary/50 focus:border-primary transition-all duration-300 hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 cursor-text"
+                          className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300  focus:ring-2 focus:ring-primary/20 cursor-text"
                           placeholder="Enter your name"
+                          disabled={!isEditing}
                         />
                       </div>
-                      <div className="space-y-2 animate-slide-in-right group">
-                        <Label className="text-center block font-bold text-sm text-primary/80">Mail Id</Label>
-                        <Input 
+                      <div className="space-y-2 ">
+                        <Label className="font-medium text-sm text-foreground">Mail Id</Label>
+                        <Input
                           type="email"
-                          value={profileData.email || ''} 
+                          value={profileData.email || ''}
                           onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                          className="text-center border-2 border-primary/20 hover:border-primary/50 focus:border-primary transition-all duration-300 hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 cursor-text"
+                          className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300  focus:ring-2 focus:ring-primary/20 cursor-text"
                           placeholder="Enter your email"
+                          disabled={!isEditing}
                         />
                       </div>
                       <div className="space-y-2 group">
-                        <Label className="text-center block font-bold text-sm text-primary/80">Register No</Label>
-                        <Input 
-                          value={profileData.register_no || ''} 
+                        <Label className="font-medium text-sm text-foreground">Register No</Label>
+                        <Input
+                          value={profileData.register_no || ''}
                           onChange={(e) => setProfileData({ ...profileData, register_no: e.target.value })}
                           placeholder="Enter register number"
-                          className="text-center border-2 border-primary/20 hover:border-primary/50 focus:border-primary transition-all duration-300 hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 cursor-text"
+                          className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300  focus:ring-2 focus:ring-primary/20 cursor-text"
+                          disabled={!isEditing}
                         />
                       </div>
                     </div>
 
                     {/* Row 2: Department, Year, Academic Year */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                      <div className="space-y-2 animate-slide-in-left group">
-                        <Label className="text-center block font-bold text-sm text-primary/80">Department</Label>
-                        <Select 
-                          value={profileData.dept || ""} 
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="space-y-2 ">
+                        <Label className="font-medium text-sm text-foreground">Department</Label>
+                        <Select
+                          value={profileData.dept || ""}
                           onValueChange={(val) => {
                             setProfileData({ ...profileData, dept: val });
                           }}
+                          disabled={!isEditing}
                         >
-                          <SelectTrigger className="text-center border-2 border-primary/20 hover:border-primary/50 focus:border-primary transition-all duration-300 hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 cursor-pointer w-full">
+                          <SelectTrigger className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300  focus:ring-2 focus:ring-primary/20 cursor-pointer w-full">
                             <SelectValue placeholder="Select department" />
                           </SelectTrigger>
                           <SelectContent>
@@ -447,14 +528,15 @@ const StudentProfile = () => {
                         </Select>
                       </div>
                       <div className="space-y-2 group">
-                        <Label className="text-center block font-bold text-sm text-primary/80">Year</Label>
-                        <Select 
-                          value={profileData.year || ""} 
+                        <Label className="font-medium text-sm text-foreground">Year</Label>
+                        <Select
+                          value={profileData.year || ""}
                           onValueChange={(val) => {
                             setProfileData({ ...profileData, year: val });
                           }}
+                          disabled={!isEditing}
                         >
-                          <SelectTrigger className="text-center border-2 border-primary/20 hover:border-primary/50 focus:border-primary transition-all duration-300 hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 cursor-pointer w-full">
+                          <SelectTrigger className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300  focus:ring-2 focus:ring-primary/20 cursor-pointer w-full">
                             <SelectValue placeholder="Select year" />
                           </SelectTrigger>
                           <SelectContent>
@@ -465,70 +547,75 @@ const StudentProfile = () => {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="space-y-2 animate-slide-in-right group">
-                        <Label className="text-center block font-bold text-sm text-primary/80">Academic Year</Label>
-                        <Input 
-                          value={profileData.academic_year || ''} 
+                      <div className="space-y-2 ">
+                        <Label className="font-medium text-sm text-foreground">Academic Year</Label>
+                        <Input
+                          value={profileData.academic_year || ''}
                           onChange={(e) => setProfileData({ ...profileData, academic_year: e.target.value })}
                           placeholder="e.g., 2024-2025"
-                          className="text-center border-2 border-primary/20 hover:border-primary/50 focus:border-primary transition-all duration-300 hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 cursor-text"
+                          className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300  focus:ring-2 focus:ring-primary/20 cursor-text"
+                          disabled={!isEditing}
                         />
                       </div>
                     </div>
 
                     {/* Row 3: Phone Number, Father Number, DOB */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div className="space-y-2 group">
-                        <Label className="text-center block font-bold text-sm text-primary/80">Phone Number</Label>
-                        <Input 
+                        <Label className="font-medium text-sm text-foreground">Phone Number</Label>
+                        <Input
                           type="tel"
-                          value={profileData.phone || ''} 
+                          value={profileData.phone || ''}
                           onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
                           placeholder="Enter mobile number"
-                          className="text-center border-2 border-primary/20 hover:border-primary/50 focus:border-primary transition-all duration-300 hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 cursor-text"
+                          className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300  focus:ring-2 focus:ring-primary/20 cursor-text"
+                          disabled={!isEditing}
                         />
                       </div>
                       <div className="space-y-2 group">
-                        <Label className="text-center block font-bold text-sm text-primary/80">Father Number</Label>
-                        <Input 
+                        <Label className="font-medium text-sm text-foreground">Father Number</Label>
+                        <Input
                           type="tel"
-                          value={profileData.father_number || ''} 
+                          value={profileData.father_number || ''}
                           onChange={(e) => setProfileData({ ...profileData, father_number: e.target.value })}
                           placeholder="Enter father's number"
-                          className="text-center border-2 border-primary/20 hover:border-primary/50 focus:border-primary transition-all duration-300 hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 cursor-text"
+                          className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300  focus:ring-2 focus:ring-primary/20 cursor-text"
+                          disabled={!isEditing}
                         />
                       </div>
                       <div className="space-y-2 group">
-                        <Label className="text-center block font-bold text-sm text-primary/80">DOB</Label>
-                        <Input 
+                        <Label className="font-medium text-sm text-foreground">DOB</Label>
+                        <Input
                           type="date"
-                          value={profileData.dob || ''} 
+                          value={profileData.dob || ''}
                           onChange={(e) => setProfileData({ ...profileData, dob: e.target.value })}
-                          className="text-center border-2 border-primary/20 hover:border-primary/50 focus:border-primary transition-all duration-300 hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                          className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300  focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                          disabled={!isEditing}
                         />
                       </div>
                     </div>
 
                     {/* Row 4: Age, Gender, Blood Group */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div className="space-y-2 group">
-                        <Label className="text-center block font-bold text-sm text-primary/80">Age</Label>
-                        <Input 
-                          value={age !== null ? `${age} years` : ''} 
+                        <Label className="font-medium text-sm text-foreground">Age</Label>
+                        <Input
+                          value={age !== null ? `${age} years` : ''}
                           disabled
-                          className="bg-gradient-to-r from-muted/60 to-muted/40 text-center border-2 border-primary/20 font-semibold shadow-sm cursor-not-allowed"
+                          className="bg-gradient-to-r from-muted/60 to-muted/40 border-2 border-border font-semibold shadow-sm cursor-not-allowed"
                           placeholder="Auto-calculated from DOB"
                         />
                       </div>
                       <div className="space-y-2 group">
-                        <Label className="text-center block font-bold text-sm text-primary/80">Gender</Label>
-                        <Select 
-                          value={profileData.gender || ""} 
+                        <Label className="font-medium text-sm text-foreground">Gender</Label>
+                        <Select
+                          value={profileData.gender || ""}
                           onValueChange={(val) => {
                             setProfileData({ ...profileData, gender: val });
                           }}
+                          disabled={!isEditing}
                         >
-                          <SelectTrigger className="text-center border-2 border-primary/20 hover:border-primary/50 focus:border-primary transition-all duration-300 hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 cursor-pointer w-full">
+                          <SelectTrigger className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300  focus:ring-2 focus:ring-primary/20 cursor-pointer w-full">
                             <SelectValue placeholder="Select gender" />
                           </SelectTrigger>
                           <SelectContent>
@@ -539,14 +626,15 @@ const StudentProfile = () => {
                         </Select>
                       </div>
                       <div className="space-y-2 group">
-                        <Label className="text-center block font-bold text-sm text-primary/80">Blood Group</Label>
-                        <Select 
-                          value={profileData.blood_group || ""} 
+                        <Label className="font-medium text-sm text-foreground">Blood Group</Label>
+                        <Select
+                          value={profileData.blood_group || ""}
                           onValueChange={(val) => {
                             setProfileData({ ...profileData, blood_group: val });
                           }}
+                          disabled={!isEditing}
                         >
-                          <SelectTrigger className="text-center border-2 border-primary/20 hover:border-primary/50 focus:border-primary transition-all duration-300 hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 cursor-pointer w-full">
+                          <SelectTrigger className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300  focus:ring-2 focus:ring-primary/20 cursor-pointer w-full">
                             <SelectValue placeholder="Select blood group" />
                           </SelectTrigger>
                           <SelectContent>
@@ -564,16 +652,17 @@ const StudentProfile = () => {
                     </div>
 
                     {/* Row 5: Hosteller/Dayscholar */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div className="space-y-2 group">
-                        <Label className="text-center block font-bold text-sm text-primary/80">Hosteller or Dayscholar</Label>
-                        <Select 
-                          value={profileData.hosteller_dayscholar || ""} 
+                        <Label className="font-medium text-sm text-foreground">Hosteller or Dayscholar</Label>
+                        <Select
+                          value={profileData.hosteller_dayscholar || ""}
                           onValueChange={(val) => {
                             setProfileData({ ...profileData, hosteller_dayscholar: val });
                           }}
+                          disabled={!isEditing}
                         >
-                          <SelectTrigger className="text-center border-2 border-primary/20 hover:border-primary/50 focus:border-primary transition-all duration-300 hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 cursor-pointer w-full">
+                          <SelectTrigger className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300  focus:ring-2 focus:ring-primary/20 cursor-pointer w-full">
                             <SelectValue placeholder="Select" />
                           </SelectTrigger>
                           <SelectContent>
@@ -586,37 +675,43 @@ const StudentProfile = () => {
 
                     {/* Address - Full Width */}
                     <div className="space-y-2 group">
-                      <Label className="text-center block font-bold text-sm text-primary/80">Address</Label>
-                      <Textarea 
-                        value={profileData.address || ''} 
+                      <Label className="font-medium text-sm text-foreground">Address</Label>
+                      <Textarea
+                        value={profileData.address || ''}
                         onChange={(e) => setProfileData({ ...profileData, address: e.target.value })}
                         placeholder="Enter address"
                         rows={4}
-                        className="text-center border-2 border-primary/20 hover:border-primary/50 focus:border-primary transition-all duration-300 hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 cursor-text resize-y"
+                        className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300  focus:ring-2 focus:ring-primary/20 cursor-text resize-y"
+                        disabled={!isEditing}
                       />
                     </div>
                   </div>
 
-                  <div className="flex gap-3 justify-center pt-6 border-t-2 border-border/50 animate-fade-in-delay">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => loadProfile()}
-                      disabled={saving}
-                      className="px-6 h-11 hover:bg-muted hover:scale-105 transition-all duration-200 hover:shadow-md"
-                    >
-                      Reset
-                    </Button>
-                    <Button 
-                      type="button"
-                      onClick={handleSaveProfile} 
-                      disabled={saving} 
-                      className="gap-2 px-8 h-11 bg-gradient-to-r from-primary via-accent to-primary hover:from-primary/90 hover:via-accent/90 hover:to-primary/90 text-white font-semibold shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 relative overflow-hidden group"
-                    >
-                      <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></span>
-                      <Save className="w-4 h-4 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
-                      <span className="relative z-10">{saving ? 'Saving...' : 'Save Profile'}</span>
-                    </Button>
-                  </div>
+                  {isEditing && (
+                    <div className="flex gap-3 justify-center pt-6 border-t-2 border-border/50 ">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          loadProfile();
+                          setIsEditing(false);
+                        }}
+                        disabled={saving}
+                        className="px-6 h-11 hover:bg-muted  transition-all duration-200 hover:shadow-md gap-2"
+                      >
+                        <X className="w-4 h-4" />
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={handleSaveProfile}
+                        disabled={saving}
+                        className="gap-2 px-8 h-11 bg-primary text-white font-semibold shadow-lg hover:shadow-2xl transition-all duration-300  relative overflow-hidden group"
+                      >
+                        <Save className="w-4 h-4 relative z-10  transition-transform duration-300" />
+                        <span className="relative z-10">{saving ? 'Saving...' : 'Save Profile'}</span>
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -624,7 +719,6 @@ const StudentProfile = () => {
         </div>
       </main>
 
-      <Footer />
     </div>
   );
 };

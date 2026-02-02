@@ -1,141 +1,271 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { auth } from "@/lib/auth";
-import { LogOut, Menu, X } from "lucide-react";
+import { LogOut, Menu, User, ChevronDown } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { useState } from "react";
-import Sidebar from "./Sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import NotificationBell from "./NotificationBell";
+import { motion } from "framer-motion";
 
-const Header = () => {
+interface HeaderProps {
+  onMenuClick?: () => void;
+  showMenuTrigger?: boolean;
+}
+
+const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  
   const isAuthenticated = auth.isAuthenticated();
-  const user = auth.getUser();
+  const [user, setUser] = useState(auth.getUser());
 
-  const isDashboard = location.pathname.startsWith("/admin") || 
-                     location.pathname.startsWith("/office-bearer") ||
-                     location.pathname.startsWith("/student");
-  
-  const isLandingPage = location.pathname === "/";
+  const isLandingPage = location.pathname === '/';
+  const isLoginPage = location.pathname === '/login';
 
-  // Sidebar is now shown by default on all dashboard routes (admin, office bearer, student)
-  // and there is no toggle button to hide it.
-  const [showAdminSidebar] = useState<boolean>(isDashboard);
-  
+  // Listen for profile updates to refresh header
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      setUser(auth.getUser());
+    };
+
+    window.addEventListener('profileUpdated', handleProfileUpdate);
+    return () => window.removeEventListener('profileUpdated', handleProfileUpdate);
+  }, []);
+
+  if (isLoginPage) return null;
+
   const handleLogout = () => {
     auth.logout();
     navigate("/login");
   };
 
+  // Get user initials for avatar fallback
+  const getInitials = (name: string) => {
+    if (!name) return "U";
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  // Get first name for greeting
+  const getFirstName = (name: string) => {
+    if (!name) return "User";
+    const firstName = name.trim().split(" ")[0];
+    return firstName.length > 12 ? firstName.substring(0, 12) + "..." : firstName;
+  };
+
   return (
-    <>
-    <header className="border-b-2 border-primary/20 bg-gradient-to-r from-[#0A192F] via-[#0f1a2e] to-[#121A26] backdrop-blur-md sticky top-0 z-50 shadow-xl h-[65px]">
-      <div className="container mx-auto px-4 md:px-6 h-full flex items-center">
-        <div className="flex items-center justify-between w-full gap-3">
-          <div className="flex items-center gap-2 md:gap-3 flex-shrink-0 min-w-0">
-            {/* KSRCT Logo/Brand */}
-            <div 
-              className="flex items-center gap-2 md:gap-3 cursor-pointer hover:opacity-90 transition-all group"
-              onClick={() => navigate("/")}
-            >
-                <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-primary/40 to-accent/30 rounded-xl flex items-center justify-center border-2 border-primary/50 overflow-hidden shadow-lg group-hover:shadow-xl group-hover:scale-105 transition-all">
-                <img 
-                  src="/Images/Picsart_23-05-18_16-47-20-287-removebg-preview.png" 
-                  alt="SM Volunteers Logo"
-                  className="w-full h-full object-contain p-1"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    if (target.nextElementSibling) {
-                      (target.nextElementSibling as HTMLElement).style.display = 'block';
-                    }
-                  }}
-                />
-                <span className="text-lg font-bold text-primary hidden">SM</span>
-              </div>
-              <div className="block min-w-0">
-                <div className="text-lg md:text-xl lg:text-2xl font-black drop-shadow-xl leading-tight">
-                  <span className="text-orange-500">SM</span> <span className="text-green-400">Volunteers</span>
-            </div>
-                <div className="text-xs md:text-sm font-bold text-white leading-tight truncate max-w-[200px] md:max-w-none">
-              K.S.Rangasamy College of Technology
-                </div>
-              </div>
-            </div>
-            {isAuthenticated && user?.name && (
-              <div className="hidden lg:flex flex-col min-w-[120px] text-white/90 leading-tight">
-                <span className="text-xs uppercase tracking-wide text-white/70">Welcome</span>
-                <span className="text-base font-semibold">
-                  {`Hi, ${(user.name.split(' ')[0] || user.name).trim()}!`}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Navigation */}
-          <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
-            {/* Show menu and user info when authenticated */}
-            {isAuthenticated && (
-              <>
-                {/* Notification Bell - Show for all authenticated users */}
-                <NotificationBell />
-                
-                {/* Sidebar toggle button removed - sidebar stays visible by default on dashboard */}
-                {user && (
-                  <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-white/15 to-white/10 border border-white/30 backdrop-blur-md shadow-lg">
-                    <Avatar key={(user as any).photo || (user as any).photo_url} className="w-8 h-8">
-                      <AvatarImage src={(user as any).photo || (user as any).photo_url || '/Images/original logo.png'} />
-                      <AvatarFallback>{((user?.name || '').split(' ').map(s => s[0]).slice(0,2).join('') || '?')}</AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm font-semibold text-white truncate max-w-[120px]">{user.name}</span>
-                    <span className="text-xs text-white/90 hidden xl:inline font-medium">
-                      ({user.role.replace('_', ' ')})
-                    </span>
-                  </div>
-                )}
-                {/* Hide the explicit Logout button on the public landing page to avoid
-                    showing a logged-in action on the marketing/landing screen. The
-                    top-right avatar/profile still indicates signed-in state. */}
-                {!isLandingPage && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleLogout}
-                    className="gap-2 border-orange-400 text-white bg-orange-500/20 hover:bg-orange-500/40 hover:text-white hover:border-orange-500 px-3 md:px-4 h-9 md:h-10 transition-all hover:scale-105 font-medium"
-                  >
-                    <LogOut className="w-4 h-4 md:w-5 md:h-5" />
-                    <span className="hidden md:inline text-sm">Logout</span>
-                  </Button>
-                )}
-              </>
-            )}
-
-            {/* Show Login button when not authenticated */}
-            {!isAuthenticated && (
-              <Button 
-                onClick={() => navigate("/login")}
-                className="gap-2 glow-primary hover:scale-105 transition-all bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white border-0 px-4 md:px-6 h-9 md:h-10 font-semibold shadow-lg hover:shadow-xl"
+    <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${isLandingPage
+      ? "bg-[#020617] border-b border-slate-800 shadow-2xl relative overflow-hidden"
+      : "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b"
+      }`}>
+      {/* Background Pattern for Landing Page Header */}
+      {isLandingPage && (
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <div className="absolute inset-0 dot-grid opacity-20"></div>
+          <div className="absolute top-0 left-1/4 w-1/2 h-full bg-blue-500/10 blur-[100px]"></div>
+        </div>
+      )}
+      <div className="max-w-7xl mx-auto relative z-10">
+        {!isAuthenticated ? (
+          /* Landing Page: Two-Row Layout */
+          <>
+            {/* Main Header Container: Logos and Navigation Menu */}
+            <div className="flex flex-row items-center justify-between gap-4 px-4 py-8 md:px-10 overflow-x-auto">
+              {/* SM Logo (Left) */}
+              <button
+                onClick={() => window.location.reload()}
+                className="hover:opacity-100 transition-opacity cursor-pointer relative group shrink-0 [perspective:1000px]"
               >
-                Login
+                <div className="absolute -inset-2 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
+                <motion.div
+                  animate={{ rotateY: 360 }}
+                  transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                  className="relative z-10"
+                  style={{ transformStyle: "preserve-3d" }}
+                >
+                  <img
+                    src="/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
+                    alt="SM Volunteers Logo"
+                    className="w-16 h-16 md:w-24 md:h-24 object-contain"
+                  />
+                  {/* Subtle Glow Effect during rotation */}
+                  <div className="absolute inset-0 rounded-full bg-primary/5 blur-md -z-10 animate-pulse"></div>
+                </motion.div>
+              </button>
+
+              {/* Center: Navigation Menu */}
+              <nav className="flex items-center justify-center gap-1 md:gap-2 flex-grow max-w-7xl overflow-hidden px-2">
+                {[
+                  { label: 'Home', id: 'top' },
+                  { label: 'About', id: 'about-section' },
+                  { label: 'Events', id: 'events-section' },
+                  { label: 'Awards', id: 'awards-section' },
+                  { label: 'Coordinators', id: 'coordinators-section' },
+                  { label: 'NGO', id: 'ngo-section' },
+                  { label: 'Contacts', id: 'contact-section' },
+                  { label: 'Register', id: 'register' },
+                  { label: 'Login', id: 'login' },
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    onClick={(e) => {
+                      if (item.id === 'top') {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      } else if (item.id === 'login') {
+                        window.location.href = '/login';
+                      } else if (item.id === 'register') {
+                        navigate('/volunteer-registration');
+                      } else {
+                        const element = document.getElementById(item.id);
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                      }
+                    }}
+                    className="whitespace-nowrap text-xs md:text-sm font-bold text-slate-300 hover:text-white hover:bg-white/10 px-3 md:px-4 py-2 rounded-lg transition-all uppercase tracking-tight"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </nav>
+
+              {/* KSRCT Logo (Right) */}
+              <div className="shrink-0 [perspective:1000px]">
+                <a
+                  href="https://ksrct.ac.in"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:opacity-100 transition-opacity cursor-pointer block relative group"
+                >
+                  <div className="absolute -inset-2 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
+                  <motion.div
+                    animate={{ rotateY: 360 }}
+                    transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                    style={{ transformStyle: "preserve-3d" }}
+                    className="relative z-10"
+                  >
+                    <img
+                      src="/images/Brand_logo.png"
+                      alt="KSRCT Brand Logo"
+                      className="w-16 h-16 md:w-24 md:h-24 object-contain"
+                    />
+                    {/* Subtle Glow Effect */}
+                    <div className="absolute inset-0 rounded-full bg-primary/5 blur-md -z-10 animate-pulse"></div>
+                  </motion.div>
+                </a>
+              </div>
+            </div>
+          </>
+        ) : (
+          /* Dashboard Layout (Single Row) */
+          <div className="flex h-16 items-center px-4 md:px-6">
+            {showMenuTrigger && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="mr-4 md:hidden"
+                onClick={onMenuClick}
+                aria-label="Toggle Menu"
+              >
+                <Menu className="h-5 w-5" />
               </Button>
             )}
+
+            <div className="flex-1 flex items-center gap-4">
+              <div className="font-semibold text-foreground md:hidden">
+                SM Volunteers
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <NotificationBell />
+              {user && (
+                <div className="hidden md:flex items-center gap-3 pl-3 border-l border-border/50">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="flex items-center gap-2 hover:bg-accent px-3 py-2 h-auto"
+                      >
+                        <Avatar className="h-8 w-8 border border-border">
+                          <AvatarImage
+                            src={user.photo_url || (user as any).photo}
+                            alt={user.name}
+                          />
+                          <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
+                            {getInitials(user.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col items-start">
+                          <span className="text-sm font-medium leading-none">
+                            Hi, {getFirstName(user.name)}
+                          </span>
+                          <span className="text-xs text-muted-foreground capitalize">
+                            {user.role?.replace('_', ' ')}
+                          </span>
+                        </div>
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuLabel>
+                        <div className="flex flex-col space-y-1">
+                          <p className="text-sm font-medium leading-none">{user.name}</p>
+                          <p className="text-xs leading-none text-muted-foreground">
+                            {user.email}
+                          </p>
+                        </div>
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => {
+                          const role = user.role;
+                          if (role === 'admin') navigate('/admin');
+                          else if (role === 'student') navigate('/student/profile');
+                          else if (role === 'office_bearer') navigate('/office-bearer/profile');
+                          else navigate('/');
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Profile</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={handleLogout}
+                        className="cursor-pointer text-destructive focus:text-destructive"
+                      >
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>Logout</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleLogout}
+                className="md:hidden text-muted-foreground hover:text-destructive"
+                title="Logout"
+              >
+                <LogOut className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </header>
-    {isAuthenticated && user && isDashboard && (
-      <>
-        {/* Sidebar - always visible on dashboard routes */}
-      <div className={`${showAdminSidebar ? 'translate-x-0' : '-translate-x-full'} fixed left-0 top-[65px] z-40 transition-transform duration-300 ease-in-out`}>
-          <div className="w-64 relative">
-          <Sidebar />
-        </div>
-      </div>
-      </>
-    )}
-    </>
   );
 };
 

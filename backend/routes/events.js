@@ -1,11 +1,43 @@
 import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import { getDatabase } from '../database/init.js';
-import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { authenticateToken, requireRole, requirePermission } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// GET all events with OD status for a student (if provided)
-router.get('/', authenticateToken, async (req, res) => {
+// Configure multer for event image uploads
+const eventImagesDir = path.join(process.cwd(), 'public', 'uploads', 'events');
+if (!fs.existsSync(eventImagesDir)) {
+  fs.mkdirSync(eventImagesDir, { recursive: true });
+}
+
+const eventImageStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, eventImagesDir),
+  filename: (req, file, cb) => {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, `event-${unique}${path.extname(file.originalname)}`);
+  }
+});
+
+const eventImageFilter = (req, file, cb) => {
+  const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  if (allowed.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only image files are allowed (JPEG, PNG, GIF, WebP)'));
+  }
+};
+
+const eventImageUpload = multer({
+  storage: eventImageStorage,
+  fileFilter: eventImageFilter,
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
+
+// GET all events - PUBLIC endpoint (no authentication required)
+router.get('/public', async (req, res) => {
   try {
     const db = getDatabase();
     const { year, month } = req.query; // Optional filter by year and month
@@ -26,7 +58,104 @@ router.get('/', authenticateToken, async (req, res) => {
       query = 'SELECT * FROM events WHERE strftime("%m", date) = ? ORDER BY date DESC';
       params = [monthPadded];
     }
-    
+
+    db.all(query, params, (err, events) => {
+      if (err) {
+        return res.status(500).json({ success: false, message: 'Database error', error: err.message });
+      }
+      res.json({ success: true, events: events || [] });
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error fetching events', error: error.message });
+  }
+});
+
+// GET all events with OD status for a student (if provided)
+router.get('/', authenticateToken, requirePermission('can_manage_events', { allowView: true }), async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { year, month } = req.query; // Optional filter by year and month
+    const userRole = req.user.role;
+    const userId = req.user.id;
+
+    // SPOC: Get assigned event IDs
+    let spocEventFilter = '';
+    let spocEventIds = [];
+
+    if (userRole === 'spoc') {
+      const assignments = await new Promise((resolve, reject) => {
+        db.all(
+          'SELECT event_id FROM spoc_event_assignments WHERE spoc_id = ?',
+          [userId],
+          (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows.map(r => r.event_id));
+          }
+        );
+      });
+
+      if (assignments.length === 0) {
+        return res.json({ success: true, events: [] });
+      }
+
+      spocEventIds = assignments;
+      const placeholders = spocEventIds.map(() => '?').join(',');
+      spocEventFilter = `AND e.id IN (${placeholders})`;
+    }
+
+    let query;
+    let params = [];
+
+    if (year && month) {
+      // SQLite: extract month with strftime('%m', date) which returns '01'..'12'
+      const monthPadded = String(month).padStart(2, '0');
+      query = `
+        SELECT e.*, 
+        (SELECT COUNT(*) FROM event_od WHERE event_id = e.id AND status = 'od') as od_count,
+        (SELECT COUNT(*) FROM event_od WHERE event_id = e.id AND status = 'absent') as absent_count,
+        (SELECT COUNT(*) FROM event_od WHERE event_id = e.id AND status = 'permission') as permission_count
+        FROM events e 
+        WHERE e.year = ? AND strftime("%m", e.date) = ? ${spocEventFilter}
+        ORDER BY e.date DESC
+      `;
+      params = [year, monthPadded, ...spocEventIds];
+    } else if (year) {
+      query = `
+        SELECT e.*, 
+        (SELECT COUNT(*) FROM event_od WHERE event_id = e.id AND status = 'od') as od_count,
+        (SELECT COUNT(*) FROM event_od WHERE event_id = e.id AND status = 'absent') as absent_count,
+        (SELECT COUNT(*) FROM event_od WHERE event_id = e.id AND status = 'permission') as permission_count
+        FROM events e 
+        WHERE e.year = ? ${spocEventFilter}
+        ORDER BY e.date DESC
+      `;
+      params = [year, ...spocEventIds];
+    } else if (month) {
+      const monthPadded = String(month).padStart(2, '0');
+      query = `
+        SELECT e.*, 
+        (SELECT COUNT(*) FROM event_od WHERE event_id = e.id AND status = 'od') as od_count,
+        (SELECT COUNT(*) FROM event_od WHERE event_id = e.id AND status = 'absent') as absent_count,
+        (SELECT COUNT(*) FROM event_od WHERE event_id = e.id AND status = 'permission') as permission_count
+        FROM events e 
+        WHERE strftime("%m", e.date) = ? ${spocEventFilter}
+        ORDER BY e.date DESC
+      `;
+      params = [monthPadded, ...spocEventIds];
+    } else {
+      // Default query if no filters
+      query = `
+        SELECT e.*, 
+        (SELECT COUNT(*) FROM event_od WHERE event_id = e.id AND status = 'od') as od_count,
+        (SELECT COUNT(*) FROM event_od WHERE event_id = e.id AND status = 'absent') as absent_count,
+        (SELECT COUNT(*) FROM event_od WHERE event_id = e.id AND status = 'permission') as permission_count
+        FROM events e 
+        WHERE 1=1 ${spocEventFilter}
+        ORDER BY e.date DESC
+      `;
+      params = spocEventIds;
+    }
+
     db.all(query, params, (err, events) => {
       if (err) {
         return res.status(500).json({ success: false, message: 'Database error', error: err.message });
@@ -139,7 +268,7 @@ router.get('/student-od/:userId', authenticateToken, async (req, res) => {
 });
 
 // Event members management (admin only) - MUST come before generic /:id route
-router.get('/:id/members', authenticateToken, requireRole('admin'), (req, res) => {
+router.get('/:id/members', authenticateToken, requirePermission('can_manage_events', { allowView: true }), (req, res) => {
   try {
     const db = getDatabase();
     const { id } = req.params;
@@ -160,7 +289,7 @@ router.get('/:id/members', authenticateToken, requireRole('admin'), (req, res) =
   }
 });
 
-router.post('/:id/members', authenticateToken, requireRole('admin'), (req, res) => {
+router.post('/:id/members', authenticateToken, requirePermission('can_manage_events', { requireEdit: true }), (req, res) => {
   try {
     const db = getDatabase();
     const { id } = req.params;
@@ -172,7 +301,7 @@ router.post('/:id/members', authenticateToken, requireRole('admin'), (req, res) 
     const params = [];
     userIds.forEach((uid) => { params.push(id, uid); });
     const sql = `INSERT OR IGNORE INTO event_members (event_id, user_id) VALUES ${placeholders}`;
-    db.run(sql, params, function(err) {
+    db.run(sql, params, function (err) {
       if (err) return res.status(500).json({ success: false, message: 'Database error', error: err.message });
       res.json({ success: true, added: this.changes });
     });
@@ -181,7 +310,7 @@ router.post('/:id/members', authenticateToken, requireRole('admin'), (req, res) 
   }
 });
 
-router.post('/:id/members/by-email', authenticateToken, requireRole('admin'), (req, res) => {
+router.post('/:id/members/by-email', authenticateToken, requirePermission('can_manage_events', { requireEdit: true }), (req, res) => {
   try {
     const db = getDatabase();
     const { id } = req.params;
@@ -213,7 +342,7 @@ router.post('/:id/members/by-email', authenticateToken, requireRole('admin'), (r
       const params = [];
       userIds.forEach((uid) => { params.push(id, uid); });
       const sql = `INSERT OR IGNORE INTO event_members (event_id, user_id) VALUES ${insertPlaceholders}`;
-      db.run(sql, params, function(insertErr) {
+      db.run(sql, params, function (insertErr) {
         if (insertErr) {
           return res.status(500).json({ success: false, message: 'Database error', error: insertErr.message });
         }
@@ -232,11 +361,11 @@ router.post('/:id/members/by-email', authenticateToken, requireRole('admin'), (r
   }
 });
 
-router.delete('/:id/members/:userId', authenticateToken, requireRole('admin'), (req, res) => {
+router.delete('/:id/members/:userId', authenticateToken, requirePermission('can_manage_events', { requireEdit: true }), (req, res) => {
   try {
     const db = getDatabase();
     const { id, userId } = req.params;
-    db.run('DELETE FROM event_members WHERE event_id = ? AND user_id = ?', [id, userId], function(err) {
+    db.run('DELETE FROM event_members WHERE event_id = ? AND user_id = ?', [id, userId], function (err) {
       if (err) return res.status(500).json({ success: false, message: 'Database error', error: err.message });
       if (this.changes === 0) return res.status(404).json({ success: false, message: 'Member not found' });
       res.json({ success: true, message: 'Member removed' });
@@ -246,9 +375,9 @@ router.delete('/:id/members/:userId', authenticateToken, requireRole('admin'), (
   }
 });
 
-// MARK OD for a student (admin only)
+// MARK OD for a student - requires edit permission
 // MUST come before generic /:id route
-router.post('/:eventId/od', authenticateToken, requireRole('admin'), (req, res) => {
+router.post('/:eventId/od', authenticateToken, requirePermission('can_manage_events', { requireEdit: true }), (req, res) => {
   try {
     const db = getDatabase();
     const { eventId } = req.params;
@@ -269,7 +398,7 @@ router.post('/:eventId/od', authenticateToken, requireRole('admin'), (req, res) 
         db.run(
           'UPDATE event_od SET status = ? WHERE event_id = ? AND user_id = ?',
           [status, eventId, userId],
-          function(err) {
+          function (err) {
             if (err) {
               return res.status(500).json({ success: false, message: 'Failed to update OD', error: err.message });
             }
@@ -281,7 +410,7 @@ router.post('/:eventId/od', authenticateToken, requireRole('admin'), (req, res) 
         db.run(
           'INSERT INTO event_od (event_id, user_id, status) VALUES (?, ?, ?)',
           [eventId, userId, status],
-          function(err) {
+          function (err) {
             if (err) {
               return res.status(500).json({ success: false, message: 'Failed to mark OD', error: err.message });
             }
@@ -295,14 +424,14 @@ router.post('/:eventId/od', authenticateToken, requireRole('admin'), (req, res) 
   }
 });
 
-// REMOVE OD record (admin only)
+// REMOVE OD record - requires edit permission
 // MUST come before generic /:id route
-router.delete('/:eventId/od/:userId', authenticateToken, requireRole('admin'), (req, res) => {
+router.delete('/:eventId/od/:userId', authenticateToken, requirePermission('can_manage_events', { requireEdit: true }), (req, res) => {
   try {
     const db = getDatabase();
     const { eventId, userId } = req.params;
 
-    db.run('DELETE FROM event_od WHERE event_id = ? AND user_id = ?', [eventId, userId], function(err) {
+    db.run('DELETE FROM event_od WHERE event_id = ? AND user_id = ?', [eventId, userId], function (err) {
       if (err) {
         return res.status(500).json({ success: false, message: 'Failed to remove OD', error: err.message });
       }
@@ -316,8 +445,86 @@ router.delete('/:eventId/od/:userId', authenticateToken, requireRole('admin'), (
   }
 });
 
+// ============================================
+// STUDENT EVENT REGISTRATION ENDPOINTS
+// MUST come BEFORE /:id route to avoid route conflicts
+// ============================================
+
+// GET - Get student's registered events
+router.get('/my-registrations', authenticateToken, requireRole('student'), async (req, res) => {
+  try {
+    const db = getDatabase();
+    const userId = req.user.id;
+
+    const registrations = await new Promise((resolve, reject) => {
+      db.all(
+        `SELECT 
+          er.id as registration_id,
+          er.registration_type,
+          er.status,
+          er.registered_at,
+          er.notes,
+          e.id as event_id,
+          e.title,
+          e.description,
+          e.date,
+          e.year,
+          e.image_url
+        FROM event_registrations er
+        JOIN events e ON er.event_id = e.id
+        WHERE er.user_id = ?
+        ORDER BY e.date DESC`,
+        [userId],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+
+    res.json({ success: true, registrations });
+  } catch (error) {
+    console.error('Get my registrations error:', error);
+    res.status(500).json({ success: false, message: 'Error fetching registrations', error: error.message });
+  }
+});
+
+// GET - Get all active events for students (with registration status)
+router.get('/active', authenticateToken, requireRole('student'), async (req, res) => {
+  try {
+    const db = getDatabase();
+    const userId = req.user.id;
+
+    // Get all events with registration status
+    const events = await new Promise((resolve, reject) => {
+      db.all(
+        `SELECT 
+          e.*,
+          er.id as registration_id,
+          er.registration_type,
+          er.status as registration_status,
+          er.registered_at
+        FROM events e
+        LEFT JOIN event_registrations er ON e.id = er.event_id AND er.user_id = ?
+        WHERE e.date >= date('now')
+        ORDER BY e.date ASC`,
+        [userId],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+
+    res.json({ success: true, events });
+  } catch (error) {
+    console.error('Get active events error:', error);
+    res.status(500).json({ success: false, message: 'Error fetching events', error: error.message });
+  }
+});
+
 // GET single event with OD details - GENERIC ROUTE (comes after specific routes)
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', authenticateToken, requirePermission('can_manage_events', { allowView: true }), async (req, res) => {
   try {
     const db = getDatabase();
     const { id } = req.params;
@@ -351,65 +558,133 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// CREATE event (admin only)
-router.post('/', authenticateToken, requireRole('admin'), (req, res) => {
+// CREATE event
+router.post('/', authenticateToken, requirePermission('can_manage_events', { requireEdit: true }), eventImageUpload.single('image'), (req, res) => {
   try {
     const db = getDatabase();
-    const { title, description, date, year, is_special_day } = req.body;
+    const { title, description, date, year, is_special_day, image_url, max_volunteers, volunteer_registration_deadline } = req.body;
+
+    console.log('📸 Event creation - File uploaded:', !!req.file, 'Image URL provided:', !!image_url);
+    if (req.file) {
+      console.log('📸 Uploaded file:', req.file.filename, 'Size:', req.file.size);
+    }
 
     if (!title || !date || !year) {
+      // Clean up uploaded file if validation fails
+      if (req.file) {
+        fs.unlink(req.file.path, (err) => { if (err) console.error('Error deleting file:', err); });
+      }
       return res.status(400).json({ success: false, message: 'Title, date, and year are required' });
     }
 
+    // If image was uploaded, use the uploaded file path, otherwise use provided image_url
+    let finalImageUrl = null;
+    if (req.file) {
+      // Priority: Use uploaded file
+      finalImageUrl = `/uploads/events/${req.file.filename}`;
+      console.log('✅ Using uploaded file:', finalImageUrl);
+    } else if (image_url && image_url.trim() !== '' && !image_url.startsWith('data:')) {
+      // Only use image_url if it's not a base64 data URL (i.e., it's an existing URL)
+      finalImageUrl = image_url;
+      console.log('✅ Using provided image_url:', finalImageUrl);
+    } else {
+      console.log('ℹ️ No image provided');
+    }
+
     db.run(
-      `INSERT INTO events (title, description, date, year, is_special_day, created_at)
-       VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-      [title, description || null, date, year, is_special_day ? 1 : 0],
-      function(err) {
+      `INSERT INTO events (title, description, date, year, is_special_day, image_url, max_volunteers, volunteer_registration_deadline, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [title, description || null, date, year, is_special_day ? 1 : 0, finalImageUrl, max_volunteers || null, volunteer_registration_deadline || null],
+      function (err) {
         if (err) {
+          // Clean up uploaded file on error
+          if (req.file) {
+            fs.unlink(req.file.path, (err) => { if (err) console.error('Error deleting file:', err); });
+          }
           return res.status(500).json({ success: false, message: 'Failed to create event', error: err.message });
         }
         res.json({ success: true, id: this.lastID, message: 'Event created successfully' });
       }
     );
   } catch (error) {
+    // Clean up uploaded file on error
+    if (req.file) {
+      fs.unlink(req.file.path, (err) => { if (err) console.error('Error deleting file:', err); });
+    }
     res.status(500).json({ success: false, message: 'Error creating event', error: error.message });
   }
 });
 
-// UPDATE event (admin only)
-router.put('/:id', authenticateToken, requireRole('admin'), (req, res) => {
+// UPDATE event
+router.put('/:id', authenticateToken, requirePermission('can_manage_events', { requireEdit: true }), eventImageUpload.single('image'), async (req, res) => {
   try {
     const db = getDatabase();
     const { id } = req.params;
-    const { title, description, date, year, is_special_day } = req.body;
+    const { title, description, date, year, is_special_day, image_url, max_volunteers, volunteer_registration_deadline } = req.body;
+
+    // Get existing event to delete old image if new one is uploaded
+    const existingEvent = await new Promise((resolve, reject) => {
+      db.get('SELECT image_url FROM events WHERE id = ?', [id], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+
+    // If new image uploaded, use it; otherwise keep existing or use provided image_url
+    let finalImageUrl = image_url;
+    if (req.file) {
+      // Delete old image if exists
+      if (existingEvent && existingEvent.image_url) {
+        const oldPath = path.join(process.cwd(), 'public', existingEvent.image_url);
+        fs.unlink(oldPath, (err) => { if (err && err.code !== 'ENOENT') console.error('Error deleting old image:', err); });
+      }
+      finalImageUrl = `/uploads/events/${req.file.filename}`;
+    } else if ((!image_url || image_url === '') && existingEvent) {
+      // Keep existing image if no new image and no image_url provided (or empty string)
+      finalImageUrl = existingEvent.image_url || '';
+    } else if (image_url) {
+      // Use provided image_url (could be empty string to remove image)
+      finalImageUrl = image_url;
+    }
 
     db.run(
-      `UPDATE events SET title = ?, description = ?, date = ?, year = ?, is_special_day = ?
+      `UPDATE events SET title = ?, description = ?, date = ?, year = ?, is_special_day = ?, image_url = ?, max_volunteers = ?, volunteer_registration_deadline = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`,
-      [title, description, date, year, is_special_day ? 1 : 0, id],
-      function(err) {
+      [title, description, date, year, is_special_day ? 1 : 0, finalImageUrl, max_volunteers || null, volunteer_registration_deadline || null, id],
+      function (err) {
         if (err) {
+          // Clean up uploaded file on error
+          if (req.file) {
+            fs.unlink(req.file.path, (err) => { if (err) console.error('Error deleting file:', err); });
+          }
           return res.status(500).json({ success: false, message: 'Failed to update event', error: err.message });
         }
         if (this.changes === 0) {
+          // Clean up uploaded file if event not found
+          if (req.file) {
+            fs.unlink(req.file.path, (err) => { if (err) console.error('Error deleting file:', err); });
+          }
           return res.status(404).json({ success: false, message: 'Event not found' });
         }
         res.json({ success: true, message: 'Event updated successfully' });
       }
     );
   } catch (error) {
+    // Clean up uploaded file on error
+    if (req.file) {
+      fs.unlink(req.file.path, (err) => { if (err) console.error('Error deleting file:', err); });
+    }
     res.status(500).json({ success: false, message: 'Error updating event', error: error.message });
   }
 });
 
-// DELETE event (admin only)
-router.delete('/:id', authenticateToken, requireRole('admin'), (req, res) => {
+// DELETE event
+router.delete('/:id', authenticateToken, requirePermission('can_manage_events', { requireEdit: true }), (req, res) => {
   try {
     const db = getDatabase();
     const { id } = req.params;
 
-    db.run('DELETE FROM events WHERE id = ?', [id], function(err) {
+    db.run('DELETE FROM events WHERE id = ?', [id], function (err) {
       if (err) {
         return res.status(500).json({ success: false, message: 'Failed to delete event', error: err.message });
       }
@@ -426,6 +701,401 @@ router.delete('/:id', authenticateToken, requireRole('admin'), (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error deleting event', error: error.message });
+  }
+});
+
+// POST - Register as volunteer for an event (public endpoint, no auth required)
+router.post('/:id/volunteers', async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { id } = req.params;
+    const { name, department, year, phone } = req.body;
+
+    if (!name || !phone) {
+      return res.status(400).json({ success: false, message: 'Name and phone number are required' });
+    }
+
+    // Validate event exists and get event details
+    const event = await new Promise((resolve, reject) => {
+      db.get('SELECT id, max_volunteers, volunteer_registration_deadline FROM events WHERE id = ?', [id], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+
+    if (!event) {
+      return res.status(404).json({ success: false, message: 'Event not found' });
+    }
+
+    // Check if registration deadline has passed
+    if (event.volunteer_registration_deadline) {
+      const deadline = new Date(event.volunteer_registration_deadline);
+      const now = new Date();
+      if (now > deadline) {
+        return res.status(400).json({
+          success: false,
+          message: 'Volunteer registration deadline has passed. Registration is closed.',
+          deadlinePassed: true
+        });
+      }
+    }
+
+    // Check if volunteer count limit reached
+    if (event.max_volunteers) {
+      const currentCount = await new Promise((resolve, reject) => {
+        db.get('SELECT COUNT(*) as count FROM event_volunteers WHERE event_id = ?', [id], (err, row) => {
+          if (err) reject(err);
+          else resolve(row?.count || 0);
+        });
+      });
+
+      if (currentCount >= event.max_volunteers) {
+        return res.status(400).json({
+          success: false,
+          message: `Volunteer registration is full. Maximum ${event.max_volunteers} volunteers allowed.`,
+          limitReached: true,
+          currentCount,
+          maxVolunteers: event.max_volunteers
+        });
+      }
+    }
+
+    // Check if volunteer already registered for this event (by phone number)
+    const normalizedPhone = phone.trim().replace(/[^0-9]/g, '');
+    const existingVolunteer = await new Promise((resolve, reject) => {
+      db.get(
+        'SELECT id, name, phone FROM event_volunteers WHERE event_id = ? AND phone = ?',
+        [id, normalizedPhone],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+
+    if (existingVolunteer) {
+      return res.status(400).json({
+        success: false,
+        message: 'You have already registered for this event. Each person can register only once per event.',
+        alreadyRegistered: true
+      });
+    }
+
+    // Insert volunteer registration
+    const result = await new Promise((resolve, reject) => {
+      db.run(
+        'INSERT INTO event_volunteers (event_id, name, department, year, phone) VALUES (?, ?, ?, ?, ?)',
+        [id, name.trim(), department?.trim() || null, year?.trim() || null, normalizedPhone],
+        function (err) {
+          if (err) reject(err);
+          else resolve({ lastID: this.lastID, changes: this.changes });
+        }
+      );
+    });
+
+    res.json({
+      success: true,
+      message: 'Volunteer registration submitted successfully',
+      volunteerId: result.lastID
+    });
+  } catch (error) {
+    console.error('Event volunteer registration error:', error);
+    res.status(500).json({ success: false, message: 'Error registering volunteer', error: error.message });
+  }
+});
+
+// GET - Get all volunteers registered for an event (admin only)
+router.get('/:id/volunteers', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { id } = req.params;
+
+    // Validate event exists
+    const event = await new Promise((resolve, reject) => {
+      db.get('SELECT id, title FROM events WHERE id = ?', [id], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+
+    if (!event) {
+      return res.status(404).json({ success: false, message: 'Event not found' });
+    }
+
+    // Get all volunteers for this event
+    const volunteers = await new Promise((resolve, reject) => {
+      db.all(
+        'SELECT id, name, department, year, phone, created_at FROM event_volunteers WHERE event_id = ? ORDER BY created_at DESC',
+        [id],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+
+    res.json({
+      success: true,
+      event: { id: event.id, title: event.title },
+      volunteers: volunteers,
+      count: volunteers.length
+    });
+  } catch (error) {
+    console.error('Get event volunteers error:', error);
+    res.status(500).json({ success: false, message: 'Error fetching volunteers', error: error.message });
+  }
+});
+
+// PUT - Update a volunteer registration (admin only)
+router.put('/:eventId/volunteers/:volunteerId', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { eventId, volunteerId } = req.params;
+    const { name, department, year, phone } = req.body;
+
+    if (!name || !phone) {
+      return res.status(400).json({ success: false, message: 'Name and phone number are required' });
+    }
+
+    // Check if volunteer exists
+    const volunteer = await new Promise((resolve, reject) => {
+      db.get('SELECT id FROM event_volunteers WHERE id = ? AND event_id = ?', [volunteerId, eventId], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+
+    if (!volunteer) {
+      return res.status(404).json({ success: false, message: 'Volunteer not found' });
+    }
+
+    // Check if phone number is already used by another volunteer for this event
+    const normalizedPhone = phone.trim().replace(/[^0-9]/g, '');
+    const existingVolunteer = await new Promise((resolve, reject) => {
+      db.get(
+        'SELECT id FROM event_volunteers WHERE event_id = ? AND phone = ? AND id != ?',
+        [eventId, normalizedPhone, volunteerId],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+
+    if (existingVolunteer) {
+      return res.status(400).json({
+        success: false,
+        message: 'Another volunteer with this phone number already exists for this event'
+      });
+    }
+
+    // Update volunteer
+    await new Promise((resolve, reject) => {
+      db.run(
+        'UPDATE event_volunteers SET name = ?, department = ?, year = ?, phone = ? WHERE id = ? AND event_id = ?',
+        [name.trim(), department?.trim() || null, year?.trim() || null, normalizedPhone, volunteerId, eventId],
+        function (err) {
+          if (err) reject(err);
+          else resolve({ changes: this.changes });
+        }
+      );
+    });
+
+    res.json({
+      success: true,
+      message: 'Volunteer updated successfully'
+    });
+  } catch (error) {
+    console.error('Update volunteer error:', error);
+    res.status(500).json({ success: false, message: 'Error updating volunteer', error: error.message });
+  }
+});
+
+// DELETE - Delete a volunteer registration (admin only)
+router.delete('/:eventId/volunteers/:volunteerId', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { eventId, volunteerId } = req.params;
+
+    // Check if volunteer exists
+    const volunteer = await new Promise((resolve, reject) => {
+      db.get('SELECT id FROM event_volunteers WHERE id = ? AND event_id = ?', [volunteerId, eventId], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+
+    if (!volunteer) {
+      return res.status(404).json({ success: false, message: 'Volunteer not found' });
+    }
+
+    // Delete volunteer
+    const result = await new Promise((resolve, reject) => {
+      db.run('DELETE FROM event_volunteers WHERE id = ? AND event_id = ?', [volunteerId, eventId], function (err) {
+        if (err) reject(err);
+        else resolve({ changes: this.changes });
+      });
+    });
+
+    res.json({
+      success: true,
+      message: 'Volunteer deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete volunteer error:', error);
+    res.status(500).json({ success: false, message: 'Error deleting volunteer', error: error.message });
+  }
+});
+
+// ============================================
+// STUDENT EVENT REGISTRATION ENDPOINTS
+// ============================================
+
+// POST - Student registers for an event
+router.post('/:id/register', authenticateToken, requireRole('student'), async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { id } = req.params;
+    const userId = req.user.id;
+    const { registration_type = 'volunteer', notes } = req.body;
+
+    // Validate event exists and is active
+    const event = await new Promise((resolve, reject) => {
+      db.get('SELECT id, title, date FROM events WHERE id = ?', [id], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+
+    if (!event) {
+      return res.status(404).json({ success: false, message: 'Event not found' });
+    }
+
+    // Check if already registered
+    const existing = await new Promise((resolve, reject) => {
+      db.get(
+        'SELECT id FROM event_registrations WHERE event_id = ? AND user_id = ?',
+        [id, userId],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: 'You have already registered for this event'
+      });
+    }
+
+    // Create registration
+    const result = await new Promise((resolve, reject) => {
+      db.run(
+        'INSERT INTO event_registrations (event_id, user_id, registration_type, notes) VALUES (?, ?, ?, ?)',
+        [id, userId, registration_type, notes || null],
+        function (err) {
+          if (err) reject(err);
+          else resolve({ lastID: this.lastID, changes: this.changes });
+        }
+      );
+    });
+
+    res.json({
+      success: true,
+      message: 'Successfully registered for event',
+      registrationId: result.lastID
+    });
+  } catch (error) {
+    console.error('Event registration error:', error);
+    res.status(500).json({ success: false, message: 'Error registering for event', error: error.message });
+  }
+});
+
+// GET - Get event registrations (Admin, Office Bearer, or assigned SPOC)
+router.get('/:id/registrations', authenticateToken, async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { id } = req.params;
+    const userRole = req.user.role;
+    const userId = req.user.id;
+
+    // Validate event exists
+    const event = await new Promise((resolve, reject) => {
+      db.get('SELECT id, title FROM events WHERE id = ?', [id], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+
+    if (!event) {
+      return res.status(404).json({ success: false, message: 'Event not found' });
+    }
+
+    // SPOC: Check if assigned to this event
+    if (userRole === 'spoc') {
+      const isAssigned = await new Promise((resolve, reject) => {
+        db.get(
+          'SELECT id FROM spoc_event_assignments WHERE event_id = ? AND spoc_id = ?',
+          [id, userId],
+          (err, row) => {
+            if (err) reject(err);
+            else resolve(!!row);
+          }
+        );
+      });
+
+      if (!isAssigned) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: You are not assigned to this event'
+        });
+      }
+    } else if (userRole !== 'admin' && userRole !== 'office_bearer') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Insufficient permissions'
+      });
+    }
+
+    // Get registrations with student details
+    const registrations = await new Promise((resolve, reject) => {
+      db.all(
+        `SELECT 
+          er.id,
+          er.registration_type,
+          er.status,
+          er.registered_at,
+          er.notes,
+          u.id as user_id,
+          u.name,
+          u.email,
+          sp.dept as department,
+          sp.year,
+          sp.phone
+        FROM event_registrations er
+        JOIN users u ON er.user_id = u.id
+        LEFT JOIN student_profiles sp ON u.id = sp.user_id
+        WHERE er.event_id = ?
+        ORDER BY er.registered_at DESC`,
+        [id],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+
+    res.json({
+      success: true,
+      event: { id: event.id, title: event.title },
+      registrations,
+      count: registrations.length
+    });
+  } catch (error) {
+    console.error('Get event registrations error:', error);
+    res.status(500).json({ success: false, message: 'Error fetching registrations', error: error.message });
   }
 });
 

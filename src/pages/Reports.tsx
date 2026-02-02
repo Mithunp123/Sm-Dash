@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import DeveloperCredit from '@/components/DeveloperCredit';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -8,13 +6,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { auth } from '@/lib/auth';
 import { useNavigate } from 'react-router-dom';
-import { Upload, FolderPlus, Folder, FileText, Trash2, ArrowLeft, Loader2 } from 'lucide-react';
+import { Upload, FolderPlus, Folder, FileText, Trash2, ArrowLeft, Loader2, Search, Edit } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 const API_ROOT = API_BASE.replace(/\/api\/?$/, '');
+const REPORT_TYPES = [
+  { value: 'MINUTES_OF_MEET', label: 'Minutes of Meet' },
+  { value: 'REPORT', label: 'Report' },
+  { value: 'PERMISSION_LETTER', label: 'Permission Letter' }
+];
 
 const Reports = () => {
   const navigate = useNavigate();
@@ -23,12 +29,21 @@ const Reports = () => {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [currentFolder, setCurrentFolder] = useState<number | null>(null);
-  
+
   // Folder creation state
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [folderName, setFolderName] = useState('');
   const [folderDescription, setFolderDescription] = useState('');
-  
+  const [folderCategory, setFolderCategory] = useState('REPORT');
+  const [customCategory, setCustomCategory] = useState('');
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [editingFolder, setEditingFolder] = useState<any | null>(null);
+  const [isFolderDisabled, setIsFolderDisabled] = useState(false);
+
+  const CATEGORIES = [
+    'TQI', 'BHUMI', 'SM', 'FORMAT', 'ATCHAYAM', 'CONTENT TEAM', 'REPORT'
+  ];
+
   // File upload state
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [fileTitle, setFileTitle] = useState('');
@@ -36,10 +51,19 @@ const Reports = () => {
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
   const [uploadDate, setUploadDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [uploadTime, setUploadTime] = useState<string>(new Date().toTimeString().slice(0, 5));
-  
+  const [activeType, setActiveType] = useState<string>('REPORT');
+
   // Filter state
-  const [yearFilter, setYearFilter] = useState<string>('');
-  const [monthFilter, setMonthFilter] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Auto-update time effect
+  useEffect(() => {
+    if (showUploadModal) {
+      const now = new Date();
+      setUploadDate(now.toISOString().split('T')[0]);
+      setUploadTime(now.toTimeString().slice(0, 5));
+    }
+  }, [showUploadModal]);
 
   useEffect(() => {
     if (!auth.isAuthenticated()) {
@@ -48,11 +72,11 @@ const Reports = () => {
     }
     loadFolders();
     loadFiles();
-  }, [currentFolder, yearFilter, monthFilter]);
+  }, [currentFolder, searchQuery, activeType]);
 
   const loadFolders = async () => {
     try {
-      const res = await fetch(`${API_BASE}/resources/folders`, {
+      const res = await fetch(`${API_BASE}/resources/folders?resource_type=${activeType}`, {
         headers: {
           Authorization: `Bearer ${auth.getToken()}`
         }
@@ -71,10 +95,8 @@ const Reports = () => {
     try {
       setLoading(true);
       const queryParams = new URLSearchParams();
-      queryParams.append('resource_type', 'REPORT');
-      if (yearFilter) queryParams.append('year', yearFilter);
-      if (monthFilter) queryParams.append('month', monthFilter);
-      
+      queryParams.append('resource_type', activeType);
+
       const res = await fetch(`${API_BASE}/resources?${queryParams.toString()}`, {
         headers: {
           Authorization: `Bearer ${auth.getToken()}`
@@ -98,41 +120,73 @@ const Reports = () => {
     }
   };
 
-  const handleCreateFolder = async () => {
+  const handleSaveFolder = async () => {
     if (!folderName.trim()) {
       toast.error('Folder name is required');
       return;
     }
+
+    const finalCategory = isAddingCategory ? customCategory.trim() : folderCategory;
+    if (isAddingCategory && !customCategory.trim()) {
+      toast.error('Please enter a custom category name');
+      return;
+    }
+
     try {
-      const res = await fetch(`${API_BASE}/resources/folders`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${auth.getToken()}`
-        },
-        body: JSON.stringify({
-          name: folderName.trim(),
-          description: folderDescription.trim() || null,
-          parent_id: currentFolder || null
-        })
-      });
+      const description = (isFolderDisabled ? '[DISABLED] ' : '') + folderDescription.trim();
+      let res;
+
+      if (editingFolder) {
+        res = await fetch(`${API_BASE}/resources/folders/${editingFolder.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${auth.getToken()}`
+          },
+          body: JSON.stringify({
+            name: folderName.trim(),
+            description: description || null,
+            category: activeType === 'REPORT' ? 'REPORT' : 'SM'
+          })
+        });
+      } else {
+        res = await fetch(`${API_BASE}/resources/folders`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${auth.getToken()}`
+          },
+          body: JSON.stringify({
+            name: folderName.trim(),
+            description: description || null,
+            parent_id: currentFolder || null,
+            resource_type: activeType,
+            category: activeType === 'REPORT' ? 'REPORT' : 'SM'
+          })
+        });
+      }
+
       const data = await res.json();
       if (data.success) {
-        toast.success('Folder created successfully!');
+        toast.success(editingFolder ? 'Folder updated successfully!' : 'Folder created successfully!');
         setShowFolderModal(false);
+        setEditingFolder(null);
         setFolderName('');
         setFolderDescription('');
+        setCustomCategory('');
+        setIsFolderDisabled(false);
+        setIsAddingCategory(false);
         loadFolders();
-        if (data.folder) {
+        if (data.folder && !editingFolder) {
           setCurrentFolder(data.folder.id);
           loadFiles();
         }
       } else {
-        toast.error(data.message || 'Failed to create folder');
+        toast.error(data.message || 'Operation failed');
       }
     } catch (err) {
       console.error(err);
-      toast.error('Failed to create folder');
+      toast.error('Operation failed');
     }
   };
 
@@ -177,24 +231,28 @@ const Reports = () => {
       toast.error('Please select a file');
       return;
     }
-    
+
     if (!fileTitle.trim()) {
       toast.error('Please enter a display name');
       return;
     }
-    
+
     setUploading(true);
     try {
+      const now = new Date();
+      const currentDate = now.toISOString().split('T')[0];
+      const currentTime = now.toTimeString().slice(0, 8);
+
       const fd = new FormData();
       fd.append('file', selectedFile);
       fd.append('title', fileTitle.trim());
-      fd.append('resource_type', 'REPORT');
-      fd.append('upload_date', uploadDate);
-      fd.append('upload_time', uploadTime + ':00'); // Add seconds
+      fd.append('resource_type', activeType);
+      fd.append('upload_date', uploadDate || currentDate);
+      fd.append('upload_time', (uploadTime || currentTime).length === 5 ? `${uploadTime || currentTime}:00` : (uploadTime || currentTime));
       if (selectedFolderId || currentFolder) {
         fd.append('folder_id', (selectedFolderId || currentFolder)!.toString());
       }
-      
+
       const res = await fetch(`${API_BASE}/resources`, {
         method: 'POST',
         headers: {
@@ -257,233 +315,314 @@ const Reports = () => {
     return folder?.name || 'Unknown';
   };
 
+  const activeTypeLabel = REPORT_TYPES.find((type) => type.value === activeType)?.label || 'Report';
+
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted/20">
-      <Header />
+    <div className="flex-1 flex flex-col bg-transparent">
       <DeveloperCredit />
 
-      <main className="flex-1 p-4 md:p-8 overflow-y-auto">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-4 mb-8">
-            <Button 
-              variant="ghost" 
-              onClick={() => {
-                const user = auth.getUser();
-                if (user?.role === 'admin') navigate('/admin');
-                else if (user?.role === 'office_bearer') navigate('/office-bearer');
-                else if (user?.role === 'student') navigate('/student');
-                else navigate('/');
-              }} 
-              className="gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </Button>
+      <main className="flex-1 p-4 md:p-8 bg-transparent w-full overflow-y-auto">
+        <div className="w-full">
+
+          {/* Page Header */}
+          <div className="mb-6 flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-primary">Reports</h1>
-              <p className="text-muted-foreground">Create folders and upload report files</p>
+              <h1 className="text-3xl font-semibold text-foreground mb-1">Reports</h1>
+              <p className="text-sm text-muted-foreground">Create folders and upload files by category</p>
             </div>
           </div>
 
-          {/* Filters and Action Buttons */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="flex gap-3 flex-1">
-              <div className="space-y-1">
-                <Label htmlFor="year-filter">Year</Label>
-                <Input
-                  id="year-filter"
-                  type="number"
-                  placeholder="e.g., 2024"
-                  value={yearFilter}
-                  onChange={(e) => setYearFilter(e.target.value)}
-                  className="w-32"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="month-filter">Month</Label>
-                <select
-                  id="month-filter"
-                  value={monthFilter}
-                  onChange={(e) => setMonthFilter(e.target.value)}
-                  className="w-40 px-3 py-2 border rounded-md"
-                >
-                  <option value="">All Months</option>
-                  <option value="01">January</option>
-                  <option value="02">February</option>
-                  <option value="03">March</option>
-                  <option value="04">April</option>
-                  <option value="05">May</option>
-                  <option value="06">June</option>
-                  <option value="07">July</option>
-                  <option value="08">August</option>
-                  <option value="09">September</option>
-                  <option value="10">October</option>
-                  <option value="11">November</option>
-                  <option value="12">December</option>
-                </select>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <Button 
-                onClick={() => setShowFolderModal(true)}
-                className="gap-2"
-              >
-                <FolderPlus className="w-4 h-4" />
-                Create Folder
-              </Button>
-              <Button 
-                onClick={() => setShowUploadModal(true)}
-                variant="outline"
-                className="gap-2"
-              >
-                <Upload className="w-4 h-4" />
-                Upload File
-              </Button>
-            </div>
-          </div>
-
-          {/* Breadcrumb */}
-          {currentFolder && (
-            <div className="mb-4 flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setCurrentFolder(null);
-                  loadFiles();
-                }}
-                className="gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Root
-              </Button>
-              <span className="text-muted-foreground">/</span>
-              <span className="font-medium">{getCurrentFolderName()}</span>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Folders Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Folders</CardTitle>
-                <CardDescription>Organize your reports</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="text-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Loading...</p>
-                  </div>
-                ) : folders.filter(f => (currentFolder ? f.parent_id === currentFolder : !f.parent_id)).length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">No folders</p>
-                ) : (
-                  <div className="space-y-2">
-                    {folders
-                      .filter(f => (currentFolder ? f.parent_id === currentFolder : !f.parent_id))
-                      .map((folder) => (
-                        <div
-                          key={folder.id}
-                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
-                          onClick={() => {
-                            setCurrentFolder(folder.id);
-                            loadFiles();
-                          }}
-                        >
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <Folder className="w-5 h-5 text-primary flex-shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <p className="font-medium truncate">{folder.name}</p>
-                              {folder.description && (
-                                <p className="text-xs text-muted-foreground truncate">{folder.description}</p>
-                              )}
-                            </div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteFolder(folder.id);
-                            }}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Files Section */}
-            <Card className="md:col-span-2">
-              <CardHeader>
-                <CardTitle>Files</CardTitle>
-                <CardDescription>Uploaded report files</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="text-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Loading...</p>
-                  </div>
-                ) : files.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">No files in this folder</p>
-                ) : (
-                  <div className="space-y-2">
-                    {files.map((file) => (
-                      <div
-                        key={file.id}
-                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors group"
+          <Tabs
+            value={activeType}
+            onValueChange={(val) => {
+              setActiveType(val);
+              setCurrentFolder(null);
+              setSelectedFolderId(null);
+            }}
+          >
+            <TabsContent value={activeType} className="mt-0">
+              {/* Filters and Action Buttons */}
+              <div className="flex flex-col md:flex-row gap-4 mb-6 items-center justify-between">
+                <div className="relative w-full md:w-96">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Input
+                    placeholder="Search files or folders..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <div className="flex gap-3">
+                  {!currentFolder ? (
+                    <Button
+                      onClick={() => {
+                        setEditingFolder(null);
+                        setFolderName('');
+                        setFolderDescription('');
+                        setIsFolderDisabled(false);
+                        setShowFolderModal(true);
+                      }}
+                      className="gap-2 bg-primary hover:bg-primary/90"
+                    >
+                      <FolderPlus className="w-4 h-4" />
+                      Create Folder
+                    </Button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => {
+                          setEditingFolder(null);
+                          setFolderName('');
+                          setFolderDescription('');
+                          setIsFolderDisabled(false);
+                          setShowFolderModal(true);
+                        }}
+                        variant="outline"
+                        className="gap-2"
                       >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <FileText className="w-5 h-5 text-primary flex-shrink-0" />
-                          <div className="min-w-0 flex-1">
-                            <p className="font-medium truncate">{file.title || file.original_name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {file.upload_date && file.upload_time 
-                                ? `${file.upload_date} ${file.upload_time}`
-                                : new Date(file.created_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => window.open(buildFileUrl(file), '_blank')}
-                          >
-                            View
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteFile(file.id)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        </div>
+                        <FolderPlus className="w-4 h-4" />
+                        Subfolder
+                      </Button>
+                      <Button
+                        onClick={() => setShowUploadModal(true)}
+                        className="gap-2 bg-primary hover:bg-primary/90"
+                      >
+                        <Upload className="w-4 h-4" />
+                        Upload File
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Breadcrumb */}
+              {currentFolder && (
+                <div className="mb-4 flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setCurrentFolder(null);
+                      loadFiles();
+                    }}
+                    className="gap-2"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    Back to Root
+                  </Button>
+                  <span className="text-muted-foreground">/</span>
+                  <span className="font-medium">{getCurrentFolderName()}</span>
+                </div>
+              )}
+
+              <div className="w-full">
+                {!currentFolder ? (
+                  /* Root View: Folders Grid */
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {loading ? (
+                      <div className="col-span-full text-center py-12">
+                        <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-primary" />
+                        <p className="text-muted-foreground">Loading folders...</p>
                       </div>
-                    ))}
+                    ) : folders.filter(f => {
+                      const matchesFolder = !f.parent_id;
+                      const matchesType = f.resource_type === activeType || f.resource_type === null;
+                      const matchesSearch = f.name.toLowerCase().includes(searchQuery.toLowerCase());
+                      return matchesFolder && matchesType && matchesSearch;
+                    }).length === 0 ? (
+                      <div className="col-span-full py-20 text-center border-2 border-dashed rounded-xl bg-card/30">
+                        <Folder className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+                        <p className="text-lg font-medium text-muted-foreground">No folders yet</p>
+                        <p className="text-sm text-muted-foreground mb-6">Create your first folder to start organizing reports</p>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setEditingFolder(null);
+                            setFolderName('');
+                            setFolderDescription('');
+                            setIsFolderDisabled(false);
+                            setShowFolderModal(true);
+                          }}
+                          className="gap-2"
+                        >
+                          <FolderPlus className="w-4 h-4" />
+                          Create Folder
+                        </Button>
+                      </div>
+                    ) : (
+                      folders
+                        .filter(f => {
+                          const matchesFolder = !f.parent_id;
+                          const matchesType = f.resource_type === activeType || f.resource_type === null;
+                          const matchesSearch = f.name.toLowerCase().includes(searchQuery.toLowerCase());
+                          return matchesFolder && matchesType && matchesSearch;
+                        })
+                        .map((folder) => (
+                          <Card
+                            key={folder.id}
+                            className={`group hover:border-primary/50 transition-all cursor-pointer hover:shadow-lg bg-card/50 backdrop-blur-sm ${folder.description?.includes('[DISABLED]') ? 'opacity-70 bg-red-50/10' : ''}`}
+                            onClick={() => {
+                              const isDisabled = folder.description?.includes('[DISABLED]');
+                              if (isDisabled && !auth.hasRole('admin')) {
+                                toast.error("This folder is disabled");
+                                return;
+                              }
+                              setCurrentFolder(folder.id);
+                              loadFiles();
+                            }}
+                          >
+                            <CardContent className="p-5">
+                              <div className="flex flex-col gap-3">
+                                <div className="flex items-start justify-between">
+                                  <div className={`p-2.5 rounded-lg transition-colors ${folder.description?.includes('[DISABLED]') && !auth.hasRole('admin') ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white'}`}>
+                                    <Folder className="w-6 h-6" />
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteFolder(folder.id);
+                                    }}
+                                    className="h-8 w-8 p-0 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                                <div className="space-y-1">
+                                  <h3 className="font-semibold text-lg truncate group-hover:text-primary transition-colors flex items-center gap-2">
+                                    {folder.name}
+                                    {folder.description?.includes('[DISABLED]') && <Badge variant="destructive" className="text-[10px] h-5">Disabled</Badge>}
+                                  </h3>
+                                  {folder.category && (
+                                    <span className="inline-block text-[10px] px-2 py-0.5 bg-primary/10 text-primary rounded-full font-bold uppercase tracking-wider border border-primary/20">
+                                      {folder.category}
+                                    </span>
+                                  )}
+                                  {folder.description && (
+                                    <p className="text-sm text-muted-foreground line-clamp-1">{folder.description.replace('[DISABLED]', '').trim()}</p>
+                                  )}
+                                </div>
+
+                                <div className="pt-2 border-t mt-2 flex justify-end">
+                                  {auth.hasRole('admin') && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingFolder(folder);
+                                        setFolderName(folder.name);
+                                        const isDisabled = folder.description?.includes('[DISABLED]');
+                                        setIsFolderDisabled(isDisabled);
+                                        setFolderDescription(folder.description ? folder.description.replace('[DISABLED]', '').trim() : '');
+                                        setShowFolderModal(true);
+                                      }}
+                                      className="h-6 text-xs gap-1 opacity-0 group-hover:opacity-100"
+                                    >
+                                      <Edit className="w-3 h-3" /> Edit
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))
+                    )}
                   </div>
+                ) : (
+                  /* Folder View: Files List */
+                  <Card className="bg-card/50 backdrop-blur-sm">
+                    <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
+                      <div className="space-y-1">
+                        <CardTitle className="text-xl">{getCurrentFolderName()}</CardTitle>
+                        <CardDescription>
+                          Viewing files in this folder
+                        </CardDescription>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      {loading ? (
+                        <div className="text-center py-20">
+                          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-primary" />
+                          <p className="text-muted-foreground">Loading files...</p>
+                        </div>
+                      ) : files.filter(f => (f.title || f.original_name).toLowerCase().includes(searchQuery.toLowerCase())).length === 0 ? (
+                        <div className="py-20 text-center">
+                          <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+                          <p className="text-lg font-medium text-muted-foreground">No files here</p>
+                          <p className="text-sm text-muted-foreground mb-6">Start by uploading a report to this folder</p>
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowUploadModal(true)}
+                            className="gap-2"
+                          >
+                            <Upload className="w-4 h-4" />
+                            Upload File
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="divide-y">
+                          {files
+                            .filter(f => (f.title || f.original_name).toLowerCase().includes(searchQuery.toLowerCase()))
+                            .map((file) => (
+                              <div
+                                key={file.id}
+                                className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors group"
+                              >
+                                <div className="flex items-center gap-4 flex-1 min-w-0">
+                                  <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                                    <FileText className="w-5 h-5" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                                      {file.title || file.original_name}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground font-medium">
+                                      {file.upload_date && file.upload_time
+                                        ? `${file.upload_date} • ${file.upload_time}`
+                                        : new Date(file.created_at).toLocaleDateString()}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => window.open(buildFileUrl(file), '_blank')}
+                                    className="h-8 rounded-full px-4"
+                                  >
+                                    View File
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeleteFile(file.id)}
+                                    className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 )}
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 
-      <Footer />
 
-      {/* Create Folder Dialog */}
+      {/* Create/Edit Folder Dialog */}
       <Dialog open={showFolderModal} onOpenChange={setShowFolderModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create New Folder</DialogTitle>
-            <DialogDescription>Create a folder to organize your reports</DialogDescription>
+            <DialogTitle>{editingFolder ? 'Edit Folder' : 'Create New Folder'}</DialogTitle>
+            <DialogDescription>{editingFolder ? 'Update folder details' : 'Create a folder to organize your reports'}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div className="space-y-2">
@@ -502,15 +641,27 @@ const Reports = () => {
                 value={folderDescription}
                 onChange={(e) => setFolderDescription(e.target.value)}
                 placeholder="Enter folder description"
-                rows={3}
+                rows={2}
               />
             </div>
+            {auth.hasRole('admin') && (
+              <div className="flex items-center space-x-2 py-2">
+                <Checkbox
+                  id="disable-folder-reports"
+                  checked={isFolderDisabled}
+                  onCheckedChange={(checked) => setIsFolderDisabled(checked as boolean)}
+                />
+                <Label htmlFor="disable-folder-reports" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  Disable Access for AAGALA (Office Bearers)
+                </Label>
+              </div>
+            )}
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setShowFolderModal(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreateFolder}>
-                Create Folder
+              <Button onClick={handleSaveFolder}>
+                {editingFolder ? 'Update Folder' : 'Create Folder'}
               </Button>
             </div>
           </div>
@@ -521,7 +672,7 @@ const Reports = () => {
       <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Upload Report File</DialogTitle>
+            <DialogTitle>Upload {activeTypeLabel} File</DialogTitle>
             <DialogDescription>Upload a file to the current folder</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
@@ -550,42 +701,48 @@ const Reports = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="upload-date">Upload Date *</Label>
+                <Label htmlFor="upload-date">Upload Date (Auto)</Label>
                 <Input
                   id="upload-date"
                   type="date"
                   value={uploadDate}
                   onChange={(e) => setUploadDate(e.target.value)}
+                  className="bg-muted/50"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="upload-time">Upload Time *</Label>
+                <Label htmlFor="upload-time">Upload Time (Auto)</Label>
                 <Input
                   id="upload-time"
                   type="time"
                   value={uploadTime}
                   onChange={(e) => setUploadTime(e.target.value)}
+                  className="bg-muted/50"
                   required
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="upload-folder">Upload to Folder (Optional)</Label>
-              <select
-                id="upload-folder"
-                value={selectedFolderId || currentFolder || ''}
-                onChange={(e) => setSelectedFolderId(e.target.value ? parseInt(e.target.value) : null)}
-                className="w-full px-3 py-2 border rounded-md"
-              >
-                <option value="">Root Folder</option>
-                {folders.map(folder => (
-                  <option key={folder.id} value={folder.id}>
-                    {folder.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {!currentFolder && (
+              <div className="space-y-2">
+                <Label htmlFor="upload-folder">Upload to Folder (Optional)</Label>
+                <select
+                  id="upload-folder"
+                  value={selectedFolderId || ''}
+                  onChange={(e) => setSelectedFolderId(e.target.value ? parseInt(e.target.value) : null)}
+                  className="w-full px-3 py-2 bg-background border border-input rounded-md text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
+                >
+                  <option value="">Root Folder</option>
+                  {folders
+                    .filter(f => f.resource_type === activeType || f.resource_type === null)
+                    .map(folder => (
+                      <option key={folder.id} value={folder.id}>
+                        {folder.name} {folder.category ? `(${folder.category})` : ''}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            )}
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => {
                 setShowUploadModal(false);
@@ -618,4 +775,3 @@ const Reports = () => {
 };
 
 export default Reports;
-

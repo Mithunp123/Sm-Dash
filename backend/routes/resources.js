@@ -3,7 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { getDatabase } from '../database/init.js';
-import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { authenticateToken, requireRole, requirePermission } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -46,7 +46,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({ storage, fileFilter, limits: { fileSize: 10 * 1024 * 1024 } });
 
 const all = (db, query, params = []) => new Promise((resolve, reject) => db.all(query, params, (err, rows) => err ? reject(err) : resolve(rows)));
-const run = (db, query, params = []) => new Promise((resolve, reject) => db.run(query, params, function(err) { if (err) reject(err); else resolve({ lastID: this.lastID, changes: this.changes }); }));
+const run = (db, query, params = []) => new Promise((resolve, reject) => db.run(query, params, function (err) { if (err) reject(err); else resolve({ lastID: this.lastID, changes: this.changes }); }));
 const get = (db, query, params = []) => new Promise((resolve, reject) => db.get(query, params, (err, row) => err ? reject(err) : resolve(row)));
 
 const resolvePublicBaseUrl = (req) => {
@@ -63,10 +63,26 @@ const resolvePublicBaseUrl = (req) => {
 };
 
 // List resource folders
-router.get('/folders', authenticateToken, async (req, res) => {
+router.get('/folders', authenticateToken, requirePermission('can_manage_resources', { allowView: true }), async (req, res) => {
   try {
     const db = getDatabase();
-    const folders = await all(db, 'SELECT id, name, description, parent_id, created_by, created_at FROM resource_folders ORDER BY name');
+    const resourceType = req.query.resource_type ? String(req.query.resource_type) : null;
+
+    let query = 'SELECT id, name, description, parent_id, created_by, resource_type, created_at FROM resource_folders';
+    const params = [];
+
+    if (resourceType) {
+      query += ' WHERE resource_type = ?';
+      params.push(resourceType);
+    } else {
+      // For backward compatibility, also include folders with NULL resource_type
+      query += ' WHERE (resource_type IS NULL OR resource_type != ?)';
+      params.push('REPORT');
+    }
+
+    query += ' ORDER BY name';
+
+    const folders = await all(db, query, params);
     res.json({ success: true, folders });
   } catch (error) {
     console.error('List folders error:', error);
@@ -75,16 +91,16 @@ router.get('/folders', authenticateToken, async (req, res) => {
 });
 
 // Create folder
-router.post('/folders', authenticateToken, requireRole('admin'), async (req, res) => {
+router.post('/folders', authenticateToken, requirePermission('can_manage_resources', { requireEdit: true }), async (req, res) => {
   try {
     const db = getDatabase();
-    const { name, description, parent_id } = req.body;
+    const { name, description, parent_id, resource_type } = req.body;
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, message: 'Folder name is required' });
     }
-    const result = await run(db, 
-      'INSERT INTO resource_folders (name, description, parent_id, created_by) VALUES (?, ?, ?, ?)',
-      [name.trim(), description || null, parent_id || null, req.user.id]
+    const result = await run(db,
+      'INSERT INTO resource_folders (name, description, parent_id, created_by, resource_type) VALUES (?, ?, ?, ?, ?)',
+      [name.trim(), description || null, parent_id || null, req.user.id, resource_type || null]
     );
     const folder = await get(db, 'SELECT * FROM resource_folders WHERE id = ?', [result.lastID]);
     res.json({ success: true, folder });
@@ -95,7 +111,7 @@ router.post('/folders', authenticateToken, requireRole('admin'), async (req, res
 });
 
 // Delete folder
-router.delete('/folders/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+router.delete('/folders/:id', authenticateToken, requirePermission('can_manage_resources', { requireEdit: true }), async (req, res) => {
   try {
     const db = getDatabase();
     const { id } = req.params;
@@ -112,8 +128,8 @@ router.delete('/folders/:id', authenticateToken, requireRole('admin'), async (re
   }
 });
 
-// List resources - authenticated users may view
-router.get('/', authenticateToken, async (req, res) => {
+// List resources
+router.get('/', authenticateToken, requirePermission('can_manage_resources', { allowView: true }), async (req, res) => {
   try {
     const db = getDatabase();
     // allow optional filtering by category, folder, resource_type, year, month via query param
@@ -124,11 +140,11 @@ router.get('/', authenticateToken, async (req, res) => {
     const excludeResourceType = req.query.exclude_resource_type ? String(req.query.exclude_resource_type) : null;
     const yearFilter = req.query.year ? String(req.query.year) : null;
     const monthFilter = req.query.month ? String(req.query.month) : null;
-    
+
     let baseQuery = 'SELECT id, filename, original_name, mime_type, path, title, resource_type, category, folder_id, uploaded_by, created_at, description, upload_date, upload_time FROM resources';
     const conditions = [];
     const params = [];
-    
+
     if (catFilter) {
       conditions.push('category = ?');
       params.push(catFilter);
@@ -155,12 +171,12 @@ router.get('/', authenticateToken, async (req, res) => {
       conditions.push('folder_id = ?');
       params.push(folderFilter);
     }
-    
+
     if (conditions.length > 0) {
       baseQuery += ' WHERE ' + conditions.join(' AND ');
     }
     baseQuery += ' ORDER BY COALESCE(upload_date, created_at) DESC, COALESCE(upload_time, "00:00:00") DESC';
-    
+
     const rows = await all(db, baseQuery, params);
 
     const publicBase = resolvePublicBaseUrl(req);
@@ -177,8 +193,8 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Upload resource - admin only
-router.post('/', authenticateToken, requireRole('admin'), upload.single('file'), async (req, res) => {
+// Upload resource
+router.post('/', authenticateToken, requirePermission('can_manage_resources', { requireEdit: true }), upload.single('file'), async (req, res) => {
   try {
     // Debug logging to help diagnose upload issues
     console.log('Resources upload request by user:', req.user ? { id: req.user.id, role: req.user.role, email: req.user.email } : 'no-user');
@@ -203,7 +219,7 @@ router.post('/', authenticateToken, requireRole('admin'), upload.single('file'),
     const title = (req.body && req.body.title && String(req.body.title).trim() !== '') ? req.body.title : originalname;
     const resourceType = (req.body && req.body.resource_type) ? String(req.body.resource_type).trim() : 'CONTENT TEAM';
     const category = (req.body && req.body.category) ? String(req.body.category).trim() : 'CONTENT TEAM';
-    
+
     // Handle upload date and time
     let uploadDate = null;
     let uploadTime = null;
@@ -219,7 +235,7 @@ router.post('/', authenticateToken, requireRole('admin'), upload.single('file'),
       const now = new Date();
       uploadTime = now.toTimeString().split(' ')[0]; // HH:MM:SS
     }
-    
+
     console.log('Uploaded file info:', { filename, originalname, mimetype, size, title, resourceType, category, uploadDate, uploadTime });
 
     const filePath = `/uploads/resources/${filename}`;
@@ -228,7 +244,7 @@ router.post('/', authenticateToken, requireRole('admin'), upload.single('file'),
     const result = await run(db, 'INSERT INTO resources (filename, original_name, mime_type, path, title, resource_type, category, folder_id, uploaded_by, upload_date, upload_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [filename, originalname, mimetype, filePath, title, resourceType, category, folderId, req.user.id, uploadDate, uploadTime]);
 
     // Read back the inserted row to include created_at, upload_date, upload_time
-  const saved = await get(db, 'SELECT id, filename, original_name, mime_type, path, title, resource_type, category, folder_id, uploaded_by, created_at, upload_date, upload_time FROM resources WHERE id = ?', [result.lastID]);
+    const saved = await get(db, 'SELECT id, filename, original_name, mime_type, path, title, resource_type, category, folder_id, uploaded_by, created_at, upload_date, upload_time FROM resources WHERE id = ?', [result.lastID]);
 
     res.json({ success: true, resource: saved });
   } catch (error) {
@@ -244,8 +260,8 @@ router.post('/', authenticateToken, requireRole('admin'), upload.single('file'),
   }
 });
 
-// Update a resource - admin only
-router.put('/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+// Update a resource
+router.put('/:id', authenticateToken, requirePermission('can_manage_resources', { requireEdit: true }), async (req, res) => {
   try {
     const db = getDatabase();
     const { id } = req.params;
@@ -291,8 +307,8 @@ router.put('/:id', authenticateToken, requireRole('admin'), async (req, res) => 
   }
 });
 
-// Delete a resource - admin only
-router.delete('/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+// Delete a resource
+router.delete('/:id', authenticateToken, requirePermission('can_manage_resources', { requireEdit: true }), async (req, res) => {
   try {
     const db = getDatabase();
     const id = req.params.id;

@@ -1,7 +1,10 @@
 import express from 'express';
 import { getDatabase } from '../database/init.js';
-import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { authenticateToken, requireRole, requirePermission } from '../middleware/auth.js';
 import { body, validationResult } from 'express-validator';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
 const router = express.Router();
 
@@ -25,28 +28,57 @@ const all = (db, query, params = []) => {
 
 const run = (db, query, params = []) => {
   return new Promise((resolve, reject) => {
-    db.run(query, params, function(err) {
+    db.run(query, params, function (err) {
       if (err) reject(err);
       else resolve({ lastID: this.lastID, changes: this.changes });
     });
   });
 };
 
-// Get all bills
-router.get('/', authenticateToken, async (req, res) => {
+// Initialize database schema for nested folders and files
+const initializeFolderSchema = () => {
+  const db = getDatabase();
+
+  // Add columns for nested folders and file storage if they don't exist
+  db.run(`ALTER TABLE bill_folders ADD COLUMN parent_folder_id INTEGER DEFAULT NULL`, () => { });
+  db.run(`ALTER TABLE bill_folders ADD COLUMN is_file BOOLEAN DEFAULT 0`, () => { });
+  db.run(`ALTER TABLE bill_folders ADD COLUMN file_path TEXT DEFAULT NULL`, () => { });
+  db.run(`ALTER TABLE bill_folders ADD COLUMN file_size INTEGER DEFAULT NULL`, () => { });
+  db.run(`ALTER TABLE bill_folders ADD COLUMN file_type TEXT DEFAULT NULL`, () => { });
+  db.run(`ALTER TABLE bill_folders ADD COLUMN file_name TEXT DEFAULT NULL`, () => { });
+};
+
+// Run initialization (commented out - run manually if needed or move to migration)
+// initializeFolderSchema();
+
+// Get all bills (optionally filtered by folder)
+router.get('/', authenticateToken, requirePermission('can_manage_bills', { allowView: true }), async (req, res) => {
   try {
     const db = getDatabase();
-    const bills = await all(db, `
+    const { folderId } = req.query;
+
+    const baseQuery = `
       SELECT b.*, 
              u1.name as submitted_by_name,
              u2.name as approved_by_name,
-             p.title as project_title
+             p.title as project_title,
+             bf.name as folder_name
       FROM bills b
       LEFT JOIN users u1 ON b.submitted_by = u1.id
       LEFT JOIN users u2 ON b.approved_by = u2.id
       LEFT JOIN projects p ON b.project_id = p.id
-      ORDER BY b.created_at DESC
-    `);
+      LEFT JOIN bill_folders bf ON b.folder_id = bf.id
+    `;
+
+    let whereClause = '';
+    const params = [];
+
+    if (folderId) {
+      whereClause = 'WHERE b.folder_id = ?';
+      params.push(folderId);
+    }
+
+    const bills = await all(db, `${baseQuery} ${whereClause} ORDER BY b.created_at DESC`, params);
 
     // Attach itemized entries for each bill (include transport from/to fields)
     for (const bill of bills) {
@@ -67,7 +99,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Create bill
-router.post('/', authenticateToken, [
+router.post('/', authenticateToken, requirePermission('can_manage_bills', { requireEdit: true }), [
   body('title').notEmpty().trim(),
   body('amount').optional().isFloat({ min: 0 })
 ], async (req, res) => {
@@ -87,9 +119,10 @@ router.post('/', authenticateToken, [
       totalAmount = parseFloat(amount) || 0;
     }
 
+    const folder_id = req.body.folder_id || null;
     const result = await run(db,
-      'INSERT INTO bills (title, amount, description, bill_date, project_id, submitted_by, bill_type, drive_link) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [title, totalAmount, description || null, bill_date || new Date().toISOString().split('T')[0], project_id || null, req.user.id, bill_type || null, drive_link || null]
+      'INSERT INTO bills (title, amount, description, bill_date, project_id, submitted_by, bill_type, drive_link, folder_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [title, totalAmount, description || null, bill_date || new Date().toISOString().split('T')[0], project_id || null, req.user.id, bill_type || null, drive_link || null, folder_id]
     );
 
     // Insert items if provided (support optional from/to for transport items)
@@ -108,8 +141,8 @@ router.post('/', authenticateToken, [
   }
 });
 
-// Update bill (owner or admin)
-router.put('/:id', authenticateToken, [
+// Update bill (owner or admin/edit-perm)
+router.put('/:id', authenticateToken, requirePermission('can_manage_bills', { requireEdit: true }), [
   body('title').optional().trim(),
   body('amount').optional().isFloat({ min: 0 })
 ], async (req, res) => {
@@ -141,6 +174,7 @@ router.put('/:id', authenticateToken, [
     if (req.body.amount !== undefined) { updates.push('amount = ?'); params.push(req.body.amount); }
     if (req.body.project_id !== undefined) { updates.push('project_id = ?'); params.push(req.body.project_id); }
     if (req.body.drive_link !== undefined) { updates.push('drive_link = ?'); params.push(req.body.drive_link); }
+    if (req.body.folder_id !== undefined) { updates.push('folder_id = ?'); params.push(req.body.folder_id || null); }
 
     // Handle items update separately if provided
     if (Array.isArray(req.body.items)) {
@@ -172,8 +206,8 @@ router.put('/:id', authenticateToken, [
   }
 });
 
-// Approve/Reject bill (Admin/Office Bearer only)
-router.put('/:id/approve', authenticateToken, requireRole('admin', 'office_bearer'), [
+// Approve/Reject bill
+router.put('/:id/approve', authenticateToken, requirePermission('can_manage_bills', { requireEdit: true }), [
   body('status').isIn(['approved', 'rejected'])
 ], async (req, res) => {
   try {
@@ -201,8 +235,8 @@ router.put('/:id/approve', authenticateToken, requireRole('admin', 'office_beare
   }
 });
 
-// Delete bill (owner or admin only)
-router.delete('/:id', authenticateToken, async (req, res) => {
+// Delete bill (owner or admin/edit-perm)
+router.delete('/:id', authenticateToken, requirePermission('can_manage_bills', { requireEdit: true }), async (req, res) => {
   try {
     const db = getDatabase();
     const bill = await get(db, 'SELECT * FROM bills WHERE id = ?', [req.params.id]);
@@ -223,6 +257,308 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     res.json({ success: true, message: 'Bill deleted successfully' });
   } catch (error) {
     console.error('Delete bill error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Bill folders endpoints
+// List folders (with optional parent filtering for nested structure)
+router.get('/folders', authenticateToken, requirePermission('can_manage_bills', { allowView: true }), async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { parent_id } = req.query;
+
+    let query = 'SELECT bf.*, u.name as created_by_name FROM bill_folders bf LEFT JOIN users u ON bf.created_by = u.id';
+    let params = [];
+
+    if (parent_id === '' || parent_id === 'null' || parent_id === undefined) {
+      // Get root level folders/files (parent_folder_id IS NULL)
+      query += ' WHERE bf.parent_folder_id IS NULL';
+    } else {
+      // Get children of specific folder
+      query += ' WHERE bf.parent_folder_id = ?';
+      params.push(parseInt(parent_id));
+    }
+
+    query += ' ORDER BY bf.is_file ASC, bf.name ASC'; // Folders first, then files
+
+    const folders = await all(db, query, params);
+    res.json({ success: true, folders });
+  } catch (error) {
+    console.error('Get bill folders error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Configure multer for folder file uploads
+const folderUpload = multer({
+  dest: path.join(process.cwd(), 'public', 'uploads', 'bills', 'tmp'),
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+});
+
+// Create folder with optional file uploads
+router.post('/folders', authenticateToken, requirePermission('can_manage_bills', { requireEdit: true }), folderUpload.array('files'), async (req, res) => {
+  try {
+    const { name, description, parent_folder_id } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ success: false, message: 'Folder name is required' });
+    }
+
+    const db = getDatabase();
+    const parentId = parent_folder_id ? parseInt(parent_folder_id) : null;
+
+    // Create the folder
+    const result = await run(db,
+      'INSERT INTO bill_folders (name, description, created_by, parent_folder_id, is_file) VALUES (?, ?, ?, ?, 0)',
+      [name, description || null, req.user.id, parentId]
+    );
+
+    const folderId = result.lastID;
+
+    // Handle file uploads if any
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const originalName = file.originalname;
+        const fileExt = path.extname(originalName);
+        const fileName = `${Date.now()}-${Math.round(Math.random() * 1E9)}${fileExt}`;
+
+        // Create folder path: /bills/{folderId}/
+        const folderPath = path.join(process.cwd(), 'public', 'uploads', 'bills', folderId.toString());
+        fs.mkdirSync(folderPath, { recursive: true });
+
+        const targetPath = path.join(folderPath, fileName);
+        fs.renameSync(file.path, targetPath);
+
+        const dbPath = `/uploads/bills/${folderId}/${fileName}`;
+
+        // Insert file record as a child of the folder
+        await run(db,
+          'INSERT INTO bill_folders (name, file_name, file_path, file_size, file_type, created_by, parent_folder_id, is_file) VALUES (?, ?, ?, ?, ?, ?, ?, 1)',
+          [originalName, originalName, dbPath, file.size, file.mimetype, req.user.id, folderId]
+        );
+      }
+    }
+
+    res.json({ success: true, message: 'Folder created', id: folderId });
+  } catch (error) {
+    console.error('Create bill folder error:', error);
+    // Cleanup uploaded files on error
+    if (req.files) {
+      req.files.forEach(f => {
+        if (fs.existsSync(f.path)) fs.unlinkSync(f.path);
+      });
+    }
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Update folder
+router.put('/folders/:id', authenticateToken, requirePermission('can_manage_bills', { requireEdit: true }), [
+  body('name').optional().trim()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
+    const { id } = req.params;
+    const { name, description } = req.body;
+    const db = getDatabase();
+    const existing = await get(db, 'SELECT id FROM bill_folders WHERE id = ?', [id]);
+    if (!existing) return res.status(404).json({ success: false, message: 'Folder not found' });
+    const updates = [];
+    const params = [];
+    if (name !== undefined) { updates.push('name = ?'); params.push(name); }
+    if (description !== undefined) { updates.push('description = ?'); params.push(description); }
+    if (updates.length === 0) return res.status(400).json({ success: false, message: 'No fields to update' });
+    params.push(id);
+    await run(db, `UPDATE bill_folders SET ${updates.join(', ')} WHERE id = ?`, params);
+    res.json({ success: true, message: 'Folder updated' });
+  } catch (error) {
+    console.error('Update bill folder error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Delete folder or file
+router.delete('/folders/:id', authenticateToken, requirePermission('can_manage_bills', { requireEdit: true }), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = getDatabase();
+    const existing = await get(db, 'SELECT * FROM bill_folders WHERE id = ?', [id]);
+    if (!existing) return res.status(404).json({ success: false, message: 'Folder/File not found' });
+
+    if (existing.is_file) {
+      // It's a file - delete the physical file
+      if (existing.file_path) {
+        const filePath = path.join(process.cwd(), 'public', existing.file_path);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      }
+      await run(db, 'DELETE FROM bill_folders WHERE id = ?', [id]);
+      res.json({ success: true, message: 'File deleted' });
+    } else {
+      // It's a folder - check for children
+      const children = await all(db, 'SELECT id FROM bill_folders WHERE parent_folder_id = ?', [id]);
+      const bills = await all(db, 'SELECT id FROM bills WHERE folder_id = ?', [id]);
+
+      if (children.length > 0 || bills.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Cannot delete folder with ${children.length} subfolders/files and ${bills.length} bills. Please move or delete them first.`
+        });
+      }
+
+      // Move bills to null folder (if any)
+      await run(db, 'UPDATE bills SET folder_id = NULL WHERE folder_id = ?', [id]);
+      await run(db, 'DELETE FROM bill_folders WHERE id = ?', [id]);
+      res.json({ success: true, message: 'Folder deleted' });
+    }
+  } catch (error) {
+    console.error('Delete bill folder error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Initialize bill_images table (commented out - causes server crash)
+// const db = getDatabase();
+// db.run(`CREATE TABLE IF NOT EXISTS bill_images (
+//   id INTEGER PRIMARY KEY AUTOINCREMENT,
+//   bill_id INTEGER NOT NULL,
+//   folder_name TEXT NOT NULL,
+//   image_path TEXT NOT NULL,
+//   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+//   FOREIGN KEY (bill_id) REFERENCES bills (id)
+// )`);
+
+// Configure multer (using temporary storage, we move files manually)
+const upload = multer({
+  dest: path.join(process.cwd(), 'public', 'uploads', 'tmp'),
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+});
+
+// Helper to sanitize folder names
+const sanitize = (name) => {
+  return name.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+};
+
+// Upload images to a bill
+router.post('/:id/images', authenticateToken, requirePermission('can_manage_bills', { requireEdit: true }), upload.array('images'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { folderName } = req.body; // "Image Name" provided by user
+
+    if (!folderName) {
+      return res.status(400).json({ success: false, message: 'Image folder name is required' });
+    }
+
+    const db = getDatabase();
+
+    // 1. Get Bill & Parent Folder Info
+    const bill = await get(db, `
+      SELECT b.title, bf.name as parent_folder_name 
+      FROM bills b
+      LEFT JOIN bill_folders bf ON b.folder_id = bf.id
+      WHERE b.id = ?
+    `, [id]);
+
+    if (!bill) {
+      return res.status(404).json({ success: false, message: 'Bill not found' });
+    }
+
+    // 2. Construct Paths
+    // Root: public/uploads/bills
+    // Path: {Root}/{ParentFolder}/{BillTitle}/{ImageFolderName}/
+
+    const parentFolder = bill.parent_folder_name ? sanitize(bill.parent_folder_name) : 'unsorted';
+    const billFolder = sanitize(bill.title);
+    const imageFolder = sanitize(folderName);
+
+    const relativePath = path.join('bills', parentFolder, billFolder, imageFolder);
+    const absolutePath = path.join(process.cwd(), 'public', 'uploads', relativePath);
+
+    // 3. Create Directory
+    fs.mkdirSync(absolutePath, { recursive: true });
+
+    // 4. Move Files & Insert Records
+    const savedImages = [];
+
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const ext = path.extname(file.originalname);
+        const filename = `${Date.now()}-${Math.round(Math.random() * 1E9)}${ext}`;
+        const targetPath = path.join(absolutePath, filename);
+
+        // Move file
+        fs.renameSync(file.path, targetPath);
+
+        // Save relative path for DB
+        const dbPath = `/uploads/${relativePath.replace(/\\/g, '/')}/${filename}`;
+
+        await run(db, `
+          INSERT INTO bill_images (bill_id, folder_name, image_path)
+          VALUES (?, ?, ?)
+        `, [id, folderName, dbPath]); // Store original display name for folder? Or sanitized? 
+        // Request says "Image path stored in DB must include: Folder -> Bill -> ImageFolder -> ImageFile".
+        // We stored the path. We also store `folder_name` (user visible) for display.
+
+        savedImages.push(dbPath);
+      }
+    }
+
+    res.json({ success: true, message: 'Images uploaded successfully', images: savedImages });
+  } catch (error) {
+    console.error('Upload bill images error:', error);
+    // Cleanup tmp files if error
+    if (req.files) {
+      req.files.forEach(f => {
+        if (fs.existsSync(f.path)) fs.unlinkSync(f.path);
+      });
+    }
+    res.status(500).json({ success: false, message: 'Server error during upload' });
+  }
+});
+
+// Get images for a bill
+router.get('/:id/images', authenticateToken, requirePermission('can_manage_bills', { allowView: true }), async (req, res) => {
+  try {
+    const db = getDatabase();
+    const images = await all(db, 'SELECT * FROM bill_images WHERE bill_id = ? ORDER BY created_at DESC', [req.params.id]);
+    res.json({ success: true, images });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Delete an image
+router.delete('/images/:imageId', authenticateToken, requirePermission('can_manage_bills', { requireEdit: true }), async (req, res) => {
+  try {
+    const db = getDatabase();
+    const image = await get(db, 'SELECT * FROM bill_images WHERE id = ?', [req.params.imageId]);
+
+    if (!image) {
+      return res.status(404).json({ success: false, message: 'Image not found' });
+    }
+
+    // Verify ownership via bill
+    const bill = await get(db, 'SELECT submitted_by FROM bills WHERE id = ?', [image.bill_id]);
+    if (req.user.role !== 'admin' && bill.submitted_by !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+
+    // Delete file
+    const fsPath = path.join(process.cwd(), 'public', image.image_path);
+    if (fs.existsSync(fsPath)) {
+      fs.unlinkSync(fsPath);
+    }
+
+    // Check if folder is empty? The user requested "Allow deleting image or entire image folder".
+    // For now just delete record.
+    await run(db, 'DELETE FROM bill_images WHERE id = ?', [req.params.imageId]);
+
+    res.json({ success: true, message: 'Image deleted' });
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });

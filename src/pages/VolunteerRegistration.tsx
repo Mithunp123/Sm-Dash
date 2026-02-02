@@ -5,42 +5,65 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import { Textarea } from "@/components/ui/textarea";
 import DeveloperCredit from "@/components/DeveloperCredit";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
+
+// Common departments list (same as Student Profile)
+const DEPARTMENTS = [
+  "Artificial Intelligence and Data Science",
+  "Artificial Intelligence and Machine Learning",
+  "Biotechnology",
+  "Civil Engineering",
+  "Computer Science and Engineering",
+  "Electronics and Communication Engineering",
+  "Electrical and Electronics Engineering",
+  "Mechanical Engineering",
+  "Mechatronics Engineering",
+  "Food Technology",
+  "Information Technology",
+  "Textile Technology",
+  "Very Large Scale Integration Technology",
+  "Computer Science and Business Systems",
+  "Master of Business Administration",
+  "Master of Computer Applications"
+];
+
+const BLOOD_GROUPS = [
+  "A+",
+  "A-",
+  "B+",
+  "B-",
+  "AB+",
+  "AB-",
+  "O+",
+  "O-"
+];
 
 const VolunteerRegistration = () => {
   const navigate = useNavigate();
-  // signature upload instead of canvas
-  const [signatureFile, setSignatureFile] = useState<File | null>(null);
-  const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
-  const [signatureCollected, setSignatureCollected] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    register_no: "",
     year: "",
     department: "",
-    category: "",
-    registration_date: new Date().toISOString().split('T')[0],
+    phone: "",
+    parent_phone: "",
+    address: "",
+    dob: "",
+    blood_group: "",
+    skills: "",
+    experience: "",
+    registration_date: new Date().toISOString().split("T")[0],
     terms_accepted: false,
   });
 
   const [loading, setLoading] = useState(false);
-
-  const categories = [
-    "Event Management",
-    "Content Creation",
-    "Community Outreach",
-    "Fundraising",
-    "Technical Support",
-    "Mentoring",
-    "Administration",
-    "Other"
-  ];
 
   const handleInputChange = (e: any) => {
     const { name, value } = e.target;
@@ -50,49 +73,24 @@ const VolunteerRegistration = () => {
     }));
   };
 
-  const handleSelectChange = (value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      category: value
-    }));
-  };
-
-  const handleSignatureFile = (file?: File) => {
-    if (!file) return;
-    const allowed = ["image/png", "image/jpeg", "image/jpg"];
-    if (!allowed.includes(file.type)) {
-      toast.error("Please upload a PNG or JPEG image for signature");
-      return;
-    }
-    if (file.size > 1024 * 1024 * 2) { // 2MB limit
-      toast.error("Signature file too large (max 2MB)");
-      return;
-    }
-    setSignatureFile(file);
-    const reader = new FileReader();
-    reader.onload = () => {
-      setSignaturePreview(reader.result as string);
-      setSignatureCollected(true);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const clearSignature = () => {
-    setSignatureFile(null);
-    setSignaturePreview(null);
-    setSignatureCollected(false);
-  };
-
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.email || !formData.year || !formData.department || !formData.category) {
+    if (
+      !formData.name ||
+      !formData.email ||
+      !formData.register_no ||
+      !formData.year ||
+      !formData.department ||
+      !formData.phone ||
+      !formData.parent_phone ||
+      !formData.address ||
+      !formData.dob ||
+      !formData.blood_group ||
+      !formData.skills ||
+      !formData.experience
+    ) {
       toast.error("All fields are required");
-      return;
-    }
-
-    if (!signatureCollected) {
-      toast.error("Please provide your signature");
       return;
     }
 
@@ -104,42 +102,39 @@ const VolunteerRegistration = () => {
     try {
       setLoading(true);
 
-      const signature = signaturePreview || null;
-
       const payload = {
         name: formData.name,
         email: formData.email,
+        register_no: formData.register_no,
         year: formData.year,
         department: formData.department,
-        category: formData.category,
-        registration_date: formData.registration_date,
-        signature: signature,
+        phone: formData.phone,
+        parent_phone: formData.parent_phone,
+        address: formData.address,
+        dob: formData.dob,
+        blood_group: formData.blood_group,
+        skills: formData.skills,
+        experience: formData.experience,
       };
 
-      // Save submission to localStorage so admin can review
-      try {
-        const existingJson = localStorage.getItem('volunteer_submissions');
-        const existing = existingJson ? JSON.parse(existingJson) : [];
-        const submission = {
-          id: Date.now(),
-          ...payload,
-          status: 'pending',
-          created_at: new Date().toISOString(),
-        };
-        existing.unshift(submission);
-        localStorage.setItem('volunteer_submissions', JSON.stringify(existing));
-        // Trigger notification update
-        window.dispatchEvent(new Event('volunteerSubmission'));
-        console.log('✅ Submission saved to localStorage:', submission);
-        console.log('📊 Total submissions now:', existing.length);
-      } catch (e) {
-        console.error('❌ Failed to save submission locally', e);
-      }
+      // Call API to create/update student account
+      const response = await api.volunteerRegister(payload);
 
-      toast.success("Successfully registered as a volunteer! ✅");
-      setTimeout(() => {
-        navigate("/");
-      }, 1200);
+      if (response.success) {
+        if (response.isNewUser) {
+          toast.success("Successfully registered! Student account created. Default password: SMV@123", {
+            duration: 5000
+          });
+        } else {
+          toast.success("Registration updated successfully!");
+        }
+        
+        setTimeout(() => {
+          navigate("/login");
+        }, 2000);
+      } else {
+        toast.error(response.message || "Failed to register");
+      }
     } catch (error: any) {
       console.error("Registration error:", error);
       toast.error(error.message || "Failed to register");
@@ -149,9 +144,8 @@ const VolunteerRegistration = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 to-slate-100">
-      <Header />
-      
+    <div className="flex-1 flex flex-col bg-transparent">
+
       <div className="flex-1 px-4 py-8">
         <div className="max-w-2xl mx-auto">
           <Button
@@ -190,7 +184,7 @@ const VolunteerRegistration = () => {
                     </div>
 
                     <div>
-                      <Label htmlFor="email">Email ID *</Label>
+                      <Label htmlFor="email">Mail ID *</Label>
                       <Input
                         id="email"
                         name="email"
@@ -202,112 +196,166 @@ const VolunteerRegistration = () => {
                       />
                     </div>
 
+                    <div>
+                      <Label htmlFor="register_no">Register Number *</Label>
+                      <Input
+                        id="register_no"
+                        name="register_no"
+                        value={formData.register_no}
+                        onChange={handleInputChange}
+                        placeholder="e.g., 21XXXXXXX"
+                        required
+                      />
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="year">Year *</Label>
-                        <Select value={formData.year} onValueChange={(value) => setFormData(prev => ({ ...prev, year: value }))}>
+                        <Select
+                          value={formData.year}
+                          onValueChange={(value) =>
+                            setFormData((prev) => ({ ...prev, year: value }))
+                          }
+                        >
                           <SelectTrigger>
                             <SelectValue placeholder="Select year" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="1">First Year</SelectItem>
-                            <SelectItem value="2">Second Year</SelectItem>
-                            <SelectItem value="3">Third Year</SelectItem>
-                            <SelectItem value="4">Fourth Year</SelectItem>
+                            <SelectItem value="I">I Year</SelectItem>
+                            <SelectItem value="II">II Year</SelectItem>
+                            <SelectItem value="III">III Year</SelectItem>
+                            <SelectItem value="IV">IV Year</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
                       <div>
                         <Label htmlFor="department">Department *</Label>
-                        <Input
-                          id="department"
-                          name="department"
+                        <Select
                           value={formData.department}
+                          onValueChange={(value) =>
+                            setFormData((prev) => ({ ...prev, department: value }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select department" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {DEPARTMENTS.map((dept) => (
+                              <SelectItem key={dept} value={dept}>
+                                {dept}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="phone">Phone Number *</Label>
+                        <Input
+                          id="phone"
+                          name="phone"
+                          type="tel"
+                          value={formData.phone}
                           onChange={handleInputChange}
-                          placeholder="e.g., CSE, ECE, Mech"
+                          placeholder="Student mobile number"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="parent_phone">Parent's Number *</Label>
+                        <Input
+                          id="parent_phone"
+                          name="parent_phone"
+                          type="tel"
+                          value={formData.parent_phone}
+                          onChange={handleInputChange}
+                          placeholder="Parent / Guardian mobile number"
                           required
                         />
                       </div>
                     </div>
 
                     <div>
-                      <Label htmlFor="registration_date">Registration Date *</Label>
-                      <Input
-                        id="registration_date"
-                        name="registration_date"
-                        type="date"
-                        value={formData.registration_date}
+                      <Label htmlFor="address">Address *</Label>
+                      <Textarea
+                        id="address"
+                        name="address"
+                        value={formData.address}
                         onChange={handleInputChange}
+                        placeholder="Enter your full address"
+                        rows={3}
                         required
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Category Selection */}
+                {/* Additional Details */}
                 <div className="border-t pt-6">
-                  <h3 className="text-lg font-semibold mb-4 text-slate-800">Interest Area *</h3>
-                  <Label htmlFor="category">Select Category (Max 2 spots available)</Label>
-                  <Select value={formData.category} onValueChange={handleSelectChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose your area of interest" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-sm text-slate-500 mt-2">
-                    Each category has only 2 spots. You need to balance your academic and SM responsibilities.
-                  </p>
-                </div>
+                  <h3 className="text-lg font-semibold mb-4 text-slate-800">Additional Details</h3>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="dob">Date of Birth *</Label>
+                        <Input
+                          id="dob"
+                          name="dob"
+                          type="date"
+                          value={formData.dob}
+                          onChange={handleInputChange}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="blood_group">Blood Group *</Label>
+                        <Select
+                          value={formData.blood_group}
+                          onValueChange={(value) =>
+                            setFormData((prev) => ({ ...prev, blood_group: value }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select blood group" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {BLOOD_GROUPS.map((bg) => (
+                              <SelectItem key={bg} value={bg}>
+                                {bg}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
 
-                {/* Signature */}
-                <div className="border-t pt-6">
-                  <h3 className="text-lg font-semibold mb-4 text-slate-800">Signature *</h3>
-                  <div className="space-y-3">
-                    <div className="p-3 rounded-lg bg-slate-50 border border-dashed border-slate-300">
-                      <input
-                        id="signature-file"
-                        type="file"
-                        accept="image/png, image/jpeg"
-                        onChange={(e) => {
-                          const f = e.target.files && e.target.files[0];
-                          if (f) handleSignatureFile(f);
-                        }}
-                        className="w-full"
+                    <div>
+                      <Label htmlFor="skills">Skills you have *</Label>
+                      <Textarea
+                        id="skills"
+                        name="skills"
+                        value={formData.skills}
+                        onChange={handleInputChange}
+                        placeholder="List your skills (e.g., event management, design, communication...)"
+                        rows={3}
+                        required
                       />
-                      {signaturePreview && (
-                        <div className="mt-3">
-                          <img src={signaturePreview} alt="signature preview" className="max-h-40 object-contain border rounded" />
-                        </div>
-                      )}
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => document.getElementById('signature-file')?.click()}
-                      >
-                        Upload Signature
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={clearSignature}
-                      >
-                        Clear
-                      </Button>
+
+                    <div>
+                      <Label htmlFor="experience">Any volunteering experience *</Label>
+                      <Textarea
+                        id="experience"
+                        name="experience"
+                        value={formData.experience}
+                        onChange={handleInputChange}
+                        placeholder="Describe any previous volunteering experience (if none, mention 'No prior experience')"
+                        rows={3}
+                        required
+                      />
                     </div>
-                    {signatureCollected && (
-                      <p className="text-sm text-green-600 flex items-center gap-2">
-                        ✓ Signature uploaded
-                      </p>
-                    )}
                   </div>
                 </div>
 
@@ -322,7 +370,7 @@ const VolunteerRegistration = () => {
                       <li><strong>Balance your academic responsibilities with SM activities</strong></li>
                       <li>Maintain professional conduct during all volunteer work</li>
                       <li>Respect the diversity and values of the organization</li>
-                      <li><strong>Inactivity Policy:</strong> Members inactive for 1 month may be relieved from their position</li>
+                      <li><strong>Inactivity Policy:</strong> Members inactive for 1 month may be marked inactive and replaced</li>
                       <li>You will receive notice if you are about to be marked inactive</li>
                       <li>Inform administration about any leave or absence</li>
                       <li>Each category has maximum 2 members for quality contribution</li>
@@ -370,7 +418,6 @@ const VolunteerRegistration = () => {
         </div>
       </div>
 
-      <Footer />
       <DeveloperCredit />
     </div>
   );

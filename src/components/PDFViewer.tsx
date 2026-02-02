@@ -62,16 +62,30 @@ const PDFViewer = ({ open, onOpenChange, resource, onUpdate, canEdit = false }: 
     }
   };
 
-  const handleDownload = () => {
-    if (resource.url) {
+  const handleDownload = async () => {
+    if (!resource.url) return;
+    try {
+      const response = await fetch(resource.url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = resource.url;
+      link.href = blobUrl;
       link.download = resource.original_name || resource.title || 'resource.pdf';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error("Download failed:", error);
+      // Fallback to simple link if fetch fails
+      const link = document.createElement('a');
+      link.href = resource.url;
+      link.target = '_blank';
+      link.download = resource.original_name || resource.title || 'resource.pdf';
+      link.click();
     }
   };
+
 
   const handleZoomIn = () => {
     setZoom(prev => Math.min(prev + 25, 200));
@@ -87,7 +101,7 @@ const PDFViewer = ({ open, onOpenChange, resource, onUpdate, canEdit = false }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl max-h-[95vh] flex flex-col p-0 [&>button]:hidden">
+      <DialogContent className="max-w-7xl h-[90vh] max-h-[95vh] flex flex-col p-0 [&>button]:hidden">
         <DialogHeader className="px-6 py-4 border-b flex-shrink-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-xl font-bold truncate pr-4">
@@ -95,28 +109,15 @@ const PDFViewer = ({ open, onOpenChange, resource, onUpdate, canEdit = false }: 
             </DialogTitle>
             <div className="flex items-center gap-2">
               {!isEditing && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDownload}
-                    className="gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    Download
-                  </Button>
-                  {canEdit && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleEdit}
-                      className="gap-2"
-                    >
-                      <Edit className="w-4 h-4" />
-                      Edit
-                    </Button>
-                  )}
-                </>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownload}
+                  className="gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Download
+                </Button>
               )}
               <Button
                 variant="ghost"
@@ -185,86 +186,14 @@ const PDFViewer = ({ open, onOpenChange, resource, onUpdate, canEdit = false }: 
           </div>
         ) : (
           <div className="flex-1 flex flex-col overflow-hidden">
-            {/* PDF Controls */}
-            <div className="px-6 py-3 border-b bg-gray-50 dark:bg-gray-900 flex items-center justify-between flex-shrink-0">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  Page {page} / 1
-                </span>
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  • {zoom}%
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleZoomOut}
-                  disabled={zoom <= 50}
-                  className="gap-1"
-                >
-                  <ZoomOut className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleZoomIn}
-                  disabled={zoom >= 200}
-                  className="gap-1"
-                >
-                  <ZoomIn className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setZoom(100)}
-                  className="gap-1"
-                >
-                  Fit to Page
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleRotate}
-                  className="gap-1"
-                >
-                  <RotateCw className="w-4 h-4" />
-                  Rotate
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleDownload}
-                  className="gap-1"
-                >
-                  <Download className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
 
             {/* PDF Viewer */}
-            <div className="flex-1 overflow-auto bg-gray-100 dark:bg-gray-800 p-4">
-              <div className="flex justify-center items-start min-h-full">
-                <div
-                  style={{
-                    transform: `scale(${zoom / 100}) rotate(${rotation}deg)`,
-                    transformOrigin: 'top center',
-                    transition: 'transform 0.2s',
-                  }}
-                  className="bg-white dark:bg-gray-900 shadow-lg"
-                >
-                  <iframe
-                    src={resource.url}
-                    className="w-full"
-                    style={{
-                      width: '800px',
-                      height: '1000px',
-                      border: 'none',
-                    }}
-                    title={resource.title || resource.original_name || 'PDF'}
-                  />
-                </div>
-              </div>
+            <div className="flex-1 bg-gray-100 dark:bg-gray-800">
+              <iframe
+                src={`${resource.url}#toolbar=0&navpanes=0&view=FitH`}
+                className="w-full h-full border-none"
+                title={resource.title || resource.original_name || 'PDF'}
+              />
             </div>
           </div>
         )}

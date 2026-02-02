@@ -10,7 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DeveloperCredit from "@/components/DeveloperCredit";
+import { BackButton } from "@/components/BackButton";
 import { Users, Edit, Trash2, Search, Plus, ArrowLeft, Download } from "lucide-react";
+import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import { auth } from "@/lib/auth";
@@ -22,29 +24,30 @@ import { Dialog as UIDialog, DialogContent as UIDialogContent, DialogHeader as U
 
 // Common departments list
 const DEPARTMENTS = [
-  "AI&DS",
-  "AIML",
-  "BIO-TECH",
-  "CIVIL",
-  "CSE",
-  "ECE",
-  "EEE",
-  "MECH",
-  "MCT",
-  "FOOT TECH",
-  "IT",
-  "TEXTILE",
-  "VLSI",
-  "CSBS",
-  "MBA",
-  "MCA"
+  "Artificial Intelligence and Data Science",
+  "Artificial Intelligence and Machine Learning",
+  "Biotechnology",
+  "Civil Engineering",
+  "Computer Science and Engineering",
+  "Electronics and Communication Engineering",
+  "Electrical and Electronics Engineering",
+  "Mechanical Engineering",
+  "Mechatronics Engineering",
+  "Food Technology",
+  "Information Technology",
+  "Textile Technology",
+  "Very Large Scale Integration Technology",
+  "Computer Science and Business Systems",
+  "Master of Business Administration",
+  "Master of Computer Applications"
 ];
 
 const ManageStudentDatabase = () => {
   const navigate = useNavigate();
   const { permissions, loading: permissionsLoading } = usePermissions();
   const userIsAdmin = auth.hasRole('admin');
-  const canEdit = userIsAdmin || permissions?.can_manage_student_db || permissions?.can_manage_students;
+  // Check for _edit permission specifically, not just view permission
+  const canEdit = userIsAdmin || permissions?.can_manage_student_db_edit || permissions?.can_manage_students_edit;
   const user = auth.getUser();
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
   const [requestMessage, setRequestMessage] = useState('');
@@ -55,26 +58,9 @@ const ManageStudentDatabase = () => {
   const [filterRole, setFilterRole] = useState("all"); // Filter by role
   const [filterDept, setFilterDept] = useState("all"); // Filter by department
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [profileData, setProfileData] = useState({
-    register_no: "",
-    dept: "",
-    year: "",
-    academic_year: "",
-    phone: "",
-    father_number: "",
-    blood_group: "",
-    gender: "",
-    dob: "",
-    address: "",
-    hosteller_dayscholar: ""
-  });
-  const [addUserData, setAddUserData] = useState({
-    name: "",
-    email: "",
-    role: "student" as "student" | "office_bearer" | "alumni",
     register_no: "",
     dept: "",
     year: "",
@@ -102,7 +88,14 @@ const ManageStudentDatabase = () => {
     const userIsAdmin = auth.hasRole('admin');
     const allowed = userIsAdmin || permissions?.can_manage_student_db || permissions?.can_manage_students;
     if (!allowed) {
-      navigate('/admin');
+      if (user?.role === 'office_bearer') {
+        // Office Bearers should have access, so if check failed, it might be due to initial state
+        // double check if permissions are fully loaded/correct role
+        // but for now, if 'allowed' is false, we redirect
+        navigate('/office-bearer');
+      } else {
+        navigate('/admin');
+      }
       return;
     }
 
@@ -118,7 +111,18 @@ const ManageStudentDatabase = () => {
     try {
       setError(null);
       setLoading(true);
-      const usersRes = await api.getUsers();
+      let usersRes;
+      if (user?.role === 'office_bearer') {
+        const res = await api.getStudentsScoped();
+        if (res.success) {
+          usersRes = { success: true, users: res.students || [] };
+        } else {
+          usersRes = { success: false, message: res.message };
+        }
+      } else {
+        usersRes = await api.getUsers();
+      }
+
       if (usersRes.success) {
         const users = usersRes.users || [];
 
@@ -154,9 +158,9 @@ const ManageStudentDatabase = () => {
             }
           })
         );
-        
+
         setAllUsers(usersWithProfiles);
-        
+
         // Extract unique departments
         const depts = Array.from(new Set(
           usersWithProfiles
@@ -230,7 +234,7 @@ const ManageStudentDatabase = () => {
         });
         res = await response.json();
       }
-      
+
       if (res?.success) {
         toast.success('Profile updated');
         setShowEditDialog(false);
@@ -266,103 +270,9 @@ const ManageStudentDatabase = () => {
     }
   };
 
-  const handleAddUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!canEdit) {
-      toast.error('You have view-only access; adding users is disabled.');
-      return;
-    }
-    try {
-      // First create the user
-      const userData: any = {
-        name: addUserData.name,
-        email: addUserData.email,
-        role: addUserData.role
-      };
-
-      const response = await api.addUser(userData);
-      if (response.success && response.user) {
-        const userId = response.user.id;
-        
-        // Then create/update the profile
-        const profileDataToSave = {
-          register_no: addUserData.register_no || null,
-          dept: addUserData.dept || null,
-          year: addUserData.year || null,
-          academic_year: addUserData.academic_year || null,
-          phone: addUserData.phone || null,
-          father_number: addUserData.father_number || null,
-          blood_group: addUserData.blood_group || null,
-          gender: addUserData.gender || null,
-          dob: addUserData.dob || null,
-          address: addUserData.address || null,
-          hosteller_dayscholar: addUserData.hosteller_dayscholar || null
-        };
-
-        let profileRes;
-        if (addUserData.role === 'student') {
-          profileRes = await api.updateStudentProfile(userId, profileDataToSave);
-        } else if (addUserData.role === 'office_bearer') {
-          const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/profile/office-bearer/${userId}`, {
-            method: 'PUT',
-            headers: {
-              'Authorization': `Bearer ${auth.getToken()}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(profileDataToSave)
-          });
-          profileRes = await res.json();
-        } else if (addUserData.role === 'alumni') {
-          // For alumni, use unified profiles endpoint
-          const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/${userId}/profile`, {
-            method: 'PUT',
-            headers: {
-              'Authorization': `Bearer ${auth.getToken()}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(profileDataToSave)
-          });
-          profileRes = await res.json();
-        }
-
-        if (profileRes?.success) {
-          toast.success(`${addUserData.role === 'student' ? 'Student' : addUserData.role === 'office_bearer' ? 'Office Bearer' : 'Alumni'} added successfully!`);
-          if (response.defaultPassword) {
-            toast.info(`Default password: ${response.defaultPassword}`);
-          }
-          setShowAddDialog(false);
-          setAddUserData({
-            name: "",
-            email: "",
-            role: "student",
-            register_no: "",
-            dept: "",
-            year: "",
-            academic_year: "",
-            phone: "",
-            father_number: "",
-            blood_group: "",
-            gender: "",
-            dob: "",
-            address: "",
-            hosteller_dayscholar: ""
-          });
-          loadData();
-        } else {
-          toast.error('User created but failed to save profile');
-        }
-      } else {
-        throw new Error(response.message || 'Failed to create user');
-      }
-    } catch (error: any) {
-      toast.error('Failed to add user: ' + (error.message || 'Unknown'));
-    }
-  };
-
-  // Close any edit/add dialogs if the user's edit permission is revoked
+  // Close any edit dialogs if the user's edit permission is revoked
   useEffect(() => {
     if (!canEdit) {
-      setShowAddDialog(false);
       setShowEditDialog(false);
     }
   }, [canEdit]);
@@ -388,40 +298,63 @@ const ManageStudentDatabase = () => {
     }
   };
 
-  const handleExportCSV = () => {
-    const headers = ['S.No', 'Name', 'Email', 'Role', 'Register No', 'Dept', 'Year', 'Academic Year', 'Phone', 'Father Number', 'Blood', 'Gender', 'DOB', 'Hosteller/Dayscholar', 'Address'];
-    const rows = filtered.map((u, i) => [
-      i + 1,
-      u.name,
-      u.email,
-      u.role,
-      u.profile?.register_no || '-',
-      u.profile?.dept || '-',
-      u.profile?.year || '-',
-      u.profile?.academic_year || '-',
-      u.profile?.phone || '-',
-      u.profile?.father_number || '-',
-      u.profile?.blood_group || '-',
-      u.profile?.gender || '-',
-      u.profile?.dob || '-',
-      u.profile?.hosteller_dayscholar || '-',
-      u.profile?.address || '-'
-    ]);
-    
-    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `user_database_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
+  const handleExportExcel = () => {
+    try {
+      const excelData = filtered.map((u, i) => ({
+        'S.No': i + 1,
+        'Name': u.name || '',
+        'Email': u.email || '',
+        'Role': u.role || '',
+        'Register No': u.profile?.register_no || '-',
+        'Dept': u.profile?.dept || '-',
+        'Year': u.profile?.year || '-',
+        'Academic Year': u.profile?.academic_year || '-',
+        'Phone': u.profile?.phone || '-',
+        'Father Number': u.profile?.father_number || '-',
+        'Blood': u.profile?.blood_group || '-',
+        'Gender': u.profile?.gender || '-',
+        'DOB': u.profile?.dob || '-',
+        'Hosteller/Dayscholar': u.profile?.hosteller_dayscholar || '-',
+        'Address': u.profile?.address || '-'
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Users');
+
+      // Set column widths
+      worksheet['!cols'] = [
+        { wch: 8 },  // S.No
+        { wch: 25 }, // Name
+        { wch: 30 }, // Email
+        { wch: 12 }, // Role
+        { wch: 15 }, // Register No
+        { wch: 15 }, // Dept
+        { wch: 8 },  // Year
+        { wch: 15 }, // Academic Year
+        { wch: 15 }, // Phone
+        { wch: 15 }, // Father Number
+        { wch: 10 }, // Blood
+        { wch: 10 }, // Gender
+        { wch: 12 }, // DOB
+        { wch: 18 }, // Hosteller/Dayscholar
+        { wch: 40 }  // Address
+      ];
+
+      const fileName = `user_database_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+      toast.success('Excel file exported successfully');
+    } catch (error: any) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Failed to export Excel file');
+    }
   };
 
   const filtered = allUsers.filter(u => {
     const q = searchQuery.toLowerCase();
-    const matchesSearch = u.name.toLowerCase().includes(q) || 
-                         u.email.toLowerCase().includes(q) || 
-                         (u.profile?.dept || '').toLowerCase().includes(q);
+    const matchesSearch = u.name.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      (u.profile?.dept || '').toLowerCase().includes(q);
     const matchesRole = filterRole === 'all' || u.role === filterRole;
     const matchesDept = filterDept === 'all' || u.profile?.dept === filterDept;
     return matchesSearch && matchesRole && matchesDept;
@@ -436,336 +369,185 @@ const ManageStudentDatabase = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
+      {permissionsLoading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      )}
+
       <DeveloperCredit />
       <div className="flex flex-1">
-        <main className="flex-1 p-4 md:p-8 bg-background">
+        <main className="flex-1 p-2 md:p-4 bg-background w-full">
           <ErrorBoundary>
-          <div className="max-w-7xl mx-auto">
-            <div className="mb-8">
-                <div className="flex items-center gap-4 mb-6">
-                <Button variant="ghost" onClick={() => navigate('/admin')} className="gap-2">
-                  <ArrowLeft className="w-4 h-4" />
-                  Back to Dashboard
-                </Button>
-                <div className="flex-1">
-                  <h1 className="text-3xl font-bold text-primary">User Database</h1>
-                  <p className="text-muted-foreground">View, edit, and manage all user records (Students, Office Bearers, Alumni)</p>
+            <div className="w-full">
+              {/* Back Button */}
+              <div className="mb-4">
+                <BackButton to="/admin" />
+              </div>
+
+              {/* Page Header */}
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-semibold text-foreground mb-1">User Database</h1>
+                  <p className="text-sm text-muted-foreground">View, edit, and manage all user records (Students, Office Bearers, Alumni)</p>
                 </div>
-                  {canEdit ? (
-                  <Button onClick={() => setShowAddDialog(true)} className="gap-2">
-                    <Plus className="w-4 h-4" />
-                    Add User
-                  </Button>
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      <div className="text-sm text-muted-foreground">View-only access</div>
-                      {user?.role === 'office_bearer' && (
-                        <>
-                          <Button size="sm" onClick={() => setRequestDialogOpen(true)}>Request Edit Access</Button>
-                        </>
-                      )}
-                    </div>
-                  )}
+                {!canEdit && (
+                  <div className="flex items-center gap-3">
+                    <div className="text-sm text-muted-foreground">View-only access</div>
+                    {user?.role === 'office_bearer' && (
+                      <Button size="sm" onClick={() => setRequestDialogOpen(true)} variant="outline">Request Edit Access</Button>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Search and Filter Controls */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <Label htmlFor="search">Search</Label>
-                  <Input 
-                    id="search"
-                    placeholder="Search by name, email, dept..." 
-                    value={searchQuery} 
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="role">Filter by Role</Label>
-                  <Select value={filterRole} onValueChange={setFilterRole}>
-                    <SelectTrigger id="role">
-                      <SelectValue placeholder="All roles" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Roles</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="student">Student</SelectItem>
-                      <SelectItem value="office_bearer">Office Bearer</SelectItem>
-                      <SelectItem value="alumni">Alumni</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="dept">Filter by Department</Label>
-                  <Select value={filterDept} onValueChange={setFilterDept}>
-                    <SelectTrigger id="dept">
-                      <SelectValue placeholder="All departments" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Departments</SelectItem>
-                      {departments.map(dept => (
-                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-end gap-2">
-                  <Button onClick={() => loadData()} variant="outline" className="flex-1">Refresh</Button>
-                  <Button onClick={() => handleExportCSV()} variant="outline" className="gap-2">
-                    <Download className="w-4 h-4" />
-                    Export CSV
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            <Card className="gradient-card">
-              <CardHeader>
-                <CardTitle>Users ({filtered.length})</CardTitle>
-                <CardDescription>List of all users and their profile details</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {error ? (
-                  <div className="text-center py-8 text-red-500">
-                    {error}
-                    <div className="mt-4">
-                      <Button variant="outline" onClick={() => loadData()}>
-                        Retry
+              <Card className="gradient-card border-border/50 mb-8 shadow-md bg-white/50 backdrop-blur-sm">
+                <CardContent className="pt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <Label htmlFor="search">Search</Label>
+                      <Input
+                        id="search"
+                        placeholder="Search by name, email, dept..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="border-orange-200/50 focus:border-orange-500 focus:ring-orange-500"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="role">Filter by Role</Label>
+                      <Select value={filterRole} onValueChange={setFilterRole}>
+                        <SelectTrigger id="role" className="border-orange-200/50 focus:border-orange-500 focus:ring-orange-500">
+                          <SelectValue placeholder="All roles" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Roles</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="student">Student</SelectItem>
+                          <SelectItem value="office_bearer">Office Bearer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="dept">Filter by Department</Label>
+                      <Select value={filterDept} onValueChange={setFilterDept}>
+                        <SelectTrigger id="dept" className="border-orange-200/50 focus:border-orange-500 focus:ring-orange-500">
+                          <SelectValue placeholder="All departments" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Departments</SelectItem>
+                          {departments.map(dept => (
+                            <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-end gap-2">
+                      <Button onClick={() => loadData()} variant="outline" className="flex-1 border-orange-200/50 hover:border-orange-300">Refresh</Button>
+                      <Button onClick={() => handleExportExcel()} variant="outline" className="gap-2 border-orange-200/50 hover:border-orange-300">
+                        <Download className="w-4 h-4" />
+                        Export Excel
                       </Button>
                     </div>
                   </div>
-                ) : loading ? (
-                  <div className="text-center py-8">Loading users...</div>
-                ) : filtered.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">No users found</div>
-                ) : (
-                  <div>
-                    {!canEdit && (
-                      <div className="mb-4 p-3 bg-yellow-50 text-yellow-800 rounded">
-                        You have view-only access to the user database. Editing, adding, and deleting users is disabled.
+                </CardContent>
+              </Card>
+
+              <Card className="gradient-card">
+                <CardHeader>
+                  <CardTitle>Users ({filtered.length})</CardTitle>
+                  <CardDescription>List of all users and their profile details</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {error ? (
+                    <div className="text-center py-8 text-red-500">
+                      {error}
+                      <div className="mt-4">
+                        <Button variant="outline" onClick={() => loadData()}>
+                          Retry
+                        </Button>
                       </div>
-                    )}
-                    <div className="overflow-auto max-h-[calc(100vh-350px)] border rounded-lg">
-                      <Table>
-                      <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
-                        <TableRow>
-                          <TableHead className="bg-white">S.No</TableHead>
-                          <TableHead className="bg-white">Name</TableHead>
-                          <TableHead className="bg-white">Email</TableHead>
-                          <TableHead className="bg-white">Role</TableHead>
-                          <TableHead className="bg-white">Reg No</TableHead>
-                          <TableHead className="bg-white">Dept</TableHead>
-                          <TableHead className="bg-white">Year</TableHead>
-                          <TableHead className="bg-white">Academic Year</TableHead>
-                          <TableHead className="bg-white">Phone</TableHead>
-                          <TableHead className="bg-white">Father Number</TableHead>
-                          <TableHead className="bg-white">Blood</TableHead>
-                          <TableHead className="bg-white">Gender</TableHead>
-                          <TableHead className="bg-white">DOB</TableHead>
-                          <TableHead className="bg-white">Hosteller/Dayscholar</TableHead>
-                          <TableHead className="bg-white">Address</TableHead>
-                          <TableHead className="text-right bg-white">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filtered.map((u, i) => (
-                          <TableRow key={u.id}>
-                            <TableCell>{i + 1}</TableCell>
-                            <TableCell className="font-medium">{u.name}</TableCell>
-                            <TableCell className="text-sm">{u.email}</TableCell>
-                            <TableCell><span className="text-xs bg-primary/20 px-2 py-1 rounded">{roleLabels[u.role] || u.role}</span></TableCell>
-                            <TableCell>{u.profile?.register_no || '-'}</TableCell>
-                            <TableCell>{u.profile?.dept || '-'}</TableCell>
-                            <TableCell>{u.profile?.year || '-'}</TableCell>
-                            <TableCell>{u.profile?.academic_year || '-'}</TableCell>
-                            <TableCell>{u.profile?.phone || '-'}</TableCell>
-                            <TableCell>{u.profile?.father_number || '-'}</TableCell>
-                            <TableCell>{u.profile?.blood_group || '-'}</TableCell>
-                            <TableCell>{u.profile?.gender || '-'}</TableCell>
-                            <TableCell>{u.profile?.dob || '-'}</TableCell>
-                            <TableCell>{u.profile?.hosteller_dayscholar || '-'}</TableCell>
-                            <TableCell className="text-sm">{u.profile?.address || '-'}</TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex gap-2 justify-end">
-                                {canEdit ? (
-                                  <>
-                                    <Button size="sm" variant="outline" onClick={() => handleEdit(u)} className="gap-1">
-                                      <Edit className="w-4 h-4" /> Edit
-                                    </Button>
-                                    <Button size="sm" variant="destructive" onClick={() => handleDelete(u)} className="gap-1">
-                                      <Trash2 className="w-4 h-4" /> Delete
-                                    </Button>
-                                  </>
-                                ) : null}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                      </Table>
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                  ) : loading ? (
+                    <div className="text-center py-8">Loading users...</div>
+                  ) : filtered.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">No users found</div>
+                  ) : (
+                    <div>
+                      {!canEdit && (
+                        <div className="mb-4 p-3 bg-yellow-50 text-yellow-800 rounded">
+                          You have view-only access to the user database. Editing, adding, and deleting users is disabled.
+                        </div>
+                      )}
+                      <div className="overflow-x-auto border rounded-xl">
+                        <Table>
+                          <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
+                            <TableRow>
+                              <TableHead className="bg-white">S.No</TableHead>
+                              <TableHead className="bg-white">Name</TableHead>
+                              <TableHead className="bg-white">Email</TableHead>
+                              <TableHead className="bg-white">Role</TableHead>
+                              <TableHead className="bg-white">Reg No</TableHead>
+                              <TableHead className="bg-white">Dept</TableHead>
+                              <TableHead className="bg-white">Year</TableHead>
+                              <TableHead className="bg-white">Academic Year</TableHead>
+                              <TableHead className="bg-white">Phone</TableHead>
+                              <TableHead className="bg-white">Father Number</TableHead>
+                              <TableHead className="bg-white">Blood</TableHead>
+                              <TableHead className="bg-white">Gender</TableHead>
+                              <TableHead className="bg-white">DOB</TableHead>
+                              <TableHead className="bg-white">Hosteller/Dayscholar</TableHead>
+                              <TableHead className="bg-white">Address</TableHead>
+                              <TableHead className="text-right bg-white">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {filtered.map((u, i) => (
+                              <TableRow key={u.id}>
+                                <TableCell>{i + 1}</TableCell>
+                                <TableCell className="font-medium">{u.name}</TableCell>
+                                <TableCell className="text-sm">{u.email}</TableCell>
+                                <TableCell><span className="text-xs bg-primary/20 px-2 py-1 rounded">{roleLabels[u.role] || u.role}</span></TableCell>
+                                <TableCell>{u.profile?.register_no || '-'}</TableCell>
+                                <TableCell>{u.profile?.dept || '-'}</TableCell>
+                                <TableCell>{u.profile?.year || '-'}</TableCell>
+                                <TableCell>{u.profile?.academic_year || '-'}</TableCell>
+                                <TableCell>{u.profile?.phone || '-'}</TableCell>
+                                <TableCell>{u.profile?.father_number || '-'}</TableCell>
+                                <TableCell>{u.profile?.blood_group || '-'}</TableCell>
+                                <TableCell>{u.profile?.gender || '-'}</TableCell>
+                                <TableCell>{u.profile?.dob || '-'}</TableCell>
+                                <TableCell>{u.profile?.hosteller_dayscholar || '-'}</TableCell>
+                                <TableCell className="text-sm">{u.profile?.address || '-'}</TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex gap-2 justify-end">
+                                    {canEdit ? (
+                                      <>
+                                        <Button size="sm" variant="outline" onClick={() => handleEdit(u)} className="gap-1">
+                                          <Edit className="w-4 h-4" /> Edit
+                                        </Button>
+                                        <Button size="sm" variant="destructive" onClick={() => handleDelete(u)} className="gap-1">
+                                          <Trash2 className="w-4 h-4" /> Delete
+                                        </Button>
+                                      </>
+                                    ) : null}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </ErrorBoundary>
         </main>
       </div>
 
-      {/* Add User Dialog */}
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Add New User</DialogTitle>
-            <DialogDescription>Create a new student, office bearer, or alumni account</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleAddUser} className="space-y-4 mt-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Name *</Label>
-                <Input 
-                  value={addUserData.name} 
-                  onChange={(e) => setAddUserData({ ...addUserData, name: e.target.value })} 
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Email *</Label>
-                <Input 
-                  type="email"
-                  value={addUserData.email} 
-                  onChange={(e) => setAddUserData({ ...addUserData, email: e.target.value })} 
-                  required
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Role *</Label>
-              <Select value={addUserData.role} onValueChange={(value: "student" | "office_bearer" | "alumni") => setAddUserData({ ...addUserData, role: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="student">Student</SelectItem>
-                  <SelectItem value="office_bearer">Office Bearer</SelectItem>
-                  <SelectItem value="alumni">Alumni</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Register No</Label>
-                <Input value={addUserData.register_no} onChange={(e) => setAddUserData({ ...addUserData, register_no: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Department</Label>
-                <Select value={addUserData.dept || "none"} onValueChange={(val) => setAddUserData({ ...addUserData, dept: val === "none" ? '' : val })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Select department</SelectItem>
-                    {DEPARTMENTS.map(dept => (
-                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Year</Label>
-                <Select value={addUserData.year || "none"} onValueChange={(val) => setAddUserData({ ...addUserData, year: val === "none" ? '' : val })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Select year</SelectItem>
-                    <SelectItem value="I">I Year</SelectItem>
-                    <SelectItem value="II">II Year</SelectItem>
-                    <SelectItem value="III">III Year</SelectItem>
-                    <SelectItem value="IV">IV Year</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Academic Year</Label>
-                <Input value={addUserData.academic_year} onChange={(e) => setAddUserData({ ...addUserData, academic_year: e.target.value })} placeholder="e.g., 2024-2025" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Phone Number</Label>
-                <Input value={addUserData.phone} onChange={(e) => setAddUserData({ ...addUserData, phone: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Father Number</Label>
-                <Input value={addUserData.father_number} onChange={(e) => setAddUserData({ ...addUserData, father_number: e.target.value })} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>DOB</Label>
-                <Input type="date" value={addUserData.dob} onChange={(e) => setAddUserData({ ...addUserData, dob: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Gender</Label>
-                <select 
-                  value={addUserData.gender}
-                  onChange={(e) => setAddUserData({ ...addUserData, gender: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md"
-                >
-                  <option value="">Select gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Blood Group</Label>
-                <select 
-                  value={addUserData.blood_group}
-                  onChange={(e) => setAddUserData({ ...addUserData, blood_group: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md"
-                >
-                  <option value="">Select blood group</option>
-                  <option value="A+">A+</option>
-                  <option value="A-">A-</option>
-                  <option value="B+">B+</option>
-                  <option value="B-">B-</option>
-                  <option value="O+">O+</option>
-                  <option value="O-">O-</option>
-                  <option value="AB+">AB+</option>
-                  <option value="AB-">AB-</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label>Hosteller or Dayscholar</Label>
-                <select 
-                  value={addUserData.hosteller_dayscholar}
-                  onChange={(e) => setAddUserData({ ...addUserData, hosteller_dayscholar: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md"
-                >
-                  <option value="">Select</option>
-                  <option value="Hosteller">Hosteller</option>
-                  <option value="Dayscholar">Dayscholar</option>
-                </select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Address</Label>
-              <Textarea value={addUserData.address} onChange={(e) => setAddUserData({ ...addUserData, address: e.target.value })} rows={3} />
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
-              <Button type="submit">Add User</Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* Request Edit Access Dialog */}
       <UIDialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
@@ -850,10 +632,10 @@ const ManageStudentDatabase = () => {
               </div>
               <div className="space-y-2">
                 <Label>Gender</Label>
-                <select 
+                <select
                   value={profileData.gender}
                   onChange={(e) => setProfileData({ ...profileData, gender: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 bg-background border border-input rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="">Select gender</option>
                   <option value="Male">Male</option>
@@ -865,10 +647,10 @@ const ManageStudentDatabase = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Blood Group</Label>
-                <select 
+                <select
                   value={profileData.blood_group}
                   onChange={(e) => setProfileData({ ...profileData, blood_group: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 bg-background border border-input rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="">Select blood group</option>
                   <option value="A+">A+</option>
@@ -883,10 +665,10 @@ const ManageStudentDatabase = () => {
               </div>
               <div className="space-y-2">
                 <Label>Hosteller or Dayscholar</Label>
-                <select 
+                <select
                   value={profileData.hosteller_dayscholar}
                   onChange={(e) => setProfileData({ ...profileData, hosteller_dayscholar: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 bg-background border border-input rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="">Select</option>
                   <option value="Hosteller">Hosteller</option>
@@ -906,7 +688,7 @@ const ManageStudentDatabase = () => {
         </DialogContent>
       </Dialog>
 
-      <Footer />
+
     </div>
   );
 };

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import Sidebar from "@/components/Sidebar";
+import DeveloperCredit from "@/components/DeveloperCredit";
+import { BackButton } from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,21 +10,22 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { auth } from "@/lib/auth";
 import { useNavigate } from "react-router-dom";
-import { 
-  Users, 
-  Plus, 
-  UserPlus, 
-  ClipboardList, 
-  CheckCircle2, 
-  Clock, 
-  XCircle, 
-  Trash2, 
+import {
+  Users,
+  Plus,
+  UserPlus,
+  ClipboardList,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  Trash2,
   Edit,
   Calendar,
   AlertCircle,
   Bell,
   Check,
-  X
+  X,
+  ArrowLeft
 } from "lucide-react";
 import { api } from "@/lib/api";
 
@@ -38,13 +38,13 @@ const ManageTeams = () => {
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Modals
   const [showCreateTeam, setShowCreateTeam] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [showCreateAssignment, setShowCreateAssignment] = useState(false);
   const [showAssignmentDetails, setShowAssignmentDetails] = useState(false);
-  
+
   // Forms
   const [teamForm, setTeamForm] = useState({ name: "", description: "" });
   const [memberForm, setMemberForm] = useState({ user_id: "", role: "member" });
@@ -67,7 +67,7 @@ const ManageTeams = () => {
       navigate('/login');
       return;
     }
-    
+
     // Allow admin or office_bearer to manage teams, and team leaders to manage their own teams
     const user = auth.getUser();
     const role = user?.role;
@@ -75,7 +75,7 @@ const ManageTeams = () => {
       navigate('/login');
       return;
     }
-    
+
     loadTeams();
     loadUsers();
     loadTeamRequests('pending');
@@ -84,7 +84,7 @@ const ManageTeams = () => {
   const loadTeamRequests = async (filter?: string) => {
     try {
       const status = filter || requestFilter;
-      const url = status === 'all' 
+      const url = status === 'all'
         ? `${API_BASE}/teams/requests/all`
         : `${API_BASE}/teams/requests/all?status=${status}`;
       const res = await fetch(url, {
@@ -154,12 +154,12 @@ const ManageTeams = () => {
       setLoading(true);
       const user = auth.getUser();
       let url = `${API_BASE}/teams`;
-      
+
       // If user is a student (team leader), only get their teams
       if (user?.role === 'student') {
         url = `${API_BASE}/teams/my-teams`;
       }
-      
+
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${auth.getToken()}` }
       });
@@ -427,356 +427,351 @@ const ManageTeams = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 to-slate-100">
-      <Header />
-      
-      <div className="flex flex-1">
-        <div className="hidden lg:block sticky top-[57px] h-[calc(100vh-57px)] bg-white shadow-sm">
-          <Sidebar />
+    <div className="min-h-full w-full">
+      <DeveloperCredit />
+      <div className="container mx-auto p-2 md:p-4">
+        {/* Back Button */}
+        <div className="mb-4">
+          <BackButton to="/admin" />
         </div>
-        
-        <main className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-accent to-violet bg-clip-text text-transparent mb-2">
-                  Teams Management
-                </h1>
-                <p className="text-muted-foreground text-lg">Create teams, assign members, and track assignments</p>
-              </div>
+
+        {/* Page Header */}
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold text-foreground mb-1">Teams</h1>
+            <p className="text-sm text-muted-foreground">Create teams, assign members, and track assignments</p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => {
+                setShowRequests(!showRequests);
+                if (!showRequests) loadTeamRequests();
+              }}
+              variant={showRequests ? "default" : "outline"}
+              className="gap-2"
+            >
+              <Bell className="w-5 h-5" />
+              Team Requests
+              {teamRequests.filter(r => r.status === 'pending').length > 0 && (
+                <Badge className="ml-2 bg-red-500">
+                  {teamRequests.filter(r => r.status === 'pending').length}
+                </Badge>
+              )}
+            </Button>
+            <Button onClick={() => setShowCreateTeam(true)} className="gap-2">
+              <Plus className="w-5 h-5" />
+              Create Team
+            </Button>
+          </div>
+        </div>
+
+        {showRequests ? (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">Team Join Requests</h2>
               <div className="flex gap-2">
-                <Button 
+                <Button
+                  variant={requestFilter === 'pending' ? 'default' : 'outline'}
+                  size="sm"
                   onClick={() => {
-                    setShowRequests(!showRequests);
-                    if (!showRequests) loadTeamRequests();
-                  }} 
-                  variant={showRequests ? "default" : "outline"}
-                  className="gap-2"
+                    setRequestFilter('pending');
+                    loadTeamRequests('pending');
+                  }}
                 >
-                  <Bell className="w-5 h-5" />
-                  Team Requests
-                  {teamRequests.filter(r => r.status === 'pending').length > 0 && (
-                    <Badge className="ml-2 bg-red-500">
-                      {teamRequests.filter(r => r.status === 'pending').length}
-                    </Badge>
-                  )}
+                  Pending
                 </Button>
-                <Button onClick={() => setShowCreateTeam(true)} className="gap-2">
-                  <Plus className="w-5 h-5" />
-                  Create Team
+                <Button
+                  variant={requestFilter === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    setRequestFilter('all');
+                    loadTeamRequests('all');
+                  }}
+                >
+                  All
                 </Button>
               </div>
             </div>
 
-            {showRequests ? (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold">Team Join Requests</h2>
-                  <div className="flex gap-2">
-                    <Button
-                      variant={requestFilter === 'pending' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => {
-                        setRequestFilter('pending');
-                        loadTeamRequests('pending');
-                      }}
-                    >
-                      Pending
-                    </Button>
-                    <Button
-                      variant={requestFilter === 'all' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => {
-                        setRequestFilter('all');
-                        loadTeamRequests('all');
-                      }}
-                    >
-                      All
-                    </Button>
-                  </div>
-                </div>
-
-                {teamRequests.length === 0 ? (
-                  <Card>
-                    <CardContent className="p-12 text-center">
-                      <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                      <p className="text-muted-foreground">No {requestFilter === 'all' ? '' : requestFilter} requests</p>
+            {teamRequests.length === 0 ? (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                  <p className="text-muted-foreground">No {requestFilter === 'all' ? '' : requestFilter} requests</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {teamRequests.map((request) => (
+                  <Card key={request.id} className="border-l-4" style={{
+                    borderLeftColor: request.status === 'approved' ? '#10b981' :
+                      request.status === 'rejected' ? '#ef4444' : '#3b82f6'
+                  }}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-semibold">{request.user_name}</h3>
+                            <Badge className={
+                              request.status === 'approved' ? 'bg-green-500' :
+                                request.status === 'rejected' ? 'bg-red-500' : 'bg-blue-500'
+                            }>
+                              {request.status}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            Requesting to join: <span className="font-semibold">{request.team_name}</span>
+                          </p>
+                          {request.message && (
+                            <p className="text-sm mb-2 p-2 bg-muted rounded">{request.message}</p>
+                          )}
+                          <div className="flex gap-4 text-xs text-muted-foreground">
+                            <span>Requested: {new Date(request.created_at).toLocaleString()}</span>
+                            {request.reviewed_at && (
+                              <span>Reviewed: {new Date(request.reviewed_at).toLocaleString()}</span>
+                            )}
+                            {request.reviewer_name && (
+                              <span>By: {request.reviewer_name}</span>
+                            )}
+                          </div>
+                        </div>
+                        {request.status === 'pending' && (
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => handleApproveRequest(request.id)}
+                              className="bg-green-500 hover:bg-green-600"
+                            >
+                              <Check className="w-4 h-4 mr-2" />
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleRejectRequest(request.id)}
+                            >
+                              <X className="w-4 h-4 mr-2" />
+                              Reject
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : loading ? (
+          <div className="flex justify-center items-center py-16">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : !selectedTeam ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {teams.map((team) => (
+              <Card
+                key={team.id}
+                className="cursor-pointer hover:shadow-lg transition-all"
+                onClick={() => {
+                  setSelectedTeam(team);
+                  loadTeamDetails(team.id);
+                }}
+              >
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="w-5 h-5 text-primary" />
+                      {team.name}
+                    </CardTitle>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteTeam(team.id);
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </div>
+                  {team.description && (
+                    <CardDescription>{team.description}</CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-4 text-sm text-muted-foreground">
+                    <span>{team.member_count || 0} Members</span>
+                    <span>{team.assignment_count || 0} Assignments</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Team Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <Button variant="ghost" onClick={() => setSelectedTeam(null)} className="mb-4">
+                  ← Back to Teams
+                </Button>
+                <h2 className="text-3xl font-bold">{selectedTeam.name}</h2>
+                {selectedTeam.description && (
+                  <p className="text-muted-foreground mt-1">{selectedTeam.description}</p>
+                )}
+              </div>
+              {(auth.hasRole('admin', 'office_bearer') || teamMembers.some(m => m.user_id === auth.getUser()?.id && m.role === 'leader')) && (
+                <div className="flex gap-2">
+                  <Button onClick={() => setShowAddMember(true)} variant="outline" className="gap-2">
+                    <UserPlus className="w-4 h-4" />
+                    Add Member
+                  </Button>
+                  <Button onClick={() => setShowCreateAssignment(true)} className="gap-2">
+                    <ClipboardList className="w-4 h-4" />
+                    Create Assignment
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Members Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Team Members ({teamMembers.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {teamMembers.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-4">No members yet</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {teamMembers.map((member) => (
+                      <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <p className="font-semibold">{member.name}</p>
+                          <p className="text-sm text-muted-foreground">{member.email}</p>
+                          <Badge variant="secondary" className="mt-1">
+                            {member.role}
+                          </Badge>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveMember(member.user_id)}
+                        >
+                          <XCircle className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Assignments Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Assignments ({assignments.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {assignments.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-4">No assignments yet</p>
                 ) : (
                   <div className="space-y-4">
-                    {teamRequests.map((request) => (
-                      <Card key={request.id} className="border-l-4" style={{ 
-                        borderLeftColor: request.status === 'approved' ? '#10b981' : 
-                                       request.status === 'rejected' ? '#ef4444' : '#3b82f6' 
-                      }}>
+                    {assignments.map((assignment) => (
+                      <Card key={assignment.id} className="border-l-4" style={{ borderLeftColor: getStatusBorderColor(assignment.status) }}>
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-2">
-                                <h3 className="font-semibold">{request.user_name}</h3>
-                                <Badge className={
-                                  request.status === 'approved' ? 'bg-green-500' :
-                                  request.status === 'rejected' ? 'bg-red-500' : 'bg-blue-500'
-                                }>
-                                  {request.status}
+                                <h3 className="font-semibold">{assignment.title}</h3>
+                                <Badge className={getStatusColor(assignment.status)}>
+                                  {assignment.status}
+                                </Badge>
+                                <Badge variant="outline" className={getPriorityColor(assignment.priority)}>
+                                  {assignment.priority}
                                 </Badge>
                               </div>
-                              <p className="text-sm text-muted-foreground mb-2">
-                                Requesting to join: <span className="font-semibold">{request.team_name}</span>
-                              </p>
-                              {request.message && (
-                                <p className="text-sm mb-2 p-2 bg-muted rounded">{request.message}</p>
+                              {assignment.description && (
+                                <p className="text-sm text-muted-foreground mb-2">{assignment.description}</p>
                               )}
-                              <div className="flex gap-4 text-xs text-muted-foreground">
-                                <span>Requested: {new Date(request.created_at).toLocaleString()}</span>
-                                {request.reviewed_at && (
-                                  <span>Reviewed: {new Date(request.reviewed_at).toLocaleString()}</span>
-                                )}
-                                {request.reviewer_name && (
-                                  <span>By: {request.reviewer_name}</span>
+                              <div className="space-y-2 text-xs text-muted-foreground">
+                                <div className="flex gap-4">
+                                  {assignment.assigned_to_name ? (
+                                    <span className="bg-blue-50 px-2 py-1 rounded text-blue-700 font-medium">
+                                      👤 {assignment.assigned_to_name}
+                                    </span>
+                                  ) : (
+                                    <span className="bg-gray-100 px-2 py-1 rounded text-gray-600">
+                                      ⚠️ Unassigned
+                                    </span>
+                                  )}
+                                  {assignment.assigned_by_name && (
+                                    <span className="text-gray-500">by {assignment.assigned_by_name}</span>
+                                  )}
+                                </div>
+                                {assignment.due_date && (
+                                  <span className="flex items-center gap-1">
+                                    <Calendar className="w-3 h-3" />
+                                    Due: {new Date(assignment.due_date).toLocaleDateString()}
+                                  </span>
                                 )}
                               </div>
                             </div>
-                            {request.status === 'pending' && (
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleApproveRequest(request.id)}
-                                  className="bg-green-500 hover:bg-green-600"
-                                >
-                                  <Check className="w-4 h-4 mr-2" />
-                                  Approve
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => handleRejectRequest(request.id)}
-                                >
-                                  <X className="w-4 h-4 mr-2" />
-                                  Reject
-                                </Button>
-                              </div>
-                            )}
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedAssignment(assignment);
+                                  loadAssignmentTracking(assignment.id);
+                                  setShowAssignmentDetails(true);
+                                }}
+                              >
+                                View
+                              </Button>
+                              {(auth.hasRole('admin', 'office_bearer') || teamMembers.some(m => m.user_id === auth.getUser()?.id && m.role === 'leader')) && (
+                                <>
+                                  {assignment.status !== 'completed' && (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleUpdateAssignment(assignment.id, 'completed')}
+                                      className="bg-green-500 hover:bg-green-600"
+                                    >
+                                      <CheckCircle2 className="w-4 h-4" />
+                                    </Button>
+                                  )}
+                                  {assignment.status === 'pending' && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleUpdateAssignment(assignment.id, 'in_progress')}
+                                    >
+                                      Start
+                                    </Button>
+                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeleteAssignment(assignment.id)}
+                                  >
+                                    <Trash2 className="w-4 h-4 text-destructive" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
                     ))}
                   </div>
                 )}
-              </div>
-            ) : loading ? (
-              <div className="flex justify-center items-center py-16">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            ) : !selectedTeam ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {teams.map((team) => (
-                  <Card 
-                    key={team.id} 
-                    className="cursor-pointer hover:shadow-lg transition-all"
-                    onClick={() => {
-                      setSelectedTeam(team);
-                      loadTeamDetails(team.id);
-                    }}
-                  >
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="flex items-center gap-2">
-                          <Users className="w-5 h-5 text-primary" />
-                          {team.name}
-                        </CardTitle>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteTeam(team.id);
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </div>
-                      {team.description && (
-                        <CardDescription>{team.description}</CardDescription>
-                      )}
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex gap-4 text-sm text-muted-foreground">
-                        <span>{team.member_count || 0} Members</span>
-                        <span>{team.assignment_count || 0} Assignments</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {/* Team Header */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Button variant="ghost" onClick={() => setSelectedTeam(null)} className="mb-4">
-                      ← Back to Teams
-                    </Button>
-                    <h2 className="text-3xl font-bold">{selectedTeam.name}</h2>
-                    {selectedTeam.description && (
-                      <p className="text-muted-foreground mt-1">{selectedTeam.description}</p>
-                    )}
-                  </div>
-                  {(auth.hasRole('admin', 'office_bearer') || teamMembers.some(m => m.user_id === auth.getUser()?.id && m.role === 'leader')) && (
-                    <div className="flex gap-2">
-                      <Button onClick={() => setShowAddMember(true)} variant="outline" className="gap-2">
-                        <UserPlus className="w-4 h-4" />
-                        Add Member
-                      </Button>
-                      <Button onClick={() => setShowCreateAssignment(true)} className="gap-2">
-                        <ClipboardList className="w-4 h-4" />
-                        Create Assignment
-                      </Button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Members Section */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Team Members ({teamMembers.length})</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {teamMembers.length === 0 ? (
-                      <p className="text-muted-foreground text-center py-4">No members yet</p>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {teamMembers.map((member) => (
-                          <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
-                            <div>
-                              <p className="font-semibold">{member.name}</p>
-                              <p className="text-sm text-muted-foreground">{member.email}</p>
-                              <Badge variant="secondary" className="mt-1">
-                                {member.role}
-                              </Badge>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveMember(member.user_id)}
-                            >
-                              <XCircle className="w-4 h-4 text-destructive" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Assignments Section */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Assignments ({assignments.length})</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {assignments.length === 0 ? (
-                      <p className="text-muted-foreground text-center py-4">No assignments yet</p>
-                    ) : (
-                      <div className="space-y-4">
-                        {assignments.map((assignment) => (
-                          <Card key={assignment.id} className="border-l-4" style={{ borderLeftColor: getStatusBorderColor(assignment.status) }}>
-                            <CardContent className="p-4">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <h3 className="font-semibold">{assignment.title}</h3>
-                                    <Badge className={getStatusColor(assignment.status)}>
-                                      {assignment.status}
-                                    </Badge>
-                                    <Badge variant="outline" className={getPriorityColor(assignment.priority)}>
-                                      {assignment.priority}
-                                    </Badge>
-                                  </div>
-                                  {assignment.description && (
-                                    <p className="text-sm text-muted-foreground mb-2">{assignment.description}</p>
-                                  )}
-                                  <div className="space-y-2 text-xs text-muted-foreground">
-                                    <div className="flex gap-4">
-                                      {assignment.assigned_to_name ? (
-                                        <span className="bg-blue-50 px-2 py-1 rounded text-blue-700 font-medium">
-                                          👤 {assignment.assigned_to_name}
-                                        </span>
-                                      ) : (
-                                        <span className="bg-gray-100 px-2 py-1 rounded text-gray-600">
-                                          ⚠️ Unassigned
-                                        </span>
-                                      )}
-                                      {assignment.assigned_by_name && (
-                                        <span className="text-gray-500">by {assignment.assigned_by_name}</span>
-                                      )}
-                                    </div>
-                                    {assignment.due_date && (
-                                      <span className="flex items-center gap-1">
-                                        <Calendar className="w-3 h-3" />
-                                        Due: {new Date(assignment.due_date).toLocaleDateString()}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="flex gap-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      setSelectedAssignment(assignment);
-                                      loadAssignmentTracking(assignment.id);
-                                      setShowAssignmentDetails(true);
-                                    }}
-                                  >
-                                    View
-                                  </Button>
-                                  {(auth.hasRole('admin', 'office_bearer') || teamMembers.some(m => m.user_id === auth.getUser()?.id && m.role === 'leader')) && (
-                                    <>
-                                      {assignment.status !== 'completed' && (
-                                        <Button
-                                          size="sm"
-                                          onClick={() => handleUpdateAssignment(assignment.id, 'completed')}
-                                          className="bg-green-500 hover:bg-green-600"
-                                        >
-                                          <CheckCircle2 className="w-4 h-4" />
-                                        </Button>
-                                      )}
-                                      {assignment.status === 'pending' && (
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => handleUpdateAssignment(assignment.id, 'in_progress')}
-                                        >
-                                          Start
-                                        </Button>
-                                      )}
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleDeleteAssignment(assignment.id)}
-                                      >
-                                        <Trash2 className="w-4 h-4 text-destructive" />
-                                      </Button>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+              </CardContent>
+            </Card>
           </div>
-        </main>
+        )}
       </div>
 
-      <Footer />
+
 
       {/* Create Team Modal */}
       <Dialog open={showCreateTeam} onOpenChange={setShowCreateTeam}>
@@ -821,7 +816,7 @@ const ManageTeams = () => {
               <select
                 value={memberForm.user_id}
                 onChange={(e) => setMemberForm({ ...memberForm, user_id: e.target.value })}
-                className="w-full h-10 border rounded-md px-3"
+                className="w-full h-10 bg-background border border-input rounded-md px-3 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
               >
                 <option value="">Choose a user...</option>
                 {allUsers
@@ -838,7 +833,7 @@ const ManageTeams = () => {
               <select
                 value={memberForm.role}
                 onChange={(e) => setMemberForm({ ...memberForm, role: e.target.value })}
-                className="w-full h-10 border rounded-md px-3"
+                className="w-full h-10 bg-background border border-input rounded-md px-3 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
               >
                 <option value="member">Member</option>
                 <option value="leader">Leader</option>
@@ -872,7 +867,7 @@ const ManageTeams = () => {
               <textarea
                 value={assignmentForm.description}
                 onChange={(e) => setAssignmentForm({ ...assignmentForm, description: e.target.value })}
-                className="w-full border rounded-md px-3 py-2 min-h-20"
+                className="w-full bg-background border border-input rounded-md px-3 py-2 min-h-20 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
                 placeholder="Assignment description"
               />
             </div>
@@ -882,7 +877,7 @@ const ManageTeams = () => {
                 <select
                   value={assignmentForm.assigned_to}
                   onChange={(e) => setAssignmentForm({ ...assignmentForm, assigned_to: e.target.value })}
-                  className="w-full h-10 border rounded-md px-3"
+                  className="w-full h-10 bg-background border border-input rounded-md px-3 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
                 >
                   <option value="">Unassigned</option>
                   {teamMembers.map(member => {
@@ -915,7 +910,7 @@ const ManageTeams = () => {
                 <select
                   value={assignmentForm.priority}
                   onChange={(e) => setAssignmentForm({ ...assignmentForm, priority: e.target.value })}
-                  className="w-full h-10 border rounded-md px-3"
+                  className="w-full h-10 bg-background border border-input rounded-md px-3 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -970,7 +965,7 @@ const ManageTeams = () => {
                   {selectedAssignment.priority}
                 </Badge>
               </div>
-              
+
               <div>
                 <Label className="mb-2 block">Tracking History</Label>
                 <div className="space-y-2 max-h-60 overflow-y-auto">

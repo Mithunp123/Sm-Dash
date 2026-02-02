@@ -1,28 +1,28 @@
 import { useEffect, useState } from "react";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import Sidebar from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { auth } from "@/lib/auth";
 import { useNavigate } from "react-router-dom";
-import { 
-  Users, 
-  UserPlus, 
-  ClipboardList, 
-  CheckCircle2, 
-  Clock, 
+import { BackButton } from "@/components/BackButton";
+import {
+  Users,
+  UserPlus,
+  ClipboardList,
+  CheckCircle2,
+  Clock,
   Calendar,
   Send,
   AlertCircle,
   Upload,
   FileImage,
-  X
+  X,
+  Plus
 } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -50,10 +50,14 @@ const StudentTeams = () => {
     due_date: "",
     priority: "medium"
   });
-  const [userTeamMembership, setUserTeamMembership] = useState<{[key: number]: any}>({});
+  const [userTeamMembership, setUserTeamMembership] = useState<{ [key: number]: any }>({});
   const [showAddMember, setShowAddMember] = useState(false);
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [memberForm, setMemberForm] = useState({ user_id: "", role: "member" });
+
+  // Create Team State
+  const [showCreateTeam, setShowCreateTeam] = useState(false);
+  const [createTeamForm, setCreateTeamForm] = useState({ name: "", description: "" });
 
   useEffect(() => {
     if (!auth.isAuthenticated() || !auth.hasRole('student')) {
@@ -65,12 +69,7 @@ const StudentTeams = () => {
     loadUsers();
   }, []);
 
-  useEffect(() => {
-    // Load all teams after myTeams is loaded, so we can filter properly
-    if (myTeams.length >= 0) {
-      loadAllTeams();
-    }
-  }, [myTeams]);
+  // ... (previous useEffects) ...
 
   const loadMyTeams = async () => {
     try {
@@ -82,7 +81,7 @@ const StudentTeams = () => {
       if (data.success) {
         setMyTeams(data.teams || []);
         // Load member details for each team to check if user is a leader
-        const membershipData: {[key: number]: any} = {};
+        const membershipData: { [key: number]: any } = {};
         for (const team of data.teams || []) {
           const teamDetailsRes = await fetch(`${API_BASE}/teams/${team.id}`, {
             headers: { Authorization: `Bearer ${auth.getToken()}` }
@@ -117,6 +116,8 @@ const StudentTeams = () => {
     }
   };
 
+  // ... (keep default loaders) ...
+  // Re-declare loadMyAssignments and loadUsers just in case scope is lost or ensure they are there
   const loadMyAssignments = async () => {
     try {
       const res = await fetch(`${API_BASE}/teams/my-assignments`, {
@@ -138,16 +139,44 @@ const StudentTeams = () => {
       });
       const data = await res.json();
       if (data.success) {
-        // endpoint returns `students` key
         setAllUsers(data.students || data.users || []);
       } else if (res.status === 403) {
-        // Not allowed to fetch students — user is not a team leader, silently skip
         console.warn('User is not a team leader or does not have permission to list users');
         setAllUsers([]);
       }
     } catch (err) {
       console.error('Error loading users:', err);
       setAllUsers([]);
+    }
+  };
+
+
+  const handleCreateTeam = async () => {
+    if (!createTeamForm.name.trim()) {
+      toast.error("Team name is required");
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/teams`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${auth.getToken()}`
+        },
+        body: JSON.stringify(createTeamForm)
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Team created successfully!");
+        setShowCreateTeam(false);
+        setCreateTeamForm({ name: "", description: "" });
+        loadMyTeams();
+      } else {
+        toast.error(data.message || "Failed to create team");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to create team");
     }
   };
 
@@ -205,8 +234,8 @@ const StudentTeams = () => {
         setRequestMessage("");
         setSelectedTeamForRequest(null);
         // Reload teams to update the list
-        loadMyTeams(); // Reload my teams in case request was auto-approved
-        loadAllTeams(); // Reload available teams
+        loadMyTeams();
+        loadAllTeams();
       } else {
         toast.error(data.message || 'Failed to send request');
       }
@@ -244,7 +273,6 @@ const StudentTeams = () => {
           due_date: "",
           priority: "medium"
         });
-        // Reload team details to show new assignment
         if (selectedTeam?.id) {
           loadTeamDetails(selectedTeam.id);
         }
@@ -268,22 +296,22 @@ const StudentTeams = () => {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     // Check file type (images and PDFs)
     const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
     if (!allowedTypes.includes(file.type)) {
       toast.error('Please upload an image (JPG/PNG) or PDF file');
       return;
     }
-    
+
     // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error('File size must be less than 5MB');
       return;
     }
-    
+
     setProofFile(file);
-    
+
     // Preview for images
     if (file.type.startsWith('image/')) {
       const reader = new FileReader();
@@ -299,12 +327,12 @@ const StudentTeams = () => {
       toast.error('Please select a proof file');
       return;
     }
-    
+
     try {
       const formData = new FormData();
       formData.append('proof', proofFile);
       formData.append('status', 'completed');
-      
+
       const res = await fetch(`${API_BASE}/teams/${selectedAssignmentForProof.team_id}/assignments/${selectedAssignmentForProof.id}/complete`, {
         method: 'POST',
         headers: {
@@ -312,7 +340,7 @@ const StudentTeams = () => {
         },
         body: formData
       });
-      
+
       const data = await res.json();
       if (data.success) {
         toast.success('Assignment completed with proof!');
@@ -335,15 +363,15 @@ const StudentTeams = () => {
 
   const handleUpdateAssignment = async (assignmentId: number, status: string) => {
     try {
-      const assignment = myAssignments.find(a => a.id === assignmentId);
+      const assignment = myAssignments.find(a => a.id === assignmentId) || (selectedTeam?.assignments || []).find((a: any) => a.id === assignmentId);
       if (!assignment) return;
-      
+
       // If marking as completed, require proof
       if (status === 'completed') {
         handleProofUpload(assignment);
         return;
       }
-      
+
       const res = await fetch(`${API_BASE}/teams/${assignment.team_id}/assignments/${assignmentId}`, {
         method: 'PUT',
         headers: {
@@ -356,6 +384,7 @@ const StudentTeams = () => {
       if (data.success) {
         toast.success(`Assignment marked as ${status}`);
         loadMyAssignments();
+        if (selectedTeam) loadTeamDetails(selectedTeam.id);
       } else {
         toast.error(data.message || 'Failed to update assignment');
       }
@@ -411,315 +440,318 @@ const StudentTeams = () => {
     }
   };
 
+
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 to-slate-100">
-      <Header />
-      
-      <div className="flex flex-1">
-        <div className="hidden lg:block sticky top-[57px] h-[calc(100vh-57px)] bg-white shadow-sm">
-          <Sidebar />
-        </div>
-        
-        <main className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-7xl mx-auto">
-            <div className="mb-8">
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-accent to-violet bg-clip-text text-transparent mb-2">
-                My Teams
-              </h1>
-              <p className="text-muted-foreground text-lg">View your teams and assignments</p>
-            </div>
+    <div className="flex-1 flex flex-col bg-transparent">
 
-            {/* Tabs */}
-            <div className="flex gap-2 mb-6 border-b">
-              <Button
-                variant={activeTab === 'teams' ? 'default' : 'ghost'}
-                onClick={() => setActiveTab('teams')}
-                className="rounded-b-none"
-              >
-                My Teams ({myTeams.length})
-              </Button>
-              <Button
-                variant={activeTab === 'assignments' ? 'default' : 'ghost'}
-                onClick={() => setActiveTab('assignments')}
-                className="rounded-b-none"
-              >
-                My Assignments ({myAssignments.length})
-              </Button>
-            </div>
 
-            {activeTab === 'teams' ? (
-              <div className="space-y-6">
-                {/* My Teams */}
-                {selectedTeam ? (
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Button variant="ghost" onClick={() => setSelectedTeam(null)} className="mb-4">
-                          ← Back to Teams
-                        </Button>
-                        <h2 className="text-3xl font-bold">{selectedTeam.name}</h2>
-                        {selectedTeam.description && (
-                          <p className="text-muted-foreground mt-1">{selectedTeam.description}</p>
-                        )}
-                      </div>
-                      {userTeamMembership[selectedTeam.id]?.role === 'leader' && (
-                        <div className="flex gap-2">
-                          <Button onClick={() => setShowAddMember(true)} variant="outline" className="gap-2">
-                            <UserPlus className="w-4 h-4" />
-                            Add Member
-                          </Button>
-                          <Button onClick={() => setShowCreateAssignment(true)} className="gap-2">
-                            <ClipboardList className="w-4 h-4" />
-                            Create Assignment
-                          </Button>
-                        </div>
-                      )}
-                    </div>
+      <main className="flex-1 overflow-y-auto p-6 bg-transparent">
+        <div className="max-w-7xl mx-auto">
 
-                    {/* Team Members */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Team Members ({selectedTeam.members?.length || 0})</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {selectedTeam.members?.length === 0 ? (
-                          <p className="text-muted-foreground text-center py-4">No members</p>
-                        ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {selectedTeam.members?.map((member: any) => (
-                              <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
-                                <div>
-                                  <p className="font-semibold">{member.name}</p>
-                                  <p className="text-sm text-muted-foreground">{member.email}</p>
-                                  <Badge variant="secondary" className="mt-1">
-                                    {member.role}
-                                  </Badge>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-
-                    {/* Team Assignments */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Team Assignments</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {selectedTeam.assignments?.length === 0 ? (
-                          <p className="text-muted-foreground text-center py-4">No assignments</p>
-                        ) : (
-                          <div className="space-y-4">
-                            {selectedTeam.assignments?.map((assignment: any) => (
-                              <Card key={assignment.id} className="border-l-4" style={{ borderLeftColor: getStatusBorderColor(assignment.status) }}>
-                                <CardContent className="p-4">
-                                  <div className="flex items-start justify-between">
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <h3 className="font-semibold">{assignment.title}</h3>
-                                        <Badge className={getStatusColor(assignment.status)}>
-                                          {assignment.status}
-                                        </Badge>
-                                        <Badge variant="outline" className={getPriorityColor(assignment.priority)}>
-                                          {assignment.priority}
-                                        </Badge>
-                                      </div>
-                                      {assignment.description && (
-                                        <p className="text-sm text-muted-foreground mb-2">{assignment.description}</p>
-                                      )}
-                                      {assignment.due_date && (
-                                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                          <Calendar className="w-3 h-3" />
-                                          Due: {new Date(assignment.due_date).toLocaleDateString()}
-                                        </p>
-                                      )}
-                                    </div>
-                                    {assignment.assigned_to === auth.getUser()?.id && assignment.status !== 'completed' && (
-                                      <Button
-                                        size="sm"
-                                        onClick={() => handleUpdateAssignment(assignment.id, 'completed')}
-                                        className="bg-green-500 hover:bg-green-600"
-                                      >
-                                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                                        Mark Complete
-                                      </Button>
-                                    )}
-                                    {assignment.proof_file_path && (
-                                      <Badge variant="outline" className="ml-2">
-                                        <FileImage className="w-3 h-3 mr-1" />
-                                        Proof Uploaded
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
-                ) : (
-                  <>
-                    <div>
-                      <h2 className="text-2xl font-bold mb-4">My Teams</h2>
-                      {myTeams.length === 0 ? (
-                        <Card>
-                          <CardContent className="p-12 text-center">
-                            <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                            <p className="text-muted-foreground">You are not a member of any teams yet</p>
-                          </CardContent>
-                        </Card>
-                      ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                          {myTeams.map((team) => (
-                            <Card 
-                              key={team.id} 
-                              className="cursor-pointer hover:shadow-lg transition-all"
-                              onClick={() => loadTeamDetails(team.id)}
-                            >
-                              <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                  <Users className="w-5 h-5 text-primary" />
-                                  {team.name}
-                                </CardTitle>
-                                {team.description && (
-                                  <CardDescription>{team.description}</CardDescription>
-                                )}
-                              </CardHeader>
-                              <CardContent>
-                                <div className="flex gap-4 text-sm text-muted-foreground">
-                                  <span>{team.member_count || 0} Members</span>
-                                  <span>{team.assignment_count || 0} Assignments</span>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Available Teams to Request */}
-                    <div className="mt-8">
-                      <h2 className="text-2xl font-bold mb-4">Available Teams</h2>
-                      {allTeams.length === 0 ? (
-                        <Card>
-                          <CardContent className="p-12 text-center">
-                            <p className="text-muted-foreground">No other teams available</p>
-                          </CardContent>
-                        </Card>
-                      ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                          {allTeams.map((team) => (
-                            <Card key={team.id}>
-                              <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                  <Users className="w-5 h-5 text-primary" />
-                                  {team.name}
-                                </CardTitle>
-                                {team.description && (
-                                  <CardDescription>{team.description}</CardDescription>
-                                )}
-                              </CardHeader>
-                              <CardContent>
-                                <div className="flex gap-4 text-sm text-muted-foreground mb-4">
-                                  <span>{team.member_count || 0} Members</span>
-                                  <span>{team.assignment_count || 0} Assignments</span>
-                                </div>
-                                <Button
-                                  className="w-full"
-                                  onClick={() => {
-                                    setSelectedTeamForRequest(team);
-                                    setShowRequestModal(true);
-                                  }}
-                                >
-                                  <UserPlus className="w-4 h-4 mr-2" />
-                                  Request to Join
-                                </Button>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
+          {/* Hero Header Section */}
+          <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <div className="mb-4">
+                <BackButton />
               </div>
-            ) : (
-              <div>
-                <h2 className="text-2xl font-bold mb-4">My Assignments</h2>
-                {myAssignments.length === 0 ? (
+              <h1 className="text-3xl font-bold tracking-tight">My Teams</h1>
+              <p className="text-muted-foreground">View your teams and assignments</p>
+            </div>
+            <Button onClick={() => setShowCreateTeam(true)} className="gap-2 shrink-0">
+              <Plus className="w-4 h-4" />
+              Create New Team
+            </Button>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-2 mb-6 border-b">
+            <Button
+              variant={activeTab === 'teams' ? 'default' : 'ghost'}
+              onClick={() => setActiveTab('teams')}
+              className="rounded-b-none"
+            >
+              My Teams ({myTeams.length})
+            </Button>
+            <Button
+              variant={activeTab === 'assignments' ? 'default' : 'ghost'}
+              onClick={() => setActiveTab('assignments')}
+              className="rounded-b-none"
+            >
+              My Assignments ({myAssignments.length})
+            </Button>
+          </div>
+
+          {activeTab === 'teams' ? (
+            <div className="space-y-6">
+              {/* My Teams */}
+              {selectedTeam ? (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Button variant="ghost" onClick={() => setSelectedTeam(null)} className="mb-4">
+                        ← Back to Teams
+                      </Button>
+                      <h2 className="text-3xl font-bold">{selectedTeam.name}</h2>
+                      {selectedTeam.description && (
+                        <p className="text-muted-foreground mt-1">{selectedTeam.description}</p>
+                      )}
+                    </div>
+                    {userTeamMembership[selectedTeam.id]?.role === 'leader' && (
+                      <div className="flex gap-2">
+                        <Button onClick={() => setShowAddMember(true)} variant="outline" className="gap-2">
+                          <UserPlus className="w-4 h-4" />
+                          Add Member
+                        </Button>
+                        <Button onClick={() => setShowCreateAssignment(true)} className="gap-2">
+                          <ClipboardList className="w-4 h-4" />
+                          Create Assignment
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Team Members */}
                   <Card>
-                    <CardContent className="p-12 text-center">
-                      <ClipboardList className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                      <p className="text-muted-foreground">You have no assignments</p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="space-y-4">
-                    {myAssignments.map((assignment) => (
-                      <Card key={assignment.id} className="border-l-4" style={{ borderLeftColor: getStatusBorderColor(assignment.status) }}>
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <h3 className="font-semibold">{assignment.title}</h3>
-                                <Badge className={getStatusColor(assignment.status)}>
-                                  {assignment.status}
+                    <CardHeader>
+                      <CardTitle>Team Members ({selectedTeam.members?.length || 0})</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {selectedTeam.members?.length === 0 ? (
+                        <p className="text-muted-foreground text-center py-4">No members</p>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {selectedTeam.members?.map((member: any) => (
+                            <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
+                              <div>
+                                <p className="font-semibold">{member.name}</p>
+                                <p className="text-sm text-muted-foreground">{member.email}</p>
+                                <Badge variant="secondary" className="mt-1">
+                                  {member.role}
                                 </Badge>
-                                <Badge variant="outline" className={getPriorityColor(assignment.priority)}>
-                                  {assignment.priority}
-                                </Badge>
-                              </div>
-                              {assignment.description && (
-                                <p className="text-sm text-muted-foreground mb-2">{assignment.description}</p>
-                              )}
-                              <div className="flex gap-4 text-xs text-muted-foreground">
-                                <span>Team: {assignment.team_name}</span>
-                                {assignment.due_date && (
-                                  <span className="flex items-center gap-1">
-                                    <Calendar className="w-3 h-3" />
-                                    Due: {new Date(assignment.due_date).toLocaleDateString()}
-                                  </span>
-                                )}
                               </div>
                             </div>
-                            {assignment.status !== 'completed' && (
-                              <div className="flex gap-2">
-                                {assignment.status === 'pending' && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleUpdateAssignment(assignment.id, 'in_progress')}
-                                  >
-                                    Start
-                                  </Button>
-                                )}
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleUpdateAssignment(assignment.id, 'completed')}
-                                  className="bg-green-500 hover:bg-green-600"
-                                >
-                                  <CheckCircle2 className="w-4 h-4 mr-2" />
-                                  Complete
-                                </Button>
-                              </div>
-                            )}
-                          </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Team Assignments */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Team Assignments</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {selectedTeam.assignments?.length === 0 ? (
+                        <p className="text-muted-foreground text-center py-4">No assignments</p>
+                      ) : (
+                        <div className="space-y-4">
+                          {selectedTeam.assignments?.map((assignment: any) => (
+                            <Card key={assignment.id} className="border-l-4" style={{ borderLeftColor: getStatusBorderColor(assignment.status) }}>
+                              <CardContent className="p-4">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <h3 className="font-semibold">{assignment.title}</h3>
+                                      <Badge className={getStatusColor(assignment.status)}>
+                                        {assignment.status}
+                                      </Badge>
+                                      <Badge variant="outline" className={getPriorityColor(assignment.priority)}>
+                                        {assignment.priority}
+                                      </Badge>
+                                    </div>
+                                    {assignment.description && (
+                                      <p className="text-sm text-muted-foreground mb-2">{assignment.description}</p>
+                                    )}
+                                    {assignment.due_date && (
+                                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                        <Calendar className="w-3 h-3" />
+                                        Due: {new Date(assignment.due_date).toLocaleDateString()}
+                                      </p>
+                                    )}
+                                  </div>
+                                  {assignment.assigned_to === auth.getUser()?.id && assignment.status !== 'completed' && (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleUpdateAssignment(assignment.id, 'completed')}
+                                      className="bg-green-500 hover:bg-green-600"
+                                    >
+                                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                                      Mark Complete
+                                    </Button>
+                                  )}
+                                  {assignment.proof_file_path && (
+                                    <Badge variant="outline" className="ml-2">
+                                      <FileImage className="w-3 h-3 mr-1" />
+                                      Proof Uploaded
+                                    </Badge>
+                                  )}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-6">
+                    <h2 className="text-2xl font-bold mb-4">My Teams</h2>
+                    {myTeams.length === 0 ? (
+                      <Card>
+                        <CardContent className="p-12 text-center">
+                          <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                          <p className="text-muted-foreground">You are not a member of any teams yet</p>
                         </CardContent>
                       </Card>
-                    ))}
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {myTeams.map((team) => (
+                          <Card
+                            key={team.id}
+                            className="cursor-pointer hover:shadow-lg transition-all"
+                            onClick={() => loadTeamDetails(team.id)}
+                          >
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2">
+                                <Users className="w-5 h-5 text-primary" />
+                                {team.name}
+                              </CardTitle>
+                              {team.description && (
+                                <CardDescription>{team.description}</CardDescription>
+                              )}
+                            </CardHeader>
+                            <CardContent>
+                              <div className="flex gap-4 text-sm text-muted-foreground">
+                                <span>{team.member_count || 0} Members</span>
+                                <span>{team.assignment_count || 0} Assignments</span>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-        </main>
-      </div>
 
-      <Footer />
+                  {/* Available Teams to Request */}
+                  <div className="mt-8">
+                    <h2 className="text-2xl font-bold mb-4">Available Teams</h2>
+                    {allTeams.length === 0 ? (
+                      <Card>
+                        <CardContent className="p-12 text-center">
+                          <p className="text-muted-foreground">No other teams available</p>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {allTeams.map((team) => (
+                          <Card key={team.id}>
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2">
+                                <Users className="w-5 h-5 text-primary" />
+                                {team.name}
+                              </CardTitle>
+                              {team.description && (
+                                <CardDescription>{team.description}</CardDescription>
+                              )}
+                            </CardHeader>
+                            <CardContent>
+                              <div className="flex gap-4 text-sm text-muted-foreground mb-4">
+                                <span>{team.member_count || 0} Members</span>
+                                <span>{team.assignment_count || 0} Assignments</span>
+                              </div>
+                              <Button
+                                className="w-full"
+                                onClick={() => {
+                                  setSelectedTeamForRequest(team);
+                                  setShowRequestModal(true);
+                                }}
+                              >
+                                <UserPlus className="w-4 h-4 mr-2" />
+                                Request to Join
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold mb-4">My Assignments</h2>
+              {myAssignments.length === 0 ? (
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <ClipboardList className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                    <p className="text-muted-foreground">You have no assignments</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {myAssignments.map((assignment) => (
+                    <Card key={assignment.id} className="border-l-4" style={{ borderLeftColor: getStatusBorderColor(assignment.status) }}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="font-semibold">{assignment.title}</h3>
+                              <Badge className={getStatusColor(assignment.status)}>
+                                {assignment.status}
+                              </Badge>
+                              <Badge variant="outline" className={getPriorityColor(assignment.priority)}>
+                                {assignment.priority}
+                              </Badge>
+                            </div>
+                            {assignment.description && (
+                              <p className="text-sm text-muted-foreground mb-2">{assignment.description}</p>
+                            )}
+                            <div className="flex gap-4 text-xs text-muted-foreground">
+                              <span>Team: {assignment.team_name}</span>
+                              {assignment.due_date && (
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  Due: {new Date(assignment.due_date).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {assignment.status !== 'completed' && (
+                            <div className="flex gap-2">
+                              {assignment.status === 'pending' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleUpdateAssignment(assignment.id, 'in_progress')}
+                                >
+                                  Start
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                onClick={() => handleUpdateAssignment(assignment.id, 'completed')}
+                                className="bg-green-500 hover:bg-green-600"
+                              >
+                                <CheckCircle2 className="w-4 h-4 mr-2" />
+                                Complete
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </main>
+
 
       {/* Request to Join Modal */}
       <Dialog open={showRequestModal} onOpenChange={setShowRequestModal}>
@@ -749,6 +781,42 @@ const StudentTeams = () => {
               <Button onClick={handleRequestJoin} disabled={!requestMessage.trim()}>
                 <Send className="w-4 h-4 mr-2" />
                 Send Request
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Team Modal */}
+      <Dialog open={showCreateTeam} onOpenChange={setShowCreateTeam}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Team</DialogTitle>
+            <DialogDescription>Create a new team and become its leader</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Team Name *</Label>
+              <Input
+                value={createTeamForm.name}
+                onChange={(e) => setCreateTeamForm({ ...createTeamForm, name: e.target.value })}
+                placeholder="e.g. Web Development Squad"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>Description</Label>
+              <Textarea
+                value={createTeamForm.description}
+                onChange={(e) => setCreateTeamForm({ ...createTeamForm, description: e.target.value })}
+                placeholder="Briefly describe what this team does..."
+                className="mt-1"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setShowCreateTeam(false)}>Cancel</Button>
+              <Button onClick={handleCreateTeam} disabled={!createTeamForm.name.trim()}>
+                Create Team
               </Button>
             </div>
           </div>
@@ -839,7 +907,7 @@ const StudentTeams = () => {
               <select
                 value={memberForm.user_id}
                 onChange={(e) => setMemberForm({ ...memberForm, user_id: e.target.value })}
-                className="w-full h-10 border rounded-md px-3"
+                className="w-full h-10 bg-background border border-input rounded-md px-3 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
               >
                 <option value="">Choose a user...</option>
                 {allUsers
@@ -856,7 +924,7 @@ const StudentTeams = () => {
               <select
                 value={memberForm.role}
                 onChange={(e) => setMemberForm({ ...memberForm, role: e.target.value })}
-                className="w-full h-10 border rounded-md px-3"
+                className="w-full h-10 bg-background border border-input rounded-md px-3 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
               >
                 <option value="member">Member</option>
                 <option value="leader">Leader</option>
@@ -900,7 +968,7 @@ const StudentTeams = () => {
                 <select
                   value={assignmentForm.assigned_to}
                   onChange={(e) => setAssignmentForm({ ...assignmentForm, assigned_to: e.target.value })}
-                  className="w-full h-10 border rounded-md px-3"
+                  className="w-full h-10 bg-background border border-input rounded-md px-3 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
                 >
                   <option value="">Unassigned</option>
                   {selectedTeam.members.map((member: any) => {
@@ -933,7 +1001,7 @@ const StudentTeams = () => {
                 <select
                   value={assignmentForm.priority}
                   onChange={(e) => setAssignmentForm({ ...assignmentForm, priority: e.target.value })}
-                  className="w-full h-10 border rounded-md px-3"
+                  className="w-full h-10 bg-background border border-input rounded-md px-3 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>

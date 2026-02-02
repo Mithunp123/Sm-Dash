@@ -1,0 +1,9 @@
+{
+    "ignore": [
+        "database/*",
+        "public/uploads/*",
+        "*.test.js",
+        "node_modules"
+    ],
+    "ext": "js,mjs,cjs,json"
+}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell } from "lucide-react";
+import { Bell, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -8,6 +8,8 @@ import {
 } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
+import { api } from "@/lib/api";
+import { format } from "date-fns";
 
 const NotificationBell = () => {
   const navigate = useNavigate();
@@ -19,10 +21,57 @@ const NotificationBell = () => {
       return;
     }
 
-    const checkNotifications = () => {
+    const checkNotifications = async () => {
       try {
         const notifs: any[] = [];
         let totalUnread = 0;
+
+        // Check for running events (events happening today) - for all users
+        try {
+          const currentYear = new Date().getFullYear().toString();
+          const eventsResponse = await api.getPublicEvents(currentYear);
+          if (eventsResponse && eventsResponse.success && eventsResponse.events) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const runningEvents = eventsResponse.events.filter((event: any) => {
+              try {
+                const eventDate = new Date(event.date);
+                eventDate.setHours(0, 0, 0, 0);
+                const daysDiff = Math.floor((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                return daysDiff === 0; // Only today's events (running events)
+              } catch {
+                return false;
+              }
+            });
+
+            if (runningEvents.length > 0) {
+              const dismissed = JSON.parse(localStorage.getItem('dismissed_notifications') || '[]');
+              runningEvents.forEach((event: any) => {
+                const eventId = `event-${event.id}`;
+                if (!dismissed.includes(eventId)) {
+                  const eventDate = new Date(event.date);
+                  notifs.push({
+                    id: eventId,
+                    type: 'event',
+                    title: `Running Event: ${event.title}`,
+                    description: `Event Date: ${format(eventDate, "MMM dd, yyyy")}`,
+                    count: 0,
+                    link: '/',
+                    date: event.date
+                  });
+                  totalUnread += 1; // Count as unread
+                }
+              });
+            }
+          }
+        } catch (eventError: any) {
+          // Silently handle connection errors - backend might not be running
+          // Only log if it's not a connection error
+          if (eventError?.message && !eventError.message.includes('Failed to fetch') && !eventError.message.includes('ERR_CONNECTION_REFUSED')) {
+            console.error('Error loading running events:', eventError);
+          }
+          // Don't show error to user if backend is not available
+        }
 
         // Admin-specific notifications
         if (auth.hasRole('admin')) {
@@ -68,12 +117,12 @@ const NotificationBell = () => {
           if (user && user.email) {
             const repliesJson = localStorage.getItem('message_replies');
             const replies = repliesJson ? JSON.parse(repliesJson) : [];
-            const unreadReplies = replies.filter((r: any) => 
+            const unreadReplies = replies.filter((r: any) =>
               r.email === user.email && !r.read
             );
-            
+
             totalUnread += unreadReplies.length;
-            
+
             if (unreadReplies.length > 0) {
               notifs.push({
                 id: 'message_replies',
@@ -95,8 +144,8 @@ const NotificationBell = () => {
     };
 
     checkNotifications();
-    // Check every 5 seconds
-    const interval = setInterval(checkNotifications, 5000);
+    // Check every 30 seconds (reduced frequency to avoid spamming when backend is down)
+    const interval = setInterval(checkNotifications, 30000);
 
     // Also listen for storage changes
     window.addEventListener('storage', checkNotifications);
@@ -116,6 +165,29 @@ const NotificationBell = () => {
   if (!auth.isAuthenticated()) {
     return null;
   }
+
+  const handleNotificationClick = (notif: any) => {
+    // Determine if it needs to be "dismissed" (stored as read locally)
+    if (notif.id.toString().startsWith('event-') || notif.type === 'event') {
+      try {
+        const dismissed = JSON.parse(localStorage.getItem('dismissed_notifications') || '[]');
+        if (!dismissed.includes(notif.id)) {
+          dismissed.push(notif.id);
+          localStorage.setItem('dismissed_notifications', JSON.stringify(dismissed));
+        }
+      } catch (e) {
+        console.error("Error saving dismissed notification", e);
+      }
+    }
+
+    // For messages, we assume the page itself will handle marking as read upon open
+    // But we trigger a re-check anyway
+    navigate(notif.link);
+
+    // Quick update local state to make it feel responsive
+    setNotifications(prev => prev.filter(n => n.id !== notif.id));
+    setUnreadCount(prev => Math.max(0, prev - 1));
+  };
 
   return (
     <Popover>
@@ -147,21 +219,32 @@ const NotificationBell = () => {
               {notifications.map((notif) => (
                 <div
                   key={notif.id}
-                  className="p-4 hover:bg-gray-50 cursor-pointer transition-colors"
-                  onClick={() => {
-                    navigate(notif.link);
-                  }}
+                  className="p-4 hover:bg-gray-50 cursor-pointer transition-colors relative group"
+                  onClick={() => handleNotificationClick(notif)}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <p className="font-semibold text-sm">{notif.title}</p>
+                      <p className="font-semibold text-sm group-hover:text-primary transition-colors">{notif.title}</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {notif.description}
                       </p>
+                      {notif.type === 'event' && notif.date && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <Calendar className="w-3 h-3 text-blue-600" />
+                          <span className="text-xs text-blue-600 font-medium">
+                            {format(new Date(notif.date), "MMM dd, yyyy")}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     {notif.count > 0 && (
                       <span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
                         {notif.count}
+                      </span>
+                    )}
+                    {notif.type === 'event' && (
+                      <span className="ml-2 bg-green-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                        <Calendar className="w-3 h-3" />
                       </span>
                     )}
                   </div>

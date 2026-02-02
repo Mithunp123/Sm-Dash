@@ -1,39 +1,55 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
-import NotFound from "@/pages/NotFound";
+import { usePermissions } from "@/hooks/usePermissions";
+import { Loader2 } from "lucide-react";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRoles?: string[];
   blockedRoles?: string[];
+  requiredPermission?: string;
 }
 
-/**
- * ProtectedRoute enforces role-based access control.
- * - If requiredRoles is set, user must have one of those roles.
- * - If blockedRoles is set, user cannot have any of those roles.
- */
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
-  children, 
-  requiredRoles = [], 
-  blockedRoles = [] 
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  children,
+  requiredRoles = [],
+  blockedRoles = [],
+  requiredPermission
 }) => {
   const user = auth.getUser();
+  const { permissions, loading: permissionsLoading } = usePermissions();
 
   // Not authenticated: redirect to login
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
+  // If we are still loading permissions and we need a permission check, show loader
+  if (requiredPermission && permissionsLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   // Check blocked roles
   if (blockedRoles.length > 0 && blockedRoles.includes(user.role)) {
-    return <NotFound />;
+    return <Navigate to="/unauthorized" />;
   }
 
   // Check required roles
   if (requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
-    return <NotFound />;
+    return <Navigate to="/unauthorized" />;
+  }
+
+  // Check required permission
+  if (requiredPermission && user.role !== 'admin' && user.role !== 'office_bearer') {
+    const hasPermission = (permissions as any)[requiredPermission];
+    if (!hasPermission) {
+      return <Navigate to="/student" replace />;
+    }
   }
 
   return <>{children}</>;

@@ -66,8 +66,10 @@ class ApiClient {
       if (!response.ok) {
         // Handle different error status codes
         if (response.status === 401) {
+          // Keep token for change-password so a bad attempt doesn't log the user out
+          const shouldKeepToken = endpoint === '/auth/change-password';
           // For login endpoint, don't clear token on failure
-          if (endpoint !== '/auth/login') {
+          if (endpoint !== '/auth/login' && !shouldKeepToken) {
             this.setToken(null);
           }
           throw new Error(data.message || 'Invalid email or password');
@@ -91,12 +93,12 @@ class ApiClient {
       return data;
     } catch (error: any) {
       console.error('API request error:', error);
-      
+
       // Handle network errors
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
         throw new Error('Cannot connect to server. Please make sure the backend is running on http://localhost:3000');
       }
-      
+
       // Re-throw with better message
       if (error.message) {
         throw error;
@@ -133,16 +135,24 @@ class ApiClient {
 
   // Auth endpoints
   async login(email: string, password: string) {
-    const response = await this.request<{ token: string; user: any }>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
-    
-    if (response.success && response.token) {
-      this.setToken(response.token);
+    try {
+      const response = await this.request<{ token: string; user: any }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (response.success && response.token) {
+        this.setToken(response.token);
+      }
+
+      return response;
+    } catch (error: any) {
+      // Re-throw with a more user-friendly message
+      if (error.message.includes('Invalid email or password') || error.message.includes('401')) {
+        throw new Error('Invalid email or password. Please check your credentials and try again.');
+      }
+      throw error;
     }
-    
-    return response;
   }
 
   async changePassword(currentPassword: string, newPassword: string) {
@@ -166,6 +176,13 @@ class ApiClient {
     });
   }
 
+  async getRoleByEmail(email: string) {
+    return this.request('/auth/get-role-by-email', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
   // User endpoints
   async getUsers() {
     // If no auth token is stored, avoid calling admin-protected endpoints which cause 403
@@ -179,25 +196,39 @@ class ApiClient {
       const userStr = sessionStorage.getItem('auth_user');
       if (userStr) {
         const user = JSON.parse(userStr);
-        if (user && user.role && user.role === 'admin') {
+        if (user && (user.role === 'admin' || user.role === 'office_bearer')) {
           const response = await this.request('/users');
-          if (!response.success && response.message?.includes('forbidden')) {
-            return { success: true, users: [] };
-          }
-          return response;
-        }
 
-        // If caller is office_bearer, call scoped students endpoint instead
-        if (user && user.role && user.role === 'office_bearer') {
-          const response = await this.request('/users/students');
-          if (!response.success && response.message?.includes('forbidden')) {
-            return { success: true, students: [] };
+          const isForbidden = !response.success && (
+            response.message?.toLowerCase().includes('forbidden') ||
+            response.message?.toLowerCase().includes('denied') ||
+            response.status === 403
+          );
+
+          if (!isForbidden) {
+            return response;
           }
-          // Normalize to 'users' key for backward compatibility
-          if (response.success && response.students) {
-            return { success: true, users: response.students } as any;
+
+          // If forbidden (e.g. OB without full access), and is OB, fall back to scoped
+          if (user.role === 'office_bearer') {
+            const scopedRes = await this.request('/users/students');
+            const isScopedForbidden = !scopedRes.success && (
+              scopedRes.message?.toLowerCase().includes('forbidden') ||
+              scopedRes.message?.toLowerCase().includes('denied') ||
+              scopedRes.message?.toLowerCase().includes('permission') ||
+              scopedRes.status === 403
+            );
+
+            if (isScopedForbidden) {
+              return { success: true, students: [] }; // Keep students key for internal consistency if needed
+            }
+            if (scopedRes.success && scopedRes.students) {
+              return { success: true, users: scopedRes.students } as any;
+            }
+            return { success: true, users: [] } as any;
           }
-          return { success: true, users: [] } as any;
+
+          return { success: true, users: [] };
         }
       }
     } catch (err) {
@@ -248,6 +279,20 @@ class ApiClient {
     }
     return response;
   }
+
+  // Get contacts (admins and office bearers) - for students to message
+  async getContacts() {
+    if (!this.token) {
+      console.warn('Skipping /users/contacts call: no auth token present');
+      return { success: true, contacts: [] };
+    }
+    const response = await this.request('/users/contacts');
+    if (!response.success && response.message?.includes('forbidden')) {
+      return { success: true, contacts: [] };
+    }
+    return response;
+  }
+
 
   async getUser(id: number) {
     return this.request(`/users/${id}`);
@@ -310,9 +355,16 @@ class ApiClient {
   }
 
   async markAttendance(attendanceData: any) {
+    // Ensure snake_case for backend
+    const payload = {
+      ...attendanceData,
+      user_id: attendanceData.userId || attendanceData.user_id,
+      meeting_id: attendanceData.meetingId || attendanceData.meeting_id,
+      attendance_date: attendanceData.attendance_date || attendanceData.date
+    };
     return this.request('/attendance', {
       method: 'POST',
-      body: JSON.stringify(attendanceData),
+      body: JSON.stringify(payload),
     });
   }
 
@@ -335,9 +387,14 @@ class ApiClient {
   }
 
   async markProjectAttendance(projectId: number, data: { userId: number; attendance_date: string; status: string; notes?: string }) {
+    // Map userId to user_id
+    const payload = {
+      ...data,
+      user_id: data.userId
+    };
     return this.request(`/attendance/project/${projectId}/mark`, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
   }
 
@@ -359,6 +416,64 @@ class ApiClient {
     return this.request(`/attendance/student/events/${userId}`);
   }
 
+  // Awards endpoints
+  async getAwards(year?: string) {
+    const qs = year ? `?year=${encodeURIComponent(year)}` : '';
+    return this.request(`/awards${qs}`);
+  }
+
+  async getPublicAwards(year?: string) {
+    const qs = year ? `?year=${encodeURIComponent(year)}` : '';
+    const fullUrl = `${this.baseURL}/awards/public${qs}`;
+    try {
+      const res = await fetch(fullUrl);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        // Don't throw error - return empty array so page still works
+        return { success: true, awards: [], message: err.message || 'Failed to fetch awards' };
+      }
+      return await res.json();
+    } catch (err: any) {
+      // Handle connection errors gracefully - return empty result instead of failing
+      if (err?.message?.includes('Failed to fetch') || err?.message?.includes('ERR_CONNECTION_REFUSED') || err?.name === 'TypeError') {
+        return { success: true, awards: [] };
+      }
+      return { success: true, awards: [], message: err.message || 'Failed to fetch awards' };
+    }
+  }
+
+  async createAward(formData: FormData) {
+    const url = `${this.baseURL}/awards`;
+    const headers: HeadersInit = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+    const res = await fetch(url, { method: 'POST', body: formData, headers });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to create award');
+    }
+    return data;
+  }
+
+  async updateAward(id: number, formData: FormData) {
+    const url = `${this.baseURL}/awards/${id}`;
+    const headers: HeadersInit = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+    const res = await fetch(url, { method: 'PUT', body: formData, headers });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to update award');
+    }
+    return data;
+  }
+
+  async deleteAward(id: number) {
+    return this.request(`/awards/${id}`, { method: 'DELETE' });
+  }
+
   async getEventAttendance(eventId: number, userId: number) {
     return this.request(`/attendance/event/${eventId}/user/${userId}`);
   }
@@ -370,13 +485,7 @@ class ApiClient {
     });
   }
 
-  // Permissions endpoints
-  async getPermissions(userId?: number) {
-    if (userId) {
-      return this.request(`/permissions/user/${userId}`);
-    }
-    return this.request('/permissions');
-  }
+
 
   // Profile field settings
   async getProfileFieldSettings() {
@@ -432,6 +541,14 @@ class ApiClient {
     return response;
   }
 
+  async getResources() {
+    const response = await this.request('/resources');
+    if (!response.success && response.message?.includes('forbidden')) {
+      return { success: true, resources: [] };
+    }
+    return response;
+  }
+
   async getUserProjects(userId: number) {
     return this.request(`/users/${userId}/projects`);
   }
@@ -454,6 +571,12 @@ class ApiClient {
     });
   }
 
+  async deleteProject(projectId: number) {
+    return this.request(`/projects/${projectId}`, {
+      method: 'DELETE'
+    });
+  }
+
   async addProjectMember(projectId: number, userId: number) {
     return this.request(`/projects/${projectId}/members`, {
       method: 'POST',
@@ -466,8 +589,87 @@ class ApiClient {
   }
 
   // Bill endpoints
-  async getBills() {
+  async getBills(eventId?: number) {
+    if (eventId) {
+      return this.request(`/bills?event_id=${eventId}`);
+    }
     return this.request('/bills');
+  }
+
+  async uploadBill(formData: FormData) {
+    return this.request('/bills', {
+      method: 'POST',
+      body: formData,
+      headers: {}, // Let browser set Content-Type with boundary for FormData
+    });
+  }
+
+  // Legacy method for backward compatibility
+  async getBillsLegacy(params?: { folderId?: number }) {
+    let endpoint = '/bills';
+    if (params?.folderId) {
+      const query = new URLSearchParams();
+      query.append('folderId', params.folderId.toString());
+      endpoint = `/bills?${query.toString()}`;
+    }
+    return this.request(endpoint);
+  }
+
+
+  // Bill folders
+  async getBillFolders(parentId?: number | null) {
+    const query = parentId !== undefined && parentId !== null ? `?parent_id=${parentId}` : '';
+    return this.request(`/bills/folders${query}`);
+  }
+
+  async createBillFolder(folderData: { name: string; description?: string; parent_folder_id?: number | null }, files?: File[]) {
+    if (files && files.length > 0) {
+      // Use FormData for file uploads
+      const formData = new FormData();
+      formData.append('name', folderData.name);
+      if (folderData.description) formData.append('description', folderData.description);
+      if (folderData.parent_folder_id !== undefined && folderData.parent_folder_id !== null) {
+        formData.append('parent_folder_id', folderData.parent_folder_id.toString());
+      }
+      files.forEach(file => formData.append('files', file));
+
+      const url = `${this.baseURL}/bills/folders`;
+      const headers: HeadersInit = {};
+      if (this.token) {
+        headers['Authorization'] = `Bearer ${this.token}`;
+      }
+
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+        headers
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to create folder');
+      }
+      return response.json();
+    } else {
+      // No files, use JSON
+      return this.request('/bills/folders', {
+        method: 'POST',
+        body: JSON.stringify(folderData),
+      });
+    }
+  }
+
+  async updateBillFolder(folderId: number, folderData: any) {
+    return this.request(`/bills/folders/${folderId}`, {
+      method: 'PUT',
+      body: JSON.stringify(folderData),
+    });
+  }
+
+  async deleteBillFolder(folderId: number) {
+    return this.request(`/bills/folders/${folderId}`, {
+      method: 'DELETE',
+    });
   }
 
   async createBill(billData: any) {
@@ -488,6 +690,35 @@ class ApiClient {
     return this.request(`/bills/${billId}`, {
       method: 'DELETE',
     });
+  }
+
+  async uploadBillImages(billId: number, formData: FormData) {
+    // Note: When sending FormData, do not set Content-Type header manually, let fetch handle it with boundary
+    const url = `${this.baseURL}/bills/${billId}/images`;
+    const headers: HeadersInit = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+      headers
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to upload images');
+    }
+    return response.json();
+  }
+
+  async getBillImages(billId: number) {
+    return this.request(`/bills/${billId}/images`);
+  }
+
+  async deleteBillImage(imageId: number) {
+    return this.request(`/bills/images/${imageId}`, { method: 'DELETE' });
   }
 
   // Time endpoints
@@ -544,7 +775,7 @@ class ApiClient {
       body: JSON.stringify({ projectId }),
     });
   }
-  
+
   async unassignStudentFromProject(userId: number, projectId: number) {
     return this.request(`/users/${userId}/unassign-project/${projectId}`, {
       method: 'DELETE'
@@ -625,6 +856,41 @@ class ApiClient {
     return this.request(url);
   }
 
+  // Public events endpoint (no authentication required)
+  async getPublicEvents(year?: string, month?: string) {
+    let url = '/events/public';
+    const params: string[] = [];
+    if (year) params.push(`year=${encodeURIComponent(year)}`);
+    if (month) params.push(`month=${encodeURIComponent(month)}`);
+    if (params.length) url = `/events/public?${params.join('&')}`;
+
+    // Make request without authentication
+    const fullUrl = `${this.baseURL}${url}`;
+    try {
+      const response = await fetch(fullUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: 'Failed to fetch events' }));
+        throw new Error(error.message || 'Failed to fetch events');
+      }
+
+      return response.json();
+    } catch (error: any) {
+      // Handle connection errors gracefully
+      if (error?.message?.includes('Failed to fetch') || error?.message?.includes('ERR_CONNECTION_REFUSED') || error?.name === 'TypeError') {
+        // Backend is not available, return empty result
+        return { success: true, events: [] };
+      }
+      // Re-throw other errors
+      throw error;
+    }
+  }
+
   async getUserEvents(userId: number) {
     return this.request(`/events/user/${userId}`);
   }
@@ -653,10 +919,10 @@ class ApiClient {
     });
   }
 
-  async markEventOD(eventId: number, userId: number, status: 'od' | 'absent' | 'permission') {
+  async markEventOD(eventId: number, userId: number, status: 'od' | 'absent' | 'permission', date?: string) {
     return this.request(`/events/${eventId}/od`, {
       method: 'POST',
-      body: JSON.stringify({ userId, status }),
+      body: JSON.stringify({ userId, status, date }),
     });
   }
 
@@ -824,6 +1090,20 @@ class ApiClient {
     });
   }
 
+  async bulkUpdateExpectedClasses(projectId: number, expectedClasses: number | null) {
+    return this.request(`/projects/${projectId}/mentees/bulk-expected-classes`, {
+      method: 'PUT',
+      body: JSON.stringify({ expected_classes: expectedClasses }),
+    });
+  }
+
+  async bulkUpdateExpectedClassesAll(expectedClasses: number | null) {
+    return this.request(`/projects/mentees/bulk-expected-classes-all`, {
+      method: 'PUT',
+      body: JSON.stringify({ expected_classes: expectedClasses }),
+    });
+  }
+
   async deleteProjectMentee(projectId: number, assignmentId: number) {
     return this.request(`/projects/${projectId}/mentees/${assignmentId}`, {
       method: 'DELETE'
@@ -846,14 +1126,6 @@ class ApiClient {
     return this.request(`/projects/${projectId}/mentees/${assignmentId}/updates`);
   }
 
-  // Time Management API methods
-  async getTimeRequests(userId?: number, status?: string) {
-    const params = new URLSearchParams();
-    if (userId) params.append('userId', userId.toString());
-    if (status) params.append('status', status);
-    return this.request(`/time/requests?${params.toString()}`);
-  }
-
   async createTimeRequest(projectId: number | null, hours: number, date: string, deadline?: string, description?: string) {
     return this.request('/time/requests', {
       method: 'POST',
@@ -868,14 +1140,65 @@ class ApiClient {
     });
   }
 
-  async getTimeAllotments(userId?: number, projectId?: number) {
-    const params = new URLSearchParams();
-    if (userId) params.append('userId', userId.toString());
-    if (projectId) params.append('projectId', projectId.toString());
-    return this.request(`/time/allotments?${params.toString()}`);
+  // ============================================
+  // EVENT REGISTRATION (Student)
+  // ============================================
+
+  async registerForEvent(eventId: number, registrationType: 'volunteer' | 'participant' = 'volunteer', notes?: string) {
+    return this.request(`/events/${eventId}/register`, {
+      method: 'POST',
+      body: JSON.stringify({ registration_type: registrationType, notes }),
+    });
   }
 
-  logout() {
+  async getMyEventRegistrations() {
+    return this.request('/events/my-registrations');
+  }
+
+  async getActiveEvents() {
+    return this.request('/events/active');
+  }
+
+  async getEventRegistrations(eventId: number) {
+    return this.request(`/events/${eventId}/registrations`);
+  }
+
+  async getEvent(eventId: number) {
+    return this.request(`/events/${eventId}`);
+  }
+
+  async assignVolunteerToEvent(eventId: number, userId: number, data: { status?: string; notes?: string }) {
+    return this.request(`/events/${eventId}/volunteers/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ user_id: userId, ...data }),
+    });
+  }
+
+  // ============================================
+  // VOLUNTEER REGISTRATION (Public)
+  // ============================================
+
+  async volunteerRegister(data: {
+    name: string;
+    email: string;
+    register_no?: string;
+    year?: string;
+    department?: string;
+    phone?: string;
+    parent_phone?: string;
+    address?: string;
+    dob?: string;
+    blood_group?: string;
+    skills?: string;
+    experience?: string;
+  }) {
+    return this.request('/users/volunteer-register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async logout() {
     this.setToken(null);
     sessionStorage.removeItem('auth_user');
   }

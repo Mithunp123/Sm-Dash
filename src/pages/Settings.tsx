@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DeveloperCredit from "@/components/DeveloperCredit";
-import { Settings as SettingsIcon, ArrowLeft, Key, Save, Lock, AlertCircle, Clock, Eye, EyeOff, Edit3, Settings2 } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
+import { Settings as SettingsIcon, ArrowLeft, Key, Save, Lock, AlertCircle, Clock, Eye, EyeOff, Edit3, Settings2, Moon, Sun } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { auth } from "@/lib/auth";
 import { api } from "@/lib/api";
@@ -15,6 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Badge } from "@/components/ui/badge";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 
 interface SettingsSection {
   label: string;
@@ -42,12 +44,51 @@ const Settings = () => {
     date: new Date(),
     action: 'System initialization'
   }));
-  
+
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: ""
   });
+
+  // Mentor Management Settings
+  const [mentorSettings, setMentorSettings] = useState(() => {
+    try {
+      const stored = localStorage.getItem('mentor_management_settings');
+      return stored ? JSON.parse(stored) : {
+        enableImage: true,
+        enableVoice: true,
+        showTotalCalls: true
+      };
+    } catch {
+      return {
+        enableImage: true,
+        enableVoice: true,
+        showTotalCalls: true
+      };
+    }
+  });
+
+  // Theme state
+  const [theme, setTheme] = useState(() => {
+    const stored = localStorage.getItem('theme');
+    return stored || 'light';
+  });
+
+  useEffect(() => {
+    // Apply theme to document
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    toast.success(`Switched to ${theme === 'light' ? 'dark' : 'light'} mode`);
+  };
 
   const user = auth.getUser();
   const isAdmin = auth.hasRole('admin');
@@ -57,15 +98,27 @@ const Settings = () => {
     user?.role === 'admin'
       ? '/admin'
       : user?.role === 'office_bearer'
-      ? '/office-bearer'
-      : user?.role === 'student'
-      ? '/student'
-      : '/';
+        ? '/office-bearer'
+        : user?.role === 'student'
+          ? '/student'
+          : '/';
 
   const pageTitle = isAdmin ? "System Settings" : "Settings";
   const pageSubtitle = isAdmin
     ? "Configure system preferences and permissions"
     : "Manage your account settings and preferences";
+
+  const handleMentorSettingsSave = () => {
+    try {
+      localStorage.setItem('mentor_management_settings', JSON.stringify(mentorSettings));
+      toast.success('Mentor management settings saved successfully!');
+      // Dispatch event to notify MentorManagement page
+      window.dispatchEvent(new CustomEvent('mentorSettingsUpdated', { detail: mentorSettings }));
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to save mentor management settings");
+    }
+  };
 
   const handleAvailabilitySave = () => {
     try {
@@ -171,6 +224,13 @@ const Settings = () => {
       description: 'Update institution information',
       canView: true,
       canEdit: isAdmin
+    },
+    mentorManagement: {
+      label: 'Mentor Management Settings',
+      icon: '👥',
+      description: 'Configure mentor management display options',
+      canView: isAdmin,
+      canEdit: isAdmin
     }
   };
 
@@ -203,24 +263,22 @@ const Settings = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
+    <div className="flex-1 flex flex-col bg-transparent">
       <DeveloperCredit />
-      
+
       <div className="flex flex-1">
-        <main className="flex-1 p-4 md:p-8 bg-background">
+        <main className="flex-1 p-4 md:p-8 bg-transparent">
           <div className="max-w-5xl mx-auto">
+            {/* Back Button */}
+            <div className="mb-4">
+              <BackButton to={dashboardPath} />
+            </div>
+
             {/* Header */}
             <div className="flex justify-between items-center mb-8">
-              <div className="flex items-center gap-4">
-                <Button variant="ghost" onClick={() => navigate(dashboardPath)} className="gap-2">
-                  <ArrowLeft className="w-4 h-4" />
-                  Back to Dashboard
-                </Button>
-                <div>
-                  <h1 className="text-3xl font-bold text-primary">{pageTitle}</h1>
-                  <p className="text-muted-foreground">{pageSubtitle}</p>
-                </div>
+              <div>
+                <h1 className="text-3xl font-bold text-primary">{pageTitle}</h1>
+                <p className="text-muted-foreground">{pageSubtitle}</p>
               </div>
             </div>
 
@@ -232,8 +290,8 @@ const Settings = () => {
                   <div className="flex-1">
                     <p className="font-semibold text-sm">System Admin Note</p>
                     <p className="text-sm text-muted-foreground">
-                      Permissions are controlled via <Button 
-                        variant="link" 
+                      Permissions are controlled via <Button
+                        variant="link"
                         className="p-0 h-auto text-sm underline"
                         onClick={() => navigate("/manage-permissions")}
                       >
@@ -336,6 +394,70 @@ const Settings = () => {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Theme Settings */}
+              <Card className="gradient-card border-border/50">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        {theme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+                        Theme Settings
+                      </CardTitle>
+                      <CardDescription>Choose your preferred color theme</CardDescription>
+                    </div>
+                    <Badge className="gap-1"><Edit3 className="w-3 h-3" /> Editable</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between p-4 rounded-lg border border-border/50 bg-accent/5">
+                    <div className="flex items-center gap-3">
+                      {theme === 'dark' ? (
+                        <Moon className="w-5 h-5 text-primary" />
+                      ) : (
+                        <Sun className="w-5 h-5 text-primary" />
+                      )}
+                      <div>
+                        <p className="font-medium">Current Theme</p>
+                        <p className="text-sm text-muted-foreground capitalize">{theme} Mode</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={theme === 'dark'}
+                      onCheckedChange={toggleTheme}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => {
+                        setTheme('light');
+                        toast.success('Switched to light mode');
+                      }}
+                      className={`p-4 rounded-lg border-2 transition-all ${theme === 'light'
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-primary/50'
+                        }`}
+                    >
+                      <Sun className="w-6 h-6 mx-auto mb-2" />
+                      <p className="text-sm font-medium">Light</p>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTheme('dark');
+                        toast.success('Switched to dark mode');
+                      }}
+                      className={`p-4 rounded-lg border-2 transition-all ${theme === 'dark'
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-primary/50'
+                        }`}
+                    >
+                      <Moon className="w-6 h-6 mx-auto mb-2" />
+                      <p className="text-sm font-medium">Dark</p>
+                    </button>
+                  </div>
+                </CardContent>
+              </Card>
+
 
               {/* System Information */}
               {settingsSections.systemInfo.canView && (
@@ -500,29 +622,29 @@ const Settings = () => {
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
                       <Label>Institution Name</Label>
-                      <Input 
-                        value="K.S.Rangasamy College of Technology" 
-                        disabled 
+                      <Input
+                        value="K.S.Rangasamy College of Technology"
+                        disabled
                         className={settingsSections.institutionDetails.canEdit ? "" : "opacity-60"}
                       />
                     </div>
                     <div className="space-y-2">
                       <Label>Institution Code</Label>
-                      <Input 
-                        value="KSRCT-2025" 
+                      <Input
+                        value="KSRCT-2025"
                         disabled
                         className={settingsSections.institutionDetails.canEdit ? "" : "opacity-60"}
                       />
                     </div>
                     <div className="space-y-2">
                       <Label>Location</Label>
-                      <Input 
-                        value="Namakkal, Tamil Nadu" 
+                      <Input
+                        value="Namakkal, Tamil Nadu"
                         disabled
                         className={settingsSections.institutionDetails.canEdit ? "" : "opacity-60"}
                       />
                     </div>
-                    <Button 
+                    <Button
                       disabled={!settingsSections.institutionDetails.canEdit}
                       className="gap-2"
                     >
@@ -535,8 +657,6 @@ const Settings = () => {
             </div>
 
             {/* Availability Hours Slider (Office Bearer only) */}
-  const location = useLocation();
-
             {user?.role === 'office_bearer' && location.pathname.includes('/settings') && (
               <Card className="gradient-card border-border/50 mt-8">
                 <CardHeader>
@@ -645,7 +765,6 @@ const Settings = () => {
         </DialogContent>
       </Dialog>
 
-      <Footer />
     </div>
   );
 };

@@ -1,26 +1,63 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DeveloperCredit from "@/components/DeveloperCredit";
-import { ArrowLeft, Save, Upload, X, Camera, AlertCircle } from "lucide-react";
+import { ArrowLeft, Save, Upload, X, Camera, AlertCircle, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { BackButton } from "@/components/BackButton";
+
+// Common departments list (match student profile)
+const DEPARTMENTS = [
+  "Artificial Intelligence and Data Science",
+  "Artificial Intelligence and Machine Learning",
+  "Biotechnology",
+  "Civil Engineering",
+  "Computer Science and Engineering",
+  "Electronics and Communication Engineering",
+  "Electrical and Electronics Engineering",
+  "Mechanical Engineering",
+  "Mechatronics Engineering",
+  "Food Technology",
+  "Information Technology",
+  "Textile Technology",
+  "Very Large Scale Integration Technology",
+  "Computer Science and Business Systems",
+  "Master of Business Administration",
+  "Master of Computer Applications"
+];
 
 const OfficeBearerProfile = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [profileFields, setProfileFields] = useState<any[]>([]);
   const [profileData, setProfileData] = useState<any>({});
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Calculate age from DOB (same logic as StudentProfile)
+  const age = useMemo(() => {
+    if (!profileData.dob) return null;
+    const birthDate = new Date(profileData.dob);
+    if (isNaN(birthDate.getTime())) return null;
+    const today = new Date();
+    let calculated = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      calculated--;
+    }
+    return calculated;
+  }, [profileData.dob]);
 
   useEffect(() => {
     if (!auth.isAuthenticated()) {
@@ -44,11 +81,22 @@ const OfficeBearerProfile = () => {
         return;
       }
 
-      // Load profile fields
-      const fieldsRes = await api.getProfileFieldSettings();
-      if (fieldsRes.success) {
-        setProfileFields(fieldsRes.fields || []);
-      }
+      // Base shape mirroring student profile fields
+      const baseProfile: any = {
+        name: currentUser.name || "",
+        email: currentUser.email || "",
+        register_no: "",
+        dept: "",
+        year: "",
+        academic_year: "",
+        phone: "",
+        father_number: "",
+        blood_group: "",
+        gender: "",
+        dob: "",
+        address: "",
+        hosteller_dayscholar: ""
+      };
 
       // Load office bearer profile
       const profileRes = await fetch(
@@ -59,23 +107,18 @@ const OfficeBearerProfile = () => {
           }
         }
       );
-      
+
       const data = await profileRes.json();
       if (data.success && data.profile) {
-        setProfileData(data.profile);
+        // Merge API data into base shape so new fields always exist
+        setProfileData({ ...baseProfile, ...data.profile });
         // Load existing photo if available
         if (data.profile.photo_url) {
           setPhotoPreview(data.profile.photo_url);
         }
       } else {
         // Initialize empty profile data
-        const initialized: any = {};
-        if (fieldsRes.success) {
-          fieldsRes.fields.forEach((f: any) => {
-            initialized[f.field_name] = '';
-          });
-        }
-        setProfileData(initialized);
+        setProfileData(baseProfile);
       }
     } catch (err: any) {
       console.error('Failed to load profile:', err);
@@ -112,6 +155,8 @@ const OfficeBearerProfile = () => {
     setPhotoFile(null);
     setPhotoPreview('');
     setProfileData({ ...profileData, photo_url: '' });
+    setShowDeleteConfirm(false);
+    toast.success('Photo removed from selection');
   };
 
   const handleSaveProfile = async () => {
@@ -124,13 +169,13 @@ const OfficeBearerProfile = () => {
       }
 
       let photoUrl = profileData.photo_url || '';
-      
+
       // Upload photo if a new file was selected
       if (photoFile) {
         const formData = new FormData();
         formData.append('file', photoFile);
         formData.append('userId', currentUser.id.toString());
-        
+
         try {
           const uploadRes = await fetch(
             `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/upload-photo`,
@@ -142,12 +187,11 @@ const OfficeBearerProfile = () => {
               body: formData
             }
           );
-          
+
           const uploadData = await uploadRes.json();
           if (uploadData.success) {
             photoUrl = uploadData.photo_url;
             setPhotoFile(null);
-            toast.success('Photo uploaded successfully!');
           }
         } catch (err: any) {
           console.error('Photo upload failed:', err);
@@ -170,6 +214,8 @@ const OfficeBearerProfile = () => {
       const data = await res.json();
       if (data.success) {
         toast.success('Profile updated successfully!');
+        setIsEditing(false);
+        loadProfile();
       } else {
         throw new Error(data.message || 'Failed to update profile');
       }
@@ -182,248 +228,376 @@ const OfficeBearerProfile = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
+    <div className="flex-1 flex flex-col bg-transparent">
       <DeveloperCredit />
 
-      <main className="flex-1 p-4 md:p-8 bg-background">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center gap-4 mb-8">
-            <Button variant="ghost" onClick={() => navigate("/office-bearer")} className="gap-2">
-              <ArrowLeft className="w-4 h-4" />
-              Back to Dashboard
-            </Button>
+      <main className="flex-1 p-2 md:p-4 bg-transparent overflow-y-auto">
+        <div className="max-w-4xl mx-auto">
+          {/* Back Button */}
+          <div className="mb-4">
+            <BackButton to="/office-bearer" />
           </div>
 
-          <Card className="gradient-card border-border/50 hover:shadow-xl transition-all animate-fade-in">
-            <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10 border-b">
-              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                My Profile
+          <div className="mb-6 bg-white dark:bg-slate-900 border border-border rounded-lg p-6 shadow-sm relative overflow-hidden">
+            <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
+              {/* Profile Picture */}
+              <div className="relative group">
+                <input
+                  type="file"
+                  id="profile-photo-upload"
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                  className="hidden"
+                />
+                <div className="w-24 h-24 rounded-full border-2 border-border bg-muted flex items-center justify-center overflow-hidden relative shadow-inner">
+                  {photoPreview ? (
+                    <img
+                      src={photoPreview}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-primary/10">
+                      <span className="text-3xl font-semibold text-primary">
+                        {profileData.name ? profileData.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) : 'OB'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {/* Action buttons - Only visible when isEditing is true */}
+                {isEditing && (
+                  <div className="absolute bottom-0 right-0 flex gap-1">
+                    <label
+                      htmlFor="profile-photo-upload"
+                      className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm hover:bg-primary/90 cursor-pointer hover:scale-110 transition-transform"
+                      title={photoPreview ? "Change photo" : "Upload photo"}
+                    >
+                      <Camera className="w-4 h-4" />
+                    </label>
+                    {photoPreview && (
+                      <button
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="w-8 h-8 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-sm hover:bg-destructive/90 cursor-pointer hover:scale-110 transition-transform"
+                        title="Delete photo"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Name and Email */}
+              <div className="flex-1 text-center md:text-left">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <h1 className="text-2xl font-semibold text-foreground mb-1">
+                      {profileData.name || 'Office Bearer Profile'}
+                    </h1>
+                    <p className="text-sm text-muted-foreground">
+                      {profileData.email || 'Update your profile information'}
+                    </p>
+                    {profileData.dept && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {profileData.dept} {profileData.year ? `• ${profileData.year} Year` : ''}
+                      </p>
+                    )}
+                  </div>
+                  {!isEditing && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsEditing(true)}
+                      className="gap-2"
+                    >
+                      <Settings className="w-4 h-4" />
+                      Edit Profile
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Delete Confirmation Dialog */}
+          {showDeleteConfirm && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-slate-900 rounded-lg p-6 max-w-sm w-full shadow-2xl">
+                <h3 className="text-xl font-bold mb-4">Delete Profile Picture?</h3>
+                <p className="text-muted-foreground mb-6">Are you sure you want to remove your profile picture?</p>
+                <div className="flex gap-3 justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowDeleteConfirm(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleRemovePhoto}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <Card className="border border-border bg-white dark:bg-slate-900">
+            <CardHeader className="bg-muted/30 border-b border-border">
+              <CardTitle className="text-lg font-semibold text-foreground">
+                Profile Information
               </CardTitle>
-              <CardDescription className="text-base mt-2">
-                Update your profile information
+              <CardDescription className="text-sm mt-1 text-muted-foreground">
+                Manage your personal and academic details as an Office Bearer.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6">
               {loading ? (
-                <div className="flex justify-center items-center py-8">
-                  <div className="animate-spin">Loading...</div>
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin mr-2 h-5 w-5 border-b-2 border-primary"></div>
+                  <span>Loading profile...</span>
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {/* Photo Upload Section */}
-                  <div className="space-y-4 p-6 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-xl border-2 border-blue-200/50 shadow-sm hover:shadow-md transition-all animate-fade-in">
-                    <Label className="text-lg font-bold flex items-center gap-2">
-                      <Camera className="w-5 h-5 text-primary" />
-                      Profile Photo
-                    </Label>
-                    <div className="flex items-start gap-6">
-                      {/* Photo Preview */}
-                      <div className="flex-shrink-0">
-                        <div className="w-36 h-36 rounded-xl border-2 border-dashed border-blue-300 bg-white flex items-center justify-center overflow-hidden shadow-md hover:shadow-lg transition-shadow group">
-                          {photoPreview ? (
-                            <img 
-                              src={photoPreview} 
-                              alt="Profile preview" 
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
-                          ) : (
-                            <div className="text-center py-8 animate-fade-in">
-                              <Upload className="w-10 h-10 text-muted-foreground mx-auto mb-2 group-hover:text-primary transition-colors" />
-                              <p className="text-sm text-muted-foreground font-medium">No photo</p>
-                            </div>
-                          )}
-                        </div>
+                  <div className="space-y-4">
+                    {/* Row 1: Name, Email, Register No */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-foreground">Name</Label>
+                        <Input
+                          value={profileData.name || ''}
+                          onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                          className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300 focus:ring-2 focus:ring-primary/20 cursor-text"
+                          placeholder="Enter your name"
+                          disabled={!isEditing}
+                        />
                       </div>
+                      <div className="space-y-2">
+                        <Label className="font-medium text-sm text-foreground">Email</Label>
+                        <Input
+                          type="email"
+                          value={profileData.email || ''}
+                          onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                          className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300 focus:ring-2 focus:ring-primary/20 cursor-text"
+                          placeholder="Enter your email"
+                          disabled={!isEditing}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="font-medium text-sm text-foreground">Register No</Label>
+                        <Input
+                          value={profileData.register_no || ''}
+                          onChange={(e) => setProfileData({ ...profileData, register_no: e.target.value })}
+                          placeholder="Enter register number"
+                          className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300 focus:ring-2 focus:ring-primary/20 cursor-text"
+                          disabled={!isEditing}
+                        />
+                      </div>
+                    </div>
 
-                      {/* Upload Controls */}
-                      <div className="flex-1 space-y-4">
-                        <div>
-                          <Label htmlFor="photo-upload" className="text-sm font-semibold mb-2 block">
-                            Choose a photo to upload
-                          </Label>
-                          <Input
-                            id="photo-upload"
-                            type="file"
-                            accept="image/*"
-                            onChange={handlePhotoChange}
-                            disabled={saving}
-                            className="mt-2 cursor-pointer h-10 border-2 border-blue-300 hover:border-primary transition-colors"
-                          />
-                          <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                            <AlertCircle className="w-3 h-3" />
-                            Supported formats: JPG, PNG, GIF. Max size: 5MB
-                          </p>
-                        </div>
-                        
-                        {photoPreview && (
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="sm"
-                            onClick={handleRemovePhoto}
-                            disabled={saving}
-                            className="gap-2"
-                          >
-                            <X className="w-4 h-4" />
-                            Remove Photo
-                          </Button>
-                        )}
+                    {/* Row 2: Department, Year, Academic Year */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label className="font-medium text-sm text-foreground">Department</Label>
+                        <Select
+                          value={profileData.dept || ""}
+                          onValueChange={(val) => setProfileData({ ...profileData, dept: val })}
+                          disabled={!isEditing}
+                        >
+                          <SelectTrigger className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300 focus:ring-2 focus:ring-primary/20 cursor-pointer w-full">
+                            <SelectValue placeholder="Select department" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {DEPARTMENTS.map(dept => (
+                              <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
+                      <div className="space-y-2">
+                        <Label className="font-medium text-sm text-foreground">Year</Label>
+                        <Select
+                          value={profileData.year || ""}
+                          onValueChange={(val) => setProfileData({ ...profileData, year: val })}
+                          disabled={!isEditing}
+                        >
+                          <SelectTrigger className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300 focus:ring-2 focus:ring-primary/20 cursor-pointer w-full">
+                            <SelectValue placeholder="Select year" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="I">I Year</SelectItem>
+                            <SelectItem value="II">II Year</SelectItem>
+                            <SelectItem value="III">III Year</SelectItem>
+                            <SelectItem value="IV">IV Year</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="font-medium text-sm text-foreground">Academic Year</Label>
+                        <Input
+                          value={profileData.academic_year || ''}
+                          onChange={(e) => setProfileData({ ...profileData, academic_year: e.target.value })}
+                          placeholder="e.g., 2024-2025"
+                          className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300 focus:ring-2 focus:ring-primary/20 cursor-text"
+                          disabled={!isEditing}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Row 3: Phone Number, Parent Number, DOB */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label className="font-medium text-sm text-foreground">Phone Number</Label>
+                        <Input
+                          type="tel"
+                          value={profileData.phone || ''}
+                          onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                          placeholder="Enter mobile number"
+                          className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300 focus:ring-2 focus:ring-primary/20 cursor-text"
+                          disabled={!isEditing}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="font-medium text-sm text-foreground">Parent's Phone</Label>
+                        <Input
+                          type="tel"
+                          value={profileData.father_number || ''}
+                          onChange={(e) => setProfileData({ ...profileData, father_number: e.target.value })}
+                          placeholder="Enter parent's number"
+                          className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300 focus:ring-2 focus:ring-primary/20 cursor-text"
+                          disabled={!isEditing}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="font-medium text-sm text-foreground">DOB</Label>
+                        <Input
+                          type="date"
+                          value={profileData.dob || ''}
+                          onChange={(e) => setProfileData({ ...profileData, dob: e.target.value })}
+                          className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300 focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                          disabled={!isEditing}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Row 4: Age, Gender, Blood Group */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label className="font-medium text-sm text-foreground">Age</Label>
+                        <Input
+                          value={age !== null ? `${age} years` : ''}
+                          disabled
+                          className="bg-muted text-foreground border-2 border-border font-semibold shadow-sm cursor-not-allowed"
+                          placeholder="Auto-calculated from DOB"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="font-medium text-sm text-foreground">Gender</Label>
+                        <Select
+                          value={profileData.gender || ""}
+                          onValueChange={(val) => setProfileData({ ...profileData, gender: val })}
+                          disabled={!isEditing}
+                        >
+                          <SelectTrigger className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300 focus:ring-2 focus:ring-primary/20 cursor-pointer w-full">
+                            <SelectValue placeholder="Select gender" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Male">Male</SelectItem>
+                            <SelectItem value="Female">Female</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="font-medium text-sm text-foreground">Blood Group</Label>
+                        <Select
+                          value={profileData.blood_group || ""}
+                          onValueChange={(val) => setProfileData({ ...profileData, blood_group: val })}
+                          disabled={!isEditing}
+                        >
+                          <SelectTrigger className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300 focus:ring-2 focus:ring-primary/20 cursor-pointer w-full">
+                            <SelectValue placeholder="Select blood group" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="A+">A+</SelectItem>
+                            <SelectItem value="A-">A-</SelectItem>
+                            <SelectItem value="B+">B+</SelectItem>
+                            <SelectItem value="B-">B-</SelectItem>
+                            <SelectItem value="AB+">AB+</SelectItem>
+                            <SelectItem value="AB-">AB-</SelectItem>
+                            <SelectItem value="O+">O+</SelectItem>
+                            <SelectItem value="O-">O-</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Row 5: Hosteller/Dayscholar */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label className="font-medium text-sm text-foreground">Hosteller or Dayscholar</Label>
+                        <Select
+                          value={profileData.hosteller_dayscholar || ""}
+                          onValueChange={(val) => setProfileData({ ...profileData, hosteller_dayscholar: val })}
+                          disabled={!isEditing}
+                        >
+                          <SelectTrigger className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300 focus:ring-2 focus:ring-primary/20 cursor-pointer w-full">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Hosteller">Hosteller</SelectItem>
+                            <SelectItem value="Dayscholar">Dayscholar</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Address - Full Width */}
+                    <div className="space-y-2">
+                      <Label className="font-medium text-sm text-foreground">Address</Label>
+                      <Textarea
+                        value={profileData.address || ''}
+                        onChange={(e) => setProfileData({ ...profileData, address: e.target.value })}
+                        placeholder="Enter full address"
+                        rows={4}
+                        className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300 focus:ring-2 focus:ring-primary/20 cursor-text resize-y"
+                        disabled={!isEditing}
+                      />
                     </div>
                   </div>
 
-                  {profileFields.length === 0 ? (
-                    <p className="text-muted-foreground">No profile fields configured.</p>
-                  ) : (
-                    profileFields.map((field: any) => {
-                      // Only show visible fields
-                      if (!field.visible) return null;
-
-                      const value = profileData[field.field_name] || '';
-                      const isEditable = field.editable_by_student || false;
-
-                      // Render based on field type
-                      if (field.field_type === 'textarea') {
-                        return (
-                          <div key={field.field_name} className="space-y-2 animate-fade-in">
-                            <Label htmlFor={field.field_name} className="font-semibold">{field.label}</Label>
-                            <textarea
-                              id={field.field_name}
-                              value={value}
-                              onChange={(e) => setProfileData({ ...profileData, [field.field_name]: e.target.value })}
-                              disabled={!isEditable}
-                              placeholder={`Enter ${field.label.toLowerCase()}`}
-                              className="w-full min-h-24 px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                            />
-                          </div>
-                        );
-                      } else if (field.field_name === 'year') {
-                        return (
-                          <div key={field.field_name} className="space-y-2 animate-fade-in">
-                            <Label htmlFor={field.field_name} className="font-semibold">{field.label}</Label>
-                            <Select value={value} onValueChange={(val) => setProfileData({ ...profileData, [field.field_name]: val })} disabled={!isEditable}>
-                              <SelectTrigger disabled={!isEditable} className="h-11 border-2 focus:ring-2 focus:ring-primary">
-                                <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="I">I Year</SelectItem>
-                                <SelectItem value="II">II Year</SelectItem>
-                                <SelectItem value="III">III Year</SelectItem>
-                                <SelectItem value="IV">IV Year</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        );
-                      } else if (field.field_name === 'gender') {
-                        return (
-                          <div key={field.field_name} className="space-y-2">
-                            <Label htmlFor={field.field_name}>{field.label}</Label>
-                            <Select value={value} onValueChange={(val) => setProfileData({ ...profileData, [field.field_name]: val })} disabled={!isEditable}>
-                              <SelectTrigger disabled={!isEditable}>
-                                <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Male">Male</SelectItem>
-                                <SelectItem value="Female">Female</SelectItem>
-                                <SelectItem value="Other">Other</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        );
-                      } else if (field.field_name === 'blood_group') {
-                        return (
-                          <div key={field.field_name} className="space-y-2">
-                            <Label htmlFor={field.field_name}>{field.label}</Label>
-                            <Select value={value} onValueChange={(val) => setProfileData({ ...profileData, [field.field_name]: val })} disabled={!isEditable}>
-                              <SelectTrigger disabled={!isEditable}>
-                                <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="A+">A+</SelectItem>
-                                <SelectItem value="A-">A-</SelectItem>
-                                <SelectItem value="B+">B+</SelectItem>
-                                <SelectItem value="B-">B-</SelectItem>
-                                <SelectItem value="AB+">AB+</SelectItem>
-                                <SelectItem value="AB-">AB-</SelectItem>
-                                <SelectItem value="O+">O+</SelectItem>
-                                <SelectItem value="O-">O-</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        );
-                      } else if (field.field_type === 'date') {
-                        return (
-                          <div key={field.field_name} className="space-y-2">
-                            <Label htmlFor={field.field_name}>{field.label}</Label>
-                            <Input
-                              id={field.field_name}
-                              type="date"
-                              value={value}
-                              onChange={(e) => setProfileData({ ...profileData, [field.field_name]: e.target.value })}
-                              disabled={!isEditable}
-                            />
-                          </div>
-                        );
-                      } else if (field.field_type === 'number') {
-                        return (
-                          <div key={field.field_name} className="space-y-2">
-                            <Label htmlFor={field.field_name}>{field.label}</Label>
-                            <Input
-                              id={field.field_name}
-                              type="number"
-                              value={value}
-                              onChange={(e) => setProfileData({ ...profileData, [field.field_name]: e.target.value })}
-                              disabled={!isEditable}
-                              placeholder={`Enter ${field.label.toLowerCase()}`}
-                            />
-                          </div>
-                        );
-                      } else {
-                        return (
-                          <div key={field.field_name} className="space-y-2 animate-fade-in">
-                            <Label htmlFor={field.field_name} className="font-semibold">{field.label}</Label>
-                            <Input
-                              id={field.field_name}
-                              type={field.field_type === 'email' ? 'email' : field.field_type === 'url' ? 'url' : field.field_type === 'date' ? 'date' : 'text'}
-                              value={value}
-                              onChange={(e) => setProfileData({ ...profileData, [field.field_name]: e.target.value })}
-                              disabled={!isEditable}
-                              placeholder={`Enter ${field.label.toLowerCase()}`}
-                              className="h-11 border-2 focus:ring-2 focus:ring-primary focus:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                            />
-                          </div>
-                        );
-                      }
-                    })
+                  {isEditing && (
+                    <div className="flex gap-3 justify-center pt-6 border-t border-border">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          loadProfile();
+                          setIsEditing(false);
+                          setPhotoFile(null);
+                        }}
+                        disabled={saving}
+                        className="px-6 h-11 hover:bg-muted transition-all duration-200 gap-2"
+                      >
+                        <X className="w-4 h-4" />
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={handleSaveProfile}
+                        disabled={saving}
+                        className="gap-2 px-8 h-11 bg-primary text-primary-foreground font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+                      >
+                        <Save className="w-4 h-4" />
+                        {saving ? 'Saving...' : 'Save Profile'}
+                      </Button>
+                    </div>
                   )}
-
-                  <div className="flex gap-3 justify-end pt-6 border-t-2 border-border/50">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => loadProfile()} 
-                      disabled={saving}
-                      className="px-6 h-11 hover:bg-muted transition-all"
-                    >
-                      Reset
-                    </Button>
-                    <Button 
-                      onClick={handleSaveProfile} 
-                      disabled={saving} 
-                      className="gap-2 px-8 h-11 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105"
-                    >
-                      <Save className="w-4 h-4" />
-                      {saving ? 'Saving...' : 'Save Profile'}
-                    </Button>
-                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 };

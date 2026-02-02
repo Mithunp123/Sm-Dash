@@ -21,6 +21,13 @@ export const getDatabase = () => {
         console.error('Error opening database:', err);
       } else {
         console.log('✅ Connected to SQLite database');
+        // Enable WAL mode for better performance and concurrency
+        db.run('PRAGMA journal_mode = WAL;', (err) => {
+          if (err) console.error('Error enabling WAL mode:', err);
+          else console.log('✅ SQLite WAL mode enabled');
+        });
+        db.run('PRAGMA synchronous = NORMAL;'); // Faster writes, still safe enough for most apps
+        db.run('PRAGMA foreign_keys = ON;'); // Enforce foreign key constraints
       }
     });
   }
@@ -29,7 +36,7 @@ export const getDatabase = () => {
 
 const run = (db, query, params = []) => {
   return new Promise((resolve, reject) => {
-    db.run(query, params, function(err) {
+    db.run(query, params, function (err) {
       if (err) reject(err);
       else resolve({ lastID: this.lastID, changes: this.changes });
     });
@@ -76,10 +83,23 @@ export const initDatabase = async () => {
         name TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
-        role TEXT NOT NULL CHECK(role IN ('admin', 'office_bearer', 'student', 'alumni')),
+        role TEXT NOT NULL CHECK(role IN ('admin', 'office_bearer', 'student', 'alumni', 'spoc')),
         must_change_password INTEGER DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Password resets table
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS password_resets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT NOT NULL,
+        otp TEXT NOT NULL,
+        token TEXT,
+        used INTEGER DEFAULT 0,
+        expires_at DATETIME NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
@@ -119,14 +139,12 @@ export const initDatabase = async () => {
       )
     `);
 
-    // NOTE: SPOC role/profile removed from the system; legacy spoc_profiles table omitted.
-
-    // Unified profiles table (stores common profile fields for students, office bearers and alumni)
+    // Unified profiles table (stores common profile fields for students, office bearers, alumni and SPOCs)
     await run(database, `
       CREATE TABLE IF NOT EXISTS profiles (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
-        role TEXT NOT NULL CHECK(role IN ('student','office_bearer','alumni')),
+        role TEXT NOT NULL CHECK(role IN ('student','office_bearer','alumni','spoc')),
         dept TEXT,
         year TEXT,
         phone TEXT,
@@ -147,7 +165,7 @@ export const initDatabase = async () => {
     try {
       const profileColumns = await all(database, "PRAGMA table_info(profiles)");
       const columnNames = profileColumns.map((col) => col.name);
-      
+
       if (!columnNames.includes('photo_url')) {
         await run(database, `ALTER TABLE profiles ADD COLUMN photo_url TEXT`);
         console.log('✅ Added photo_url column to profiles table');
@@ -180,7 +198,7 @@ export const initDatabase = async () => {
         try {
           const students = await all(database, 'SELECT * FROM student_profiles');
           for (const s of students) {
-            await run(database, `INSERT OR IGNORE INTO profiles (user_id, role, dept, year, phone, blood_group, gender, dob, address, custom_fields) VALUES (?, 'student', ?, ?, ?, ?, ?, ?, ?, ?)` , [s.user_id, s.dept, s.year, s.phone, s.blood_group, s.gender, s.dob, s.address, s.custom_fields]);
+            await run(database, `INSERT OR IGNORE INTO profiles (user_id, role, dept, year, phone, blood_group, gender, dob, address, custom_fields) VALUES (?, 'student', ?, ?, ?, ?, ?, ?, ?, ?)`, [s.user_id, s.dept, s.year, s.phone, s.blood_group, s.gender, s.dob, s.address, s.custom_fields]);
           }
         } catch (e) {
           // Table may not exist - ignore
@@ -190,9 +208,9 @@ export const initDatabase = async () => {
         try {
           const obs = await all(database, 'SELECT * FROM office_bearer_profiles');
           for (const o of obs) {
-            await run(database, `INSERT OR IGNORE INTO profiles (user_id, role, dept, year, phone, blood_group, gender, dob, address, custom_fields) VALUES (?, 'office_bearer', ?, ?, ?, ?, ?, ?, ?, ?)` , [o.user_id, o.dept, o.year, o.phone, o.blood_group, o.gender, o.dob, o.address, o.custom_fields]);
+            await run(database, `INSERT OR IGNORE INTO profiles (user_id, role, dept, year, phone, blood_group, gender, dob, address, custom_fields) VALUES (?, 'office_bearer', ?, ?, ?, ?, ?, ?, ?, ?)`, [o.user_id, o.dept, o.year, o.phone, o.blood_group, o.gender, o.dob, o.address, o.custom_fields]);
           }
-        } catch (e) {}
+        } catch (e) { }
 
         // Legacy spoc_profiles are intentionally skipped (SPOC role removed)
 
@@ -200,9 +218,9 @@ export const initDatabase = async () => {
         try {
           const alums = await all(database, 'SELECT * FROM alumni');
           for (const a of alums) {
-            await run(database, `INSERT OR IGNORE INTO profiles (user_id, role, dept, year, phone, blood_group, gender, dob, address, custom_fields) VALUES (?, 'alumni', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)` , [a.user_id]);
+            await run(database, `INSERT OR IGNORE INTO profiles (user_id, role, dept, year, phone, blood_group, gender, dob, address, custom_fields) VALUES (?, 'alumni', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)`, [a.user_id]);
           }
-        } catch (e) {}
+        } catch (e) { }
       }
     } catch (e) {
       // ignore migration errors
@@ -255,7 +273,7 @@ export const initDatabase = async () => {
         FOREIGN KEY (coordinator_id) REFERENCES users(id)
       )
     `);
-    
+
     // Add image_url and required_calls columns if they don't exist (for existing databases)
     try {
       await run(database, `ALTER TABLE projects ADD COLUMN image_url TEXT`);
@@ -367,6 +385,7 @@ export const initDatabase = async () => {
         can_manage_permissions_module INTEGER DEFAULT 0,
         can_manage_settings INTEGER DEFAULT 0,
         can_view_analytics INTEGER DEFAULT 0,
+        can_view_reports INTEGER DEFAULT 0,
         can_manage_time_requests INTEGER DEFAULT 0,
         can_approve_time_extensions INTEGER DEFAULT 0,
         can_reject_time_extensions INTEGER DEFAULT 0,
@@ -395,7 +414,8 @@ export const initDatabase = async () => {
       'can_manage_feedback_reports',
       'can_manage_permissions_module',
       'can_manage_settings',
-      'can_view_analytics'
+      'can_view_analytics',
+      'can_view_reports'
     ];
 
     for (const key of moduleKeys) {
@@ -408,10 +428,10 @@ export const initDatabase = async () => {
       // add view/edit variants
       try {
         await run(database, `ALTER TABLE permissions ADD COLUMN ${key}_view INTEGER DEFAULT 0`);
-      } catch (err) {}
+      } catch (err) { }
       try {
         await run(database, `ALTER TABLE permissions ADD COLUMN ${key}_edit INTEGER DEFAULT 0`);
-      } catch (err) {}
+      } catch (err) { }
     }
 
     // Profile field settings - controls whether students can edit specific profile fields
@@ -461,8 +481,8 @@ export const initDatabase = async () => {
       )
     `);
 
-  // Seed defaults for roles (student, office_bearer)
-  const roles = ['student', 'office_bearer'];
+    // Seed defaults for roles (student, office_bearer)
+    const roles = ['student', 'office_bearer'];
     for (const r of roles) {
       for (const f of defaultFields) {
         const existsRole = await get(database, 'SELECT id FROM role_profile_field_settings WHERE role = ? AND field_name = ?', [r, f.field]);
@@ -471,7 +491,7 @@ export const initDatabase = async () => {
           // For office_bearer: no profile field permissions (they don't manage student profiles)
           let canView = 0;
           let canEdit = 0;
-          
+
           if (r === 'student') {
             // Get the field settings from profile_field_settings table
             const fieldSettings = await get(database, 'SELECT visible, editable_by_student FROM profile_field_settings WHERE field_name = ?', [f.field]);
@@ -481,7 +501,7 @@ export const initDatabase = async () => {
             }
           }
           // office_bearer: canView=0, canEdit=0 (defaults above)
-          
+
           await run(database, 'INSERT INTO role_profile_field_settings (role, field_name, can_view, can_edit) VALUES (?, ?, ?, ?)', [r, f.field, canView, canEdit]);
         }
       }
@@ -520,7 +540,7 @@ export const initDatabase = async () => {
         FOREIGN KEY (approved_by) REFERENCES users(id)
       )
     `);
-    
+
     // Add deadline column if it doesn't exist (migration for existing databases)
     try {
       await run(database, `ALTER TABLE time_requests ADD COLUMN deadline DATE`);
@@ -627,8 +647,8 @@ export const initDatabase = async () => {
       )
     `);
 
-      // Permission requests table - stores requests from office bearers to gain edit/view permissions
-      await run(database, `
+    // Permission requests table - stores requests from office bearers to gain edit/view permissions
+    await run(database, `
         CREATE TABLE IF NOT EXISTS permission_requests (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           user_id INTEGER NOT NULL,
@@ -667,25 +687,25 @@ export const initDatabase = async () => {
     // Ensure legacy databases get the new columns if they don't exist
     try {
       await run(database, `ALTER TABLE resources ADD COLUMN title TEXT`);
-    } catch (e) {}
+    } catch (e) { }
     try {
       await run(database, `ALTER TABLE resources ADD COLUMN resource_type TEXT`);
-    } catch (e) {}
+    } catch (e) { }
     try {
       await run(database, `ALTER TABLE resources ADD COLUMN category TEXT`);
-    } catch (e) {}
+    } catch (e) { }
     try {
       await run(database, `ALTER TABLE resources ADD COLUMN folder_id INTEGER`);
-    } catch (e) {}
+    } catch (e) { }
     try {
       await run(database, `ALTER TABLE resources ADD COLUMN description TEXT`);
-    } catch (e) {}
+    } catch (e) { }
     try {
       await run(database, `ALTER TABLE resources ADD COLUMN upload_date DATE`);
-    } catch (e) {}
+    } catch (e) { }
     try {
       await run(database, `ALTER TABLE resources ADD COLUMN upload_time TIME`);
-    } catch (e) {}
+    } catch (e) { }
 
     // Resource folders table
     await run(database, `
@@ -695,12 +715,24 @@ export const initDatabase = async () => {
         description TEXT,
         parent_id INTEGER,
         created_by INTEGER,
+        resource_type TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (parent_id) REFERENCES resource_folders(id) ON DELETE CASCADE,
         FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
       )
     `);
+
+    // Migration: Add resource_type column if it doesn't exist
+    try {
+      await run(database, `ALTER TABLE resource_folders ADD COLUMN resource_type TEXT`);
+      console.log('✅ Added resource_type column to resource_folders');
+    } catch (e) {
+      // Column might already exist, that's okay
+      if (!e.message.includes('duplicate column')) {
+        console.log('ℹ️ resource_type column may already exist in resource_folders');
+      }
+    }
 
     // Teams table
     await run(database, `
@@ -750,7 +782,7 @@ export const initDatabase = async () => {
         FOREIGN KEY (assigned_by) REFERENCES users(id) ON DELETE SET NULL
       )
     `);
-    
+
     // Add proof_file_path column if it doesn't exist
     try {
       await run(database, `ALTER TABLE team_assignments ADD COLUMN proof_file_path TEXT`);
@@ -798,16 +830,74 @@ export const initDatabase = async () => {
         date TEXT NOT NULL,
         year TEXT NOT NULL,
         is_special_day INTEGER DEFAULT 0,
+        image_url TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
+    // Awards table
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS awards (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        description TEXT,
+        recipient_name TEXT,
+        recipient_id INTEGER,
+        award_date DATE,
+        year TEXT,
+        category TEXT,
+        image_url TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+
+    // NGO info table (multiple NGO support)
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS ngo_info (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        about TEXT,
+        work TEXT,
+        projects TEXT,
+        events TEXT,
+        profile TEXT,
+        logo_url TEXT,
+        contact_email TEXT,
+        contact_phone TEXT,
+        address TEXT,
+        website TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Add image_url column if it doesn't exist (migration for existing databases)
+    try {
+      await run(database, `ALTER TABLE events ADD COLUMN image_url TEXT`);
+    } catch (e) {
+      // Column might already exist, that's okay
+    }
+
+    // Add volunteer registration limit and deadline columns (migration for existing databases)
+    try {
+      await run(database, `ALTER TABLE events ADD COLUMN max_volunteers INTEGER`);
+    } catch (e) {
+      // Column might already exist, that's okay
+    }
+    try {
+      await run(database, `ALTER TABLE events ADD COLUMN volunteer_registration_deadline DATETIME`);
+    } catch (e) {
+      // Column might already exist, that's okay
+    }
+
     // Optional mapping of volunteers to their assigned mentees (used to auto-fill mentee name)
     await run(database, `
       CREATE TABLE IF NOT EXISTS phone_mentoring_assignments (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        volunteer_id INTEGER NOT NULL,
+        volunteer_id INTEGER,
         project_id INTEGER,
         mentee_name TEXT NOT NULL,
         mentee_phone TEXT,
@@ -821,13 +911,14 @@ export const initDatabase = async () => {
         mentee_parent_contact TEXT,
         mentee_status TEXT DEFAULT 'active',
         mentee_notes TEXT,
+        expected_classes INTEGER,
         created_by INTEGER,
+        mentee_user_id INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (volunteer_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
-        UNIQUE(volunteer_id)
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
       )
     `);
 
@@ -847,7 +938,9 @@ export const initDatabase = async () => {
         ['mentee_parent_contact', `ALTER TABLE phone_mentoring_assignments ADD COLUMN mentee_parent_contact TEXT`],
         ['mentee_status', `ALTER TABLE phone_mentoring_assignments ADD COLUMN mentee_status TEXT DEFAULT 'active'`],
         ['mentee_notes', `ALTER TABLE phone_mentoring_assignments ADD COLUMN mentee_notes TEXT`],
-        ['created_by', `ALTER TABLE phone_mentoring_assignments ADD COLUMN created_by INTEGER REFERENCES users(id)`]
+        ['created_by', `ALTER TABLE phone_mentoring_assignments ADD COLUMN created_by INTEGER REFERENCES users(id)`],
+        ['mentee_user_id', `ALTER TABLE phone_mentoring_assignments ADD COLUMN mentee_user_id INTEGER REFERENCES users(id)`],
+        ['expected_classes', `ALTER TABLE phone_mentoring_assignments ADD COLUMN expected_classes INTEGER`]
       ];
 
       for (const [colName, statement] of columnMap) {
@@ -857,6 +950,64 @@ export const initDatabase = async () => {
       }
     } catch (mentoringAssignmentErr) {
       console.warn('⚠️  Could not ensure columns on phone_mentoring_assignments:', mentoringAssignmentErr.message);
+    }
+
+    // Migration: Remove UNIQUE constraint on volunteer_id to allow multiple mentees per mentor
+    // SQLite doesn't support DROP CONSTRAINT, so we need to recreate the table
+    try {
+      const tableInfo = await all(database, "SELECT sql FROM sqlite_master WHERE type='table' AND name='phone_mentoring_assignments'");
+      if (tableInfo && tableInfo.length > 0) {
+        const createSql = (tableInfo[0] || {}).sql || '';
+        if (createSql.includes('UNIQUE(volunteer_id)')) {
+          console.log('🔄 Migrating phone_mentoring_assignments: Removing UNIQUE constraint on volunteer_id...');
+
+          // Create new table without UNIQUE constraint
+          await run(database, `
+            CREATE TABLE IF NOT EXISTS phone_mentoring_assignments_new (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              volunteer_id INTEGER,
+              project_id INTEGER,
+              mentee_name TEXT NOT NULL,
+              mentee_phone TEXT,
+              mentee_register_no TEXT,
+              mentee_department TEXT,
+              mentee_year TEXT,
+              mentee_gender TEXT,
+              mentee_school TEXT,
+              mentee_address TEXT,
+              mentee_district TEXT,
+              mentee_parent_contact TEXT,
+              mentee_status TEXT DEFAULT 'active',
+              mentee_notes TEXT,
+              expected_classes INTEGER,
+              created_by INTEGER,
+              mentee_user_id INTEGER,
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              FOREIGN KEY (volunteer_id) REFERENCES users(id) ON DELETE CASCADE,
+              FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+              FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+            )
+          `);
+
+          // Copy data from old table to new table
+          await run(database, `
+            INSERT INTO phone_mentoring_assignments_new 
+            SELECT * FROM phone_mentoring_assignments
+          `);
+
+          // Drop old table
+          await run(database, `DROP TABLE phone_mentoring_assignments`);
+
+          // Rename new table
+          await run(database, `ALTER TABLE phone_mentoring_assignments_new RENAME TO phone_mentoring_assignments`);
+
+          console.log('✅ Migration completed: UNIQUE constraint on volunteer_id removed');
+        }
+      }
+    } catch (migrationErr) {
+      console.warn('⚠️  Could not migrate phone_mentoring_assignments table:', migrationErr);
+      // Continue - the application will handle NULL volunteer_id
     }
 
     // Phone mentoring daily updates - records volunteer phone mentoring calls with mentees
@@ -954,13 +1105,21 @@ export const initDatabase = async () => {
           WHERE status IN ('od','absent')
         `);
 
+        // Drop existing backup table if it exists to avoid rename conflicts
+        await run(database, `DROP TABLE IF EXISTS event_od_old`);
+
         // Drop old table and rename new
         await run(database, `ALTER TABLE event_od RENAME TO event_od_old`);
         await run(database, `ALTER TABLE event_od_new RENAME TO event_od`);
         await run(database, `DROP TABLE IF EXISTS event_od_old`);
         console.log('✅ Migrated event_od to include permission status');
       } catch (mErr) {
-        console.error('⚠️  Failed to migrate event_od table, leaving existing table in place:', mErr.message || mErr);
+        if (mErr.message && mErr.message.includes('already exists')) {
+          // If we hit a race condition or already migrated, just clean up
+          await run(database, `DROP TABLE IF EXISTS event_od_new`);
+        } else {
+          console.error('⚠️  Failed to migrate event_od table, leaving existing table in place:', mErr.message || mErr);
+        }
         // If migration failed, ensure table exists with original definition (fallback)
         await run(database, `
           CREATE TABLE IF NOT EXISTS event_od (
@@ -1008,6 +1167,21 @@ export const initDatabase = async () => {
 
     // Event attendance records table
     await run(database, `
+      CREATE TABLE IF NOT EXISTS event_volunteers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        department TEXT,
+        year TEXT,
+        phone TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+      )
+    `);
+  } catch (e) { }
+
+  try {
+    await run(database, `
       CREATE TABLE IF NOT EXISTS event_attendance (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         event_id INTEGER NOT NULL,
@@ -1022,9 +1196,59 @@ export const initDatabase = async () => {
       )
     `);
 
+    // Student Event Registrations - Links students to events they registered for
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS event_registrations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        registration_type TEXT DEFAULT 'volunteer' CHECK(registration_type IN ('volunteer', 'participant')),
+        status TEXT DEFAULT 'registered' CHECK(status IN ('registered', 'confirmed', 'cancelled')),
+        registered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        notes TEXT,
+        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE(event_id, user_id)
+      )
+    `);
+
+    // SPOC Project/Event Assignments - Links SPOCs to projects/events they manage
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS spoc_assignments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        spoc_id INTEGER NOT NULL,
+        project_id INTEGER,
+        event_id INTEGER,
+        assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        assigned_by INTEGER,
+        FOREIGN KEY (spoc_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+        FOREIGN KEY (assigned_by) REFERENCES users(id) ON DELETE SET NULL,
+        CHECK((project_id IS NOT NULL AND event_id IS NULL) OR (project_id IS NULL AND event_id IS NOT NULL))
+      )
+    `);
+
+    // Volunteer Assignments - Links registered students as volunteers to events
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS volunteer_assignments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        assigned_by INTEGER,
+        assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        status TEXT DEFAULT 'assigned' CHECK(status IN ('assigned', 'confirmed', 'completed', 'cancelled')),
+        notes TEXT,
+        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (assigned_by) REFERENCES users(id) ON DELETE SET NULL,
+        UNIQUE(event_id, user_id)
+      )
+    `);
+
     // Create default admin user if not exists (email in lowercase)
     const adminEmail = 'smvolunteers@ksrct.ac.in'.toLowerCase().trim();
-    
+
     // Check if admin exists (case-insensitive)
     const allUsers = await new Promise((resolve, reject) => {
       database.all('SELECT id, email FROM users', [], (err, rows) => {
@@ -1032,16 +1256,16 @@ export const initDatabase = async () => {
         else resolve(rows);
       });
     });
-    
+
     const adminExists = allUsers.find(u => u.email.toLowerCase().trim() === adminEmail);
-    
+
     if (!adminExists) {
       const hashedPassword = await bcrypt.hash('12345', 10);
       const result = await run(database, `
         INSERT INTO users (name, email, password, role, must_change_password)
         VALUES (?, ?, ?, ?, ?)
       `, ['Admin User', adminEmail, hashedPassword, 'admin', 0]);
-      
+
       console.log('✅ Default admin user created');
       console.log('   Email: smvolunteers@ksrct.ac.in');
       console.log('   Password: 12345');
@@ -1050,16 +1274,8 @@ export const initDatabase = async () => {
       console.log('ℹ️  Admin user already exists');
       console.log('   Email:', adminExists.email);
       console.log('   User ID:', adminExists.id);
-      
-      // Verify admin password is correct (reset if needed)
-      const adminUser = await get(database, 'SELECT * FROM users WHERE id = ?', [adminExists.id]);
-      const testPassword = await bcrypt.compare('12345', adminUser.password);
-      if (!testPassword) {
-        console.log('⚠️  Admin password mismatch detected. Resetting to default...');
-        const hashedPassword = await bcrypt.hash('12345', 10);
-        await run(database, 'UPDATE users SET password = ? WHERE id = ?', [hashedPassword, adminExists.id]);
-        console.log('✅ Admin password reset to default (12345)');
-      }
+      console.log('   Password preserved (not reset)');
+      // Removed password reset logic - password changes will persist across restarts
     }
 
     console.log('✅ Database tables initialized successfully');

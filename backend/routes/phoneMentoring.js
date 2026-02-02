@@ -175,7 +175,7 @@ router.get('/my-mentees', authenticateToken, async (req, res) => {
         FROM phone_mentoring_assignments a
         LEFT JOIN projects pr ON a.project_id = pr.id
         WHERE a.volunteer_id = ?
-        ORDER BY a.mentee_name COLLATE NOCASE
+        ORDER BY a.created_at DESC, a.mentee_name COLLATE NOCASE
       `,
       [req.user.id]
     );

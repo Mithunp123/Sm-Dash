@@ -3,16 +3,16 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { getDatabase } from '../database/init.js';
-import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { authenticateToken, requireRole, requirePermission } from '../middleware/auth.js';
 
 const router = express.Router();
 
 const all = (db, query, params = []) => new Promise((resolve, reject) => db.all(query, params, (err, rows) => err ? reject(err) : resolve(rows)));
-const run = (db, query, params = []) => new Promise((resolve, reject) => db.run(query, params, function(err) { if (err) reject(err); else resolve({ lastID: this.lastID, changes: this.changes }); }));
+const run = (db, query, params = []) => new Promise((resolve, reject) => db.run(query, params, function (err) { if (err) reject(err); else resolve({ lastID: this.lastID, changes: this.changes }); }));
 const get = (db, query, params = []) => new Promise((resolve, reject) => db.get(query, params, (err, row) => err ? reject(err) : resolve(row)));
 
-// Get all teams
-router.get('/', authenticateToken, async (req, res) => {
+// Get all teams (Management)
+router.get('/', authenticateToken, requirePermission('can_manage_teams', { allowView: true }), async (req, res) => {
   try {
     const db = getDatabase();
     const teams = await all(db, `
@@ -100,8 +100,8 @@ router.post('/:id/request', authenticateToken, async (req, res) => {
     }
 
     // Check if there's already a pending request
-    const existingRequest = await get(db, 
-      'SELECT * FROM team_requests WHERE team_id = ? AND user_id = ? AND status = ?', 
+    const existingRequest = await get(db,
+      'SELECT * FROM team_requests WHERE team_id = ? AND user_id = ? AND status = ?',
       [id, userId, 'pending']
     );
     if (existingRequest) {
@@ -122,8 +122,8 @@ router.post('/:id/request', authenticateToken, async (req, res) => {
       WHERE tr.id = ?
     `, [result.lastID]);
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'Join request submitted. Admin will review your request.',
       request
     });
@@ -133,12 +133,12 @@ router.post('/:id/request', authenticateToken, async (req, res) => {
   }
 });
 
-// Get all team requests (admin only)
-router.get('/requests/all', authenticateToken, requireRole('admin'), async (req, res) => {
+// Get all team requests (management only)
+router.get('/requests/all', authenticateToken, requirePermission('can_manage_teams', { allowView: true }), async (req, res) => {
   try {
     const db = getDatabase();
     const { status } = req.query;
-    
+
     let query = `
       SELECT tr.*, 
         u.name as user_name, u.email as user_email,
@@ -150,14 +150,14 @@ router.get('/requests/all', authenticateToken, requireRole('admin'), async (req,
       LEFT JOIN users r ON tr.reviewed_by = r.id
     `;
     const params = [];
-    
+
     if (status) {
       query += ' WHERE tr.status = ?';
       params.push(status);
     }
-    
+
     query += ' ORDER BY tr.created_at DESC';
-    
+
     const requests = await all(db, query, params);
     res.json({ success: true, requests });
   } catch (error) {
@@ -166,8 +166,8 @@ router.get('/requests/all', authenticateToken, requireRole('admin'), async (req,
   }
 });
 
-// Approve or reject team request
-router.put('/requests/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+// Approve or reject team request (management only)
+router.put('/requests/:id', authenticateToken, requirePermission('can_manage_teams', { requireEdit: true }), async (req, res) => {
   try {
     const db = getDatabase();
     const { id } = req.params;
@@ -196,11 +196,11 @@ router.put('/requests/:id', authenticateToken, requireRole('admin'), async (req,
     // If approved, add user to team
     if (status === 'approved') {
       // Check if user is already a member (just in case)
-      const existingMember = await get(db, 
-        'SELECT * FROM team_members WHERE team_id = ? AND user_id = ?', 
+      const existingMember = await get(db,
+        'SELECT * FROM team_members WHERE team_id = ? AND user_id = ?',
         [request.team_id, request.user_id]
       );
-      
+
       if (!existingMember) {
         await run(db,
           'INSERT INTO team_members (team_id, user_id, role) VALUES (?, ?, ?)',
@@ -228,12 +228,12 @@ router.put('/requests/:id', authenticateToken, requireRole('admin'), async (req,
   }
 });
 
-// Get single team with members and assignments
-router.get('/:id', authenticateToken, async (req, res) => {
+// Get single team with members and assignments (management view)
+router.get('/:id', authenticateToken, requirePermission('can_manage_teams', { allowView: true }), async (req, res) => {
   try {
     const db = getDatabase();
     const { id } = req.params;
-    
+
     const team = await get(db, 'SELECT * FROM teams WHERE id = ?', [id]);
     if (!team) {
       return res.status(404).json({ success: false, message: 'Team not found' });
@@ -265,8 +265,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Create team
-router.post('/', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
+// Create team (management only)
+router.post('/', authenticateToken, requirePermission('can_manage_teams', { requireEdit: true }), async (req, res) => {
   try {
     const db = getDatabase();
     const { name, description } = req.body;
@@ -274,7 +274,7 @@ router.post('/', authenticateToken, requireRole('admin', 'office_bearer'), async
       return res.status(400).json({ success: false, message: 'Team name is required' });
     }
 
-    const result = await run(db, 
+    const result = await run(db,
       'INSERT INTO teams (name, description, created_by) VALUES (?, ?, ?)',
       [name.trim(), description || null, req.user.id]
     );
@@ -287,8 +287,8 @@ router.post('/', authenticateToken, requireRole('admin', 'office_bearer'), async
   }
 });
 
-// Update team
-router.put('/:id', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
+// Update team (management only)
+router.put('/:id', authenticateToken, requirePermission('can_manage_teams', { requireEdit: true }), async (req, res) => {
   try {
     const db = getDatabase();
     const { id } = req.params;
@@ -298,7 +298,7 @@ router.put('/:id', authenticateToken, requireRole('admin', 'office_bearer'), asy
       return res.status(400).json({ success: false, message: 'Team name is required' });
     }
 
-    await run(db, 
+    await run(db,
       'UPDATE teams SET name = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
       [name.trim(), description || null, id]
     );
@@ -311,8 +311,8 @@ router.put('/:id', authenticateToken, requireRole('admin', 'office_bearer'), asy
   }
 });
 
-// Delete team
-router.delete('/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+// Delete team (management only)
+router.delete('/:id', authenticateToken, requirePermission('can_manage_teams', { requireEdit: true }), async (req, res) => {
   try {
     const db = getDatabase();
     const { id } = req.params;
@@ -324,8 +324,8 @@ router.delete('/:id', authenticateToken, requireRole('admin'), async (req, res) 
   }
 });
 
-// Add member to team
-router.post('/:id/members', authenticateToken, async (req, res) => {
+// Add member to team (management only)
+router.post('/:id/members', authenticateToken, requirePermission('can_manage_teams', { requireEdit: true }), async (req, res) => {
   try {
     const db = getDatabase();
     const { id } = req.params;
@@ -344,9 +344,9 @@ router.post('/:id/members', authenticateToken, async (req, res) => {
 
     // Check permissions - only admin, office_bearer, or team leader can add members
     let canAdd = requester.role === 'admin' || requester.role === 'office_bearer';
-    
+
     if (!canAdd) {
-      const isLeader = await get(db, 
+      const isLeader = await get(db,
         'SELECT id FROM team_members WHERE team_id = ? AND user_id = ? AND role = ?',
         [id, requester.id, 'leader']
       );
@@ -369,7 +369,7 @@ router.post('/:id/members', authenticateToken, async (req, res) => {
       return res.status(400).json({ success: false, message: 'User is already a member of this team' });
     }
 
-    await run(db, 
+    await run(db,
       'INSERT INTO team_members (team_id, user_id, role) VALUES (?, ?, ?)',
       [id, user_id, role || 'member']
     );
@@ -381,8 +381,8 @@ router.post('/:id/members', authenticateToken, async (req, res) => {
   }
 });
 
-// Remove member from team
-router.delete('/:id/members/:userId', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
+// Remove member from team (management only)
+router.delete('/:id/members/:userId', authenticateToken, requirePermission('can_manage_teams', { requireEdit: true }), async (req, res) => {
   try {
     const db = getDatabase();
     const { id, userId } = req.params;
@@ -394,8 +394,8 @@ router.delete('/:id/members/:userId', authenticateToken, requireRole('admin', 'o
   }
 });
 
-// Create assignment
-router.post('/:id/assignments', authenticateToken, async (req, res) => {
+// Create assignment (management only)
+router.post('/:id/assignments', authenticateToken, requirePermission('can_manage_teams', { requireEdit: true }), async (req, res) => {
   try {
     const db = getDatabase();
     const { id } = req.params;
@@ -414,7 +414,7 @@ router.post('/:id/assignments', authenticateToken, async (req, res) => {
 
     // If not admin or office_bearer, check if user is team leader
     if (user.role !== 'admin' && user.role !== 'office_bearer') {
-      const isLeader = await get(db, 
+      const isLeader = await get(db,
         'SELECT id FROM team_members WHERE team_id = ? AND user_id = ? AND role = ?',
         [id, user.id, 'leader']
       );
@@ -423,7 +423,7 @@ router.post('/:id/assignments', authenticateToken, async (req, res) => {
       }
     }
 
-    const result = await run(db, 
+    const result = await run(db,
       'INSERT INTO team_assignments (team_id, title, description, assigned_to, assigned_by, due_date, priority) VALUES (?, ?, ?, ?, ?, ?, ?)',
       [id, title.trim(), description || null, assigned_to || null, req.user.id, due_date || null, priority || 'medium']
     );
@@ -466,9 +466,9 @@ router.put('/:id/assignments/:assignmentId', authenticateToken, async (req, res)
 
     // Check permissions - only admin, office_bearer, team leader of that team, or assigned user can update
     let canUpdate = user.role === 'admin' || user.role === 'office_bearer' || assignment.assigned_to === user.id;
-    
+
     if (!canUpdate && user.role !== 'admin' && user.role !== 'office_bearer') {
-      const isLeader = await get(db, 
+      const isLeader = await get(db,
         'SELECT id FROM team_members WHERE team_id = ? AND user_id = ? AND role = ?',
         [id, user.id, 'leader']
       );
@@ -566,9 +566,9 @@ const proofFileFilter = (req, file, cb) => {
   }
 };
 
-const proofUpload = multer({ 
-  storage: proofStorage, 
-  fileFilter: proofFileFilter, 
+const proofUpload = multer({
+  storage: proofStorage,
+  fileFilter: proofFileFilter,
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB
 });
 
@@ -650,8 +650,8 @@ router.get('/:id/assignments/:assignmentId/tracking', authenticateToken, async (
   }
 });
 
-// Delete assignment
-router.delete('/:id/assignments/:assignmentId', authenticateToken, async (req, res) => {
+// Delete assignment (management only)
+router.delete('/:id/assignments/:assignmentId', authenticateToken, requirePermission('can_manage_teams', { requireEdit: true }), async (req, res) => {
   try {
     const db = getDatabase();
     const { id, assignmentId } = req.params;
@@ -664,9 +664,9 @@ router.delete('/:id/assignments/:assignmentId', authenticateToken, async (req, r
 
     // Check permissions - only admin, office_bearer, or team leader can delete
     let canDelete = user.role === 'admin' || user.role === 'office_bearer';
-    
+
     if (!canDelete) {
-      const isLeader = await get(db, 
+      const isLeader = await get(db,
         'SELECT id FROM team_members WHERE team_id = ? AND user_id = ? AND role = ?',
         [id, user.id, 'leader']
       );

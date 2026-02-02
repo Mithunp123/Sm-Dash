@@ -19,12 +19,11 @@ import {
   AlertDialogDescription,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Edit2, Trash2, Plus } from 'lucide-react';
+import { Edit2, Trash2, Plus, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import DeveloperCredit from '@/components/DeveloperCredit';
 import { useNavigate } from 'react-router-dom';
+import { BackButton } from '@/components/BackButton';
 import { auth } from '@/lib/auth';
 
 interface FeedbackQuestion {
@@ -129,8 +128,8 @@ export default function ManageQuestions() {
         return;
       }
 
-  const event_id = formData.event_id ? parseInt(formData.event_id) : undefined;
-  const is_enabled = !!formData.is_enabled;
+      const event_id = formData.event_id ? parseInt(formData.event_id) : undefined;
+      const is_enabled = !!formData.is_enabled;
 
       let response;
       if (editingId) {
@@ -191,233 +190,235 @@ export default function ManageQuestions() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
+    <div className="flex-1 flex flex-col bg-transparent">
       <DeveloperCredit />
-      
-      <div className="flex flex-1">
-        <main className="flex-1 p-4 md:p-8 bg-background">
-          <div className="max-w-6xl mx-auto">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h1 className="text-3xl font-bold text-primary mb-2">Feedback Questions</h1>
-                <p className="text-muted-foreground">Create and manage feedback questions for events</p>
-              </div>
+
+      <main className="flex-1 p-2 md:p-4 bg-transparent">
+        <div className="max-w-6xl mx-auto">
+
+          {/* Page Header */}
+          <div className="mb-4">
+            <BackButton to="/admin" />
+          </div>
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-semibold text-foreground mb-1">Feedback Questions</h1>
+              <p className="text-sm text-muted-foreground">Manage feedback questions and responses</p>
+            </div>
+            <Button
+              onClick={() => handleOpen()}
+              className="gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              New Question
+            </Button>
+          </div>
+
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600">Loading questions...</p>
+            </div>
+          ) : questions.length === 0 ? (
+            <Card className="p-12 text-center">
+              <p className="text-gray-600 mb-4">No feedback questions yet</p>
               <Button
                 onClick={() => handleOpen()}
                 className="gap-2 bg-blue-600 hover:bg-blue-700"
               >
                 <Plus className="w-4 h-4" />
-                New Question
+                Create First Question
               </Button>
-            </div>
-
-            {loading ? (
-              <div className="text-center py-12">
-                <p className="text-gray-600">Loading questions...</p>
-              </div>
-            ) : questions.length === 0 ? (
-              <Card className="p-12 text-center">
-                <p className="text-gray-600 mb-4">No feedback questions yet</p>
-                <Button
-                  onClick={() => handleOpen()}
-                  className="gap-2 bg-blue-600 hover:bg-blue-700"
-                >
-                  <Plus className="w-4 h-4" />
-                  Create First Question
-                </Button>
-              </Card>
-            ) : (
-              <div className="space-y-4">
-                {questions.map(question => (
-                  <Card key={question.id} className="p-6 gradient-card border-border/50">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-800">
-                          {question.question_text}
-                        </h3>
-                        <div className="flex items-center gap-4 mt-2 text-sm text-gray-600 flex-wrap">
-                          <span className="bg-gray-100 px-2 py-1 rounded">
-                            {question.question_type === 'rating' ? '⭐ Rating Scale' : '📝 Text'}
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {questions.map(question => (
+                <Card key={question.id} className="p-6 gradient-card border-border/50">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        {question.question_text}
+                      </h3>
+                      <div className="flex items-center gap-4 mt-2 text-sm text-gray-600 flex-wrap">
+                        <span className="bg-gray-100 px-2 py-1 rounded">
+                          {question.question_type === 'rating' ? '⭐ Rating Scale' : '📝 Text'}
+                        </span>
+                        {question.event_title && (
+                          <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                            📅 {question.event_title}
                           </span>
-                          {question.event_title && (
-                            <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                              📅 {question.event_title}
-                            </span>
-                          )}
-                          {!question.event_title && (
-                            <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded">
-                              📋 General Feedback
-                            </span>
-                          )}
-                          <span>Created: {new Date(question.created_at).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={async () => {
-                            try {
-                              await api.toggleFeedbackQuestion(question.id);
-                              loadData();
-                            } catch (e: any) {
-                              toast({ title: 'Error', description: e.message || 'Failed to toggle question', variant: 'destructive' });
-                            }
-                          }}
-                          className="gap-2"
-                        >
-                          {question.is_enabled ? 'Disable' : 'Enable'}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpen(question)}
-                          className="gap-2"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                          Edit
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => setDeleteId(question.id)}
-                          className="gap-2"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Delete
-                        </Button>
+                        )}
+                        {!question.event_title && (
+                          <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                            📋 General Feedback
+                          </span>
+                        )}
+                        <span>Created: {new Date(question.created_at).toLocaleDateString()}</span>
                       </div>
                     </div>
-                  </Card>
-                ))}
-              </div>
-            )}
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            await api.toggleFeedbackQuestion(question.id);
+                            loadData();
+                          } catch (e: any) {
+                            toast({ title: 'Error', description: e.message || 'Failed to toggle question', variant: 'destructive' });
+                          }
+                        }}
+                        className="gap-2"
+                      >
+                        {question.is_enabled ? 'Disable' : 'Enable'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpen(question)}
+                        className="gap-2"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => setDeleteId(question.id)}
+                        className="gap-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
 
-            {/* Create/Edit Dialog */}
-            <Dialog open={isOpen} onOpenChange={setIsOpen}>
-              <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingId ? 'Edit Question' : 'Create New Question'}
-                  </DialogTitle>
-                  <DialogDescription>
-                    {editingId ? 'Update the feedback question' : 'Create a new feedback question'}
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Question Text *
-                    </label>
-                    <Textarea
-                      value={formData.question_text}
-                      onChange={e =>
-                        setFormData(prev => ({
-                          ...prev,
-                          question_text: e.target.value,
-                        }))
-                      }
-                      placeholder="Enter the feedback question..."
-                      className="min-h-[100px]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Question Type
-                    </label>
-                    <select
-                      value={formData.question_type}
-                      onChange={e =>
-                        setFormData(prev => ({
-                          ...prev,
-                          question_type: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
-                    >
-                      <option value="rating">⭐ Rating Scale (1-5 stars)</option>
-                      <option value="text">📝 Text Response</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Event/Meeting (Optional)
-                    </label>
-                    <select
-                      value={formData.event_id}
-                      onChange={e =>
-                        setFormData(prev => ({
-                          ...prev,
-                          event_id: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500"
-                    >
-                      <option value="">-- General Feedback (All Students) --</option>
-                      {meetings.map(meeting => (
-                        <option key={meeting.id} value={meeting.id.toString()}>
-                          {meeting.title} ({new Date(meeting.date).toLocaleDateString()})
-                        </option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-gray-500 mt-1">
-                      If you select an event, only students who attended will see this question
-                    </p>
-                  </div>
-                  <div>
-                    <label className="inline-flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={!!formData.is_enabled}
-                        onChange={e => setFormData(prev => ({ ...prev, is_enabled: e.target.checked }))}
-                        className="mr-2"
-                      />
-                      <span className="text-sm font-medium text-gray-700">Enabled</span>
-                    </label>
-                    <p className="text-xs text-gray-500 mt-1">If disabled, students will still be able to view previously submitted responses (admins only) but won't be able to submit new responses for this question.</p>
-                  </div>
-                  <div className="flex gap-3 pt-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsOpen(false)}
-                      className="flex-1"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleSave}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700"
-                    >
-                      {editingId ? 'Update' : 'Create'} Question
-                    </Button>
-                  </div>
+          {/* Create/Edit Dialog */}
+          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingId ? 'Edit Question' : 'Create New Question'}
+                </DialogTitle>
+                <DialogDescription>
+                  {editingId ? 'Update the feedback question' : 'Create a new feedback question'}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Question Text *
+                  </label>
+                  <Textarea
+                    value={formData.question_text}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        question_text: e.target.value,
+                      }))
+                    }
+                    placeholder="Enter the feedback question..."
+                    className="min-h-[100px]"
+                  />
                 </div>
-              </DialogContent>
-            </Dialog>
-
-            {/* Delete Confirmation Dialog */}
-            <AlertDialog open={!!deleteId} onOpenChange={open => !open && setDeleteId(null)}>
-              <AlertDialogContent>
-                <AlertDialogTitle>Delete Question</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete this question? This action cannot be undone.
-                </AlertDialogDescription>
-                <div className="flex gap-3 justify-end">
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDelete}
-                    className="bg-red-600 hover:bg-red-700"
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Question Type
+                  </label>
+                  <select
+                    value={formData.question_type}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        question_type: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 bg-background border border-input rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   >
-                    Delete
-                  </AlertDialogAction>
+                    <option value="rating">⭐ Rating Scale (1-5 stars)</option>
+                    <option value="text">📝 Text Response</option>
+                  </select>
                 </div>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        </main>
-      </div>
-      <Footer />
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Event/Meeting (Optional)
+                  </label>
+                  <select
+                    value={formData.event_id}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        event_id: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 bg-background border border-input rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="">-- General Feedback (All Students) --</option>
+                    {meetings.map(meeting => (
+                      <option key={meeting.id} value={meeting.id.toString()}>
+                        {meeting.title} ({new Date(meeting.date).toLocaleDateString()})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    If you select an event, only students who attended will see this question
+                  </p>
+                </div>
+                <div>
+                  <label className="inline-flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={!!formData.is_enabled}
+                      onChange={e => setFormData(prev => ({ ...prev, is_enabled: e.target.checked }))}
+                      className="mr-2"
+                    />
+                    <span className="text-sm font-medium text-foreground">Enabled</span>
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1">If disabled, students will still be able to view previously submitted responses (admins only) but won't be able to submit new responses for this question.</p>
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsOpen(false)}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSave}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  >
+                    {editingId ? 'Update' : 'Create'} Question
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Delete Confirmation Dialog */}
+          <AlertDialog open={!!deleteId} onOpenChange={open => !open && setDeleteId(null)}>
+            <AlertDialogContent>
+              <AlertDialogTitle>Delete Question</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this question? This action cannot be undone.
+              </AlertDialogDescription>
+              <div className="flex gap-3 justify-end">
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Delete
+                </AlertDialogAction>
+              </div>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </main>
+
     </div>
   );
 }

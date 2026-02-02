@@ -4,8 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import DeveloperCredit from '@/components/DeveloperCredit';
 import { Shield, ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -102,11 +100,10 @@ const ManageProfileFields = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
+    <div className="flex-1 flex flex-col bg-transparent">
       <DeveloperCredit />
       <div className="flex flex-1">
-        <main className="flex-1 p-4 md:p-8 bg-background">
+        <main className="flex-1 p-2 md:p-4 bg-transparent">
           <div className="max-w-7xl mx-auto">
             <div className="flex justify-between items-center mb-8">
               <div className="flex items-center gap-4">
@@ -135,23 +132,23 @@ const ManageProfileFields = () => {
               <CardContent>
                 <div className="space-y-4">
                   {fields.filter(f => !f.is_custom).map((f) => (
-                      <div key={f.field_name} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div>
-                          <div className="font-medium">{f.label}</div>
-                          <div className="text-sm text-muted-foreground">Field name: {f.field_name}</div>
+                    <div key={f.field_name} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <div className="font-medium">{f.label}</div>
+                        <div className="text-sm text-muted-foreground">Field name: {f.field_name}</div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm">Editable by student</div>
+                          <Switch checked={f.editable_by_student == 1} onCheckedChange={(v) => setFields(fields.map(x => x.field_name === f.field_name ? { ...x, editable_by_student: v ? 1 : 0 } : x))} />
                         </div>
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-2">
-                            <div className="text-sm">Editable by student</div>
-                            <Switch checked={f.editable_by_student == 1} onCheckedChange={(v) => setFields(fields.map(x => x.field_name === f.field_name ? { ...x, editable_by_student: v ? 1 : 0 } : x))} />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="text-sm">Visible</div>
-                            <Switch checked={f.visible == 1} onCheckedChange={(v) => setFields(fields.map(x => x.field_name === f.field_name ? { ...x, visible: v ? 1 : 0 } : x))} />
-                          </div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm">Visible</div>
+                          <Switch checked={f.visible == 1} onCheckedChange={(v) => setFields(fields.map(x => x.field_name === f.field_name ? { ...x, visible: v ? 1 : 0 } : x))} />
                         </div>
                       </div>
-                    ))}
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -241,7 +238,7 @@ const ManageProfileFields = () => {
         </DialogContent>
       </Dialog>
 
-      <Footer />
+
     </div>
   );
 };

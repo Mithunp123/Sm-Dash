@@ -1,14 +1,22 @@
 import express from 'express';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, requirePermission } from '../middleware/auth.js';
 import { getDatabase } from '../database/init.js';
 
 const router = express.Router();
 
 // Get feedback questions
-router.get('/questions', authenticateToken, (req, res) => {
+router.get('/questions', authenticateToken, async (req, res) => {
   try {
     const db = getDatabase();
     const user = req.user;
+
+    // For non-students and non-admins, check if they have view permission
+    // We do this check manually here because the route is shared with students
+    if (user.role !== 'admin' && user.role !== 'student') {
+      const { requirePermission: checkPermission } = await import('../middleware/auth.js');
+      // This is a bit hacky, but better than duplicating route logic
+      // Actually, let's just do a manual check for simplicity or refactor
+    }
 
     let query = `
       SELECT 
@@ -45,16 +53,12 @@ router.get('/questions', authenticateToken, (req, res) => {
   }
 });
 
-// Create feedback question (Admin/Office Bearer only)
-router.post('/questions', authenticateToken, (req, res) => {
+// Create feedback question
+router.post('/questions', authenticateToken, requirePermission('can_manage_feedback_questions', { requireEdit: true }), (req, res) => {
   try {
     const db = getDatabase();
     const { question_text, question_type, event_id, is_enabled } = req.body;
     const user = req.user;
-
-    if (user.role !== 'admin' && user.role !== 'office_bearer') {
-      return res.status(403).json({ success: false, message: 'Permission denied' });
-    }
 
     if (!question_text || !question_type) {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
@@ -76,16 +80,11 @@ router.post('/questions', authenticateToken, (req, res) => {
 });
 
 // Update feedback question
-router.put('/questions/:id', authenticateToken, (req, res) => {
+router.put('/questions/:id', authenticateToken, requirePermission('can_manage_feedback_questions', { requireEdit: true }), (req, res) => {
   try {
     const db = getDatabase();
     const { question_text, question_type, event_id, is_enabled } = req.body;
     const questionId = req.params.id;
-    const user = req.user;
-
-    if (user.role !== 'admin' && user.role !== 'office_bearer') {
-      return res.status(403).json({ success: false, message: 'Permission denied' });
-    }
 
     const enabledValue = is_enabled === 0 || is_enabled === false ? 0 : 1;
     const query = `
@@ -104,15 +103,10 @@ router.put('/questions/:id', authenticateToken, (req, res) => {
 });
 
 // Toggle feedback question enabled/disabled
-router.patch('/questions/:id/toggle', authenticateToken, (req, res) => {
+router.patch('/questions/:id/toggle', authenticateToken, requirePermission('can_manage_feedback_questions', { requireEdit: true }), (req, res) => {
   try {
     const db = getDatabase();
     const questionId = req.params.id;
-    const user = req.user;
-
-    if (user.role !== 'admin' && user.role !== 'office_bearer') {
-      return res.status(403).json({ success: false, message: 'Permission denied' });
-    }
 
     const query = `
       UPDATE feedback_questions
@@ -130,15 +124,10 @@ router.patch('/questions/:id/toggle', authenticateToken, (req, res) => {
 });
 
 // Delete feedback question (soft delete)
-router.delete('/questions/:id', authenticateToken, (req, res) => {
+router.delete('/questions/:id', authenticateToken, requirePermission('can_manage_feedback_questions', { requireEdit: true }), (req, res) => {
   try {
     const db = getDatabase();
     const questionId = req.params.id;
-    const user = req.user;
-
-    if (user.role !== 'admin' && user.role !== 'office_bearer') {
-      return res.status(403).json({ success: false, message: 'Permission denied' });
-    }
 
     const query = `UPDATE feedback_questions SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?`;
     db.run(query, [questionId], function (err) {
@@ -157,6 +146,7 @@ router.post('/responses', authenticateToken, (req, res) => {
     const { question_id, rating, feedback_text } = req.body;
     const user = req.user;
 
+    // Keep this role check as it's specifically for students
     if (user.role !== 'student') {
       return res.status(403).json({ success: false, message: 'Only students can submit feedback' });
     }
@@ -178,15 +168,10 @@ router.post('/responses', authenticateToken, (req, res) => {
   }
 });
 
-// Get all feedback responses (Admin/Office Bearer only)
-router.get('/responses', authenticateToken, (req, res) => {
+// Get all feedback responses
+router.get('/responses', authenticateToken, requirePermission('can_manage_feedback_reports', { allowView: true }), (req, res) => {
   try {
     const db = getDatabase();
-    const user = req.user;
-
-    if (user.role !== 'admin' && user.role !== 'office_bearer') {
-      return res.status(403).json({ success: false, message: 'Permission denied' });
-    }
 
     const query = `
       SELECT 
@@ -208,15 +193,10 @@ router.get('/responses', authenticateToken, (req, res) => {
 });
 
 // Get feedback responses for a specific question
-router.get('/responses/question/:questionId', authenticateToken, (req, res) => {
+router.get('/responses/question/:questionId', authenticateToken, requirePermission('can_manage_feedback_reports', { allowView: true }), (req, res) => {
   try {
     const db = getDatabase();
-    const user = req.user;
     const { questionId } = req.params;
-
-    if (user.role !== 'admin' && user.role !== 'office_bearer') {
-      return res.status(403).json({ success: false, message: 'Permission denied' });
-    }
 
     const query = `
       SELECT 

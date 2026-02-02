@@ -1,231 +1,356 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import DeveloperCredit from "@/components/DeveloperCredit";
-import { Users, Calendar, FileText, LogOut, Briefcase, UserCircle, GraduationCap, BarChart3, XCircle } from "lucide-react";
+import {
+  Users, Calendar, FileText, Briefcase, UserCircle, BarChart3, XCircle,
+  MessageSquare, ClipboardCheck, LayoutDashboard, Star, Clock, ChevronRight,
+  TrendingUp, Layers, CheckCircle2, BookOpen, Trophy, UsersRound
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
+import { Badge } from "@/components/ui/badge";
 
 const OfficeBearerDashboard = () => {
   const navigate = useNavigate();
-  const { permissions, loading } = usePermissions();
-  const [studentsCount, setStudentsCount] = useState<number | null>(null);
+  const { permissions, loading: permissionsLoading } = usePermissions();
+
+  const [stats, setStats] = useState({
+    volunteers: 0,
+    events: 0,
+    reports: 0,
+    hours: 0,
+    awards: 0,
+    students: 0,
+    projects: 0,
+    resources: 0,
+    teams: 0,
+  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!auth.isAuthenticated()) {
       navigate("/login");
       return;
     }
-    // If authenticated but not an office bearer, redirect to admin dashboard
     if (!auth.hasRole('office_bearer')) {
       navigate("/admin");
       return;
     }
+    loadDashboardData();
   }, [navigate]);
 
-  // Load quick counts (students) for dashboard
-  useEffect(() => {
-    const loadCounts = async () => {
-      try {
-        // Use a scoped endpoint that returns only students visible to this caller
-        const res = await api.getStudentsScoped();
-        if (res.success) {
-          const students = (res.students || []);
-          setStudentsCount(students.length);
-        }
-      } catch (err) {
-        console.error('Failed to load users for counts', err);
-      }
-    };
-    loadCounts();
-  }, []);
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-  const handleLogout = () => {
-    auth.logout();
-    toast.success("Logged out successfully");
-    navigate("/login");
+      const [
+        usersRes,
+        meetingsRes,
+        billsRes,
+        timeRes,
+        awardsRes,
+        studentsRes,
+        projectsRes,
+        resourcesRes,
+        teamsRes,
+      ] = await Promise.all([
+        api.getUsers(),
+        api.getMeetings(),
+        api.getBills(),
+        api.getTimeAllotments(),
+        api.getAwards(),
+        api.getStudentsScoped(),
+        api.getProjects(),
+        fetch(`${API_BASE}/resources`, {
+          headers: { Authorization: `Bearer ${auth.getToken() || ''}` },
+        }).then((r) => r.json()).catch(() => ({ success: false, resources: [] })),
+        fetch(`${API_BASE}/teams`, {
+          headers: { Authorization: `Bearer ${auth.getToken() || ''}` },
+        }).then((r) => r.json()).catch(() => ({ success: false, teams: [] })),
+      ]);
+
+      // also read local volunteer submissions (frontend-only fallback)
+      let approvedCount = 0;
+      try {
+        const store = localStorage.getItem('volunteer_submissions');
+        const arr = store ? JSON.parse(store) : [];
+        approvedCount = arr.filter((s: any) => s.status === 'approved').length;
+      } catch (e) {
+        approvedCount = 0;
+      }
+
+      setStats({
+        volunteers: approvedCount || usersRes.users?.length || 0,
+        events: meetingsRes.meetings?.length || 0,
+        reports: billsRes.bills?.length || 0,
+        hours: timeRes.allotments?.reduce((sum: number, t: any) => sum + (t.hours || 0), 0) || 0,
+        awards: awardsRes.awards?.length || 0,
+        students: studentsRes.students?.length || 0,
+        projects: projectsRes.projects?.length || 0,
+        resources: resourcesRes.resources?.length || 0,
+        teams: teamsRes.teams?.length || 0,
+      });
+    } catch (error) {
+      console.error('Failed to load stats:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const hasAnyPermission = permissions.can_manage_meetings || 
-                           permissions.can_manage_attendance || 
-                           permissions.can_manage_bills ||
-                           permissions.can_manage_projects ||
-                           permissions.can_manage_students ||
-                           permissions.can_view_analytics;
+  const hasAnyPermission = permissions.can_manage_meetings ||
+    permissions.can_manage_attendance ||
+    permissions.can_manage_bills ||
+    permissions.can_manage_projects ||
+    permissions.can_manage_students;
 
-  if (loading) {
+  if (permissionsLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <DeveloperCredit />
-        <main className="flex-1 p-4 md:p-8 flex items-center justify-center">
-          <div className="text-center">Loading permissions...</div>
-        </main>
-        <Footer />
+      <div className="flex h-[50vh] items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground font-medium">Loading permissions...</p>
+        </div>
       </div>
     );
   }
 
+  const user = auth.getUser();
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
+    <>
       <DeveloperCredit />
-      
-      <div className="flex flex-1">
-        <main className="flex-1 p-4 md:p-8 bg-background">
-          <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-              <div>
-                <h1 className="text-3xl font-bold text-primary mb-2">Office Bearer Dashboard</h1>
-                <p className="text-muted-foreground">Manage events and coordinate activities</p>
+      <div className="max-w-7xl mx-auto space-y-8 pb-12">
+        {/* Premium Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-black text-foreground tracking-tight uppercase">
+              OB <span className="text-primary/60 italic">Control Center</span>
+            </h1>
+            <p className="text-sm font-bold text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2">
+              <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+              Welcome back, {user?.name || 'Office Bearer'}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" className="rounded-full font-bold uppercase text-[10px] tracking-widest border-primary/20 hover:bg-primary/5" onClick={() => navigate("/office-bearer/profile")}>
+              <UserCircle className="w-4 h-4 mr-2" />
+              Profile
+            </Button>
+          </div>
+        </div>
+
+        {!hasAnyPermission ? (
+          <Card className="border-none shadow-xl bg-card/50 backdrop-blur-xl rounded-[2.5rem] p-12 overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            <CardContent className="relative z-10">
+              <div className="text-center py-12">
+                <div className="w-20 h-20 bg-muted/20 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                  <XCircle className="w-10 h-10 text-muted-foreground" />
+                </div>
+                <h3 className="text-2xl font-black mb-3 uppercase tracking-tight">Access Restricted</h3>
+                <p className="text-muted-foreground max-w-md mx-auto font-medium">
+                  Your account currently has no elective permissions. Please coordinate with the Head Administrator to activate your role dashboard.
+                </p>
               </div>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => navigate("/office-bearer/profile")}
-                  className="gap-2"
-                >
-                  <UserCircle className="w-4 h-4" />
-                  My Profile
-                </Button>
-                {/* Logout is available in the top header; removed duplicate button here */}
-              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {/* Stats Overview */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { label: 'Active Projects', value: stats.projects, icon: Briefcase, color: 'text-emerald-600', bg: 'bg-emerald-50/50 dark:bg-emerald-900/20' },
+                { label: 'Upcoming Meets', value: stats.events, icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-50/50 dark:bg-purple-900/20' },
+                { label: 'Total Reports', value: stats.reports, icon: FileText, color: 'text-rose-600', bg: 'bg-rose-50/50 dark:bg-rose-900/20' },
+                { label: 'Hours Logged', value: stats.hours, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50/50 dark:bg-amber-900/20' }
+              ].map((stat, i) => (
+                <Card key={i} className="border-none shadow-sm hover:shadow-md transition-all rounded-3xl overflow-hidden bg-card/40 backdrop-blur-md group cursor-default">
+                  <CardContent className="p-5 flex flex-col gap-3">
+                    <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+                      <stat.icon className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">{stat.label}</p>
+                      <p className="text-2xl font-black tracking-tight">{stat.value}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
 
-            {!hasAnyPermission ? (
-              <Card className="gradient-card border-border/50">
-                <CardContent className="pt-6">
-                  <div className="text-center py-8">
-                    <XCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold mb-2">No Permissions Granted</h3>
-                    <p className="text-muted-foreground">
-                      Please contact the administrator to grant you permissions for managing activities.
-                    </p>
+            {/* Main Action Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Feature Highlights */}
+              <div className="lg:col-span-2 space-y-8">
+                {/* Hero Banner Part II */}
+                <div className="relative overflow-hidden rounded-[3rem] bg-gradient-to-br from-indigo-600 to-primary p-10 text-white shadow-2xl">
+                  <div className="relative z-10 flex flex-col h-full justify-between gap-8">
+                    <div>
+                      <Badge className="bg-white/20 backdrop-blur-md border-white/10 text-white font-bold mb-4 px-4 py-1 rounded-full text-[10px] uppercase tracking-widest">
+                        <TrendingUp className="w-3 h-3 mr-2" /> Role: Office Bearer
+                      </Badge>
+                      <h2 className="text-4xl font-black mb-4 tracking-tighter leading-none">
+                        Ready to lead the <br /> next mission?
+                      </h2>
+                      <p className="text-indigo-100/80 font-medium text-lg max-w-sm">
+                        Coordinate your teams, manage resources, and track project milestones from one unified interface.
+                      </p>
+                    </div>
+                    <div className="flex gap-4">
+                      <Button variant="secondary" className="bg-white text-primary hover:bg-white/90 font-black uppercase tracking-widest text-xs rounded-2xl h-12 px-8" onClick={() => navigate("/admin/projects")}>
+                        Manage Projects
+                      </Button>
+                      <Button variant="outline" className="bg-transparent border-white/20 text-white hover:bg-white/10 font-black uppercase tracking-widest text-xs rounded-2xl h-12 px-8" onClick={() => navigate("/admin/meetings")}>
+                        Schedule Meet
+                      </Button>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {permissions.can_manage_meetings && (
-                  <Card className="gradient-card border-border/50 hover:glow-primary transition-all hover:scale-105 cursor-pointer" onClick={() => navigate("/admin/meetings")}>
-                    <div onClick={(e) => e.stopPropagation()} className="w-full h-full">
-                      <CardHeader>
-                        <Calendar className="w-12 h-12 text-primary mb-2" />
-                        <CardTitle>Meetings & Events</CardTitle>
-                        <CardDescription>
-                          Schedule and manage meetings
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <Button className="w-full" onClick={() => navigate("/admin/meetings")}>Manage Events</Button>
-                      </CardContent>
-                    </div>
-                  </Card>
-                )}
+                  {/* Decorative elements */}
+                  <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
+                  <div className="absolute bottom-[-20%] left-[40%] w-64 h-64 bg-indigo-400/20 rounded-full blur-[80px]" />
+                </div>
 
-                {permissions.can_manage_attendance && (
-                  <Card className="gradient-card border-border/50 hover:glow-primary transition-all hover:scale-105 cursor-pointer" onClick={() => navigate("/admin/attendance")}>
-                    <div onClick={(e) => e.stopPropagation()} className="w-full h-full">
-                      <CardHeader>
-                        <Users className="w-12 h-12 text-accent mb-2" />
-                        <CardTitle>Attendance</CardTitle>
-                        <CardDescription>
-                          Track meeting attendance
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <Button className="w-full" onClick={() => navigate("/admin/attendance")}>View Attendance</Button>
-                      </CardContent>
-                    </div>
-                  </Card>
-                )}
-
-                {permissions.can_manage_bills && (
-                  <Card className="gradient-card border-border/50 hover:glow-primary transition-all hover:scale-105 cursor-pointer" onClick={() => navigate("/admin/bills")}>
-                    <div onClick={(e) => e.stopPropagation()} className="w-full h-full">
-                      <CardHeader>
-                        <FileText className="w-12 h-12 text-violet mb-2" />
-                        <CardTitle>Bills & Reports</CardTitle>
-                        <CardDescription>
-                          Review and approve bills
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <Button className="w-full" onClick={() => navigate("/admin/bills")}>Review Bills</Button>
-                      </CardContent>
-                    </div>
-                  </Card>
-                )}
-
-                {permissions.can_manage_projects && (
-                  <Card className="gradient-card border-border/50 hover:glow-primary transition-all hover:scale-105 cursor-pointer" onClick={() => navigate("/admin/projects")}>
-                    <div onClick={(e) => e.stopPropagation()} className="w-full h-full">
-                      <CardHeader>
-                        <Briefcase className="w-12 h-12 text-primary mb-2" />
-                        <CardTitle>Projects</CardTitle>
-                        <CardDescription>
-                          Manage projects
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <Button className="w-full" onClick={() => navigate("/admin/projects")}>Manage Projects</Button>
-                      </CardContent>
-                    </div>
-                  </Card>
-                )}
-
-                {permissions.can_manage_students && (
-                  <Card className="gradient-card border-border/50 hover:glow-primary transition-all hover:scale-105 cursor-pointer" onClick={() => navigate("/admin/students")}>
-                    <div onClick={(e) => e.stopPropagation()} className="w-full h-full">
-                      <CardHeader>
-                        <UserCircle className="w-12 h-12 text-accent mb-2" />
-                        <CardTitle>Students</CardTitle>
-                        <CardDescription>
-                          View and manage students
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-center justify-between">
-                          <Button className="w-full" onClick={() => navigate("/admin/students")}>Manage Students</Button>
-                          <div className="ml-4 text-sm text-muted-foreground">{studentsCount !== null ? `${studentsCount} students` : 'Loading...'}</div>
+                {/* Management Quick Navigation */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {permissions.can_manage_students && (
+                    <Card className="rounded-[2.5rem] border-none bg-card/40 backdrop-blur-md shadow-sm hover:shadow-xl transition-all hover:scale-[1.02] cursor-pointer group" onClick={() => navigate("/admin/students")}>
+                      <CardContent className="p-8 flex items-center gap-6">
+                        <div className="w-16 h-16 rounded-[1.5rem] bg-blue-100 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center shrink-0 group-hover:rotate-6 transition-transform">
+                          <UserCircle className="w-8 h-8" />
                         </div>
+                        <div className="space-y-1">
+                          <h4 className="font-black text-xl tracking-tight uppercase">Students</h4>
+                          <p className="text-sm text-muted-foreground font-medium">Manage volunteer profiles and assignments.</p>
+                        </div>
+                        <ChevronRight className="w-6 h-6 ml-auto text-muted-foreground/30 group-hover:text-primary transition-colors" />
                       </CardContent>
-                    </div>
-                  </Card>
-                )}
-
-
-                {permissions.can_view_analytics && (
-                  <Card className="gradient-card border-border/50 hover:glow-primary transition-all hover:scale-105 cursor-pointer" onClick={() => navigate("/admin/analytics")}>
-                    <div onClick={(e) => e.stopPropagation()} className="w-full h-full">
-                      <CardHeader>
-                        <BarChart3 className="w-12 h-12 text-primary mb-2" />
-                        <CardTitle>Analytics</CardTitle>
-                        <CardDescription>
-                          View analytics and reports
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <Button className="w-full" onClick={() => navigate("/admin/analytics")}>View Analytics</Button>
+                    </Card>
+                  )}
+                  {permissions.can_manage_attendance && (
+                    <Card className="rounded-[2.5rem] border-none bg-card/40 backdrop-blur-md shadow-sm hover:shadow-xl transition-all hover:scale-[1.02] cursor-pointer group" onClick={() => navigate("/admin/attendance")}>
+                      <CardContent className="p-8 flex items-center gap-6">
+                        <div className="w-16 h-16 rounded-[1.5rem] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 flex items-center justify-center shrink-0 group-hover:rotate-6 transition-transform">
+                          <ClipboardCheck className="w-8 h-8" />
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="font-black text-xl tracking-tight uppercase">Attendance</h4>
+                          <p className="text-sm text-muted-foreground font-medium">Coordinate session marking and reports.</p>
+                        </div>
+                        <ChevronRight className="w-6 h-6 ml-auto text-muted-foreground/30 group-hover:text-primary transition-colors" />
                       </CardContent>
-                    </div>
-                  </Card>
-                )}
+                    </Card>
+                  )}
+                  {permissions.can_manage_bills && (
+                    <Card className="rounded-[2.5rem] border-none bg-card/40 backdrop-blur-md shadow-sm hover:shadow-xl transition-all hover:scale-[1.02] cursor-pointer group" onClick={() => navigate("/admin/bills")}>
+                      <CardContent className="p-8 flex items-center gap-6">
+                        <div className="w-16 h-16 rounded-[1.5rem] bg-rose-100 dark:bg-rose-900/30 text-rose-600 flex items-center justify-center shrink-0 group-hover:rotate-6 transition-transform">
+                          <FileText className="w-8 h-8" />
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="font-black text-xl tracking-tight uppercase">Finance</h4>
+                          <p className="text-sm text-muted-foreground font-medium">Review pending bills and fund reports.</p>
+                        </div>
+                        <ChevronRight className="w-6 h-6 ml-auto text-muted-foreground/30 group-hover:text-primary transition-colors" />
+                      </CardContent>
+                    </Card>
+                  )}
+                  {permissions.can_manage_feedback_questions && (
+                    <Card className="rounded-[2.5rem] border-none bg-card/40 backdrop-blur-md shadow-sm hover:shadow-xl transition-all hover:scale-[1.02] cursor-pointer group" onClick={() => navigate("/admin/feedback/questions")}>
+                      <CardContent className="p-8 flex items-center gap-6">
+                        <div className="w-16 h-16 rounded-[1.5rem] bg-amber-100 dark:bg-amber-900/30 text-amber-600 flex items-center justify-center shrink-0 group-hover:rotate-6 transition-transform">
+                          <MessageSquare className="w-8 h-8" />
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="font-black text-xl tracking-tight uppercase">Feedback</h4>
+                          <p className="text-sm text-muted-foreground font-medium">Manage question banks and reports.</p>
+                        </div>
+                        <ChevronRight className="w-6 h-6 ml-auto text-muted-foreground/30 group-hover:text-primary transition-colors" />
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
-        </main>
-      </div>
 
-      <Footer />
-    </div>
+              {/* Sidebar Info */}
+              <div className="space-y-8">
+                {/* Secondary stats */}
+                <div className="grid grid-cols-1 gap-4">
+                  <Card className="rounded-[2rem] border-none bg-card/40 p-4 flex flex-col items-center gap-2 group hover:bg-card/60 transition-colors">
+                    <UsersRound className="w-5 h-5 text-indigo-500" />
+                    <span className="text-[10px] font-black uppercase text-muted-foreground">Teams</span>
+                    <span className="text-lg font-black">{stats.teams}</span>
+                  </Card>
+                </div>
+
+                {/* Quick Action Summary Card */}
+                <Card className="rounded-[2.5rem] bg-slate-900 text-white border-none shadow-2xl relative overflow-hidden group">
+                  <div className="p-8 space-y-6 relative z-10">
+                    <div className="flex items-center gap-3 text-primary">
+                      <Layers className="w-6 h-6" />
+                      <h4 className="font-black uppercase tracking-widest text-sm">Operation Hub</h4>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 rounded-[1.5rem] bg-white/5 hover:bg-white/10 transition-colors cursor-pointer" onClick={() => navigate("/admin/reports")}>
+                        <div className="flex items-center gap-3">
+                          <BarChart3 className="w-4 h-4 text-primary" />
+                          <span className="text-xs font-bold uppercase tracking-widest">Generate Reports</span>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-white/20" />
+                      </div>
+                      <div className="flex items-center justify-between p-4 rounded-[1.5rem] bg-white/5 hover:bg-white/10 transition-colors cursor-pointer" onClick={() => navigate("/admin/teams")}>
+                        <div className="flex items-center gap-3">
+                          <Users className="w-4 h-4 text-primary" />
+                          <span className="text-xs font-bold uppercase tracking-widest">Team Management</span>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-white/20" />
+                      </div>
+                      <div className="flex items-center justify-between p-4 rounded-[1.5rem] bg-white/5 hover:bg-white/10 transition-colors cursor-pointer" onClick={() => navigate("/admin/resources")}>
+                        <div className="flex items-center gap-3">
+                          <BookOpen className="w-4 h-4 text-primary" />
+                          <span className="text-xs font-bold uppercase tracking-widest">Update Resources</span>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-white/20" />
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-white/10">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                          <span className="text-[10px] font-black uppercase text-white/40 tracking-widest">Server Logic Active</span>
+                        </div>
+                        <Badge className="bg-emerald-500/20 text-emerald-400 border-none font-bold text-[8px] uppercase">Secure</Badge>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Wisdom/Inspiration Card */}
+                <Card className="rounded-[2.5rem] border-none bg-indigo-50/50 dark:bg-indigo-900/10 p-8 space-y-4 relative overflow-hidden group">
+                  <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                    <Trophy className="w-5 h-5" />
+                    <span className="font-black uppercase tracking-widest text-[10px]">Leader's Wisdom</span>
+                  </div>
+                  <p className="text-xl font-black italic tracking-tight leading-7 text-indigo-900 dark:text-indigo-100">
+                    "Leadership is not about being in charge. It's about taking care of those in your charge."
+                  </p>
+                  <div className="flex items-center gap-2 pt-2">
+                    <div className="w-6 h-0.5 bg-indigo-600/30" />
+                    <p className="text-indigo-600/60 dark:text-indigo-400/60 font-black text-xs uppercase tracking-widest">Sinek</p>
+                  </div>
+                </Card>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 };
 
 export default OfficeBearerDashboard;
-

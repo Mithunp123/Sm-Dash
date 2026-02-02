@@ -1,6 +1,6 @@
 import express from 'express';
 import { getDatabase } from '../database/init.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, requirePermission } from '../middleware/auth.js';
 import { body, validationResult } from 'express-validator';
 
 const router = express.Router();
@@ -25,7 +25,7 @@ const all = (db, query, params = []) => {
 
 const run = (db, query, params = []) => {
   return new Promise((resolve, reject) => {
-    db.run(query, params, function(err) {
+    db.run(query, params, function (err) {
       if (err) reject(err);
       else resolve({ lastID: this.lastID, changes: this.changes });
     });
@@ -33,7 +33,19 @@ const run = (db, query, params = []) => {
 };
 
 // Base attendance route (GET /api/attendance)
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, async (req, res, next) => {
+  try {
+    const { userId } = req.query;
+    // Special case: Students can always see their own attendance
+    if (req.user.role === 'student' && userId && parseInt(userId) === req.user.id) {
+      return next();
+    }
+    // Otherwise, check for can_manage_attendance permission
+    requirePermission('can_manage_attendance', { allowView: true })(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+}, async (req, res) => {
   try {
     const { meetingId, userId } = req.query;
     const db = getDatabase();
@@ -146,7 +158,7 @@ router.get('/project/:projectId/user/:userId', authenticateToken, async (req, re
 });
 
 // Mark attendance for a specific date
-router.post('/project/:projectId/mark', authenticateToken, [
+router.post('/project/:projectId/mark', authenticateToken, requirePermission('can_manage_attendance', { requireEdit: true }), [
   body('userId').isInt(),
   body('attendance_date').isISO8601(),
   body('status').isIn(['present', 'absent', 'late'])
@@ -171,7 +183,7 @@ router.post('/project/:projectId/mark', authenticateToken, [
     const member = await get(db, `
       SELECT id FROM project_members WHERE project_id = ? AND user_id = ?
     `, [projectId, userId]);
-    
+
     if (!member) {
       return res.status(403).json({ success: false, message: 'User is not a member of this project' });
     }
@@ -195,7 +207,7 @@ router.post('/project/:projectId/mark', authenticateToken, [
 });
 
 // Get project attendance records grouped by date
-router.get('/project/:projectId/records', authenticateToken, async (req, res) => {
+router.get('/project/:projectId/records', authenticateToken, requirePermission('can_manage_attendance', { allowView: true }), async (req, res) => {
   try {
     const { projectId } = req.params;
     const { date } = req.query;
@@ -216,7 +228,7 @@ router.get('/project/:projectId/records', authenticateToken, async (req, res) =>
         sp.year as user_year
       FROM attendance_records ar
       JOIN users u ON ar.user_id = u.id
-      LEFT JOIN student_profiles sp ON u.id = sp.user_id
+      LEFT JOIN profiles sp ON u.id = sp.user_id
       WHERE ar.project_id = ?
     `;
     const params = [projectId];
@@ -237,7 +249,7 @@ router.get('/project/:projectId/records', authenticateToken, async (req, res) =>
 });
 
 // Update project attendance record
-router.put('/project/records/:id', authenticateToken, [
+router.put('/project/records/:id', authenticateToken, requirePermission('can_manage_attendance', { requireEdit: true }), [
   body('status').optional().isIn(['present', 'absent', 'late']),
   body('notes').optional().trim(),
   body('attendance_date').optional().isISO8601()
@@ -289,7 +301,7 @@ router.put('/project/records/:id', authenticateToken, [
 });
 
 // Delete project attendance record
-router.delete('/project/records/:id', authenticateToken, async (req, res) => {
+router.delete('/project/records/:id', authenticateToken, requirePermission('can_manage_attendance', { requireEdit: true }), async (req, res) => {
   try {
     const { id } = req.params;
     const db = getDatabase();
@@ -308,7 +320,7 @@ router.delete('/project/records/:id', authenticateToken, async (req, res) => {
 });
 
 // Mark attendance for meetings (POST /api/attendance)
-router.post('/', authenticateToken, [
+router.post('/', authenticateToken, requirePermission('can_manage_attendance', { requireEdit: true }), [
   body('meetingId').isInt(),
   body('userId').isInt(),
   body('status').isIn(['present', 'absent', 'late']),
@@ -350,7 +362,7 @@ router.post('/', authenticateToken, [
 });
 
 // Update meeting attendance
-router.put('/:id', authenticateToken, [
+router.put('/:id', authenticateToken, requirePermission('can_manage_attendance', { requireEdit: true }), [
   body('status').optional().isIn(['present', 'absent', 'late']),
   body('notes').optional().trim()
 ], async (req, res) => {
@@ -398,7 +410,7 @@ router.put('/:id', authenticateToken, [
 });
 
 // Delete meeting attendance
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, requirePermission('can_manage_attendance', { requireEdit: true }), async (req, res) => {
   try {
     const { id } = req.params;
     const db = getDatabase();
@@ -469,7 +481,7 @@ router.get('/event/:eventId/user/:userId', authenticateToken, async (req, res) =
 });
 
 // Mark event attendance
-router.post('/event/:eventId/mark', authenticateToken, [
+router.post('/event/:eventId/mark', authenticateToken, requirePermission('can_manage_attendance', { requireEdit: true }), [
   body('userId').isInt(),
   body('status').isIn(['present', 'absent', 'late'])
 ], async (req, res) => {
@@ -521,7 +533,7 @@ router.post('/event/:eventId/mark', authenticateToken, [
 });
 
 // Get saved dates for a project
-router.get('/project/:projectId/dates', authenticateToken, async (req, res) => {
+router.get('/project/:projectId/dates', authenticateToken, requirePermission('can_manage_attendance', { allowView: true }), async (req, res) => {
   try {
     const { projectId } = req.params;
     const db = getDatabase();
@@ -544,7 +556,7 @@ router.get('/project/:projectId/dates', authenticateToken, async (req, res) => {
 });
 
 // Get saved dates for a meeting
-router.get('/meeting/:meetingId/dates', authenticateToken, async (req, res) => {
+router.get('/meeting/:meetingId/dates', authenticateToken, requirePermission('can_manage_attendance', { allowView: true }), async (req, res) => {
   try {
     const { meetingId } = req.params;
     const db = getDatabase();
@@ -567,7 +579,7 @@ router.get('/meeting/:meetingId/dates', authenticateToken, async (req, res) => {
 });
 
 // Get saved dates for an event
-router.get('/event/:eventId/dates', authenticateToken, async (req, res) => {
+router.get('/event/:eventId/dates', authenticateToken, requirePermission('can_manage_attendance', { allowView: true }), async (req, res) => {
   try {
     const { eventId } = req.params;
     const db = getDatabase();
@@ -590,7 +602,7 @@ router.get('/event/:eventId/dates', authenticateToken, async (req, res) => {
 });
 
 // Get meeting attendance records by date
-router.get('/meeting/:meetingId/records', authenticateToken, async (req, res) => {
+router.get('/meeting/:meetingId/records', authenticateToken, requirePermission('can_manage_attendance', { allowView: true }), async (req, res) => {
   try {
     const { meetingId } = req.params;
     const { date } = req.query;
@@ -609,7 +621,7 @@ router.get('/meeting/:meetingId/records', authenticateToken, async (req, res) =>
         sp.year as user_year
       FROM attendance a
       JOIN users u ON a.user_id = u.id
-      LEFT JOIN student_profiles sp ON u.id = sp.user_id
+      LEFT JOIN profiles sp ON u.id = sp.user_id
       WHERE a.meeting_id = ?
     `;
     const params = [meetingId];
@@ -630,7 +642,7 @@ router.get('/meeting/:meetingId/records', authenticateToken, async (req, res) =>
 });
 
 // Get event attendance records by date
-router.get('/event/:eventId/records', authenticateToken, async (req, res) => {
+router.get('/event/:eventId/records', authenticateToken, requirePermission('can_manage_attendance', { allowView: true }), async (req, res) => {
   try {
     const { eventId } = req.params;
     const { date } = req.query;
@@ -649,7 +661,7 @@ router.get('/event/:eventId/records', authenticateToken, async (req, res) => {
         sp.year as user_year
       FROM event_attendance ea
       JOIN users u ON ea.user_id = u.id
-      LEFT JOIN student_profiles sp ON u.id = sp.user_id
+      LEFT JOIN profiles sp ON u.id = sp.user_id
       WHERE ea.event_id = ?
     `;
     const params = [eventId];
@@ -670,7 +682,11 @@ router.get('/event/:eventId/records', authenticateToken, async (req, res) => {
 });
 
 // Get student details with attendance history for a project
-router.get('/student/:studentId/project/:projectId/details', authenticateToken, async (req, res) => {
+router.get('/student/:studentId/project/:projectId/details', authenticateToken, async (req, res, next) => {
+  const { studentId } = req.params;
+  if (parseInt(studentId) === req.user.id) return next();
+  requirePermission('can_manage_attendance', { allowView: true })(req, res, next);
+}, async (req, res) => {
   try {
     const { studentId, projectId } = req.params;
     const db = getDatabase();
@@ -721,7 +737,11 @@ router.get('/student/:studentId/project/:projectId/details', authenticateToken, 
 });
 
 // Get student details with attendance history for a meeting
-router.get('/student/:studentId/meeting/:meetingId/details', authenticateToken, async (req, res) => {
+router.get('/student/:studentId/meeting/:meetingId/details', authenticateToken, async (req, res, next) => {
+  const { studentId } = req.params;
+  if (parseInt(studentId) === req.user.id) return next();
+  requirePermission('can_manage_attendance', { allowView: true })(req, res, next);
+}, async (req, res) => {
   try {
     const { studentId, meetingId } = req.params;
     const db = getDatabase();
@@ -772,7 +792,11 @@ router.get('/student/:studentId/meeting/:meetingId/details', authenticateToken, 
 });
 
 // Get student details with attendance history for an event
-router.get('/student/:studentId/event/:eventId/details', authenticateToken, async (req, res) => {
+router.get('/student/:studentId/event/:eventId/details', authenticateToken, async (req, res, next) => {
+  const { studentId } = req.params;
+  if (parseInt(studentId) === req.user.id) return next();
+  requirePermission('can_manage_attendance', { allowView: true })(req, res, next);
+}, async (req, res) => {
   try {
     const { studentId, eventId } = req.params;
     const db = getDatabase();
@@ -823,7 +847,11 @@ router.get('/student/:studentId/event/:eventId/details', authenticateToken, asyn
 });
 
 // Get student details with all attendance history
-router.get('/student/:studentId/details', authenticateToken, async (req, res) => {
+router.get('/student/:studentId/details', authenticateToken, async (req, res, next) => {
+  const { studentId } = req.params;
+  if (parseInt(studentId) === req.user.id) return next();
+  requirePermission('can_manage_attendance', { allowView: true })(req, res, next);
+}, async (req, res) => {
   try {
     const { studentId } = req.params;
     const db = getDatabase();
@@ -904,4 +932,57 @@ router.get('/student/:studentId/details', authenticateToken, async (req, res) =>
 });
 
 export default router;
+
+// Get best performers across events in a date range
+// Query parameters: startDate (YYYY-MM-DD), endDate (YYYY-MM-DD), limit
+// Returns list of users with total_events, present_count, percent
+router.get('/best-performers', authenticateToken, async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const limit = parseInt(req.query.limit || '10', 10) || 10;
+    const db = getDatabase();
+
+    const params = [];
+    let dateFilter = '';
+    if (startDate) {
+      dateFilter += ' AND DATE(e.date) >= ?';
+      params.push(startDate);
+    }
+    if (endDate) {
+      dateFilter += ' AND DATE(e.date) <= ?';
+      params.push(endDate);
+    }
+
+    const rows = await all(db, `
+      SELECT 
+        ea.user_id,
+        u.name,
+        u.email,
+        COUNT(*) as total_events,
+        SUM(CASE WHEN ea.status = 'present' THEN 1 ELSE 0 END) as present_count
+      FROM event_attendance ea
+      JOIN events e ON ea.event_id = e.id
+      JOIN users u ON ea.user_id = u.id
+      WHERE 1 = 1 ${dateFilter}
+      GROUP BY ea.user_id
+      HAVING total_events > 0
+      ORDER BY (present_count * 1.0 / total_events) DESC, present_count DESC
+      LIMIT ?
+    `, [...params, limit]);
+
+    const result = rows.map(r => ({
+      user_id: r.user_id,
+      name: r.name,
+      email: r.email,
+      total_events: r.total_events,
+      present_count: r.present_count,
+      percent: r.total_events ? Math.round((r.present_count / r.total_events) * 100) : 0
+    }));
+
+    res.json({ success: true, performers: result });
+  } catch (error) {
+    console.error('Get best performers error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 

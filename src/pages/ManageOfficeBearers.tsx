@@ -15,6 +15,8 @@ import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { BackButton } from "@/components/BackButton";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const ManageOfficeBearers = () => {
   const navigate = useNavigate();
@@ -25,20 +27,34 @@ const ManageOfficeBearers = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: ""
   });
 
+  const { permissions, loading: permissionsLoading } = usePermissions();
+
   useEffect(() => {
-    if (!auth.isAuthenticated() || !auth.hasRole('admin')) {
+    if (!auth.isAuthenticated()) {
       navigate("/login");
       return;
     }
+
+    if (permissionsLoading) return;
+
+    const isAdmin = auth.hasRole('admin');
+    const hasPermission = isAdmin || permissions.can_manage_users;
+
+    if (!hasPermission) {
+      toast.error("Access denied. Management access required.");
+      navigate("/admin");
+      return;
+    }
+
     loadOfficeBearers();
-  }, []);
+  }, [permissionsLoading, permissions]);
 
   const loadOfficeBearers = async () => {
     try {
@@ -63,7 +79,7 @@ const ManageOfficeBearers = () => {
         email: formData.email,
         role: 'office_bearer'
       };
-      
+
       if (formData.password && formData.password.trim() !== "") {
         userData.password = formData.password;
       }
@@ -89,25 +105,22 @@ const ManageOfficeBearers = () => {
 
     try {
       // Update user details
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/${selectedUser.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${auth.getToken()}`
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email
-        })
+      // Update user details
+      const response = await api.put(`/users/${selectedUser.id}`, {
+        name: formData.name,
+        email: formData.email
       });
 
-      const data = await response.json();
-      if (data.success) {
+      // Response structure handling based on api.request return type
+      // api.put returns { success: boolean, ... } directly
+      if (response && response.success) {
         toast.success("Office Bearer updated successfully!");
         setShowEditDialog(false);
         setSelectedUser(null);
         setFormData({ name: "", email: "", password: "" });
         loadOfficeBearers();
+      } else {
+        throw new Error(response.message || 'Update failed');
       }
     } catch (error: any) {
       toast.error("Failed to update office bearer: " + error.message);
@@ -118,19 +131,15 @@ const ManageOfficeBearers = () => {
     if (!selectedUser) return;
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/${selectedUser.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${auth.getToken()}`
-        }
-      });
+      const response = await api.delete(`/users/${selectedUser.id}`);
 
-      const data = await response.json();
-      if (data.success) {
+      if (response && response.success) {
         toast.success("Office Bearer deleted successfully!");
         setShowDeleteDialog(false);
         setSelectedUser(null);
         loadOfficeBearers();
+      } else {
+        throw new Error(response.message || 'Delete failed');
       }
     } catch (error: any) {
       toast.error("Failed to delete office bearer: " + error.message);
@@ -154,21 +163,20 @@ const ManageOfficeBearers = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
+
       <DeveloperCredit />
-      
-      <main className="flex-1 p-4 md:p-8 bg-background">
-          <div className="max-w-7xl mx-auto">
+
+      <main className="flex-1 p-2 md:p-4 bg-background">
+        <div className="w-full">
+          {/* Back Button */}
+          <div className="mb-4">
+            <BackButton to="/admin" />
+          </div>
+
           <div className="flex justify-between items-center mb-8">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" onClick={() => navigate("/admin")} className="gap-2">
-                <ArrowLeft className="w-4 h-4" />
-                Back to Dashboard
-              </Button>
-              <div>
-                <h1 className="text-3xl font-bold text-primary">Manage Office Bearers</h1>
-                <p className="text-muted-foreground">Add, edit, or remove office bearers</p>
-              </div>
+            <div>
+              <h1 className="text-3xl font-bold text-primary">Manage Office Bearers</h1>
+              <p className="text-muted-foreground">Add, edit, or remove office bearers</p>
             </div>
             <Button onClick={() => setShowAddDialog(true)} className="gap-2">
               <Plus className="w-4 h-4" />
@@ -214,7 +222,7 @@ const ManageOfficeBearers = () => {
                       {officeBearers
                         .filter((user) => {
                           return user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                 user.email.toLowerCase().includes(searchQuery.toLowerCase());
+                            user.email.toLowerCase().includes(searchQuery.toLowerCase());
                         })
                         .map((user) => (
                           <TableRow key={user.id}>
@@ -222,7 +230,7 @@ const ManageOfficeBearers = () => {
                               <div className="flex items-center gap-3">
                                 <Avatar>
                                   <AvatarImage src={user.photo || user.photoUrl || '/Images/Brand_logo.png'} alt={user.name} />
-                                  <AvatarFallback>{((user.name || "").split(" ").map(s => s[0]).slice(0,2).join("") || "?")}</AvatarFallback>
+                                  <AvatarFallback>{((user.name || "").split(" ").map(s => s[0]).slice(0, 2).join("") || "?")}</AvatarFallback>
                                 </Avatar>
                                 <span>{user.name}</span>
                               </div>
@@ -260,8 +268,8 @@ const ManageOfficeBearers = () => {
               )}
             </CardContent>
           </Card>
-          </div>
-        </main>
+        </div>
+      </main>
 
       {/* Add Office Bearer Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
@@ -303,9 +311,9 @@ const ManageOfficeBearers = () => {
               />
             </div>
             <div className="flex gap-2 justify-end">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => {
                   setShowAddDialog(false);
                   setFormData({ name: "", email: "", password: "" });
@@ -349,9 +357,9 @@ const ManageOfficeBearers = () => {
               />
             </div>
             <div className="flex gap-2 justify-end">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => {
                   setShowEditDialog(false);
                   setSelectedUser(null);
@@ -389,7 +397,7 @@ const ManageOfficeBearers = () => {
         </DialogContent>
       </Dialog>
 
-      <Footer />
+
     </div>
   );
 };

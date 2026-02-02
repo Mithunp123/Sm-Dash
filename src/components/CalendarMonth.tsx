@@ -1,3 +1,4 @@
+
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 
@@ -5,6 +6,8 @@ export type CalendarEvent = {
   id: number | string;
   title: string;
   date: string; // ISO date or datetime
+  type?: 'meeting' | 'holiday' | 'important';
+  isSpecialDay?: boolean;
 };
 
 export type CalendarMonthProps = {
@@ -122,13 +125,15 @@ export const CalendarMonth = ({
   return (
     <div className={cn("w-full", className)}>
       {showHeader && (
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-lg font-semibold">{monthLabel}</div>
+        <div className="flex items-center justify-center mb-4">
+          <div className="text-2xl font-bold text-gray-900 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            {monthLabel}
+          </div>
         </div>
       )}
-      <div className="grid grid-cols-7 gap-1 text-xs text-muted-foreground mb-1">
+      <div className="grid grid-cols-7 gap-1 text-xs text-muted-foreground mb-2">
         {weekdayLabels.map((w) => (
-          <div key={w} className="px-2 py-1 text-center">
+          <div key={w} className="px-2 py-2 text-center font-semibold">
             {w}
           </div>
         ))}
@@ -150,8 +155,8 @@ export const CalendarMonth = ({
               )}
             >
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs">{weekdayLabels[date.getDay()]}</span>
-                <span className={cn("text-xs px-1 rounded", isToday && "bg-primary text-primary-foreground")}>
+                <span className="text-xs text-muted-foreground">{weekdayLabels[date.getDay()]}</span>
+                <span className={cn("text-sm font-semibold px-1 rounded", isToday && "bg-primary text-primary-foreground")}>
                   {day}
                 </span>
               </div>
@@ -159,7 +164,12 @@ export const CalendarMonth = ({
                 {dayEvents.slice(0, 3).map((ev) => (
                   <div
                     key={String(ev.id)}
-                    className="truncate rounded bg-primary/10 px-1 py-0.5 text-xs"
+                    className={cn(
+                      "truncate rounded px-1 py-0.5 text-xs",
+                      ev.type === 'holiday' ? "bg-red-100 text-red-900 border border-red-200" :
+                        ev.type === 'important' ? "bg-amber-100 text-amber-900 border border-amber-200" :
+                          "bg-primary/10"
+                    )}
                     title={ev.title}
                   >
                     {ev.title}
@@ -180,5 +190,3 @@ export const CalendarMonth = ({
 };
 
 export default CalendarMonth;
-
-

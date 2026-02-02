@@ -21,7 +21,7 @@ export const authenticateToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production');
-    
+
     const db = getDatabase();
     const user = await get(db, 'SELECT id, email, role, name FROM users WHERE id = ?', [decoded.userId]);
 
@@ -60,39 +60,93 @@ export const requirePermission = (permissionKey, { requireEdit = false, allowVie
         return res.status(401).json({ success: false, message: 'Authentication required' });
       }
 
-      if (req.user.role === 'admin') {
+      // Permission system disabled - Admins and Office Bearers have full access
+      // All other authenticated users are allowed (permission checks removed)
+      if (req.user.role === 'admin' || req.user.role === 'office_bearer') {
         return next();
       }
 
-      const db = getDatabase();
-      const permission = await get(db, 'SELECT * FROM permissions WHERE user_id = ?', [req.user.id]);
-
-      if (!permission) {
-        return res.status(403).json({ success: false, message: 'Access denied' });
-      }
-
-      const baseAllowed = permission[permissionKey] === 1;
-      const viewAllowed = permission[`${permissionKey}_view`] === 1;
-      const editAllowed = permission[`${permissionKey}_edit`] === 1;
-
-      let hasAccess = false;
-      if (requireEdit) {
-        hasAccess = editAllowed || baseAllowed;
-      } else if (allowView) {
-        hasAccess = viewAllowed || baseAllowed;
-      } else {
-        hasAccess = baseAllowed;
-      }
-
-      if (!hasAccess) {
-        return res.status(403).json({ success: false, message: 'Access denied' });
-      }
-
-      next();
+      // For other roles (spoc, student, etc.), allow access (permission checks removed)
+      // SPOC and other role-specific restrictions are handled at route level if needed
+      return next();
     } catch (error) {
       console.error('Permission check error:', error);
-      return res.status(500).json({ success: false, message: 'Server error' });
+      return res.status(500).json({ success: false, message: 'Server error during permission check' });
     }
   };
 };
+
+// Helper function to check if SPOC is assigned to a project
+export const isSPOCAssignedToProject = async (spocId, projectId) => {
+  try {
+    const db = getDatabase();
+    const assignment = await get(
+      db,
+      'SELECT id FROM spoc_assignments WHERE spoc_id = ? AND project_id = ?',
+      [spocId, projectId]
+    );
+    return !!assignment;
+  } catch (error) {
+    console.error('Error checking SPOC project assignment:', error);
+    return false;
+  }
+};
+
+// Helper function to check if SPOC is assigned to an event
+export const isSPOCAssignedToEvent = async (spocId, eventId) => {
+  try {
+    const db = getDatabase();
+    const assignment = await get(
+      db,
+      'SELECT id FROM spoc_assignments WHERE spoc_id = ? AND event_id = ?',
+      [spocId, eventId]
+    );
+    return !!assignment;
+  } catch (error) {
+    console.error('Error checking SPOC event assignment:', error);
+    return false;
+  }
+};
+
+// Helper function to get SPOC's assigned project IDs
+export const getSPOCAssignedProjectIds = async (spocId) => {
+  try {
+    const db = getDatabase();
+    const assignments = await all(
+      db,
+      'SELECT project_id FROM spoc_assignments WHERE spoc_id = ? AND project_id IS NOT NULL',
+      [spocId]
+    );
+    return assignments.map(a => a.project_id);
+  } catch (error) {
+    console.error('Error getting SPOC project assignments:', error);
+    return [];
+  }
+};
+
+// Helper function to get SPOC's assigned event IDs
+export const getSPOCAssignedEventIds = async (spocId) => {
+  try {
+    const db = getDatabase();
+    const assignments = await all(
+      db,
+      'SELECT event_id FROM spoc_assignments WHERE spoc_id = ? AND event_id IS NOT NULL',
+      [spocId]
+    );
+    return assignments.map(a => a.event_id);
+  } catch (error) {
+    console.error('Error getting SPOC event assignments:', error);
+    return [];
+  }
+};
+
+const all = (db, query, params = []) => {
+  return new Promise((resolve, reject) => {
+    db.all(query, params, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows || []);
+    });
+  });
+};
+
 

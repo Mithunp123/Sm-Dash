@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DeveloperCredit from "@/components/DeveloperCredit";
+import { BackButton } from "@/components/BackButton";
 import { Users, ArrowLeft, GraduationCap } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
@@ -24,7 +25,7 @@ const ManageAlumni = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     userId: "",
     graduation_year: "",
@@ -42,17 +43,17 @@ const ManageAlumni = () => {
       navigate("/login");
       return;
     }
-    
+
     const user = auth.getUser();
     const isAdmin = user?.role === 'admin';
-    
+
     // Only admin can access this page
     if (!isAdmin) {
       toast.error("You don't have permission to access alumni management");
       navigate("/admin");
       return;
     }
-    
+
     if (!permissionsLoading) {
       loadData();
     }
@@ -65,7 +66,7 @@ const ManageAlumni = () => {
         api.getAlumni(),
         api.getUsers()
       ]);
-      
+
       if (alumniRes.success) {
         setAlumni(alumniRes.alumni || []);
       }
@@ -116,29 +117,26 @@ const ManageAlumni = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
+
       <DeveloperCredit />
-      
-      <main className="flex-1 p-4 md:p-8 bg-gradient-to-b from-background via-background to-orange-50/20">
-          <div className="max-w-7xl mx-auto">
-          {/* Hero Header Section */}
-          <div className="mb-8 bg-gradient-to-r from-orange-600 via-orange-500 to-red-500 rounded-xl p-8 text-white shadow-lg">
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex items-center gap-4">
-                <Button variant="ghost" onClick={() => navigate("/admin")} className="gap-2 hover:bg-white/20 text-white">
-                  <ArrowLeft className="w-4 h-4" />
-                  Back to Dashboard
-                </Button>
-              </div>
-              <Button onClick={() => setShowAddDialog(true)} className="gap-2 bg-white text-orange-600 hover:bg-orange-50">
-                <GraduationCap className="w-4 h-4" />
-                Add Alumni
-              </Button>
-            </div>
+
+      <main className="flex-1 p-2 md:p-4 bg-background w-full">
+        <div className="w-full">
+          {/* Back Button */}
+          <div className="mb-4">
+            <BackButton to="/admin" />
+          </div>
+
+          {/* Page Header */}
+          <div className="mb-6 flex items-center justify-between">
             <div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-2">Alumni Management</h1>
-              <p className="text-lg opacity-90">Track alumni achievements and contributions</p>
+              <h1 className="text-3xl font-semibold text-foreground mb-1">Alumni</h1>
+              <p className="text-sm text-muted-foreground">Track alumni achievements and contributions</p>
             </div>
+            <Button onClick={() => setShowAddDialog(true)} className="gap-2">
+              <GraduationCap className="w-4 h-4" />
+              Add Alumni
+            </Button>
           </div>
 
           <Card className="gradient-card border-border/50">
@@ -169,7 +167,7 @@ const ManageAlumni = () => {
                           <div className="flex items-center gap-3">
                             <Avatar>
                               <AvatarImage src={alum.photo || alum.photoUrl || alum.user?.photo || '/Images/Brand_logo.png'} alt={alum.name} />
-                              <AvatarFallback>{((alum.name || "").split(" ").map(s => s[0]).slice(0,2).join("") || "?")}</AvatarFallback>
+                              <AvatarFallback>{((alum.name || "").split(" ").map(s => s[0]).slice(0, 2).join("") || "?")}</AvatarFallback>
                             </Avatar>
                             <span>{alum.name}</span>
                           </div>
@@ -185,8 +183,8 @@ const ManageAlumni = () => {
               )}
             </CardContent>
           </Card>
-          </div>
-        </main>
+        </div>
+      </main>
 
       {/* Add Alumni Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
@@ -281,7 +279,7 @@ const ManageAlumni = () => {
         </DialogContent>
       </Dialog>
 
-      <Footer />
+
     </div>
   );
 };

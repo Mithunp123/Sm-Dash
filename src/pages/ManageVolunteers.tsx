@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
@@ -9,10 +8,14 @@ import { toast } from "sonner";
 import { auth } from "@/lib/auth";
 import { usePermissions } from '@/hooks/usePermissions';
 import { api } from "@/lib/api";
-import { ArrowLeft } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
+import { ArrowLeft, Trash2, FileText, Search, Printer, FileDown } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-const itemStatusMap = ["pending", "reviewed", "approved", "rejected"];
-const filterStatuses = ["all", ...itemStatusMap];
+const filterStatuses = ["all", "pending"];
 
 const ManageVolunteers = () => {
   const navigate = useNavigate();
@@ -20,11 +23,14 @@ const ManageVolunteers = () => {
   const [filterIdx, setFilterIdx] = useState<number>(0);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
-  const [form, setForm] = useState<any>({ name: "", email: "", year: "", department: "", category: "", registration_date: "", signature: "" });
+  const [form, setForm] = useState<any>({ name: "", email: "", year: "", department: "", category: "", registration_date: "" });
   const [showTable, setShowTable] = useState<boolean>(true);
   const [showApproved, setShowApproved] = useState<boolean>(false);
   const [approved, setApproved] = useState<any[]>([]);
   const [devBypass, setDevBypass] = useState<boolean>(false);
+  const [detailItem, setDetailItem] = useState<any | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { permissions, loading: permissionsLoading } = usePermissions();
 
   useEffect(() => {
@@ -40,15 +46,15 @@ const ManageVolunteers = () => {
     if (permissionsLoading) return;
 
     const userIsAdmin = auth.hasRole('admin');
-    const allowed = userIsAdmin || permissions?.can_manage_volunteers;
-    if (!allowed) {
-      if (!isDev || !devBypass) {
-        navigate('/admin');
-        return;
-      }
+    const userRole = auth.getRole();
+    if (!userIsAdmin) {
+      toast.error("You don't have permission to access volunteer submissions");
+      navigate(userRole === 'office_bearer' ? '/office-bearer' : '/login');
+      return;
     }
 
     load();
+    loadApproved();
     // Set filter to show pending submissions by default when coming from notification
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('filter') === 'pending') {
@@ -58,7 +64,7 @@ const ManageVolunteers = () => {
       try {
         const raw = localStorage.getItem('volunteers_filter_idx');
         if (raw) setFilterIdx(parseInt(raw));
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const handler = (e: any) => {
@@ -92,7 +98,27 @@ const ManageVolunteers = () => {
       // avoid duplicates by email
       const exists = arr.find((v: any) => v.email === item.email);
       if (exists) return;
-      arr.unshift({ id: Date.now(), name: item.name, email: item.email, year: item.year, department: item.department, category: item.category, signature: item.signature, created_at: new Date().toISOString() });
+      arr.unshift({
+        id: Date.now(),
+        name: item.name,
+        email: item.email,
+        register_no: item.register_no,
+        year: item.year,
+        department: item.department,
+        phone: item.phone,
+        parent_phone: item.parent_phone,
+        address: item.address,
+        dob: item.dob,
+        blood_group: item.blood_group,
+        skills: item.skills,
+        experience: item.experience,
+        category: item.category,
+        status: 'active',
+        undertaking_date: new Date().toISOString(),
+        relieved_at: null,
+        relieved_reason: "",
+        created_at: new Date().toISOString()
+      });
       localStorage.setItem('volunteers', JSON.stringify(arr));
       toast.success('Added to volunteers');
       // refresh approved list if visible
@@ -127,13 +153,19 @@ const ManageVolunteers = () => {
   };
 
   const updateStatus = async (id: number, idx: number) => {
-    const newStatus = itemStatusMap[idx] || "pending";
+    // Only approve (idx 2) and reject (idx 3) actions are supported
+    // idx 2 = approve, idx 3 = reject (for backward compatibility with existing buttons)
+    const statusMap: { [key: number]: string } = {
+      2: "approved",
+      3: "rejected"
+    };
+    const newStatus = statusMap[idx] || "pending";
     // if approved: add to volunteers store, add to users, and remove from submissions
     if (newStatus === 'approved') {
       const item = subs.find(s => s.id === id);
       if (item) {
         addToVolunteers(item);
-        
+
         // Auto-add to manage users
         try {
           const userData: any = {
@@ -141,7 +173,7 @@ const ManageVolunteers = () => {
             email: item.email,
             role: 'volunteer'
           };
-          
+
           const response = await api.addUser(userData);
           if (response.success) {
             toast.success(`Volunteer approved and added to users!`);
@@ -165,7 +197,7 @@ const ManageVolunteers = () => {
             toast.warning("Volunteer approved but failed to add to users: " + (error.message || 'Unknown error'));
           }
         }
-        
+
         // Trigger notification update
         window.dispatchEvent(new Event('volunteerSubmission'));
       }
@@ -178,7 +210,7 @@ const ManageVolunteers = () => {
     const updated = subs.map((s) => (s.id === id ? { ...s, status: newStatus } : s));
     persist(updated);
     toast.success("Status updated");
-    
+
     // Trigger notification update
     window.dispatchEvent(new Event('volunteerSubmission'));
   };
@@ -191,7 +223,7 @@ const ManageVolunteers = () => {
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ name: "", email: "", year: "", department: "", category: "", registration_date: "", signature: "" });
+    setForm({ name: "", email: "", year: "", department: "", category: "", registration_date: "" });
     setOpen(true);
   };
 
@@ -201,19 +233,8 @@ const ManageVolunteers = () => {
     setOpen(true);
   };
 
-  const onFile = (file?: File | null) => {
-    if (!file) return;
-    if (!["image/png", "image/jpeg"].includes(file.type)) {
-      toast.error("Only PNG/JPEG allowed");
-      return;
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Max size 2MB");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => setForm((f: any) => ({ ...f, signature: reader.result }));
-    reader.readAsDataURL(file);
+  const onFile = (_file?: File | null) => {
+    // signature no longer used
   };
 
   const handleFilterChange = (e: any) => {
@@ -262,253 +283,528 @@ const ManageVolunteers = () => {
     toast.success('Download started');
   };
 
+  const handlePrintForm = (item: any) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const styles = `
+      body { font-family: 'Inter', sans-serif; padding: 40px; color: #1a1a1a; line-height: 1.6; }
+      .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 20px; }
+      .title { font-size: 24px; font-weight: bold; margin: 0; }
+      .subtitle { font-size: 14px; color: #666; margin: 5px 0 0; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 30px; }
+      .field { margin-bottom: 15px; }
+      .label { font-weight: bold; font-size: 12px; color: #888; text-transform: uppercase; }
+      .value { font-size: 16px; color: #333; margin-top: 2px; }
+      .undertaking { margin-top: 40px; padding: 20px; background: #f9f9f9; border-radius: 8px; font-size: 14px; }
+      .signatures { margin-top: 60px; display: flex; justify-content: space-between; }
+      .sig-box { text-align: center; width: 200px; border-top: 1px solid #333; padding-top: 10px; }
+      @media print { .no-print { display: none; } }
+    `;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Undertaking Form - ${item.name}</title>
+          <style>${styles}</style>
+        </head>
+        <body>
+          <div class="header">
+            <h1 class="title">VOLUNTEER UNDERTAKING FORM</h1>
+            <p class="subtitle">SM Volunteers - Community Empowerment Initiative</p>
+          </div>
+          <div class="grid">
+            <div class="field"><div class="label">Full Name</div><div class="value">${item.name}</div></div>
+            <div class="field"><div class="label">Register Number</div><div class="value">${item.register_no || '-'}</div></div>
+            <div class="field"><div class="label">Email Address</div><div class="value">${item.email}</div></div>
+            <div class="field"><div class="label">Phone Number</div><div class="value">${item.phone || '-'}</div></div>
+            <div class="field"><div class="label">Course & Year</div><div class="value">${item.department} / ${item.year}</div></div>
+            <div class="field"><div class="label">Category</div><div class="value">${item.category || '-'}</div></div>
+            <div class="field"><div class="label">Blood Group</div><div class="value">${item.blood_group || '-'}</div></div>
+            <div class="field"><div class="label">DOB</div><div class="value">${item.dob || '-'}</div></div>
+            <div class="field"><div class="label">Parent Phone</div><div class="value">${item.parent_phone || '-'}</div></div>
+            <div class="field"><div class="label">Registration Date</div><div class="value">${item.registration_date || item.created_at?.slice(0, 10) || '-'}</div></div>
+          </div>
+          <div class="field" style="margin-top: 20px;"><div class="label">Address</div><div class="value">${item.address || '-'}</div></div>
+          <div class="field" style="margin-top: 20px;"><div class="label">Skills & Experience</div><div class="value">${item.skills || 'None listed'}</div></div>
+          
+          <div class="undertaking">
+            <strong>Undertaking:</strong> I hereby declare that the information provided above is true to the best of my knowledge. I commit to volunteering my time and efforts towards the organization's goals and will adhere to the rules and regulations of SM Volunteers.
+          </div>
+          
+          <div class="signatures">
+            <div class="sig-box">Volunteer's Signature</div>
+            <div class="sig-box">Office Bearer's Signature</div>
+          </div>
+          <script>window.onload = () => { window.print(); window.close(); }</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   const handleDownloadSubmissions = () => {
     const rows = subs.filter(s => filterIdx === 0 ? true : (s.status || 'pending') === filterStatuses[filterIdx]);
-    // normalize rows to simple columns
-    const simple = rows.map(r => ({ id: r.id, name: r.name, email: r.email, year: r.year, department: r.department, category: r.category, status: r.status || 'pending', created_at: r.created_at }));
-    downloadCSV(`submissions_${new Date().toISOString().slice(0,10)}.csv`, simple);
+    // normalize rows to simple columns including all important fields
+    const simple = rows.map(r => ({
+      id: r.id,
+      name: r.name,
+      email: r.email,
+      register_no: r.register_no,
+      year: r.year,
+      department: r.department,
+      phone: r.phone,
+      parent_phone: r.parent_phone,
+      address: r.address,
+      dob: r.dob,
+      blood_group: r.blood_group,
+      skills: r.skills,
+      experience: r.experience,
+      category: r.category,
+      status: r.status || 'pending',
+      created_at: r.created_at
+    }));
+    downloadCSV(`submissions_${new Date().toISOString().slice(0, 10)}.csv`, simple);
   };
 
   const handleDownloadApproved = () => {
     try {
       const raw = localStorage.getItem('volunteers');
       const arr = raw ? JSON.parse(raw) : [];
-      const simple = arr.map((r: any) => ({ id: r.id, name: r.name, email: r.email, year: r.year, department: r.department, category: r.category, created_at: r.created_at }));
-      downloadCSV(`approved_volunteers_${new Date().toISOString().slice(0,10)}.csv`, simple);
+      const simple = arr.map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        email: r.email,
+        register_no: r.register_no,
+        year: r.year,
+        department: r.department,
+        phone: r.phone,
+        parent_phone: r.parent_phone,
+        address: r.address,
+        dob: r.dob,
+        blood_group: r.blood_group,
+        skills: r.skills,
+        experience: r.experience,
+        category: r.category,
+        created_at: r.created_at
+      }));
+      downloadCSV(`approved_volunteers_${new Date().toISOString().slice(0, 10)}.csv`, simple);
     } catch (e) {
       console.error(e);
       toast.error('Unable to read approved volunteers');
     }
   };
 
+  const filteredSubs = subs
+    .filter(s => filterIdx === 0 ? true : (s.status || 'pending') === filterStatuses[filterIdx])
+    .filter(s => {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        s.name?.toLowerCase().includes(q) ||
+        s.email?.toLowerCase().includes(q) ||
+        s.register_no?.toLowerCase().includes(q) ||
+        s.phone?.toLowerCase().includes(q)
+      );
+    });
+
+  const filteredApproved = approved.filter(v => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      v.name?.toLowerCase().includes(q) ||
+      v.email?.toLowerCase().includes(q) ||
+      v.register_no?.toLowerCase().includes(q) ||
+      v.phone?.toLowerCase().includes(q)
+    );
+  });
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <div className="flex-1">
-        <main className="flex-1 p-6 bg-gradient-to-b from-background via-background to-orange-50/20">
+    <div className="flex-1 flex flex-col">
+      <main className="flex-1 p-4 md:p-8 bg-transparent overflow-y-auto">
+        <div className="max-w-7xl mx-auto">
           {/* dev bypass banner */}
-        {(typeof window !== 'undefined' && window.location && window.location.hostname && window.location.hostname.includes('localhost')) && !(auth.isAuthenticated() && auth.hasRole('admin')) && !devBypass && (
-          <div className="max-w-6xl mx-auto mb-4">
-            <div className="p-4 rounded bg-yellow-50 border border-yellow-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-semibold">Dev mode: admin access required</div>
-                  <div className="text-sm text-muted-foreground">You are not logged in as admin. For local testing you can continue as an admin (dev only).</div>
+          {(typeof window !== 'undefined' && window.location && window.location.hostname && window.location.hostname.includes('localhost')) && !(auth.isAuthenticated() && (auth.hasRole('admin') || permissions?.can_manage_volunteers)) && !devBypass && (
+            <div className="mb-4">
+              <div className="p-4 rounded bg-yellow-500/10 border border-yellow-500/20 text-yellow-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-semibold">Dev mode: Access restricted</div>
+                    <div className="text-sm opacity-90">You don't have permission to manage volunteers. For local testing you can bypass this check.</div>
+                  </div>
+                  <div>
+                    <Button onClick={() => setDevBypass(true)} variant="outline" className="border-yellow-500/50 hover:bg-yellow-500/20">Continue with Dev Bypass</Button>
+                  </div>
                 </div>
-                <div>
-                  <Button onClick={() => setDevBypass(true)}>Continue as admin (dev)</Button>
+              </div>
+            </div>
+          )}
+
+          <BackButton to="/admin" className="mb-6" />
+
+          {/* Hero Header Section */}
+          <div className="mb-8 bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-8 shadow-xl">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div>
+                <h1 className="text-4xl md:text-5xl font-bold mb-2 text-foreground">Volunteer Submissions</h1>
+                <p className="text-lg text-muted-foreground">Manage registrations and undertaking forms</p>
+              </div>
+              <div className="flex flex-col items-end gap-3">
+                <div className="inline-flex rounded-lg bg-muted/30 p-1 border border-border/50 backdrop-blur-sm">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={!showApproved ? "secondary" : "ghost"}
+                    className={!showApproved ? "bg-primary text-primary-foreground" : "text-muted-foreground"}
+                    onClick={() => setShowApproved(false)}
+                  >
+                    Pending ({subs.length})
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={showApproved ? "secondary" : "ghost"}
+                    className={showApproved ? "bg-primary text-primary-foreground" : "text-muted-foreground"}
+                    onClick={() => {
+                      setShowApproved(true);
+                      loadApproved();
+                    }}
+                  >
+                    Approved ({approved.length})
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={showApproved ? handleDownloadApproved : handleDownloadSubmissions}
+                    className="gap-2"
+                  >
+                    <FileText className="w-4 h-4" />
+                    Export Excel
+                  </Button>
                 </div>
               </div>
             </div>
           </div>
-        )}
-        <div className="max-w-6xl mx-auto">
-          {/* Hero Header Section */}
-          <div className="mb-8 bg-gradient-to-r from-orange-600 via-orange-500 to-red-500 rounded-xl p-8 text-white shadow-lg">
-            <div className="flex justify-between items-start mb-4">
-              <Button variant="ghost" onClick={() => navigate('/admin')} className="gap-2 hover:bg-white/20 text-white">
-                <ArrowLeft className="w-4 h-4" />
-                Back to Dashboard
-              </Button>
-            </div>
-            <div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-2">Manage Volunteers</h1>
-              <p className="text-lg opacity-90">Review and manage volunteer submissions</p>
+
+          {/* Search & Tabs */}
+          <div className="mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
+            {!showApproved && (
+              <div className="flex gap-2">
+                {filterStatuses.map((status, idx) => (
+                  <Button
+                    key={idx}
+                    variant={filterIdx === idx ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      setFilterIdx(idx);
+                      try { localStorage.setItem('volunteers_filter_idx', idx.toString()); } catch (e) { }
+                    }}
+                    className="capitalize rounded-full px-4"
+                  >
+                    {status}
+                  </Button>
+                ))}
+              </div>
+            )}
+            {showApproved && <div />}
+            <div className="w-full md:w-80 relative">
+              <Input
+                placeholder="Search by name, email, reg no..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-4 h-10 bg-card/50 border-border/50 focus:ring-primary/20"
+              />
             </div>
           </div>
-
-          {/* Filter Buttons */}
-          {!showApproved && (
-            <div className="flex flex-wrap gap-2 mb-4">
-              {filterStatuses.map((status, idx) => (
-                <Button
-                  key={idx}
-                  variant={filterIdx === idx ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => {
-                    setFilterIdx(idx);
-                    try { localStorage.setItem('volunteers_filter_idx', idx.toString()); } catch(e){}
-                  }}
-                  className="capitalize"
-                >
-                  {status}
-                </Button>
-              ))}
-            </div>
-          )}
-
-          {/* action buttons removed: Show All / Clear All removed per UI request */}
-
-          {subs.length === 0 && filterIdx === 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>No submissions yet</CardTitle>
-              </CardHeader>
-              <CardContent>Waiting for students to register.</CardContent>
-            </Card>
-          )}
-          
-          {subs.length > 0 && subs.filter(s => filterIdx === 0 ? true : (s.status || 'pending') === filterStatuses[filterIdx]).length === 0 && filterIdx !== 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>No {filterStatuses[filterIdx]} submissions</CardTitle>
-              </CardHeader>
-              <CardContent>No submissions found with status: {filterStatuses[filterIdx]}</CardContent>
-            </Card>
-          )}
 
           {showApproved ? (
-            <div className="overflow-x-auto">
-              {approved.length === 0 ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>No approved volunteers</CardTitle>
-                  </CardHeader>
-                  <CardContent>No volunteers have been approved yet.</CardContent>
-                </Card>
-              ) : (
-                <table className="min-w-full table-auto border-collapse">
-                <thead>
-                  <tr className="text-left border-b">
-                    <th className="px-3 py-2">Name</th>
-                    <th className="px-3 py-2">Email</th>
-                    <th className="px-3 py-2">Year / Dept</th>
-                    <th className="px-3 py-2">Category</th>
-                    <th className="px-3 py-2">Approved On</th>
-                    <th className="px-3 py-2">Signature</th>
-                    <th className="px-3 py-2">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {approved.map((v) => (
-                    <tr key={v.id} className="border-b align-top">
-                      <td className="px-3 py-3">{v.name}</td>
-                      <td className="px-3 py-3 text-sm text-muted-foreground">{v.email}</td>
-                      <td className="px-3 py-3">{v.year} / {v.department}</td>
-                      <td className="px-3 py-3">{v.category}</td>
-                      <td className="px-3 py-3 text-sm">{v.created_at ? new Date(v.created_at).toLocaleString() : '-'}</td>
-                      <td className="px-3 py-3">{v.signature ? <img src={v.signature} alt="sig" className="h-12 w-24 object-contain border rounded" /> : '-'}</td>
-                      <td className="px-3 py-3">
-                        <div className="flex gap-2">
-                          <Button variant="ghost" onClick={() => removeApproved(v.id)}>Remove</Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                </table>
-              )}
-            </div>
+            <Card className="bg-card/50 backdrop-blur-sm overflow-hidden border-border/50">
+              <ScrollArea className="w-full">
+                <div className="min-w-[1000px]">
+                  {filteredApproved.length === 0 ? (
+                    <div className="py-20 text-center">
+                      <p className="text-muted-foreground">No approved volunteers found</p>
+                    </div>
+                  ) : (
+                    <table className="w-full">
+                      <thead>
+                        <tr className="text-left border-b border-border/50 bg-muted/30">
+                          <th className="px-6 py-4 font-semibold">Volunteer Details</th>
+                          <th className="px-6 py-4 font-semibold">Department & Year</th>
+                          <th className="px-6 py-4 font-semibold">Category</th>
+                          <th className="px-6 py-4 font-semibold">Approved On</th>
+                          <th className="px-6 py-4 font-semibold text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/50">
+                        {filteredApproved.map((v) => (
+                          <tr key={v.id} className="hover:bg-muted/20 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="font-semibold text-foreground">{v.name}</div>
+                              <div className="text-xs text-muted-foreground">{v.email}</div>
+                              {v.phone && <div className="text-[10px] text-muted-foreground/70">{v.phone}</div>}
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="text-sm">{v.department}</div>
+                              <div className="text-xs text-muted-foreground">{v.year} Year</div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <Badge variant="outline" className="capitalize">{v.category || 'Volunteer'}</Badge>
+                            </td>
+                            <td className="px-6 py-4 text-xs text-muted-foreground">
+                              {v.created_at ? new Date(v.created_at).toLocaleDateString() : "-"}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setDetailItem(v);
+                                    setDetailOpen(true);
+                                  }}
+                                  className="text-primary hover:text-primary hover:bg-primary/10"
+                                >
+                                  View Form
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeApproved(v.id)}
+                                  className="text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </ScrollArea>
+            </Card>
           ) : (
-            <div className="overflow-x-auto">
-              {subs.filter(s => filterIdx === 0 ? true : (s.status || 'pending') === filterStatuses[filterIdx]).length === 0 ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>No submissions found</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {filterIdx === 0 
-                      ? "No volunteer submissions yet. Waiting for students to register."
-                      : `No ${filterStatuses[filterIdx]} submissions found.`
-                    }
-                  </CardContent>
-                </Card>
-              ) : (
-                <table className="min-w-full table-auto border-collapse">
-                  <thead>
-                    <tr className="text-left border-b">
-                      <th className="px-3 py-2">Name</th>
-                      <th className="px-3 py-2">Email</th>
-                      <th className="px-3 py-2">Year / Dept</th>
-                      <th className="px-3 py-2">Category</th>
-                      <th className="px-3 py-2">Submitted</th>
-                      <th className="px-3 py-2">Signature</th>
-                      <th className="px-3 py-2">Status</th>
-                      <th className="px-3 py-2">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {subs.filter(s => filterIdx === 0 ? true : (s.status || 'pending') === filterStatuses[filterIdx]).map((s) => (
-                    <tr key={s.id} className="border-b align-top">
-                      <td className="px-3 py-3">{s.name}</td>
-                      <td className="px-3 py-3 text-sm text-muted-foreground">{s.email}</td>
-                      <td className="px-3 py-3">{s.year} / {s.department}</td>
-                      <td className="px-3 py-3">{s.category}</td>
-                      <td className="px-3 py-3 text-sm">{new Date(s.created_at).toLocaleString()}</td>
-                      <td className="px-3 py-3">{s.signature ? <img src={s.signature} alt="sig" className="h-12 w-24 object-contain border rounded" /> : '-'}</td>
-                      <td className="px-3 py-3">
-                        <span className={`px-2 py-1 rounded text-white text-xs font-semibold ${
-                          s.status === 'approved' ? 'bg-green-500' :
-                          s.status === 'rejected' ? 'bg-red-500' :
-                          s.status === 'reviewed' ? 'bg-blue-500' :
-                          'bg-gray-500'
-                        }`}>
-                          {s.status || 'pending'}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="flex gap-2">
-                          <Button onClick={() => updateStatus(s.id, 2)} className="bg-green-500 hover:bg-green-600 text-white">Approve</Button>
-                          <Button onClick={() => updateStatus(s.id, 3)} className="bg-red-500 hover:bg-red-600 text-white">Reject</Button>
-                          <Button variant="ghost" onClick={() => remove(s.id)}>Delete</Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              )}
-            </div>
+            <Card className="bg-card/50 backdrop-blur-sm overflow-hidden border-border/50">
+              <ScrollArea className="w-full">
+                <div className="min-w-[1000px]">
+                  {filteredSubs.length === 0 ? (
+                    <div className="py-20 text-center">
+                      <p className="text-muted-foreground">
+                        {filterIdx === 0 ? "No submissions found." : `No ${filterStatuses[filterIdx]} submissions found.`}
+                      </p>
+                    </div>
+                  ) : (
+                    <table className="w-full">
+                      <thead>
+                        <tr className="text-left border-b border-border/50 bg-muted/30">
+                          <th className="px-6 py-4 font-semibold">Applicant</th>
+                          <th className="px-6 py-4 font-semibold">Department & Year</th>
+                          <th className="px-6 py-4 font-semibold">Category</th>
+                          <th className="px-6 py-4 font-semibold">Submitted</th>
+                          <th className="px-6 py-4 font-semibold text-center">Status</th>
+                          <th className="px-6 py-4 font-semibold text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/50">
+                        {filteredSubs.map((s) => (
+                          <tr key={s.id} className="hover:bg-muted/20 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="font-semibold text-foreground">{s.name}</div>
+                              <div className="text-xs text-muted-foreground">{s.email}</div>
+                              {s.phone && <div className="text-[10px] text-muted-foreground/70">{s.phone}</div>}
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="text-sm">{s.department}</div>
+                              <div className="text-xs text-muted-foreground">{s.year} Year</div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <Badge variant="outline" className="capitalize">{s.category || 'Volunteer'}</Badge>
+                            </td>
+                            <td className="px-6 py-4 text-xs text-muted-foreground">
+                              {new Date(s.created_at).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 text-center">
+                              <Badge
+                                className={`capitalize font-medium ${s.status === 'approved' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
+                                  s.status === 'rejected' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                                    'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                                  }`}
+                                variant="outline"
+                              >
+                                {s.status || 'pending'}
+                              </Badge>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setDetailItem(s);
+                                    setDetailOpen(true);
+                                  }}
+                                  className="text-primary hover:text-primary hover:bg-primary/10"
+                                >
+                                  Details
+                                </Button>
+                                <Button onClick={() => updateStatus(s.id, 2)} className="bg-green-500 hover:bg-green-600 text-white h-8" size="sm">
+                                  Approve
+                                </Button>
+                                <Button onClick={() => updateStatus(s.id, 3)} variant="ghost" className="text-destructive hover:bg-destructive/10 h-8" size="sm">
+                                  Reject
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => remove(s.id)} className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </ScrollArea>
+            </Card>
           )}
-          </div>
-        </main>
-      </div>
-      <Footer />
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>{editing ? "Edit Volunteer" : "Add Volunteer"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium">Name</label>
-              <input className="w-full mt-1 p-2 border rounded" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Email</label>
-              <input className="w-full mt-1 p-2 border rounded" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-            </div>
-            <div className="grid md:grid-cols-2 gap-2">
-              <div>
-                <label className="block text-sm font-medium">Year</label>
-                <input className="w-full mt-1 p-2 border rounded" value={form.year} onChange={(e) => setForm({ ...form, year: e.target.value })} />
+          {/* Details dialog redesigned as "Undertaking Form Summary" */}
+          <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+            <DialogContent className="max-w-2xl bg-card border-border/50 max-h-[90vh] overflow-y-auto">
+              <DialogHeader className="border-b pb-4 mb-4">
+                <div className="flex justify-between items-center pr-8">
+                  <DialogTitle className="text-2xl font-bold">Undertaking Form Report</DialogTitle>
+                  <Button
+                    onClick={() => handlePrintForm(detailItem)}
+                    className="gap-2 bg-primary hover:bg-primary/90"
+                  >
+                    <FileText className="w-4 h-4" />
+                    Print Form
+                  </Button>
+                </div>
+              </DialogHeader>
+
+              {detailItem && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] uppercase text-muted-foreground">Full Name</Label>
+                      <p className="font-semibold text-base">{detailItem.name}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] uppercase text-muted-foreground">Email Address</Label>
+                      <p className="font-semibold text-base">{detailItem.email}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] uppercase text-muted-foreground">Register Number</Label>
+                      <p className="font-semibold text-base">{detailItem.register_no || '-'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] uppercase text-muted-foreground">Phone Number</Label>
+                      <p className="font-semibold text-base">{detailItem.phone || '-'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] uppercase text-muted-foreground">Department / Year</Label>
+                      <p className="font-semibold text-base">{detailItem.department} / {detailItem.year} Year</p>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] uppercase text-muted-foreground">Category</Label>
+                      <p className="font-semibold text-base italic">{detailItem.category || '-'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] uppercase text-muted-foreground">Date of Birth</Label>
+                      <p className="font-semibold text-base">{detailItem.dob || '-'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] uppercase text-muted-foreground">Blood Group</Label>
+                      <p className="font-semibold text-base">{detailItem.blood_group || '-'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] uppercase text-muted-foreground">Parent's Phone</Label>
+                      <p className="font-semibold text-base">{detailItem.parent_phone || '-'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] uppercase text-muted-foreground">Registration Date</Label>
+                      <p className="font-semibold text-base">{detailItem.registration_date || new Date(detailItem.created_at).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-4 border-t border-border/30">
+                    <Label className="text-[10px] uppercase text-muted-foreground">Residential Address</Label>
+                    <p className="text-sm bg-muted/20 p-3 rounded-lg border border-border/30 leading-relaxed italic">
+                      {detailItem.address || 'No address provided'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase text-muted-foreground">Skills & Volunteering Experience</Label>
+                    <div className="text-sm bg-muted/20 p-3 rounded-lg border border-border/30 min-h-[80px]">
+                      {detailItem.skills || detailItem.experience ? (
+                        <div className="space-y-2">
+                          {detailItem.skills && <div><strong>Skills:</strong> {detailItem.skills}</div>}
+                          {detailItem.experience && <div><strong>Experience:</strong> {detailItem.experience}</div>}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground italic">None listed</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-6 border-t border-border/50">
+                    <div className="flex justify-between items-center text-xs text-muted-foreground italic">
+                      <div>Report ID: {detailItem.id}</div>
+                      <div>Status: {detailItem.status || 'Pending'}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
+          {/* Add/Edit Dialog remains for compatibility but styled */}
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogContent className="max-w-xl bg-card border-border/50">
+              <DialogHeader>
+                <DialogTitle>{editing ? "Edit Volunteer Record" : "Add New Volunteer"}</DialogTitle>
+              </DialogHeader>
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div className="col-span-2 space-y-2">
+                  <Label>Full Name</Label>
+                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="bg-muted/20" />
+                </div>
+                <div className="col-span-2 space-y-2">
+                  <Label>Email Address</Label>
+                  <Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="bg-muted/20" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Year</Label>
+                  <Input value={form.year} onChange={(e) => setForm({ ...form, year: e.target.value })} className="bg-muted/20" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Department</Label>
+                  <Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} className="bg-muted/20" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Category</Label>
+                  <Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="bg-muted/20" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Registration Date</Label>
+                  <Input type="date" value={form.registration_date} onChange={(e) => setForm({ ...form, registration_date: e.target.value })} className="bg-muted/20" />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium">Department</label>
-                <input className="w-full mt-1 p-2 border rounded" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
+              <div className="flex gap-2 justify-end mt-6 pt-4 border-t border-border/50">
+                <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+                <Button onClick={save} className="bg-primary hover:bg-primary/90">Save Record</Button>
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Category</label>
-              <input className="w-full mt-1 p-2 border rounded" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Registration Date</label>
-              <input type="date" className="w-full mt-1 p-2 border rounded" value={form.registration_date} onChange={(e) => setForm({ ...form, registration_date: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Signature (PNG/JPEG, &lt;2MB)</label>
-              <input type="file" accept="image/png,image/jpeg" className="w-full mt-1" onChange={(e) => onFile(e.target.files ? e.target.files[0] : null)} />
-              {form.signature && <img src={form.signature} alt="sig" className="mt-2 max-h-28 border rounded" />}
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={save}>Save</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </main>
     </div>
   );
 };

@@ -1,10 +1,7 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import DeveloperCredit from "@/components/DeveloperCredit";
-import { Users, Calendar, FileText, BarChart3, Settings, LogOut, UsersRound, MessageSquare, ClipboardCheck, Briefcase } from "lucide-react";
-import Sidebar from "@/components/Sidebar";
+import { Users, Calendar, FileText, BarChart3, Settings, LogOut, UsersRound, MessageSquare, ClipboardCheck, Briefcase, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
 import { toast } from "sonner";
@@ -17,9 +14,14 @@ const AdminDashboard = () => {
     volunteers: 0,
     events: 0,
     reports: 0,
-    hours: 0
+    hours: 0,
+    awards: 0,
+    students: 0,
+    projects: 0,
+    resources: 0,
+    teams: 0,
   });
-  
+
 
   useEffect(() => {
     // Check authentication and admin role
@@ -28,17 +30,16 @@ const AdminDashboard = () => {
       return;
     }
 
-    // Check if user is admin
-    if (!auth.hasRole('admin')) {
-      toast.error("Access denied. Admin access required.");
-      // Redirect to appropriate dashboard based on role
-      const userRole = auth.getRole();
-      if (userRole === 'office_bearer') {
-        navigate("/office-bearer");
-      } else if (userRole === 'student') {
+    // Check if user has management access (Admin or Office Bearer)
+    const role = auth.getRole();
+    const isManagement = ['admin', 'office_bearer'].includes(role || '');
+
+    if (!isManagement) {
+      toast.error("Access denied. Management access required.");
+      if (role === 'student') {
         navigate("/student");
-      } else if (userRole === 'alumni') {
-        navigate("/admin/student-db");
+      } else if (role === 'alumni') {
+        navigate("/student"); // Or wherever alumni go
       } else {
         navigate("/");
       }
@@ -51,11 +52,32 @@ const AdminDashboard = () => {
 
   const loadStats = async () => {
     try {
-      const [usersRes, meetingsRes, billsRes, timeRes] = await Promise.all([
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+      const [
+        usersRes,
+        meetingsRes,
+        billsRes,
+        timeRes,
+        awardsRes,
+        studentsRes,
+        projectsRes,
+        resourcesRes,
+        teamsRes,
+      ] = await Promise.all([
         api.getUsers(),
         api.getMeetings(),
         api.getBills(),
-        api.getTimeAllotments()
+        api.getTimeAllotments(),
+        api.getAwards(),
+        api.getStudentsScoped(),
+        api.getProjects(),
+        fetch(`${API_BASE}/resources`, {
+          headers: { Authorization: `Bearer ${api['token'] || auth.getToken() || ''}` } as any,
+        }).then((r) => r.json()).catch(() => ({ success: false, resources: [] })),
+        fetch(`${API_BASE}/teams`, {
+          headers: { Authorization: `Bearer ${auth.getToken() || ''}` },
+        }).then((r) => r.json()).catch(() => ({ success: false, teams: [] })),
       ]);
 
       // also read local volunteer submissions (frontend-only fallback)
@@ -72,7 +94,12 @@ const AdminDashboard = () => {
         volunteers: approvedCount || usersRes.users?.length || 0,
         events: meetingsRes.meetings?.length || 0,
         reports: billsRes.bills?.length || 0,
-        hours: timeRes.allotments?.reduce((sum: number, t: any) => sum + (t.hours || 0), 0) || 0
+        hours: timeRes.allotments?.reduce((sum: number, t: any) => sum + (t.hours || 0), 0) || 0,
+        awards: awardsRes.awards?.length || 0,
+        students: studentsRes.students?.length || 0,
+        projects: projectsRes.projects?.length || 0,
+        resources: resourcesRes.resources?.length || 0,
+        teams: teamsRes.teams?.length || 0,
       });
     } catch (error) {
       console.error('Failed to load stats:', error);
@@ -86,233 +113,157 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
+    <>
       <DeveloperCredit />
-      
-      <div className="flex flex-1">
-        {/* Sidebar */}
-        <div className="hidden lg:block sticky top-[57px] h-[calc(100vh-57px)] bg-white dark:bg-slate-900 shadow-sm">
-          <Sidebar />
+      <div className="w-full space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-primary tracking-tight">Admin Dashboard</h1>
+          {/* Add date or other top-level actions here if needed */}
         </div>
-        
-        <main className="flex-1 p-4 md:p-8 bg-background overflow-y-auto">
-          <div className="max-w-7xl mx-auto">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-primary mb-2">Admin Dashboard</h1>
-              <p className="text-muted-foreground">Manage volunteers and activities</p>
-          </div>
 
-          {/* (View filter removed) */}
+        {/* Statistics Cards - high level */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+          {/* ... Cards content preserved ... */}
+          <Card className="hover:shadow-md transition-all border-border/60">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <Users className="w-4 h-4 text-primary" />
+                Total Volunteers
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">
+                {stats.volunteers.toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Active members</p>
+            </CardContent>
+          </Card>
 
-          {/* Statistics Cards */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="gradient-card border-border/50 hover:glow-accent transition-all">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-primary">
-                  <Users className="w-5 h-5" />
-                  Total Volunteers
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold">{stats.volunteers}</p>
-                <p className="text-sm text-muted-foreground">Active members</p>
-              </CardContent>
-            </Card>
+          <Card className="hover:shadow-md transition-all border-border/60">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <Calendar className="w-4 h-4 text-primary" />
+                Events
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">
+                {stats.events.toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Total meetings</p>
+            </CardContent>
+          </Card>
 
-            <Card className="gradient-card border-border/50 hover:glow-accent transition-all">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-accent">
-                  <Calendar className="w-5 h-5" />
-                  Events
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold">{stats.events}</p>
-                <p className="text-sm text-muted-foreground">Total meetings</p>
-              </CardContent>
-            </Card>
+          <Card className="hover:shadow-md transition-all border-border/60">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <FileText className="w-4 h-4 text-primary" />
+                Reports
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">
+                {stats.reports.toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Total bills</p>
+            </CardContent>
+          </Card>
 
-            <Card className="gradient-card border-border/50 hover:glow-accent transition-all">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-violet">
-                  <FileText className="w-5 h-5" />
-                  Reports
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold">{stats.reports}</p>
-                <p className="text-sm text-muted-foreground">Total bills</p>
-              </CardContent>
-            </Card>
+          <Card className="hover:shadow-md transition-all border-border/60">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <Trophy className="w-4 h-4 text-primary" />
+                Awards
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">
+                {stats.awards.toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Total awards</p>
+            </CardContent>
+          </Card>
 
-            <Card className="gradient-card border-border/50 hover:glow-accent transition-all">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-primary">
-                  <BarChart3 className="w-5 h-5" />
-                  Hours Logged
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold">{stats.hours.toLocaleString()}</p>
-                <p className="text-sm text-muted-foreground">Total hours</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Management Cards */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Always show Manage Users */}
-            <Card className="gradient-card border-border/50 hover:glow-primary transition-all hover:scale-105 cursor-pointer">
-              <CardHeader>
-                <Users className="w-12 h-12 text-primary mb-2" />
-                <CardTitle>Manage Users</CardTitle>
-                <CardDescription>
-                  Add, edit, or remove volunteers and coordinators
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full" onClick={() => navigate("/admin/users")}>View Users</Button>
-              </CardContent>
-            </Card>
-
-            {/* Show other cards */}
-            <Card className="gradient-card border-border/50 hover:glow-primary transition-all hover:scale-105 cursor-pointer">
-              <CardHeader>
-                <Calendar className="w-12 h-12 text-accent mb-2" />
-                <CardTitle>Meetings</CardTitle>
-                <CardDescription>
-                  Schedule and manage meetings, track attendance
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full" onClick={() => navigate("/admin/meetings")}>Manage Events</Button>
-              </CardContent>
-            </Card>
-
-            <Card className="gradient-card border-border/50 hover:glow-primary transition-all hover:scale-105 cursor-pointer">
-              <CardHeader>
-                <FileText className="w-12 h-12 text-violet mb-2" />
-                <CardTitle>Bills</CardTitle>
-                <CardDescription>
-                  Review project reports and manage expenses
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full" onClick={() => navigate("/admin/bills")}>View Reports</Button>
-              </CardContent>
-            </Card>
-
-            <Card className="gradient-card border-border/50 hover:glow-primary transition-all hover:scale-105 cursor-pointer">
-              <CardHeader>
-                <BarChart3 className="w-12 h-12 text-primary mb-2" />
-                <CardTitle>Analytics</CardTitle>
-                <CardDescription>
-                  View participation statistics and trends
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full" onClick={() => navigate("/admin/analytics")}>View Analytics</Button>
-              </CardContent>
-            </Card>
-
-            <Card className="gradient-card border-border/50 hover:glow-primary transition-all hover:scale-105 cursor-pointer">
-              <CardHeader>
-                <Settings className="w-12 h-12 text-violet mb-2" />
-                <CardTitle>System Settings</CardTitle>
-                <CardDescription>
-                  Configure system preferences and permissions
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full" onClick={() => navigate("/admin/settings")}>Settings</Button>
-              </CardContent>
-            </Card>
-
-            <Card className="gradient-card border-border/50 hover:glow-primary transition-all hover:scale-105 cursor-pointer">
-              <CardHeader>
-                <UsersRound className="w-12 h-12 text-accent mb-2" />
-                <CardTitle>Teams</CardTitle>
-                <CardDescription>
-                  Create teams, assign members, and track assignments
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full" onClick={() => navigate("/admin/teams")}>Manage Teams</Button>
-              </CardContent>
-            </Card>
-
-            <Card className="gradient-card border-border/50 hover:glow-primary transition-all hover:scale-105 cursor-pointer">
-              <CardHeader>
-                <FileText className="w-12 h-12 text-primary mb-2" />
-                <CardTitle>Resources</CardTitle>
-                <CardDescription>
-                  Upload and organize resources with folders
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full" onClick={() => navigate("/admin/resources")}>Manage Resources</Button>
-              </CardContent>
-            </Card>
-
-            <Card className="gradient-card border-border/50 hover:glow-primary transition-all hover:scale-105 cursor-pointer">
-              <CardHeader>
-                <MessageSquare className="w-12 h-12 text-violet mb-2" />
-                <CardTitle>Messages</CardTitle>
-                <CardDescription>
-                  View and respond to user messages
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full" onClick={() => navigate("/admin/messages")}>View Messages</Button>
-              </CardContent>
-            </Card>
-
-            <Card className="gradient-card border-border/50 hover:glow-primary transition-all hover:scale-105 cursor-pointer">
-              <CardHeader>
-                <Users className="w-12 h-12 text-accent mb-2" />
-                <CardTitle>Volunteers</CardTitle>
-                <CardDescription>
-                  Review and approve volunteer registrations
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full" onClick={() => navigate("/admin/volunteers")}>Manage Volunteers</Button>
-              </CardContent>
-            </Card>
-
-            <Card className="gradient-card border-border/50 hover:glow-primary transition-all hover:scale-105 cursor-pointer">
-              <CardHeader>
-                <ClipboardCheck className="w-12 h-12 text-primary mb-2" />
-                <CardTitle>Attendance</CardTitle>
-                <CardDescription>
-                  Track meeting and event attendance
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full" onClick={() => navigate("/admin/projects")}>View Attendance</Button>
-              </CardContent>
-            </Card>
-
-            <Card className="gradient-card border-border/50 hover:glow-primary transition-all hover:scale-105 cursor-pointer">
-              <CardHeader>
-                <Briefcase className="w-12 h-12 text-violet mb-2" />
-                <CardTitle>Projects</CardTitle>
-                <CardDescription>
-                  Manage NGO projects and collaborations
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full" onClick={() => navigate("/admin/projects")}>Manage Projects</Button>
-              </CardContent>
-            </Card>
-          </div>
+          <Card className="hover:shadow-md transition-all border-border/60">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <BarChart3 className="w-4 h-4 text-primary" />
+                Hours Logged
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">
+                {stats.hours.toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Total hours</p>
+            </CardContent>
+          </Card>
         </div>
-      </main>
+
+        {/* Detailed entity counts */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <Card className="hover:shadow-md transition-all border-border/60">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <UsersRound className="w-4 h-4 text-primary" />
+                Students
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">
+                {stats.students.toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">In database</p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-all border-border/60">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <Briefcase className="w-4 h-4 text-primary" />
+                Projects
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">
+                {stats.projects.toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Active projects</p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-all border-border/60">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <FileText className="w-4 h-4 text-primary" />
+                Resources
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">
+                {stats.resources.toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Shared items</p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-all border-border/60">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <UsersRound className="w-4 h-4 text-primary" />
+                Teams
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">
+                {stats.teams.toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Active teams</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-
-      <Footer />
-    </div>
+    </>
   );
 };
 

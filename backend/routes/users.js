@@ -60,7 +60,7 @@ const all = (db, query, params = []) => {
 
 const run = (db, query, params = []) => {
   return new Promise((resolve, reject) => {
-    db.run(query, params, function(err) {
+    db.run(query, params, function (err) {
       if (err) reject(err);
       else resolve({ lastID: this.lastID, changes: this.changes });
     });
@@ -79,7 +79,39 @@ router.get('/', authenticateToken, requireRole('admin'), async (req, res) => {
   }
 });
 
-// Get students list
+// Get contacts (admins and office bearers) - accessible by any authenticated user
+// This allows students to see who they can message
+router.get('/contacts', authenticateToken, async (req, res) => {
+  try {
+    const db = getDatabase();
+
+    // Get all admins and office bearers
+    const contacts = await all(db, `
+      SELECT 
+        u.id, 
+        u.name, 
+        u.email, 
+        u.role, 
+        p.dept,
+        p.phone
+      FROM users u
+      LEFT JOIN profiles p ON u.id = p.user_id
+      WHERE u.role IN ('admin', 'office_bearer', 'spoc')
+      ORDER BY 
+        CASE u.role 
+          WHEN 'admin' THEN 1 
+          WHEN 'office_bearer' THEN 2 
+          WHEN 'spoc' THEN 3
+        END,
+        u.name ASC
+    `);
+
+    res.json({ success: true, contacts });
+  } catch (error) {
+    console.error('Get contacts error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 // Admin sees all students, office_bearer sees students in their dept,
 // and regular students are also allowed to view the list (no hard restriction now).
 router.get('/students', authenticateToken, async (req, res) => {
@@ -129,8 +161,8 @@ router.get('/students', authenticateToken, async (req, res) => {
     }
 
     // Students and any other authenticated roles: allow viewing the full list
-          const students = await all(db, `${baseSelect} WHERE u.role = 'student' ORDER BY u.created_at DESC`);
-          return res.json({ success: true, students });
+    const students = await all(db, `${baseSelect} WHERE u.role = 'student' ORDER BY u.created_at DESC`);
+    return res.json({ success: true, students });
   } catch (error) {
     console.error('Get students error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -142,7 +174,8 @@ router.get('/students', authenticateToken, async (req, res) => {
 // This avoids 403 errors when students edit their own profile.
 router.put('/:id', authenticateToken, [
   body('name').optional().trim(),
-  body('email').optional().isEmail()
+  body('email').optional().isEmail(),
+  body('role').optional().isIn(['admin', 'office_bearer', 'student', 'alumni', 'spoc'])
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -151,7 +184,7 @@ router.put('/:id', authenticateToken, [
     }
 
     const { id } = req.params;
-    const { name, email } = req.body;
+    const { name, email, role } = req.body;
     const db = getDatabase();
 
     // Check if user exists
@@ -171,14 +204,30 @@ router.put('/:id', authenticateToken, [
       }
     }
 
-    await run(db,
-      `UPDATE users SET 
-       name = COALESCE(?, name),
-       email = COALESCE(?, email),
-       updated_at = CURRENT_TIMESTAMP
-       WHERE id = ?`,
-      [name || null, email || null, id]
-    );
+    // If role change requested, ensure requester is admin
+    if (role !== undefined) {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ success: false, message: 'Only admins can change roles' });
+      }
+    }
+
+    // Build update query dynamically to include role if provided
+    const updates = [];
+    const params = [];
+    if (name !== undefined) { updates.push('name = ?'); params.push(name || null); }
+    if (email !== undefined) { updates.push('email = ?'); params.push(email || null); }
+    if (role !== undefined) { updates.push('role = ?'); params.push(role); }
+    params.push(id);
+
+    if (updates.length > 0) {
+      const sql = `UPDATE users SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+      await run(db, sql, params);
+    }
+
+    // If role changed to a profile-bearing role, ensure profile exists
+    if (role && ['student', 'office_bearer', 'alumni', 'spoc'].includes(role)) {
+      try { await run(db, 'INSERT OR IGNORE INTO profiles (user_id, role) VALUES (?, ?)', [id, role]); } catch (e) { }
+    }
 
     res.json({ success: true, message: 'User updated successfully' });
   } catch (error) {
@@ -217,7 +266,7 @@ router.delete('/:id', authenticateToken, requireRole('admin'), async (req, res) 
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const db = getDatabase();
-    const user = await get(db, 
+    const user = await get(db,
       'SELECT id, name, email, role, created_at FROM users WHERE id = ?',
       [req.params.id]
     );
@@ -230,7 +279,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const requesterId = String(req.user.id);
     const targetId = String(req.params.id);
     const isOwnProfile = requesterId === targetId || parseInt(requesterId, 10) === parseInt(targetId, 10);
-    
+
     if (req.user.role !== 'admin' && !isOwnProfile) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
@@ -243,10 +292,12 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // Add new user (Admin only)
-router.post('/add', authenticateToken, requireRole('admin'), [
+// Create or update user (Admin only)
+// This endpoint is mounted at POST /api/users and will upsert by email.
+router.post('/', authenticateToken, requireRole('admin'), [
   body('name').notEmpty().trim(),
   body('email').isEmail().normalizeEmail(),
-  body('role').isIn(['admin', 'office_bearer', 'student', 'alumni']),
+  body('role').isIn(['admin', 'office_bearer', 'student', 'alumni', 'spoc']),
   body('password').optional().isLength({ min: 5 })
 ], async (req, res) => {
   try {
@@ -254,32 +305,51 @@ router.post('/add', authenticateToken, requireRole('admin'), [
     if (!errors.isEmpty()) {
       return res.status(400).json({ success: false, errors: errors.array() });
     }
-
     const { name, email, role, password } = req.body;
     const db = getDatabase();
 
     // Check if user exists
-    const existingUser = await get(db, 'SELECT id FROM users WHERE email = ?', [email]);
+    const existingUser = await get(db, 'SELECT id, role FROM users WHERE email = ?', [email]);
     if (existingUser) {
-      return res.status(400).json({ success: false, message: 'User with this email already exists' });
+      // Update existing user (name and role). If password provided, update password and set must_change_password=1
+      try {
+        await run(db, `UPDATE users SET name = ?, role = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [name, role, existingUser.id]);
+        if (password) {
+          const hashedPassword = await bcrypt.hash(password, 10);
+          await run(db, `UPDATE users SET password = ?, must_change_password = 1 WHERE id = ?`, [hashedPassword, existingUser.id]);
+        }
+        // Ensure profile exists for role types
+        if (['student', 'office_bearer', 'alumni', 'spoc'].includes(role)) {
+          try { await run(db, 'INSERT OR IGNORE INTO profiles (user_id, role) VALUES (?, ?)', [existingUser.id, role]); } catch (e) { }
+        }
+
+        return res.json({ success: true, message: 'User updated', user: { id: existingUser.id, name, email, role } });
+      } catch (e) {
+        console.error('Failed to update existing user during upsert:', e);
+        return res.status(500).json({ success: false, message: 'Failed to update existing user' });
+      }
     }
 
+    // Create new user
     // Generate default password based on role if not provided
     let defaultPassword = password;
     if (!defaultPassword) {
       switch (role) {
-          case 'admin':
-            defaultPassword = '12345';
-            break;
-          case 'office_bearer':
-            defaultPassword = 'OB@123';
-            break;
-          case 'student':
-            defaultPassword = 'SMV@123';
-            break;
-          default:
-            defaultPassword = 'Temp@123';
-        }
+        case 'admin':
+          defaultPassword = '12345';
+          break;
+        case 'office_bearer':
+          defaultPassword = 'OB@123';
+          break;
+        case 'student':
+          defaultPassword = 'SMV@123';
+          break;
+        case 'spoc':
+          defaultPassword = 'SPOC@123';
+          break;
+        default:
+          defaultPassword = 'Temp@123';
+      }
     }
 
     const hashedPassword = await bcrypt.hash(defaultPassword, 10);
@@ -292,7 +362,7 @@ router.post('/add', authenticateToken, requireRole('admin'), [
     const userId = result.lastID;
 
     // Automatically create profile in unified profiles table for student, office_bearer, and alumni
-    if (role === 'student' || role === 'office_bearer' || role === 'alumni') {
+    if (role === 'student' || role === 'office_bearer' || role === 'alumni' || role === 'spoc') {
       try {
         await run(db,
           'INSERT INTO profiles (user_id, role) VALUES (?, ?)',
@@ -321,7 +391,12 @@ router.post('/add', authenticateToken, requireRole('admin'), [
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-
+// Keep legacy /add route as alias for admin tools/scripts
+router.post('/add', authenticateToken, requireRole('admin'), async (req, res, next) => {
+  // Forward to POST / (upsert)
+  req.url = '/';
+  return router.handle(req, res, next);
+});
 // Reset user password (Admin only)
 router.post('/reset-password', authenticateToken, requireRole('admin'), [
   body('userId').isInt(),
@@ -354,6 +429,9 @@ router.post('/reset-password', authenticateToken, requireRole('admin'), [
         case 'student':
           defaultPassword = 'SMV@123';
           break;
+        case 'spoc':
+          defaultPassword = 'SPOC@123';
+          break;
         default:
           defaultPassword = 'Temp@123';
       }
@@ -377,66 +455,65 @@ router.post('/reset-password', authenticateToken, requireRole('admin'), [
   }
 });
 
-// Get unified profile (works for student, office_bearer, alumni)
+// Get unified profile (works for student, office_bearer, alumni, spoc)
 router.get('/:userId/profile', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params;
     const db = getDatabase();
-    
+
     // Verify user exists first
     const user = await get(db, 'SELECT role FROM users WHERE id = ?', [userId]);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
-    
+
     // First check unified profiles table
     let profile = await get(db, 'SELECT * FROM profiles WHERE user_id = ?', [userId]);
-    
+
     // If not found in unified table, check role-specific tables for backward compatibility
     if (!profile) {
-        if (user.role === 'student') {
-          profile = await get(db, 'SELECT * FROM student_profiles WHERE user_id = ?', [userId]);
-          // Migrate to unified table if found
-          if (profile) {
-            try {
-              await run(db, `INSERT OR IGNORE INTO profiles (user_id, role, dept, year, phone, blood_group, gender, dob, address, photo_url, custom_fields) VALUES (?, 'student', ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-                [userId, profile.dept || null, profile.year || null, profile.phone || null, profile.blood_group || null, profile.gender || null, profile.dob || null, profile.address || null, (profile.photo_url || null), profile.custom_fields || null]);
+      if (user.role === 'student') {
+        profile = await get(db, 'SELECT * FROM student_profiles WHERE user_id = ?', [userId]);
+        // Migrate to unified table if found
+        if (profile) {
+          try {
+            await run(db, `INSERT OR IGNORE INTO profiles (user_id, role, dept, year, phone, blood_group, gender, dob, address, photo_url, custom_fields) VALUES (?, 'student', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [userId, profile.dept || null, profile.year || null, profile.phone || null, profile.blood_group || null, profile.gender || null, profile.dob || null, profile.address || null, (profile.photo_url || null), profile.custom_fields || null]);
             profile = await get(db, 'SELECT * FROM profiles WHERE user_id = ?', [userId]);
-            } catch (migrateErr) {
-              console.error('Error migrating student profile:', migrateErr);
-              // Continue with existing profile even if migration fails
-            }
+          } catch (migrateErr) {
+            console.error('Error migrating student profile:', migrateErr);
+            // Continue with existing profile even if migration fails
           }
-        } else if (user.role === 'office_bearer') {
-          profile = await get(db, 'SELECT * FROM office_bearer_profiles WHERE user_id = ?', [userId]);
-          if (profile) {
-            try {
-              await run(db, `INSERT OR IGNORE INTO profiles (user_id, role, dept, year, phone, blood_group, gender, dob, address, photo_url, custom_fields) VALUES (?, 'office_bearer', ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-                [userId, profile.dept || null, profile.year || null, profile.phone || null, profile.blood_group || null, profile.gender || null, profile.dob || null, profile.address || null, (profile.photo_url || null), profile.custom_fields || null]);
+        }
+      } else if (user.role === 'office_bearer') {
+        profile = await get(db, 'SELECT * FROM office_bearer_profiles WHERE user_id = ?', [userId]);
+        if (profile) {
+          try {
+            await run(db, `INSERT OR IGNORE INTO profiles (user_id, role, dept, year, phone, blood_group, gender, dob, address, photo_url, custom_fields) VALUES (?, 'office_bearer', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [userId, profile.dept || null, profile.year || null, profile.phone || null, profile.blood_group || null, profile.gender || null, profile.dob || null, profile.address || null, (profile.photo_url || null), profile.custom_fields || null]);
             profile = await get(db, 'SELECT * FROM profiles WHERE user_id = ?', [userId]);
-            } catch (migrateErr) {
-              console.error('Error migrating office bearer profile:', migrateErr);
-              // Continue with existing profile even if migration fails
-            }
+          } catch (migrateErr) {
+            console.error('Error migrating office bearer profile:', migrateErr);
+            // Continue with existing profile even if migration fails
           }
-        } else if (user.role === 'alumni') {
-          // For alumni, create empty profile in unified table if not exists
-          profile = await get(db, 'SELECT * FROM profiles WHERE user_id = ?', [userId]);
-          if (!profile) {
-            try {
-            await run(db, `INSERT INTO profiles (user_id, role) VALUES (?, 'alumni')`, [userId]);
+        }
+      } else if (user.role === 'alumni' || user.role === 'spoc') {
+        // For alumni and SPOC, ensure profile exists in unified table
+        if (!profile) {
+          try {
+            await run(db, `INSERT INTO profiles (user_id, role) VALUES (?, ?)`, [userId, user.role]);
             profile = await get(db, 'SELECT * FROM profiles WHERE user_id = ?', [userId]);
-            } catch (alumniErr) {
-              console.error('Error creating alumni profile:', alumniErr);
+          } catch (err) {
+            console.error(`Error creating ${user.role} profile:`, err);
           }
         }
       }
     }
-    
+
     if (!profile) {
       return res.json({ success: true, profile: null });
     }
-    
+
     res.json({ success: true, profile });
   } catch (error) {
     console.error('Get profile error:', error);
@@ -469,7 +546,7 @@ router.get('/:userId/projects', authenticateToken, async (req, res) => {
   }
 });
 
-// Update unified profile (works for student, office_bearer, alumni)
+// Update unified profile (works for student, office_bearer, alumni, spoc)
 router.put('/:userId/profile', authenticateToken, [
   body('dept').optional().trim(),
   body('year').optional().trim(),
@@ -498,7 +575,7 @@ router.put('/:userId/profile', authenticateToken, [
     if (requesterRole !== 'admin' && parseInt(requesterId) !== parseInt(userId)) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
-    
+
     let { dept, year, phone, blood_group, gender, dob, address, photo, photo_url, register_no, academic_year, father_number, hosteller_dayscholar, custom_fields } = req.body;
     const photoUrl = photo_url || photo; // Support both 'photo' and 'photo_url' for backward compatibility
     const db = getDatabase();
@@ -589,8 +666,8 @@ router.post('/:userId/assign-project', authenticateToken, requireRole('admin', '
     }
 
     // Check if assignment already exists
-    const existing = await get(db, 
-      'SELECT id FROM project_members WHERE user_id = ? AND project_id = ?', 
+    const existing = await get(db,
+      'SELECT id FROM project_members WHERE user_id = ? AND project_id = ?',
       [userId, projectId]
     );
 
@@ -616,7 +693,7 @@ router.get('/profile/office-bearer/:userId', authenticateToken, async (req, res)
   try {
     const { userId } = req.params;
     const db = getDatabase();
-    
+
     // Users can only view their own profile unless admin
     if (req.user.role !== 'admin' && req.user.id !== parseInt(userId)) {
       return res.status(403).json({ success: false, message: 'Access denied' });
@@ -629,7 +706,7 @@ router.get('/profile/office-bearer/:userId', authenticateToken, async (req, res)
     }
 
     const profile = await get(db, 'SELECT * FROM office_bearer_profiles WHERE user_id = ?', [userId]);
-    
+
     res.json({ success: true, profile: profile || {} });
   } catch (error) {
     console.error('Get office bearer profile error:', error);
@@ -643,7 +720,7 @@ router.put('/profile/office-bearer/:userId', authenticateToken, async (req, res)
     const { userId } = req.params;
     const { dept, year, phone, blood_group, gender, dob, address } = req.body;
     const db = getDatabase();
-    
+
     // Users can only update their own profile unless admin
     if (req.user.role !== 'admin' && req.user.id !== parseInt(userId)) {
       return res.status(403).json({ success: false, message: 'Access denied' });
@@ -672,7 +749,7 @@ router.put('/profile/office-bearer/:userId', authenticateToken, async (req, res)
         [userId, dept || null, year || null, phone || null, blood_group || null, gender || null, dob || null, address || null]
       );
     }
-    
+
     res.json({ success: true, message: 'Office bearer profile updated successfully' });
   } catch (error) {
     console.error('Update office bearer profile error:', error);
@@ -688,7 +765,7 @@ router.post('/upload-photo', authenticateToken, upload.single('file'), async (re
     }
 
     const userId = req.body.userId || req.user.id;
-    
+
     // Users can only upload their own photo unless admin
     if (req.user.role !== 'admin' && req.user.id !== parseInt(userId)) {
       // Delete uploaded file
@@ -701,7 +778,7 @@ router.post('/upload-photo', authenticateToken, upload.single('file'), async (re
     }
 
     const db = getDatabase();
-    
+
     // Get existing photo URL to delete old file if exists
     let existingProfile = null;
     if (req.user.role === 'office_bearer' || req.body.role === 'office_bearer') {
@@ -742,9 +819,9 @@ router.post('/upload-photo', authenticateToken, upload.single('file'), async (re
 
     // Add cache-busting query param to force image reload
     const cacheBustUrl = `${photoUrl}?t=${Date.now()}`;
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       photo_url: cacheBustUrl,
       message: 'Photo uploaded successfully'
     });
@@ -779,6 +856,167 @@ router.use((err, req, res, next) => {
 
   // Fallback - return JSON for any unexpected errors
   return res.status(500).json({ success: false, message: err.message || 'Server error' });
+});
+
+// ============================================
+// VOLUNTEER REGISTRATION (Public - Landing Page)
+// ============================================
+
+// POST - Volunteer registration from landing page (creates/updates student account)
+router.post('/volunteer-register', [
+  body('name').notEmpty().trim().withMessage('Name is required'),
+  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('register_no').optional().trim(),
+  body('year').optional().trim(),
+  body('department').optional().trim(),
+  body('phone').optional().trim(),
+  body('parent_phone').optional().trim(),
+  body('address').optional().trim(),
+  body('dob').optional().trim(),
+  body('blood_group').optional().trim(),
+  body('skills').optional().trim(),
+  body('experience').optional().trim()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    const db = getDatabase();
+    const {
+      name,
+      email,
+      register_no,
+      year,
+      department,
+      phone,
+      parent_phone,
+      address,
+      dob,
+      blood_group,
+      skills,
+      experience
+    } = req.body;
+
+    // Check if user exists by email or register_no
+    let existingUser = null;
+    if (email) {
+      existingUser = await get(db, 'SELECT id, role, name FROM users WHERE email = ?', [email]);
+    }
+    
+    if (!existingUser && register_no) {
+      // Try to find by register_no in student_profiles
+      const profile = await get(db, `
+        SELECT user_id FROM student_profiles 
+        WHERE register_no = ?
+      `, [register_no]);
+      if (profile) {
+        existingUser = await get(db, 'SELECT id, role, name FROM users WHERE id = ?', [profile.user_id]);
+      }
+    }
+
+    let userId;
+    let isNewUser = false;
+
+    if (existingUser) {
+      // Update existing user
+      userId = existingUser.id;
+      
+      // Update user name if provided
+      if (name && name !== existingUser.name) {
+        await run(db, 'UPDATE users SET name = ? WHERE id = ?', [name, userId]);
+      }
+
+      // Ensure role is student
+      if (existingUser.role !== 'student') {
+        await run(db, 'UPDATE users SET role = ? WHERE id = ?', ['student', userId]);
+      }
+
+      // Update or create student profile
+      const existingProfile = await get(db, 'SELECT id FROM student_profiles WHERE user_id = ?', [userId]);
+      
+      if (existingProfile) {
+        // Update existing profile
+        await run(db, `
+          UPDATE student_profiles SET
+            dept = COALESCE(?, dept),
+            year = COALESCE(?, year),
+            phone = COALESCE(?, phone),
+            dob = COALESCE(?, dob),
+            blood_group = COALESCE(?, blood_group),
+            address = COALESCE(?, address)
+          WHERE user_id = ?
+        `, [department || null, year || null, phone || null, dob || null, blood_group || null, address || null, userId]);
+      } else {
+        // Create new profile
+        await run(db, `
+          INSERT INTO student_profiles (user_id, dept, year, phone, dob, blood_group, address, custom_fields)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          userId,
+          department || null,
+          year || null,
+          phone || null,
+          dob || null,
+          blood_group || null,
+          address || null,
+          JSON.stringify({
+            register_no: register_no || null,
+            parent_phone: parent_phone || null,
+            skills: skills || null,
+            experience: experience || null,
+            registration_date: new Date().toISOString()
+          })
+        ]);
+      }
+    } else {
+      // Create new student user
+      isNewUser = true;
+      const defaultPassword = 'SMV@123';
+      const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+
+      const result = await run(db,
+        'INSERT INTO users (name, email, password, role, must_change_password) VALUES (?, ?, ?, ?, ?)',
+        [name, email, hashedPassword, 'student', 1]
+      );
+
+      userId = result.lastID;
+
+      // Create student profile
+      await run(db, `
+        INSERT INTO student_profiles (user_id, dept, year, phone, dob, blood_group, address, custom_fields)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        userId,
+        department || null,
+        year || null,
+        phone || null,
+        dob || null,
+        blood_group || null,
+        address || null,
+        JSON.stringify({
+          register_no: register_no || null,
+          parent_phone: parent_phone || null,
+          skills: skills || null,
+          experience: experience || null,
+          registration_date: new Date().toISOString()
+        })
+      ]);
+    }
+
+    res.json({
+      success: true,
+      message: isNewUser 
+        ? 'Volunteer registration successful! Student account created. Please login with your email and default password: SMV@123'
+        : 'Volunteer registration updated successfully!',
+      userId,
+      isNewUser
+    });
+  } catch (error) {
+    console.error('Volunteer registration error:', error);
+    res.status(500).json({ success: false, message: 'Error processing registration', error: error.message });
+  }
 });
 
 export default router;

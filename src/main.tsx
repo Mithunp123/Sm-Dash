@@ -23,4 +23,26 @@ if (typeof window !== 'undefined' && import.meta.env.DEV) {
   suppressDevToolsMessage('warn');
 }
 
+// Reduce console surface in production to discourage basic tampering
+if (typeof window !== 'undefined' && import.meta.env.PROD) {
+  const noop = () => {};
+  console.log = noop;
+  console.info = noop;
+  console.warn = noop;
+  console.error = noop;
+
+  // Block common shortcuts that open devtools; not foolproof but deters casual use
+  window.addEventListener('keydown', (e) => {
+    if (
+      (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j')) ||
+      e.key === 'F12'
+    ) {
+      e.preventDefault();
+    }
+  });
+
+  // Prevent context menu to make copy/inspect harder
+  window.addEventListener('contextmenu', (e) => e.preventDefault());
+}
+
 createRoot(document.getElementById("root")!).render(<App />);

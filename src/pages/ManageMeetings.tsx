@@ -7,9 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+
 import DeveloperCredit from "@/components/DeveloperCredit";
+import { BackButton } from "@/components/BackButton";
 import { Calendar, Plus, ArrowLeft, Edit, Trash2, CheckCircle2, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
@@ -19,15 +19,28 @@ import { usePermissions } from "@/hooks/usePermissions";
 import CalendarMonth, { CalendarEvent } from "@/components/CalendarMonth";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+const getHolidays = (year: number): CalendarEvent[] => [
+  { id: `h-ny-${year}`, title: 'New Year', date: `${year}-01-01T00:00:00`, type: 'important' as const },
+  { id: `h-rd-${year}`, title: 'Republic Day', date: `${year}-01-26T00:00:00`, type: 'holiday' as const },
+  { id: `h-id-${year}`, title: 'Independence Day', date: `${year}-08-15T00:00:00`, type: 'holiday' as const },
+  { id: `h-gj-${year}`, title: 'Gandhi Jayanti', date: `${year}-10-02T00:00:00`, type: 'holiday' as const },
+  { id: `h-cm-${year}`, title: 'Christmas', date: `${year}-12-25T00:00:00`, type: 'holiday' as const },
+  { id: `h-ld-${year}`, title: 'Labor Day', date: `${year}-05-01T00:00:00`, type: 'important' as const },
+  // Add more fixed holidays as needed. For movable holidays, logic would be more complex.
+];
+
 const ManageMeetings = () => {
   const navigate = useNavigate();
   const [meetings, setMeetings] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]); // For important days
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showImportantDayDialog, setShowImportantDayDialog] = useState(false); // New dialog state
+  const [importantDayForm, setImportantDayForm] = useState({ title: "", date: "" }); // New form state
   const [showCalendar, setShowCalendar] = useState(true);
   const [viewDate, setViewDate] = useState(() => new Date());
   const [editingMeeting, setEditingMeeting] = useState<any>(null);
-  
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -55,20 +68,60 @@ const ManageMeetings = () => {
       return;
     }
 
-    loadMeetings();
-  }, [navigate, permissions, permissionsLoading]);
+    loadData();
+  }, [navigate, permissions, permissionsLoading, viewDate.getFullYear()]); // Reload when year changes
 
-  const loadMeetings = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const response = await api.getMeetings();
-      if (response.success) {
-        setMeetings(response.meetings || []);
+      const [meetingsRes, eventsRes] = await Promise.all([
+        api.getMeetings(),
+        api.getEvents(viewDate.getFullYear().toString())
+      ]);
+
+      if (meetingsRes.success) {
+        setMeetings(meetingsRes.meetings || []);
+      }
+      if (eventsRes.success) {
+        // Filter only special days if needed, or take all events as important days/holidays
+        // Assuming user wants to see all 'Events' as Important Days
+        setEvents(eventsRes.events || []);
       }
     } catch (error: any) {
-      toast.error("Failed to load meetings: " + error.message);
+      toast.error("Failed to load data: " + error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddImportantDay = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('title', importantDayForm.title);
+      formDataToSend.append('date', importantDayForm.date);
+      formDataToSend.append('year', new Date(importantDayForm.date).getFullYear().toString());
+      formDataToSend.append('is_special_day', 'true');
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/events`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${auth.getToken()}`
+        },
+        body: formDataToSend
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Important Day added successfully!");
+        setShowImportantDayDialog(false);
+        setImportantDayForm({ title: "", date: "" });
+        loadData();
+      } else {
+        toast.error(data.message || "Failed to add");
+      }
+    } catch (error: any) {
+      toast.error("Error: " + error.message);
     }
   };
 
@@ -91,7 +144,7 @@ const ManageMeetings = () => {
           setShowAddDialog(false);
           setEditingMeeting(null);
           setFormData({ title: "", description: "", date: "", location: "" });
-          loadMeetings();
+          loadData();
         } else {
           throw new Error(data.message || 'Failed to update meeting');
         }
@@ -102,7 +155,7 @@ const ManageMeetings = () => {
           toast.success("Meeting created successfully!");
           setShowAddDialog(false);
           setFormData({ title: "", description: "", date: "", location: "" });
-          loadMeetings();
+          loadData();
         }
       }
     } catch (error: any) {
@@ -136,7 +189,7 @@ const ManageMeetings = () => {
 
   const handleDeleteMeeting = async (meetingId: number) => {
     if (!confirm("Are you sure you want to delete this meeting?")) return;
-    
+
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/meetings/${meetingId}`, {
         method: 'DELETE',
@@ -147,7 +200,7 @@ const ManageMeetings = () => {
       const data = await response.json();
       if (data.success) {
         toast.success("Meeting deleted successfully!");
-        loadMeetings();
+        loadData();
       } else {
         throw new Error(data.message || 'Failed to delete meeting');
       }
@@ -169,10 +222,7 @@ const ManageMeetings = () => {
     setViewDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   };
 
-  const handleMonthChange = (value: string) => {
-    const monthIndex = parseInt(value, 10);
-    setViewDate((prev) => new Date(prev.getFullYear(), monthIndex, 1));
-  };
+
 
   const handleYearChange = (value: string) => {
     const year = parseInt(value, 10);
@@ -184,46 +234,44 @@ const ManageMeetings = () => {
   };
 
   const monthLabel = viewDate.toLocaleString(undefined, { month: "long", year: "numeric" });
-  const monthOptions = Array.from({ length: 12 }, (_, i) => ({
-    label: new Date(2000, i, 1).toLocaleString(undefined, { month: "long" }),
-    value: String(i)
-  }));
+
   const yearRange = Array.from({ length: 11 }, (_, i) => viewDate.getFullYear() - 5 + i);
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
+
       <DeveloperCredit />
-      
-      <main className="flex-1 p-4 md:p-8 bg-gradient-to-b from-background via-background to-orange-50/20">
-          <div className="max-w-7xl mx-auto">
-          {/* Hero Header Section */}
-          <div className="mb-8 bg-gradient-to-r from-orange-600 via-orange-500 to-red-500 rounded-xl p-8 text-white shadow-lg">
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex items-center gap-4">
-                <Button variant="ghost" onClick={() => navigate("/admin")} className="gap-2 hover:bg-white/20 text-white">
-                  <ArrowLeft className="w-4 h-4" />
-                  Back to Dashboard
-                </Button>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setShowCalendar((s) => !s)} className="gap-2 bg-white/20 text-white hover:bg-white/30">
-                  {showCalendar ? "List View" : "Calendar View"}
-                </Button>
-                <Button onClick={() => setShowAddDialog(true)} className="gap-2 bg-white text-orange-600 hover:bg-orange-50">
-                  <Plus className="w-4 h-4" />
-                  New Meeting
-                </Button>
-              </div>
-            </div>
+
+      <main className="flex-1 p-2 md:p-4 bg-background">
+        <div className="w-full">
+          {/* Back Button */}
+          <div className="mb-4">
+            <BackButton to="/admin" />
+          </div>
+
+          {/* Page Header */}
+          <div className="mb-6 flex items-center justify-between">
             <div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-2">Meetings</h1>
-              <p className="text-lg opacity-90">Schedule and manage meetings</p>
+              <h1 className="text-3xl font-semibold text-foreground mb-1">Meetings</h1>
+              <p className="text-sm text-muted-foreground">Schedule and manage meetings</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowCalendar((s) => !s)} className="gap-2">
+                {showCalendar ? "List View" : "Calendar View"}
+              </Button>
+              <Button onClick={() => setShowImportantDayDialog(true)} variant="secondary" className="gap-2 bg-amber-100 text-amber-900 hover:bg-amber-200">
+                <Plus className="w-4 h-4" />
+                Add Important Day
+              </Button>
+              <Button onClick={() => setShowAddDialog(true)} className="gap-2">
+                <Plus className="w-4 h-4" />
+                New Meeting
+              </Button>
             </div>
           </div>
 
           {showCalendar ? (
-            <Card className="gradient-card border-border/50">
+            <Card className="border-border/50 bg-card">
               <CardHeader className="space-y-4">
                 <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                   <div>
@@ -241,18 +289,7 @@ const ManageMeetings = () => {
                     <Button variant="outline" size="icon" onClick={handleNextMonth} aria-label="Next month">
                       <ChevronRight className="w-4 h-4" />
                     </Button>
-                    <Select value={String(viewDate.getMonth())} onValueChange={handleMonthChange}>
-                      <SelectTrigger className="w-32">
-                        <SelectValue placeholder="Month">{new Date(2000, viewDate.getMonth(), 1).toLocaleString(undefined, { month: "short" })}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {monthOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+
                     <Select value={String(viewDate.getFullYear())} onValueChange={handleYearChange}>
                       <SelectTrigger className="w-28">
                         <SelectValue placeholder="Year">{viewDate.getFullYear()}</SelectValue>
@@ -276,25 +313,37 @@ const ManageMeetings = () => {
                   showHeader={false}
                   month={viewDate.getMonth()}
                   year={viewDate.getFullYear()}
-                  events={(meetings || []).map(
+                  events={[
+                    ...(meetings || []).map(
                       (m): CalendarEvent => ({
                         id: m.id,
                         title: m.title,
-                        date: m.date
+                        date: m.date,
+                        type: 'meeting'
                       })
-                    )}
-                    onDayClick={(iso) => {
-                      setFormData((fd) => ({
-                        ...fd,
-                        date: iso + "T10:00"
-                      }));
-                      setShowAddDialog(true);
-                    }}
-                  />
+                    ),
+                    ...(events || []).map(
+                      (e: any): CalendarEvent => ({
+                        id: `event-${e.id}`,
+                        title: e.title,
+                        date: e.date,
+                        type: e.is_special_day ? 'holiday' : 'important' // Map events to holiday/important
+                      })
+                    ),
+                    ...getHolidays(viewDate.getFullYear())
+                  ]}
+                  onDayClick={(iso) => {
+                    setFormData((fd) => ({
+                      ...fd,
+                      date: iso + "T10:00"
+                    }));
+                    setShowAddDialog(true);
+                  }}
+                />
               </CardContent>
             </Card>
           ) : (
-            <Card className="gradient-card border-border/50">
+            <Card className="border-border/50 bg-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="w-5 h-5" />
@@ -356,8 +405,8 @@ const ManageMeetings = () => {
               </CardContent>
             </Card>
           )}
-          </div>
-        </main>
+        </div>
+      </main>
 
       {/* Add Meeting Dialog */}
       <Dialog open={showAddDialog} onOpenChange={(open) => {
@@ -418,8 +467,42 @@ const ManageMeetings = () => {
         </DialogContent>
       </Dialog>
 
-      <Footer />
-    </div>
+      {/* Add Important Day Dialog */}
+      <Dialog open={showImportantDayDialog} onOpenChange={setShowImportantDayDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Important Day</DialogTitle>
+            <DialogDescription>Mark a day as important or a holiday</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddImportantDay} className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label>Title *</Label>
+              <Input
+                value={importantDayForm.title}
+                onChange={(e) => setImportantDayForm({ ...importantDayForm, title: e.target.value })}
+                placeholder="e.g. Founder's Day"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Date *</Label>
+              <Input
+                type="datetime-local"
+                value={importantDayForm.date}
+                onChange={(e) => setImportantDayForm({ ...importantDayForm, date: e.target.value })}
+                required
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button type="button" variant="outline" onClick={() => setShowImportantDayDialog(false)}>Cancel</Button>
+              <Button type="submit">Add Important Day</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+
+    </div >
   );
 };
 

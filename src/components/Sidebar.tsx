@@ -1,51 +1,40 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { 
-  LayoutDashboard, 
-  Users, 
-  Calendar, 
-  FileText, 
-  BarChart3, 
-  GraduationCap, 
-  Settings,
-  Home,
-  UserCircle,
-  Briefcase,
-  ClipboardCheck,
-  KeyRound,
-  MessageSquare,
-  UsersRound,
-  FileBarChart,
-  PhoneCall,
-  UserCheck
+import {
+  LayoutDashboard, Users, Calendar, FileText, BarChart3, GraduationCap,
+  Settings, UserCircle, Briefcase, ClipboardCheck, KeyRound, MessageSquare,
+  UsersRound, FileBarChart, PhoneCall, UserCheck, Trophy, LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth";
 import { usePermissions } from "@/hooks/usePermissions";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
 
-const Sidebar = () => {
+interface SidebarProps {
+  className?: string;
+  onItemClick?: () => void;
+}
+
+const Sidebar = ({ className, onItemClick }: SidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { permissions } = usePermissions();
-  
-  // Check if user is authenticated
-  const isAuthenticated = auth.isAuthenticated();
-  
-  // Safely get user - handle case where auth might not be initialized
-  let user = null;
-  try {
-    user = auth.getUser();
-  } catch (error) {
-    console.error('Error getting user:', error);
-  }
 
-  // Don't render sidebar if user is not authenticated
-  if (!isAuthenticated || !user) {
-    return null;
-  }
+  const isAuthenticated = auth.isAuthenticated();
+  const user = auth.getUser();
+
+  if (!isAuthenticated || !user) return null;
 
   const isActive = (path: string) => location.pathname === path;
 
+  const handleLogout = () => {
+    auth.logout();
+    toast.success("Logged out successfully");
+    navigate("/login");
+  };
+
+  // --- Menu Item Logic (Preserved) ---
   const adminMenuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
     { icon: Users, label: "Manage Users", path: "/admin/users" },
@@ -54,6 +43,7 @@ const Sidebar = () => {
     { icon: UserCheck, label: "Mentor Management", path: "/admin/mentor-management" },
     { icon: Calendar, label: "Meetings", path: "/admin/meetings" },
     { icon: Calendar, label: "Events", path: "/admin/events" },
+    { icon: Trophy, label: "Awards", path: "/admin/awards" },
     { icon: ClipboardCheck, label: "Attendance", path: "/admin/attendance" },
     { icon: FileText, label: "Bills", path: "/admin/bills" },
     { icon: FileText, label: "Resources", path: "/admin/resources" },
@@ -64,133 +54,134 @@ const Sidebar = () => {
     { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
     { icon: MessageSquare, label: "Feedback Questions", path: "/admin/feedback/questions" },
     { icon: BarChart3, label: "Feedback Reports", path: "/admin/feedback/reports" },
-    { icon: KeyRound, label: "Manage Permissions", path: "/admin/permissions" },
     { icon: Settings, label: "Settings", path: "/admin/settings" },
   ];
 
   const getOfficeBearerMenuItems = () => {
-    const items = [
-      { icon: LayoutDashboard, label: "Dashboard", path: "/office-bearer" },
-    ];
-    // Always show Dashboard, then add other items based on permissions
-    if (permissions?.can_manage_users) {
-      items.push({ icon: Users, label: "Manage Users", path: "/admin/users" });
-    }
-    if (permissions?.can_manage_student_db || permissions?.can_manage_students) {
-      items.push({ icon: Users, label: "Student Database", path: "/admin/student-db" });
-    }
-    if (permissions?.can_manage_projects) {
-      items.push({ icon: Briefcase, label: "Projects", path: "/admin/projects" });
-    }
-    if (permissions?.can_manage_meetings) {
-      items.push({ icon: Calendar, label: "Meetings", path: "/admin/meetings" });
-    }
-    if (permissions?.can_manage_events) {
-      items.push({ icon: Calendar, label: "Events", path: "/admin/events" });
-    }
-    if (permissions?.can_manage_attendance) {
-      items.push({ icon: ClipboardCheck, label: "Attendance", path: "/admin/attendance" });
-    }
-    if (permissions?.can_manage_bills) {
-      items.push({ icon: FileText, label: "Bills", path: "/admin/bills" });
-    }
-    if (permissions?.can_manage_resources) {
-      items.push({ icon: FileText, label: "Resources", path: "/admin/resources" });
-    }
-    if (permissions?.can_manage_teams || user?.role === 'admin') {
-      items.push({ icon: UsersRound, label: "Teams", path: "/admin/teams" });
-    }
-    if (permissions?.can_manage_volunteers) {
-      items.push({ icon: Users, label: "Volunteer Submissions", path: "/admin/volunteers" });
-    }
-    if (permissions?.can_manage_messages) {
-      items.push({ icon: MessageSquare, label: "Messages", path: "/admin/messages" });
-    }
-    if (permissions?.can_view_analytics) {
-      items.push({ icon: BarChart3, label: "Analytics", path: "/admin/analytics" });
-    }
-    if (permissions?.can_manage_feedback_questions) {
-      items.push({ icon: MessageSquare, label: "Feedback Questions", path: "/admin/feedback/questions" });
-    }
-    if (permissions?.can_manage_feedback_reports) {
-      items.push({ icon: BarChart3, label: "Feedback Reports", path: "/admin/feedback/reports" });
-    }
-    if (permissions?.can_manage_permissions_module) {
-      items.push({ icon: KeyRound, label: "Manage Permissions", path: "/admin/permissions" });
-    }
-    if (permissions?.can_manage_settings) {
-      // Office bearers get their own settings page under their dashboard
-      items.push({ icon: Settings, label: "Settings", path: "/office-bearer/settings" });
-    }
-    return items;
-  };
-
-  // SPOC removed — no menu generated for this role
-
-  const getAlumniMenuItems = () => {
     return [
-      { icon: LayoutDashboard, label: "Dashboard", path: "/alumni" },
-      { icon: UserCircle, label: "Profile", path: "/alumni/profile" }
+      { icon: LayoutDashboard, label: "Dashboard", path: "/office-bearer" },
+      { icon: Users, label: "Student Database", path: "/admin/student-db" },
+      { icon: Briefcase, label: "Manage Projects", path: "/admin/projects" },
+      { icon: UserCheck, label: "Mentor Management", path: "/admin/mentor-management" },
+      { icon: Calendar, label: "Meetings", path: "/admin/meetings" },
+      { icon: Calendar, label: "Events", path: "/admin/events" },
+      { icon: ClipboardCheck, label: "Attendance", path: "/admin/attendance" },
+      { icon: FileText, label: "Bills", path: "/admin/bills" },
+      { icon: FileText, label: "Resources", path: "/admin/resources" },
+      { icon: FileBarChart, label: "Reports", path: "/admin/reports" },
+      { icon: UsersRound, label: "Teams", path: "/admin/teams" },
+      { icon: MessageSquare, label: "Messages", path: "/admin/messages" },
+      { icon: MessageSquare, label: "Feedback Questions", path: "/admin/feedback/questions" },
+      { icon: UserCircle, label: "My Profile", path: "/office-bearer/profile" },
+      { icon: Settings, label: "Settings", path: "/office-bearer/settings" },
     ];
   };
+
+  const getAlumniMenuItems = () => ([
+    { icon: LayoutDashboard, label: "Dashboard", path: "/alumni" },
+    { icon: UserCircle, label: "Profile", path: "/alumni/profile" }
+  ]);
 
   const getStudentMenuItems = () => {
-    return [
-      { icon: LayoutDashboard, label: "Dashboard", path: "/student" },
+    const items = [
+      { icon: LayoutDashboard, label: "Overview", path: "/student" },
+      { icon: Calendar, label: "Calendar", path: "/student/calendar" },
+      { icon: Calendar, label: "Events", path: "/student/events" },
       { icon: UserCircle, label: "My Profile", path: "/student/profile" },
-      { icon: ClipboardCheck, label: "Attendance", path: "/student/attendance" },
+      { icon: PhoneCall, label: "My Mentees", path: "/student/mentees" },
+    ];
+
+    // Assigned modules removed as requested
+    items.push({ icon: ClipboardCheck, label: "Attendance", path: "/student/attendance" });
+
+    items.push(
       { icon: FileText, label: "Resources", path: "/resources" },
       { icon: UsersRound, label: "Teams", path: "/student/teams" },
       { icon: MessageSquare, label: "Messages", path: "/student/messages" },
       { icon: MessageSquare, label: "Feedback", path: "/student/feedback" },
       { icon: Settings, label: "Settings", path: "/student/settings" }
-    ];
+    );
+
+    return items;
   };
 
   let menuItems: any[] = [];
-  if (user?.role === 'admin') {
-    menuItems = adminMenuItems;
-  } else if (user?.role === 'office_bearer') {
+  if (user?.role === 'admin') menuItems = adminMenuItems;
+  else if (user?.role === 'office_bearer') {
     menuItems = getOfficeBearerMenuItems();
-    // Always show at least Dashboard for office bearers, even if permissions haven't loaded
-    if (menuItems.length === 0) {
-      menuItems = [{ icon: LayoutDashboard, label: "Dashboard", path: "/office-bearer" }];
-    }
-  } else if (user?.role === 'alumni') {
-    menuItems = getAlumniMenuItems();
-  } else if (user?.role === 'student') {
-    menuItems = getStudentMenuItems();
+    if (menuItems.length === 0) menuItems = [{ icon: LayoutDashboard, label: "Dashboard", path: "/office-bearer" }];
   }
+  else if (user?.role === 'alumni') menuItems = getAlumniMenuItems();
+  else if (user?.role === 'student') menuItems = getStudentMenuItems();
 
-  // Don't render sidebar if no menu items (except for office bearers and students who should always see Dashboard)
-  if (menuItems.length === 0 && user?.role !== 'office_bearer' && user?.role !== 'student') {
-    return null;
-  }
+  if (menuItems.length === 0 && user?.role !== 'office_bearer' && user?.role !== 'student') return null;
 
   return (
-    <aside className="w-64 bg-gradient-to-b from-[#0A192F] to-[#0f1419] border-r border-border/50 min-h-screen p-3 sticky top-[65px] h-[calc(100vh-65px)] overflow-y-auto">
-      <div className="space-y-1">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <Button
-              key={item.path}
-              variant={isActive(item.path) ? "default" : "ghost"}
-              className={cn(
-                "w-full justify-start gap-3 h-10 transition-all",
-                isActive(item.path) 
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md shadow-primary/20 font-semibold" 
-                  : "text-gray-200 hover:text-white hover:bg-white/10 font-medium"
-              )}
-              onClick={() => navigate(item.path)}
-            >
-              <Icon className="w-5 h-5 flex-shrink-0" />
-              <span className="text-sm font-semibold tracking-wide">{item.label}</span>
-            </Button>
-          );
-        })}
+    <div className={cn("flex flex-col h-full bg-[hsl(var(--sidebar))] border-r border-border", className)}>
+      <div className="p-6 border-b border-border/50">
+        {/* Logo Area */}
+        <div
+          className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={() => navigate("/")}
+        >
+          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-lg shadow-primary/20 overflow-hidden">
+            <img
+              src="/Images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
+              alt="SM Volunteers Logo"
+              className="w-full h-full object-contain p-1"
+            />
+          </div>
+          <div className="flex flex-col overflow-hidden">
+            <span className="font-bold text-lg text-primary truncate leading-tight">SM Volunteers</span>
+            <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium truncate">Dashboard</span>
+          </div>
+        </div>
       </div>
-    </aside>
+
+      <ScrollArea className="flex-1 py-4">
+        <nav className="px-3 space-y-1">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.path);
+            return (
+              <Button
+                key={item.path}
+                variant={active ? "default" : "ghost"}
+                className={cn(
+                  "w-full justify-start gap-3 h-11 mb-1 transition-all duration-200",
+                  active
+                    ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 font-semibold"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50 font-medium"
+                )}
+                onClick={() => {
+                  navigate(item.path);
+                  onItemClick?.();
+                }}
+              >
+                <Icon className={cn("w-5 h-5 flex-shrink-0 transition-colors", active ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground")} />
+                <span className="text-sm truncate">{item.label}</span>
+              </Button>
+            );
+          })}
+        </nav>
+      </ScrollArea>
+
+      <div className="p-4 border-t border-border/50 bg-secondary/20">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-2 py-2 rounded-lg bg-card border border-border/50 shadow-sm hover:bg-destructive/10 hover:border-destructive/50 transition-all cursor-pointer group"
+        >
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs group-hover:bg-destructive/20 group-hover:text-destructive transition-colors">
+            {user.email?.slice(0, 2).toUpperCase()}
+          </div>
+          <div className="flex flex-col overflow-hidden flex-1">
+            <span className="text-sm font-semibold truncate text-foreground group-hover:text-destructive transition-colors">{user.email}</span>
+            <span className="text-xs text-muted-foreground truncate capitalize">Click to logout</span>
+          </div>
+          <LogOut className="w-4 h-4 text-muted-foreground group-hover:text-destructive transition-colors" />
+        </button>
+      </div>
+    </div>
   );
 };
 

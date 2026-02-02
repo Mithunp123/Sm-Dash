@@ -1,8 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
 import DeveloperCredit from '@/components/DeveloperCredit';
-import Sidebar from '@/components/Sidebar';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +7,7 @@ import { auth } from '@/lib/auth';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, FileText, Download, Eye, Loader2, BookMarked, Lightbulb, DollarSign, FileCheck, Briefcase } from 'lucide-react';
 import PDFViewer from '@/components/PDFViewer';
+import { BackButton } from '@/components/BackButton';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -54,7 +52,7 @@ const Resources = () => {
       const queryParams = new URLSearchParams();
       // Exclude REPORT type resources - those should only show in Reports page
       queryParams.append('exclude_resource_type', 'REPORT');
-      
+
       const res = await fetch(`${API_BASE}/resources?${queryParams.toString()}`, {
         headers: { Authorization: `Bearer ${auth.getToken()}` }
       });
@@ -86,23 +84,22 @@ const Resources = () => {
   const filteredFiles = files;
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
-      <Header />
+    <div className="flex-1 flex flex-col bg-transparent">
       <DeveloperCredit />
-      
+
       <div className="flex flex-1">
-        {/* Sidebar */}
-        <div className="hidden lg:block sticky top-[73px] h-[calc(100vh-73px)] bg-white dark:bg-slate-900 shadow-sm">
-          <Sidebar />
-        </div>
-        
+
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto">
           <div className="p-6 md:p-8 max-w-7xl mx-auto w-full">
-            {/* Header */}
-            <div className="mb-8">
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-accent to-violet bg-clip-text text-transparent mb-2">Resource Library</h1>
-              <p className="text-muted-foreground text-lg">Access study materials, guides, and documentation</p>
+
+            {/* Page Header */}
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-semibold text-foreground mb-1">Resources</h1>
+                <p className="text-sm text-muted-foreground">Access study materials, guides, and documentation</p>
+              </div>
+              <BackButton />
             </div>
 
             {/* Resources List */}
@@ -134,8 +131,8 @@ const Resources = () => {
                           <div className="flex items-start gap-3 flex-1 min-w-0">
                             {/* SM Logo Icon */}
                             <div className="w-12 h-12 flex-shrink-0 bg-gradient-to-br from-orange-500/20 to-rose-500/20 rounded-lg flex items-center justify-center border-2 border-orange-200 dark:border-orange-800">
-                              <img 
-                                src="/Images/Picsart_23-05-18_16-47-20-287-removebg-preview.png" 
+                              <img
+                                src="/Images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
                                 alt="SM Logo"
                                 className="w-8 h-8 object-contain"
                                 onError={(e) => {
@@ -160,9 +157,9 @@ const Resources = () => {
                       <CardContent className="p-4">
                         <div className="flex gap-2">
                           {f.url && (
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
+                            <Button
+                              variant="outline"
+                              size="sm"
                               className="w-full gap-2"
                               onClick={() => {
                                 setSelectedResource(f);
@@ -184,7 +181,6 @@ const Resources = () => {
         </main>
       </div>
 
-      <Footer />
 
       {/* PDF Viewer */}
       {selectedResource && (

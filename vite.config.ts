@@ -12,6 +12,7 @@ export default defineConfig(({ mode }) => ({
       protocol: 'ws',
       host: 'localhost',
       port: 9000,
+      overlay: false,
     },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),

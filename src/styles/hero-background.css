@@ -1,0 +1,37 @@
+/* Landing Page Hero Background Image */
+.hero-background {
+    background-image: url('C:/Users/Deepak/.gemini/antigravity/brain/b0977c4f-66dd-41a7-b55e-cc5edadc9b6c/hero_background_college_1769883826128.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* Alternative: If the above path doesn't work, use this fallback */
+.hero-background-fallback {
+    background: linear-gradient(135deg, #1e293b 0%, #1e40af 50%, #1e293b 100%);
+}
+
+/* Overlay for better text readability */
+.hero-overlay {
+    background: linear-gradient(to bottom,
+            rgba(0, 0, 0, 0.7) 0%,
+            rgba(0, 0, 0, 0.6) 50%,
+            rgba(0, 0, 0, 0.7) 100%);
+}
+
+/* Scroll indicator animation */
+@keyframes scroll-bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(10px);
+    }
+}
+
+.scroll-indicator {
+    animation: scroll-bounce 2s ease-in-out infinite;
+}

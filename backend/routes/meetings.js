@@ -1,6 +1,6 @@
 import express from 'express';
 import { getDatabase } from '../database/init.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, requirePermission } from '../middleware/auth.js';
 import { body, validationResult } from 'express-validator';
 
 const router = express.Router();
@@ -25,7 +25,7 @@ const all = (db, query, params = []) => {
 
 const run = (db, query, params = []) => {
   return new Promise((resolve, reject) => {
-    db.run(query, params, function(err) {
+    db.run(query, params, function (err) {
       if (err) reject(err);
       else resolve({ lastID: this.lastID, changes: this.changes });
     });
@@ -33,7 +33,7 @@ const run = (db, query, params = []) => {
 };
 
 // Get all meetings
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, requirePermission('can_manage_meetings', { allowView: true }), async (req, res) => {
   try {
     const db = getDatabase();
     const meetings = await all(db, `
@@ -50,7 +50,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Get meeting by ID
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/:id', authenticateToken, requirePermission('can_manage_meetings', { allowView: true }), async (req, res) => {
   try {
     const db = getDatabase();
     const meeting = await get(db, `
@@ -72,7 +72,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // Create meeting
-router.post('/', authenticateToken, [
+router.post('/', authenticateToken, requirePermission('can_manage_meetings', { requireEdit: true }), [
   body('title').notEmpty().trim(),
   body('date').notEmpty(),
   body('location').optional().trim()
@@ -99,7 +99,7 @@ router.post('/', authenticateToken, [
 });
 
 // Update meeting
-router.put('/:id', authenticateToken, [
+router.put('/:id', authenticateToken, requirePermission('can_manage_meetings', { requireEdit: true }), [
   body('title').optional().notEmpty().trim(),
   body('status').optional().isIn(['scheduled', 'completed', 'cancelled'])
 ], async (req, res) => {
@@ -156,7 +156,7 @@ router.put('/:id', authenticateToken, [
 });
 
 // Delete meeting
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, requirePermission('can_manage_meetings', { requireEdit: true }), async (req, res) => {
   try {
     const db = getDatabase();
     const meeting = await get(db, 'SELECT * FROM meetings WHERE id = ?', [req.params.id]);

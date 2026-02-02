@@ -1,7 +1,8 @@
-import express from 'express';
+import express from 'express'; // Restart trigger
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -13,15 +14,16 @@ import meetingRoutes from './routes/meetings.js';
 import projectRoutes from './routes/projects.js';
 import billRoutes from './routes/bills.js';
 import timeRoutes from './routes/time.js';
-import permissionRoutes from './routes/permissions.js';
-import permissionRequestRoutes from './routes/permissionRequests.js';
 import settingsRoutes from './routes/settings.js';
 import feedbackRoutes from './routes/feedback.js';
 import eventRoutes from './routes/events.js';
+import awardsRoutes from './routes/awards.js';
+import ngoRoutes from './routes/ngo.js';
 import resourcesRoutes from './routes/resources.js';
 import teamsRoutes from './routes/teams.js';
 import uploadRoutes from './routes/upload.js';
 import phoneMentoringRoutes from './routes/phoneMentoring.js';
+import spocRoutes from './routes/spoc.js';
 import { initDatabase } from './database/init.js';
 
 // Load .env from backend directory first, then fallback to root directory
@@ -42,17 +44,46 @@ initDatabase();
 // Serve uploaded files (photos, resources, etc.) from public/uploads
 app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
 
-// Serve favicon.ico from root public folder
+// Serve favicon.ico and favicon.png - SM Volunteers Logo
 app.get('/favicon.ico', (req, res) => {
-  // Get the root directory (one level up from backend)
   const rootDir = path.resolve(__dirname, '..');
+  const smLogoPath = path.join(rootDir, 'Images', 'Picsart_23-05-18_16-47-20-287-removebg-preview.png');
   const faviconPath = path.join(rootDir, 'public', 'favicon.ico');
-  res.sendFile(faviconPath, (err) => {
-    if (err) {
-      // If favicon not found, return 204 No Content (browser will stop requesting)
-      res.status(204).end();
-    }
-  });
+
+  // Try SM logo first, then fallback to favicon.ico
+  if (fs.existsSync(smLogoPath)) {
+    res.sendFile(smLogoPath, { headers: { 'Content-Type': 'image/png' } }, (err) => {
+      if (err && fs.existsSync(faviconPath)) {
+        res.sendFile(faviconPath);
+      } else if (err) {
+        res.status(204).end();
+      }
+    });
+  } else if (fs.existsSync(faviconPath)) {
+    res.sendFile(faviconPath);
+  } else {
+    res.status(204).end();
+  }
+});
+
+app.get('/favicon.png', (req, res) => {
+  const rootDir = path.resolve(__dirname, '..');
+  const smLogoPath = path.join(rootDir, 'Images', 'Picsart_23-05-18_16-47-20-287-removebg-preview.png');
+  const faviconPngPath = path.join(rootDir, 'public', 'favicon.png');
+
+  if (fs.existsSync(smLogoPath)) {
+    res.sendFile(smLogoPath, { headers: { 'Content-Type': 'image/png' } }, (err) => {
+      if (err && fs.existsSync(faviconPngPath)) {
+        res.sendFile(faviconPngPath);
+      } else if (err) {
+        res.status(204).end();
+      }
+    });
+  } else if (fs.existsSync(faviconPngPath)) {
+    res.sendFile(faviconPngPath);
+  } else {
+    res.status(204).end();
+  }
 });
 
 // Routes
@@ -65,15 +96,16 @@ app.use('/api/meetings', meetingRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/bills', billRoutes);
 app.use('/api/time', timeRoutes);
-app.use('/api/permissions', permissionRoutes);
-app.use('/api/permission-requests', permissionRequestRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/awards', awardsRoutes);
+app.use('/api/ngo', ngoRoutes);
 app.use('/api/resources', resourcesRoutes);
 app.use('/api/teams', teamsRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/phone-mentoring', phoneMentoringRoutes);
+app.use('/api/spoc', spocRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -83,15 +115,35 @@ app.get('/api/health', (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ 
-    success: false, 
+  res.status(500).json({
+    success: false,
     message: 'Internal server error',
     error: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 SM Volunteers API server running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+}).on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use. Please stop the other process or change the PORT in .env`);
+    console.error(`   To find and kill the process: Get-NetTCPConnection -LocalPort ${PORT} | Select-Object -ExpandProperty OwningProcess | Stop-Process -Force`);
+    console.error(`   Or wait a few seconds for lingering connections to clear...`);
+    // Don't exit immediately - let nodemon retry after a delay
+    setTimeout(() => {
+      process.exit(1);
+    }, 2000);
+  } else {
+    console.error('❌ Server error:', err);
+    process.exit(1);
+  }
 });
 
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  server.close(() => {
+    console.log('HTTP server closed');
+  });
+});

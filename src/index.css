@@ -2,184 +2,113 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom Animations */
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slide-in {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slide-in-left {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes slide-in-right {
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes scale-in {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-.animate-fade-in {
-  animation: fade-in 0.5s ease-in-out;
-}
-
-.animate-fade-in-delay {
-  animation: fade-in 0.7s ease-in-out;
-}
-
-.animate-slide-in {
-  animation: slide-in 0.6s ease-out;
-}
-
-.animate-slide-in-left {
-  animation: slide-in-left 0.5s ease-out;
-}
-
-.animate-slide-in-right {
-  animation: slide-in-right 0.5s ease-out;
-}
-
-.animate-scale-in {
-  animation: scale-in 0.4s ease-out;
-}
-
-.animate-shimmer {
-  animation: shimmer 3s infinite;
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-@keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
-  }
-  50% {
-    box-shadow: 0 0 40px rgba(59, 130, 246, 0.6);
-  }
-}
-
-@keyframes gradient-shift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-.animate-float {
-  animation: float 3s ease-in-out infinite;
-}
-
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-.animate-gradient-shift {
-  background-size: 200% 200%;
-  animation: gradient-shift 3s ease infinite;
-}
-
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    /* SM Volunteers Light Clean Theme - Better Readability */
-    --background: 220 13% 96%;
-    --foreground: 220 15% 15%;
+    /* 
+      PROFESSIONAL COLLEGE THEME 
+      Primary: Royal Navy Blue
+      Secondary: Clean White / Light Gray
+      Accent: Professional Gold / Highlight
+    */
+
+    --background: 210 20% 98%;
+    /* Off-white background for reduced eye strain */
+    --foreground: 222 47% 11%;
+    /* Deep Navy Black for text */
 
     --card: 0 0% 100%;
-    --card-foreground: 220 15% 15%;
+    /* Pure white cards */
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 15%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 25 95% 53%;
-    --primary-foreground: 0 0% 100%;
+    /* ROYAL NAVY BLUE - Trustworthy, Academic, Professional */
+    --primary: 221 83% 53%;
+    /* A vibrant yet professional Royal Blue */
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 220 30% 85%;
-    --secondary-foreground: 220 15% 15%;
+    /* SUBTLE GRAY - For secondary actions */
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 220 10% 88%;
-    --muted-foreground: 220 15% 45%;
+    /* MUTED - For metadata and de-emphasized text */
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 160 84% 39%;
-    --accent-foreground: 0 0% 100%;
+    /* ACCENT - Subtle Gold/Amber for highlights (Academic Feel) */
+    --accent: 210 40% 96.1%;
+    /* Used for hover states usually */
+    --accent-foreground: 222 47% 11%;
 
-    --violet: 270 60% 70%;
-    
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    /* DESTRUCTIVE - Clean Red */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 220 13% 90%;
-    --input: 0 0% 100%;
-    --ring: 25 95% 53%;
+    /* BORDERS & INPUTS */
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221 83% 53%;
+    /* Matches Primary */
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
+    /* 8px radius for a modern but boxed professional look */
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(25 95% 53% / 0.1), hsl(160 84% 39% / 0.1));
-    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%), hsl(220 13% 98%));
-    --glow-primary: 0 0 20px hsl(25 95% 53% / 0.2);
-    --glow-accent: 0 0 20px hsl(160 84% 39% / 0.2);
+    /* CHART COLORS for Analytics */
+    --chart-1: 221 83% 53%;
+    /* Blue */
+    --chart-2: 173 58% 39%;
+    /* Teal */
+    --chart-3: 197 37% 24%;
+    /* Dark Blue */
+    --chart-4: 43 74% 66%;
+    /* Muted Gold */
+    --chart-5: 27 87% 67%;
+    /* Orange */
+  }
+
+  .dark {
+    /* Professional Dark Mode (Navy based) */
+    /* Background: Deep Charcoal/Navy (Slate 950/900 mix) */
+    --background: 222 47% 10%;
+    --foreground: 210 40% 98%;
+
+    /* Cards: Elevated surface (Slate 900/800 mix) - Lighter than background */
+    --card: 222 47% 14%;
+    --card-foreground: 210 40% 98%;
+
+    /* Sidebar: Darker than background */
+    --sidebar: 222 47% 7%;
+    --sidebar-foreground: 210 40% 98%;
+
+    /* Popovers: Same as cards */
+    --popover: 222 47% 14%;
+    --popover-foreground: 210 40% 98%;
+
+    /* Primary: Clean Indigo/Blue */
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47.4% 11.2%;
+
+    /* Secondary: Muted dark blue/gray */
+    --secondary: 217 32% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    /* Muted: For backgrounds that need to recede */
+    --muted: 217 32% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    /* Accent: Highlights */
+    --accent: 217 32% 17%;
+    --accent-foreground: 210 40% 98%;
+
+    /* Destructive */
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    /* Borders: Visible but subtle */
+    --border: 217 32% 20%;
+    --input: 217 32% 20%;
+    --ring: 224 76% 48%;
   }
 }
 
@@ -188,93 +117,90 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
+    @apply bg-background text-foreground transition-colors duration-300;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    /* Better font rendering */
+  }
+
+  select {
+    @apply bg-background text-foreground border-border focus:ring-2 focus:ring-primary focus:outline-none;
+  }
+
+  option {
     @apply bg-background text-foreground;
-    /* Use Poppins for clearer headings and UI readability */
-    font-family: 'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
-
-  label {
-    @apply text-foreground font-medium;
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    @apply text-foreground font-semibold;
-  }
-
-  input, textarea, select {
-    @apply bg-input text-foreground border-border;
-  }
-
-  input::placeholder, textarea::placeholder {
-    @apply text-muted-foreground;
-  }
-
-  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 }
 
 @layer utilities {
-  .glow-primary {
-    box-shadow: var(--glow-primary);
+
+  /* No-scrollbar utility */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 
-  .glow-accent {
-    box-shadow: var(--glow-accent);
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 
-  .gradient-primary {
-    background: var(--gradient-primary);
+  /* Embla Carousel Styles */
+  .embla {
+    overflow: hidden;
   }
 
-  .gradient-card {
-    background: var(--gradient-card);
+  .embla__container {
+    display: flex;
+    backface-visibility: hidden;
+    will-change: transform;
   }
 
-  /* Tagline Glow Animation */
-  .tagline {
-    color: hsl(160 84% 39%);
-    font-size: 1.2rem;
-    letter-spacing: 2px;
-    text-align: center;
-    animation: glow 1.5s ease-in-out infinite alternate;
+  .embla__slide {
+    flex: 0 0 auto;
+    min-width: 0;
   }
 
-  @keyframes glow {
-    from { 
-      text-shadow: 0 0 5px hsl(160 84% 39%), 0 0 10px hsl(160 84% 39%);
-    }
-    to { 
-      text-shadow: 0 0 20px hsl(25 95% 53%), 0 0 30px hsl(25 95% 53%), 0 0 40px hsl(25 95% 53%);
-    }
+  /* Premium Background Utilities */
+  .blueprint-grid {
+    background-image:
+      linear-gradient(rgba(15, 23, 42, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(15, 23, 42, 0.05) 1px, transparent 1px);
+    background-size: 30px 30px;
   }
 
-  /* Fade-in Animation */
-  @keyframes fade-in {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  .dark .blueprint-grid {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   }
 
-  .animate-fade-in {
-    animation: fade-in 0.3s ease-out;
+  .dot-grid {
+    background-image: radial-gradient(rgba(15, 23, 42, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
   }
 
-  /* Blob Animation */
+  .dark .dot-grid {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  }
+
+  /* Custom Animations */
   @keyframes blob {
     0% {
       transform: translate(0px, 0px) scale(1);
     }
+
     33% {
       transform: translate(30px, -50px) scale(1.1);
     }
+
     66% {
       transform: translate(-20px, 20px) scale(0.9);
     }
+
     100% {
       transform: translate(0px, 0px) scale(1);
     }
@@ -292,25 +218,39 @@ All colors MUST be HSL.
     animation-delay: 4s;
   }
 
-  /* Logo Hover Effect */
-  .logo-container img,
-  .logo-container div {
-    transition: transform 0.3s, box-shadow 0.3s;
+  @keyframes blink {
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 1.5;
+    }
   }
 
-  .logo-container:hover img,
-  .logo-container:hover div {
-    transform: scale(1.05);
-    box-shadow: 0 0 25px hsl(0 184 107 / 0.5);
-  }
-}
-
-@layer base {
-  * {
-    @apply border-border;
+  .animate-blink {
+    animation: blink 1.5s ease-in-out infinite;
   }
 
-  body {
-    @apply bg-background text-foreground;
+  @keyframes marquee {
+    0% {
+      transform: translateX(0);
+    }
+
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-marquee {
+    display: flex;
+    width: max-content;
+    animation: marquee 40s linear infinite;
+  }
+
+  .animate-marquee:hover {
+    animation-play-state: paused;
   }
 }
