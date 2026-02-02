@@ -514,7 +514,7 @@ const Settings = () => {
                   <CardContent className="space-y-3">
                     <p className="text-muted-foreground leading-relaxed">
                       SM Volunteers is a comprehensive volunteer management system for K.S.Rangasamy College of Technology.
-                      The system helps manage volunteers, NGOs, meetings, attendance, reports, projects, and alumni.
+                      The system helps manage volunteers, NGOs, meetings, attendance, reports, and projects.
                     </p>
                     <p className="text-muted-foreground leading-relaxed">
                       <span className="text-accent font-semibold">Tagline:</span> 🕊 "Fostering Society."

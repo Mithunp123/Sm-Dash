@@ -4,7 +4,7 @@ export interface User {
   id: number;
   name: string;
   email: string;
-  role: 'admin' | 'office_bearer' | 'student' | 'alumni';
+  role: 'admin' | 'office_bearer' | 'student';
   mustChangePassword?: boolean;
   // Optional profile photo URL used for avatars/header
   photo_url?: string | null;

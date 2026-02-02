@@ -6,6 +6,7 @@ import fs from 'fs';
 import { getDatabase } from '../database/init.js';
 import { authenticateToken, requireRole, requirePermission } from '../middleware/auth.js';
 import { body, validationResult } from 'express-validator';
+import { logActivity } from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -96,12 +97,11 @@ router.get('/contacts', authenticateToken, async (req, res) => {
         p.phone
       FROM users u
       LEFT JOIN profiles p ON u.id = p.user_id
-      WHERE u.role IN ('admin', 'office_bearer', 'spoc')
+      WHERE u.role IN ('admin', 'office_bearer')
       ORDER BY 
         CASE u.role 
           WHEN 'admin' THEN 1 
           WHEN 'office_bearer' THEN 2 
-          WHEN 'spoc' THEN 3
         END,
         u.name ASC
     `);
@@ -175,7 +175,7 @@ router.get('/students', authenticateToken, async (req, res) => {
 router.put('/:id', authenticateToken, [
   body('name').optional().trim(),
   body('email').optional().isEmail(),
-  body('role').optional().isIn(['admin', 'office_bearer', 'student', 'alumni', 'spoc'])
+  body('role').optional().isIn(['admin', 'office_bearer', 'student'])
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -225,7 +225,7 @@ router.put('/:id', authenticateToken, [
     }
 
     // If role changed to a profile-bearing role, ensure profile exists
-    if (role && ['student', 'office_bearer', 'alumni', 'spoc'].includes(role)) {
+    if (role && ['student', 'office_bearer'].includes(role)) {
       try { await run(db, 'INSERT OR IGNORE INTO profiles (user_id, role) VALUES (?, ?)', [id, role]); } catch (e) { }
     }
 
@@ -254,6 +254,7 @@ router.delete('/:id', authenticateToken, requireRole('admin'), async (req, res) 
     }
 
     await run(db, 'DELETE FROM users WHERE id = ?', [id]);
+    await logActivity(req.user.id, 'DELETE_USER', { targetId: id, role: user.role }, req);
 
     res.json({ success: true, message: 'User deleted successfully' });
   } catch (error) {
@@ -297,7 +298,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 router.post('/', authenticateToken, requireRole('admin'), [
   body('name').notEmpty().trim(),
   body('email').isEmail().normalizeEmail(),
-  body('role').isIn(['admin', 'office_bearer', 'student', 'alumni', 'spoc']),
+  body('role').isIn(['admin', 'office_bearer', 'student']),
   body('password').optional().isLength({ min: 5 })
 ], async (req, res) => {
   try {
@@ -319,10 +320,11 @@ router.post('/', authenticateToken, requireRole('admin'), [
           await run(db, `UPDATE users SET password = ?, must_change_password = 1 WHERE id = ?`, [hashedPassword, existingUser.id]);
         }
         // Ensure profile exists for role types
-        if (['student', 'office_bearer', 'alumni', 'spoc'].includes(role)) {
+        if (['student', 'office_bearer'].includes(role)) {
           try { await run(db, 'INSERT OR IGNORE INTO profiles (user_id, role) VALUES (?, ?)', [existingUser.id, role]); } catch (e) { }
         }
 
+        await logActivity(req.user.id, 'UPDATE_USER', { targetId: existingUser.id, name, role }, req);
         return res.json({ success: true, message: 'User updated', user: { id: existingUser.id, name, email, role } });
       } catch (e) {
         console.error('Failed to update existing user during upsert:', e);
@@ -344,9 +346,6 @@ router.post('/', authenticateToken, requireRole('admin'), [
         case 'student':
           defaultPassword = 'SMV@123';
           break;
-        case 'spoc':
-          defaultPassword = 'SPOC@123';
-          break;
         default:
           defaultPassword = 'Temp@123';
       }
@@ -361,8 +360,8 @@ router.post('/', authenticateToken, requireRole('admin'), [
 
     const userId = result.lastID;
 
-    // Automatically create profile in unified profiles table for student, office_bearer, and alumni
-    if (role === 'student' || role === 'office_bearer' || role === 'alumni' || role === 'spoc') {
+    // Automatically create profile in unified profiles table for student and office_bearer
+    if (role === 'student' || role === 'office_bearer') {
       try {
         await run(db,
           'INSERT INTO profiles (user_id, role) VALUES (?, ?)',
@@ -374,6 +373,8 @@ router.post('/', authenticateToken, requireRole('admin'), [
         // Don't fail the user creation if profile creation fails
       }
     }
+
+    await logActivity(req.user.id, 'CREATE_USER', { userId, name, email, role }, req);
 
     res.json({
       success: true,
@@ -429,9 +430,6 @@ router.post('/reset-password', authenticateToken, requireRole('admin'), [
         case 'student':
           defaultPassword = 'SMV@123';
           break;
-        case 'spoc':
-          defaultPassword = 'SPOC@123';
-          break;
         default:
           defaultPassword = 'Temp@123';
       }
@@ -444,6 +442,8 @@ router.post('/reset-password', authenticateToken, requireRole('admin'), [
       [hashedPassword, userId]
     );
 
+    await logActivity(req.user.id, 'RESET_USER_PASSWORD', { targetUserId: userId }, req);
+
     res.json({
       success: true,
       message: 'Password reset successfully',
@@ -455,7 +455,7 @@ router.post('/reset-password', authenticateToken, requireRole('admin'), [
   }
 });
 
-// Get unified profile (works for student, office_bearer, alumni, spoc)
+// Get unified profile (works for student and office_bearer)
 router.get('/:userId/profile', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params;
@@ -497,16 +497,7 @@ router.get('/:userId/profile', authenticateToken, async (req, res) => {
             // Continue with existing profile even if migration fails
           }
         }
-      } else if (user.role === 'alumni' || user.role === 'spoc') {
-        // For alumni and SPOC, ensure profile exists in unified table
-        if (!profile) {
-          try {
-            await run(db, `INSERT INTO profiles (user_id, role) VALUES (?, ?)`, [userId, user.role]);
-            profile = await get(db, 'SELECT * FROM profiles WHERE user_id = ?', [userId]);
-          } catch (err) {
-            console.error(`Error creating ${user.role} profile:`, err);
-          }
-        }
+
       }
     }
 
@@ -546,7 +537,7 @@ router.get('/:userId/projects', authenticateToken, async (req, res) => {
   }
 });
 
-// Update unified profile (works for student, office_bearer, alumni, spoc)
+// Update unified profile (works for student and office_bearer)
 router.put('/:userId/profile', authenticateToken, [
   body('dept').optional().trim(),
   body('year').optional().trim(),
@@ -560,7 +551,8 @@ router.put('/:userId/profile', authenticateToken, [
   body('register_no').optional().trim(),
   body('academic_year').optional().trim(),
   body('father_number').optional().trim(),
-  body('hosteller_dayscholar').optional().trim()
+  body('hosteller_dayscholar').optional().trim(),
+  body('position').optional().trim()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -576,7 +568,7 @@ router.put('/:userId/profile', authenticateToken, [
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    let { dept, year, phone, blood_group, gender, dob, address, photo, photo_url, register_no, academic_year, father_number, hosteller_dayscholar, custom_fields } = req.body;
+    let { dept, year, phone, blood_group, gender, dob, address, photo, photo_url, register_no, academic_year, father_number, hosteller_dayscholar, position, custom_fields } = req.body;
     const photoUrl = photo_url || photo; // Support both 'photo' and 'photo_url' for backward compatibility
     const db = getDatabase();
 
@@ -596,18 +588,20 @@ router.put('/:userId/profile', authenticateToken, [
       // Update existing profile in unified table
       await run(db,
         `UPDATE profiles SET 
-         dept = ?, year = ?, phone = ?, blood_group = ?, gender = ?, dob = ?, address = ?, photo_url = ?, register_no = ?, academic_year = ?, father_number = ?, hosteller_dayscholar = ?, custom_fields = ?, updated_at = CURRENT_TIMESTAMP
+         dept = ?, year = ?, phone = ?, blood_group = ?, gender = ?, dob = ?, address = ?, photo_url = ?, register_no = ?, academic_year = ?, father_number = ?, hosteller_dayscholar = ?, position = ?, custom_fields = ?, updated_at = CURRENT_TIMESTAMP
          WHERE user_id = ?`,
-        [dept || null, year || null, phone || null, blood_group || null, gender || null, dob || null, address || null, photoUrl || null, register_no || null, academic_year || null, father_number || null, hosteller_dayscholar || null, custom_fields || null, userId]
+        [dept || null, year || null, phone || null, blood_group || null, gender || null, dob || null, address || null, photoUrl || null, register_no || null, academic_year || null, father_number || null, hosteller_dayscholar || null, position || null, custom_fields || null, userId]
       );
+      await logActivity(req.user.id, 'UPDATE_PROFILE', { targetUserId: userId }, req);
       res.json({ success: true, message: 'Profile updated successfully' });
     } else {
       // Create new profile in unified table
       await run(db,
-        `INSERT INTO profiles (user_id, role, dept, year, phone, blood_group, gender, dob, address, photo_url, register_no, academic_year, father_number, hosteller_dayscholar, custom_fields)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [userId, user.role, dept || null, year || null, phone || null, blood_group || null, gender || null, dob || null, address || null, photoUrl || null, register_no || null, academic_year || null, father_number || null, hosteller_dayscholar || null, custom_fields || null]
+        `INSERT INTO profiles (user_id, role, dept, year, phone, blood_group, gender, dob, address, photo_url, register_no, academic_year, father_number, hosteller_dayscholar, position, custom_fields)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [userId, user.role, dept || null, year || null, phone || null, blood_group || null, gender || null, dob || null, address || null, photoUrl || null, register_no || null, academic_year || null, father_number || null, hosteller_dayscholar || null, position || null, custom_fields || null]
       );
+      await logActivity(req.user.id, 'CREATE_PROFILE', { targetUserId: userId }, req);
       res.json({ success: true, message: 'Profile created successfully' });
     }
   } catch (error) {
@@ -680,6 +674,8 @@ router.post('/:userId/assign-project', authenticateToken, requireRole('admin', '
       'INSERT INTO project_members (user_id, project_id, role) VALUES (?, ?, ?)',
       [userId, projectId, 'member']
     );
+
+    await logActivity(req.user.id, 'ASSIGN_PROJECT', { targetUserId: userId, projectId }, req);
 
     res.json({ success: true, message: 'Student assigned to project successfully' });
   } catch (error) {
@@ -904,7 +900,7 @@ router.post('/volunteer-register', [
     if (email) {
       existingUser = await get(db, 'SELECT id, role, name FROM users WHERE email = ?', [email]);
     }
-    
+
     if (!existingUser && register_no) {
       // Try to find by register_no in student_profiles
       const profile = await get(db, `
@@ -922,7 +918,7 @@ router.post('/volunteer-register', [
     if (existingUser) {
       // Update existing user
       userId = existingUser.id;
-      
+
       // Update user name if provided
       if (name && name !== existingUser.name) {
         await run(db, 'UPDATE users SET name = ? WHERE id = ?', [name, userId]);
@@ -935,7 +931,7 @@ router.post('/volunteer-register', [
 
       // Update or create student profile
       const existingProfile = await get(db, 'SELECT id FROM student_profiles WHERE user_id = ?', [userId]);
-      
+
       if (existingProfile) {
         // Update existing profile
         await run(db, `
@@ -1007,7 +1003,7 @@ router.post('/volunteer-register', [
 
     res.json({
       success: true,
-      message: isNewUser 
+      message: isNewUser
         ? 'Volunteer registration successful! Student account created. Please login with your email and default password: SMV@123'
         : 'Volunteer registration updated successfully!',
       userId,
@@ -1016,6 +1012,28 @@ router.post('/volunteer-register', [
   } catch (error) {
     console.error('Volunteer registration error:', error);
     res.status(500).json({ success: false, message: 'Error processing registration', error: error.message });
+  }
+});
+
+// Get activity logs (Admin only)
+router.get('/activity-logs/all', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const db = getDatabase();
+    const logs = await all(db, `
+      SELECT 
+        l.*, 
+        u.name as user_name, 
+        u.email as user_email,
+        u.role as user_role
+      FROM activity_logs l
+      LEFT JOIN users u ON l.user_id = u.id
+      ORDER BY l.created_at DESC
+      LIMIT 1000
+    `);
+    res.json({ success: true, logs });
+  } catch (error) {
+    console.error('Get activity logs error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 

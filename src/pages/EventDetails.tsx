@@ -15,9 +15,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar, Edit, Trash2, Upload, Plus, Users, Save, Download, UserPlus } from "lucide-react";
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { auth } from "@/lib/auth";
+import ksrctLogo from "../../Images/Brand_logo.png";
+import smLogo from "../../Images/Picsart_23-05-18_16-47-20-287-removebg-preview.png";
 
 const EventDetails = () => {
     const { id } = useParams<{ id: string }>();
@@ -121,14 +125,255 @@ const EventDetails = () => {
         }
     };
 
+    const downloadODSample = () => {
+        const sampleData = [
+            { "Name": "Student One", "Department": "CSE", "Year": "IV" },
+            { "Name": "Student Two", "Department": "ECE", "Year": "III" }
+        ];
+        const ws = XLSX.utils.json_to_sheet(sampleData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Template");
+        XLSX.writeFile(wb, "OD_Import_Template.xlsx");
+    };
+
+    const handleImportOD = async (file: File) => {
+        try {
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const parsedData: any[] = XLSX.utils.sheet_to_json(worksheet);
+
+            if (parsedData.length === 0) {
+                toast.error("File is empty");
+                return;
+            }
+
+            const matchedUserIds: number[] = [];
+            let notFoundCount = 0;
+
+            parsedData.forEach(row => {
+                const name = row['Name'] || row['name'];
+                const dept = row['Department'] || row['department'] || row['Dept'];
+                const year = row['Year'] || row['year'];
+
+                let student = null;
+
+                if (name) {
+                    // Normalize name
+                    const searchName = name.toString().toLowerCase().trim();
+
+                    // Filter students by name match
+                    const potentialMatches = students.filter(s =>
+                        s.name?.toLowerCase().trim() === searchName
+                    );
+
+                    if (potentialMatches.length === 1) {
+                        // Exact single match on name
+                        student = potentialMatches[0];
+                    } else if (potentialMatches.length > 1) {
+                        // Multiple matches, try to narrow down by Dept/Year if available
+                        student = potentialMatches.find(s => {
+                            let match = true;
+                            if (dept && s.department) {
+                                match = match && s.department.toLowerCase().includes(dept.toString().toLowerCase());
+                            }
+                            if (year && s.year) {
+                                match = match && s.year.toString() === year.toString();
+                            }
+                            return match;
+                        });
+                    }
+                }
+
+                if (student) {
+                    matchedUserIds.push(student.id);
+                } else {
+                    notFoundCount++;
+                }
+            });
+
+            if (matchedUserIds.length === 0) {
+                toast.error("No matching students found. Ensure names match exactly.");
+                return;
+            }
+
+            // Bulk assign
+            await api.addEventMembers(event.id, matchedUserIds);
+
+            toast.success(`Successfully imported ${matchedUserIds.length} students. ${notFoundCount > 0 ? `${notFoundCount} entries not found or ambiguous.` : ''}`);
+            setShowAssignDialog(false);
+
+            // Reload members
+            const res = await api.getEventMembers(event.id);
+            if (res.success) setMembers(res.members || []);
+
+        } catch (e: any) {
+            console.error("Import error:", e);
+            toast.error("Failed to process Excel file: " + e.message);
+        }
+    };
+
+    const downloadVolunteersPDF = () => {
+        if (volunteers.length === 0) return toast.error("No data");
+
+        const doc = new jsPDF();
+
+        // Load logos (using standard public paths)
+        // If these fail, the PDF will just generate without them or with placeholders
+        // Note: For a real app, ensure images are accessible or convert to base64
+        try {
+            doc.addImage(ksrctLogo, 'PNG', 15, 10, 25, 25);
+        } catch (e) { console.warn("Could not load KSRCT logo", e); }
+
+        try {
+            doc.addImage(smLogo, 'PNG', 170, 10, 25, 25);
+        } catch (e) { console.warn("Could not load SM logo", e); }
+
+        // Centered Header Text
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text("K.S.Rangasamy College of Technology", 105, 20, { align: "center" });
+
+        doc.setFontSize(12);
+        doc.text("(Autonomous)", 105, 26, { align: "center" });
+
+        doc.setFontSize(14);
+        doc.text(event.title || "Event Name", 105, 35, { align: "center" });
+
+        doc.setFontSize(12);
+        doc.text("Attendance Sheet", 105, 42, { align: "center" });
+
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        const dateStr = new Date(event.date).toLocaleDateString();
+        doc.text(`Date: ${dateStr}`, 105, 48, { align: "center" });
+
+        // Table
+        const tableColumn = ["S.No", "Name", "Dept", "Year", "Phone", "Signature"];
+        const tableRows: any[] = [];
+
+        volunteers.forEach((v, index) => {
+            const volunteerData = [
+                index + 1,
+                v.name,
+                v.department,
+                v.year,
+                v.phone,
+                "" // Empty signature column
+            ];
+            tableRows.push(volunteerData);
+        });
+
+        // @ts-ignore
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: 55,
+            theme: 'grid',
+            headStyles: { fillColor: [22, 163, 74] }, // Greenish header or customize as needed
+            columnStyles: {
+                0: { cellWidth: 15 }, // S.No
+                5: { cellWidth: 35 }  // Signature
+            },
+            styles: {
+                minCellHeight: 10, // More space for signature
+                valign: 'middle'
+            }
+        });
+
+        doc.save(`Attendance_${event.title}.pdf`);
+    };
+
     const downloadVolunteersExcel = () => {
         if (volunteers.length === 0) return toast.error("No data");
         const ws = XLSX.utils.json_to_sheet(volunteers.map((v, i) => ({
-            "S.No": i + 1, Name: v.name, Dept: v.department, Year: v.year, Phone: v.phone
+            "S.No": i + 1, Name: v.name, Dept: v.department, Year: v.year, Phone: v.phone, Signature: ""
         })));
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Volunteers");
         XLSX.writeFile(wb, `Volunteers_${event.title}.xlsx`);
+    };
+
+    const downloadODPDF = () => {
+        if (members.length === 0) return toast.error("No OD students found");
+
+        const doc = new jsPDF();
+
+        try {
+            doc.addImage(ksrctLogo, 'PNG', 15, 10, 25, 25);
+            doc.addImage(smLogo, 'PNG', 170, 10, 25, 25);
+        } catch (e) {
+            console.warn("Logo error", e);
+        }
+
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text("K.S.Rangasamy College of Technology", 105, 20, { align: "center" });
+
+        doc.setFontSize(12);
+        doc.text("(Autonomous)", 105, 26, { align: "center" });
+
+        doc.setFontSize(14);
+        doc.text(event.title || "Event Name", 105, 35, { align: "center" });
+
+        doc.setFontSize(12);
+        doc.text("On-Duty Permission List", 105, 42, { align: "center" });
+
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        const dateStr = new Date(event.date).toLocaleDateString();
+        doc.text(`Event Date: ${dateStr}`, 105, 48, { align: "center" });
+
+        const tableColumn = ["S.No", "Name", "Department", "Year", "Signature"];
+        const tableRows: any[] = [];
+
+        members.forEach((m, index) => {
+            tableRows.push([
+                index + 1,
+                m.name,
+                m.department || m.dept || "-",
+                m.year || "-",
+                ""
+            ]);
+        });
+
+        // @ts-ignore
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: 55,
+            theme: 'grid',
+            headStyles: { fillColor: [37, 99, 235] }, // Blue for OD
+            columnStyles: {
+                0: { cellWidth: 15 },
+                4: { cellWidth: 35 }
+            },
+            styles: { minCellHeight: 10, valign: 'middle' }
+        });
+
+        const finalY = (doc as any).lastAutoTable.finalY + 15;
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.text("Staff In-charge", 20, finalY + 20);
+        doc.text("Event Coordinator", 160, finalY + 20);
+
+        doc.save(`OD_List_${event.title}.pdf`);
+    };
+
+    const downloadODExcel = () => {
+        if (members.length === 0) return toast.error("No data");
+        const ws = XLSX.utils.json_to_sheet(members.map((m, i) => ({
+            "S.No": i + 1,
+            "Name": m.name,
+            "Department": m.department || m.dept || "-",
+            "Year": m.year || "-",
+            "Email": m.email,
+            "Signature": ""
+        })));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "OD List");
+        XLSX.writeFile(wb, `OD_List_${event.title}.xlsx`);
     };
 
     if (loading) return <div className="flex justify-center p-8">Loading...</div>;
@@ -220,8 +465,14 @@ const EventDetails = () => {
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <CardTitle>On-Duty Students</CardTitle>
                                 <div className="flex gap-2">
+                                    <Button size="sm" variant="outline" onClick={() => downloadODPDF()}>
+                                        <Download className="w-4 h-4 mr-2" /> Download PDF
+                                    </Button>
+                                    <Button size="sm" variant="outline" onClick={() => downloadODExcel()}>
+                                        <Download className="w-4 h-4 mr-2" /> Export Excel
+                                    </Button>
                                     <Button size="sm" onClick={() => setShowAssignDialog(true)}>
-                                        <Plus className="w-4 h-4 mr-2" /> Assign Student
+                                        <Plus className="w-4 h-4 mr-2" /> Add Students
                                     </Button>
                                 </div>
                             </CardHeader>
@@ -229,16 +480,20 @@ const EventDetails = () => {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
+                                            <TableHead>S.No</TableHead>
                                             <TableHead>Name</TableHead>
-                                            <TableHead>Email</TableHead>
+                                            <TableHead>Dept</TableHead>
+                                            <TableHead>Year</TableHead>
                                             <TableHead className="text-right">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {members.map(m => (
+                                        {members.map((m, i) => (
                                             <TableRow key={m.user_id}>
+                                                <TableCell>{i + 1}</TableCell>
                                                 <TableCell className="font-medium">{m.name}</TableCell>
-                                                <TableCell>{m.email}</TableCell>
+                                                <TableCell>{m.department || m.dept || '-'}</TableCell>
+                                                <TableCell>{m.year || '-'}</TableCell>
                                                 <TableCell className="text-right">
                                                     <Button variant="ghost" size="sm" onClick={() => handleRemoveMember(m.user_id)}>
                                                         <Trash2 className="w-4 h-4 text-destructive" />
@@ -246,7 +501,7 @@ const EventDetails = () => {
                                                 </TableCell>
                                             </TableRow>
                                         ))}
-                                        {members.length === 0 && <TableRow><TableCell colSpan={3} className="text-center">No students assigned.</TableCell></TableRow>}
+                                        {members.length === 0 && <TableRow><TableCell colSpan={5} className="text-center">No students assigned.</TableCell></TableRow>}
                                     </TableBody>
                                 </Table>
                             </CardContent>
@@ -257,30 +512,39 @@ const EventDetails = () => {
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <CardTitle>Registered Volunteers</CardTitle>
-                                <Button size="sm" variant="outline" onClick={downloadVolunteersExcel}>
-                                    <Download className="w-4 h-4 mr-2" /> Export Excel
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button size="sm" variant="outline" onClick={downloadVolunteersPDF}>
+                                        <Download className="w-4 h-4 mr-2" /> Download PDF
+                                    </Button>
+                                    <Button size="sm" variant="outline" onClick={downloadVolunteersExcel}>
+                                        <Download className="w-4 h-4 mr-2" /> Export Excel
+                                    </Button>
+                                </div>
                             </CardHeader>
                             <CardContent>
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
+                                            <TableHead className="w-16">S.No</TableHead>
                                             <TableHead>Name</TableHead>
                                             <TableHead>Dept</TableHead>
                                             <TableHead>Year</TableHead>
                                             <TableHead>Phone</TableHead>
+                                            <TableHead className="w-32">Signature</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {volunteers.map((v, i) => (
                                             <TableRow key={i}>
+                                                <TableCell className="font-medium">{i + 1}</TableCell>
                                                 <TableCell className="font-medium">{v.name}</TableCell>
                                                 <TableCell>{v.department}</TableCell>
                                                 <TableCell>{v.year}</TableCell>
                                                 <TableCell>{v.phone}</TableCell>
+                                                <TableCell className="border-b border-muted"></TableCell>
                                             </TableRow>
                                         ))}
-                                        {volunteers.length === 0 && <TableRow><TableCell colSpan={4} className="text-center">No volunteers registered.</TableCell></TableRow>}
+                                        {volunteers.length === 0 && <TableRow><TableCell colSpan={6} className="text-center">No volunteers registered.</TableCell></TableRow>}
                                     </TableBody>
                                 </Table>
                             </CardContent>
@@ -290,21 +554,63 @@ const EventDetails = () => {
 
                 <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
                     <DialogContent>
-                        <DialogHeader><DialogTitle>Assign Student</DialogTitle></DialogHeader>
-                        <form onSubmit={handleAssignMember} className="space-y-4">
-                            <div className="space-y-2">
-                                <Label>Select Student</Label>
-                                <Select value={assignStudentId} onValueChange={setAssignStudentId}>
-                                    <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
-                                    <SelectContent>
-                                        {availableStudents.map(s => (
-                                            <SelectItem key={s.id} value={s.id.toString()}>{s.name} ({s.email})</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <Button type="submit" disabled={!assignStudentId}>Assign</Button>
-                        </form>
+                        <DialogHeader>
+                            <DialogTitle>Assign Student</DialogTitle>
+                            <DialogDescription>Add a single student or import from Excel</DialogDescription>
+                        </DialogHeader>
+
+                        <Tabs defaultValue="single">
+                            <TabsList className="grid w-full grid-cols-2">
+                                <TabsTrigger value="single">Single Assignment</TabsTrigger>
+                                <TabsTrigger value="bulk">Bulk Import</TabsTrigger>
+                            </TabsList>
+
+                            <TabsContent value="single" className="space-y-4 pt-4">
+                                <form onSubmit={handleAssignMember} className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label>Select Student</Label>
+                                        <Select value={assignStudentId} onValueChange={setAssignStudentId}>
+                                            <SelectTrigger><SelectValue placeholder="Search or select student..." /></SelectTrigger>
+                                            <SelectContent>
+                                                {availableStudents.slice(0, 50).map(s => (
+                                                    <SelectItem key={s.id} value={s.id.toString()}>{s.name} ({s.email})</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <p className="text-xs text-muted-foreground">Showing first 50 students. Search to find others.</p>
+                                    </div>
+                                    <Button type="submit" disabled={!assignStudentId} className="w-full">Assign Student</Button>
+                                </form>
+                            </TabsContent>
+
+                            <TabsContent value="bulk" className="space-y-4 pt-4">
+                                <div className="space-y-4">
+                                    <div className="p-4 border rounded-lg bg-muted/20 space-y-2">
+                                        <h4 className="font-medium text-sm">Instructions</h4>
+                                        <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
+                                            <li>Download the sample Excel file</li>
+                                            <li>Fill in the student details (Name is required)</li>
+                                            <li>Upload the updated file</li>
+                                        </ul>
+                                        <Button size="sm" variant="outline" onClick={downloadODSample} className="mt-2 w-full gap-2">
+                                            <Download className="w-4 h-4" /> Download Sample Template
+                                        </Button>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label>Upload Excel File</Label>
+                                        <Input
+                                            type="file"
+                                            accept=".xlsx, .xls, .csv"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) handleImportOD(file);
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            </TabsContent>
+                        </Tabs>
                     </DialogContent>
                 </Dialog>
 

@@ -57,6 +57,7 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
     { icon: UserCircle, label: "My Profile", path: "/office-bearer/profile" },
     { icon: MessageSquare, label: "Feedback Questions", path: "/admin/feedback/questions" },
     { icon: BarChart3, label: "Feedback Reports", path: "/admin/feedback/reports" },
+    { icon: ClipboardCheck, label: "Activity Logs", path: "/admin/activity-logs" },
     { icon: Settings, label: "Settings", path: "/admin/settings" },
   ];
 
@@ -80,10 +81,7 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
     ];
   };
 
-  const getAlumniMenuItems = () => ([
-    { icon: LayoutDashboard, label: "Dashboard", path: "/alumni" },
-    { icon: UserCircle, label: "Profile", path: "/alumni/profile" }
-  ]);
+
 
   const getStudentMenuItems = () => {
     const items = [
@@ -114,7 +112,6 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
     menuItems = getOfficeBearerMenuItems();
     if (menuItems.length === 0) menuItems = [{ icon: LayoutDashboard, label: "Dashboard", path: "/office-bearer" }];
   }
-  else if (user?.role === 'alumni') menuItems = getAlumniMenuItems();
   else if (user?.role === 'student') menuItems = getStudentMenuItems();
 
   if (menuItems.length === 0 && user?.role !== 'office_bearer' && user?.role !== 'student') return null;

@@ -212,17 +212,7 @@ const Index = () => {
                 </CardContent>
               </Card>
 
-              <Card className="gradient-card border-border/50 hover:glow-primary transition-all hover:scale-105 cursor-pointer group">
-                <CardHeader>
-                  <Award className="w-12 h-12 text-accent mb-2 group-hover:scale-110 transition-transform" />
-                  <CardTitle>Alumni Network</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription>
-                    Track alumni achievements, contributions, and maintain connections
-                  </CardDescription>
-                </CardContent>
-              </Card>
+
 
               <Card className="gradient-card border-border/50 hover:glow-accent transition-all hover:scale-105 cursor-pointer group">
                 <CardHeader>

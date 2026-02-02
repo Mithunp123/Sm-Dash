@@ -22,8 +22,8 @@ import { usePermissions } from "@/hooks/usePermissions";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import brandLogo from "../../Images/Brand_logo.png";
-import ksrctLogo from "../../Images/original logo.png"; // Assuming this is correct based on dir list
+import ksrctLogo from "../../Images/Brand_logo.png";
+import smLogo from "../../Images/Picsart_23-05-18_16-47-20-287-removebg-preview.png";
 
 const ManageEvents = () => {
   const navigate = useNavigate();
@@ -57,7 +57,165 @@ const ManageEvents = () => {
   const [eventVolunteers, setEventVolunteers] = useState<any[]>([]);
   const [volunteersLoading, setVolunteersLoading] = useState(false);
   const [volunteerCounts, setVolunteerCounts] = useState<Record<number, number>>({});
-  const [showEditVolunteerDialog, setShowEditVolunteerDialog] = useState(false);
+
+  // Bulk Selection State
+  const [selectedEventIds, setSelectedEventIds] = useState<number[]>([]);
+  const [bulkDownloadLoading, setBulkDownloadLoading] = useState(false);
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedEventIds(events.map(e => e.id));
+    } else {
+      setSelectedEventIds([]);
+    }
+  };
+
+  const handleSelectEvent = (eventId: number, checked: boolean) => {
+    if (checked) {
+      setSelectedEventIds(prev => [...prev, eventId]);
+    } else {
+      setSelectedEventIds(prev => prev.filter(id => id !== eventId));
+    }
+  };
+
+  const downloadSelectedEventsPDF = async () => {
+    if (selectedEventIds.length === 0) {
+      toast.error('No events selected');
+      return;
+    }
+
+    setBulkDownloadLoading(true);
+    try {
+      const doc = new jsPDF();
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+      // Load images once
+      const loadImage = (src: string): Promise<HTMLImageElement> => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.src = src;
+          // Resolve even on error to prevent total failure
+          img.onload = () => resolve(img);
+          img.onerror = () => resolve(img);
+        });
+      };
+
+      const [logo1, logo2] = await Promise.all([
+        loadImage(ksrctLogo),
+        loadImage(smLogo)
+      ]);
+
+      for (let i = 0; i < selectedEventIds.length; i++) {
+        const eventId = selectedEventIds[i];
+        const event = events.find(e => e.id === eventId);
+        if (!event) continue;
+
+        // Fetch volunteers for this event
+        let volunteers = [];
+        try {
+          const response = await fetch(`${API_BASE}/events/${eventId}/volunteers`, {
+            headers: { 'Authorization': `Bearer ${auth.getToken()}` }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success) volunteers = data.volunteers || [];
+          }
+        } catch (e) {
+          console.error(`Failed to load volunteers for event ${eventId}`, e);
+        }
+
+        // Add new page if not the first event
+        if (i > 0) {
+          doc.addPage();
+        }
+
+        // --- PDF Generation Logic (Same as EventDetails) ---
+        // Logos
+        try {
+          if (logo1.src) doc.addImage(logo1, 'PNG', 15, 10, 25, 25);
+        } catch (e) { console.warn("Logo 1 error", e); }
+
+        try {
+          if (logo2.src) doc.addImage(logo2, 'PNG', 170, 10, 25, 25);
+        } catch (e) { console.warn("Logo 2 error", e); }
+
+        // Header
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text("K.S.Rangasamy College of Technology", 105, 20, { align: "center" });
+
+        doc.setFontSize(12);
+        doc.text("(Autonomous)", 105, 26, { align: "center" });
+
+        doc.setFontSize(14);
+        doc.text(event.title || "Event Name", 105, 35, { align: "center" });
+
+        doc.setFontSize(12);
+        doc.text("Attendance Sheet", 105, 42, { align: "center" });
+
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        const dateStr = new Date(event.date).toLocaleDateString();
+        doc.text(`Date: ${dateStr}`, 105, 48, { align: "center" });
+
+        // Table
+        const tableColumn = ["S.No", "Name", "Dept", "Year", "Phone", "Signature"];
+        const tableRows: any[] = [];
+
+        if (volunteers.length > 0) {
+          volunteers.forEach((v: any, index: number) => {
+            const volunteerData = [
+              index + 1,
+              v.name,
+              v.department,
+              v.year,
+              v.phone,
+              ""
+            ];
+            tableRows.push(volunteerData);
+          });
+        } else {
+          // Handle empty volunteers case so PDF still has headers
+          tableRows.push(["-", "No volunteers", "-", "-", "-", "-"]);
+        }
+
+        // @ts-ignore
+        autoTable(doc, {
+          head: [tableColumn],
+          body: tableRows,
+          startY: 55,
+          theme: 'grid',
+          headStyles: { fillColor: [22, 163, 74] },
+          columnStyles: {
+            0: { cellWidth: 15 },
+            5: { cellWidth: 35 }
+          },
+          styles: {
+            minCellHeight: 10,
+            valign: 'middle'
+          }
+        });
+
+        const finalY = (doc as any).lastAutoTable.finalY + 15;
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.text("Staff In-charge", 20, finalY + 15);
+        doc.text("Event Coordinator", 160, finalY + 15);
+        doc.setFont("helvetica", "normal");
+        const generatorName = auth.getUser()?.name || "Admin";
+        doc.text(`Report Generated by: ${generatorName}`, 105, finalY + 25, { align: "center" });
+      }
+
+      doc.save("Selected_Events_Attendance.pdf");
+      toast.success("Attendance sheets downloaded successfully");
+
+    } catch (e: any) {
+      console.error("Bulk download error", e);
+      toast.error("Failed to download PDF: " + e.message);
+    } finally {
+      setBulkDownloadLoading(false);
+    }
+  }; const [showEditVolunteerDialog, setShowEditVolunteerDialog] = useState(false);
   const [showDeleteVolunteerDialog, setShowDeleteVolunteerDialog] = useState(false);
   const [selectedVolunteer, setSelectedVolunteer] = useState<any>(null);
   const [editVolunteerData, setEditVolunteerData] = useState({
@@ -247,18 +405,18 @@ const ManageEvents = () => {
       try {
         const [logo1, logo2] = await Promise.all([
           loadImage(ksrctLogo),
-          loadImage(brandLogo)
+          loadImage(smLogo)
         ]);
 
         // Add Header
         // KSRCT Logo (Left)
         if (logo1) {
-          doc.addImage(logo1, 'PNG', 14, 10, 20, 20);
+          doc.addImage(logo1, 'PNG', 15, 10, 25, 25);
         }
 
         // SM Logo (Right)
         if (logo2) {
-          doc.addImage(logo2, 'PNG', 176, 10, 20, 20);
+          doc.addImage(logo2, 'PNG', 170, 10, 25, 25);
         }
 
         // Text (Center)
@@ -608,137 +766,159 @@ const ManageEvents = () => {
 
           {/* Events Table */}
           <Card className="border-border/50 bg-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+            <CardHeader className="flex flex-row items-center justify-between px-0">
+              <CardTitle className="flex items-center gap-2 text-xl px-4">
                 <Calendar className="w-5 h-5 text-primary" />
                 Events ({events.length})
               </CardTitle>
+              <div className="flex gap-2 px-4">
+                <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-md border border-border/50">
+                  <Checkbox
+                    checked={events.length > 0 && selectedEventIds.length === events.length}
+                    onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+                    aria-label="Select all"
+                  />
+                  <span className="text-sm font-medium">Select All</span>
+                </div>
+
+                {selectedEventIds.length > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={downloadSelectedEventsPDF}
+                    disabled={bulkDownloadLoading}
+                    className="gap-2"
+                  >
+                    {bulkDownloadLoading ? (
+                      <>Generating...</>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4" />
+                        Download ({selectedEventIds.length})
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-0">
               {loading ? (
                 <div className="text-center py-8">Loading events...</div>
               ) : events.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">No events found</div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Image</TableHead>
-                        <TableHead>Title</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Year</TableHead>
-                        <TableHead>Special Day</TableHead>
-                        <TableHead>Volunteers</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {events.map((event) => {
-                        const buildImageUrl = (imageUrl: string | null | undefined) => {
-                          if (!imageUrl) return null;
-                          if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-                            return imageUrl;
-                          }
-                          const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-                          const apiRoot = apiBase.replace(/\/api\/?$/, '');
-                          return `${apiRoot}${imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`}`;
-                        };
-                        const imageUrl = buildImageUrl(event.image_url);
+                <div className="grid grid-cols-1 gap-3 px-4">
+                  {events.map((event) => {
+                    const buildImageUrl = (imageUrl: string | null | undefined) => {
+                      if (!imageUrl) return null;
+                      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+                        return imageUrl;
+                      }
+                      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+                      const apiRoot = apiBase.replace(/\/api\/?$/, '');
+                      return `${apiRoot}${imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`}`;
+                    };
+                    const imageUrl = buildImageUrl(event.image_url);
 
-                        return (
-                          <TableRow key={event.id}>
-                            <TableCell>
-                              {imageUrl ? (
-                                <div className="w-16 h-16 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center">
-                                  <img
-                                    src={imageUrl}
-                                    alt={event.title}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = 'none';
-                                      if (e.currentTarget.nextElementSibling) {
-                                        (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
-                                      }
-                                    }}
-                                  />
-                                  <div className="hidden items-center justify-center text-muted-foreground text-xs">
-                                    <ImageIcon className="w-4 h-4" />
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="w-16 h-16 rounded-lg border border-border bg-muted flex items-center justify-center text-muted-foreground">
-                                  <ImageIcon className="w-5 h-5" />
-                                </div>
-                              )}
-                            </TableCell>
-                            <TableCell className="font-medium">{event.title}</TableCell>
-                            <TableCell>{new Date(event.date).toLocaleDateString()}</TableCell>
-                            <TableCell>{event.year}</TableCell>
-                            <TableCell>
-                              {event.is_special_day ? (
-                                <Badge variant="default" className="bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/20">Yes</Badge>
-                              ) : (
-                                <Badge variant="outline">No</Badge>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Users className="w-4 h-4 text-primary" />
-                                <span className="font-medium">{volunteerCounts[event.id] || 0}</span>
-                                <span className="text-sm text-muted-foreground">registered</span>
+                    return (
+                      <div key={event.id} className={`group flex flex-col md:flex-row items-center gap-4 p-4 rounded-xl border border-border/50 bg-card hover:bg-muted/50 transition-colors ${selectedEventIds.includes(event.id) ? 'bg-muted/40 ring-1 ring-primary/20' : ''}`}>
+                        {/* Checkbox */}
+                        <Checkbox
+                          checked={selectedEventIds.includes(event.id)}
+                          onCheckedChange={(checked) => handleSelectEvent(event.id, checked as boolean)}
+                        />
+
+                        {/* Thumbnail */}
+                        <div className="flex-shrink-0 w-full md:w-20 md:h-20 h-40 rounded-lg overflow-hidden bg-muted border border-border/50 relative">
+                          {imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={event.title}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                              <ImageIcon className="w-6 h-6 opacity-30" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0 grid gap-1 text-center md:text-left w-full">
+                          <div className="flex flex-col md:flex-row md:items-center gap-2 justify-between">
+                            <div>
+                              <h3 className="font-semibold text-lg leading-none mb-1">{event.title}</h3>
+                              <div className="flex flex-wrap items-center gap-2 justify-center md:justify-start text-xs text-muted-foreground">
+                                <Badge variant="outline" className="font-normal bg-background/50">{event.year}</Badge>
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  {new Date(event.date).toLocaleDateString()}
+                                </span>
                               </div>
-                            </TableCell>
-                            <TableCell className="text-right space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedEvent(event);
-                                  setFormData({
-                                    title: event.title,
-                                    description: event.description || "",
-                                    date: event.date ? event.date.split('T')[0] : "",
-                                    year: event.year || new Date().getFullYear().toString(),
-                                    is_special_day: event.is_special_day || false,
-                                    image_url: event.image_url || "",
-                                    max_volunteers: event.max_volunteers?.toString() || "",
-                                    volunteer_registration_deadline: event.volunteer_registration_deadline ? event.volunteer_registration_deadline.slice(0, 16) : ""
-                                  });
-                                  setEventImageFile(null);
-                                  setShowEditDialog(true);
-                                }}
-                                className="gap-2"
-                              >
-                                <Edit className="w-4 h-4" />
-                                Edit
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => navigate(`/admin/events/${event.id}`)}
-                                className="gap-2"
-                              >
-                                <Eye className="w-4 h-4" />
-                                View Details
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedEvent(event);
-                                  setShowDeleteDialog(true);
-                                }}
-                                className="gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2 justify-center md:justify-end mt-2 md:mt-0">
+                              {event.is_special_day && (
+                                <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">Special Day</Badge>
+                              )}
+                              <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/5 rounded-full text-xs font-medium text-primary">
+                                <Users className="w-3 h-3" />
+                                {volunteerCounts[event.id] || 0}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 w-full md:w-auto justify-end border-t md:border-t-0 pt-2 md:pt-0 mt-2 md:mt-0 border-border/50">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => navigate(`/admin/events/${event.id}`)}
+                            className="gap-2 h-9 px-4"
+                          >
+                            <Eye className="w-4 h-4" />
+                            Manage
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              setSelectedEvent(event);
+                              setFormData({
+                                title: event.title,
+                                description: event.description || "",
+                                date: event.date ? event.date.split('T')[0] : "",
+                                year: event.year || new Date().getFullYear().toString(),
+                                is_special_day: event.is_special_day || false,
+                                image_url: event.image_url || "",
+                                max_volunteers: event.max_volunteers?.toString() || "",
+                                volunteer_registration_deadline: event.volunteer_registration_deadline ? event.volunteer_registration_deadline.slice(0, 16) : ""
+                              });
+                              setEventImageFile(null);
+                              setShowEditDialog(true);
+                            }}
+                            className="h-9 w-9"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => {
+                              setSelectedEvent(event);
+                              setShowDeleteDialog(true);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

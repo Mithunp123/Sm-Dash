@@ -57,6 +57,7 @@ import PhoneMentoringUpdate from "./pages/PhoneMentoringUpdate";
 import StudentMessages from "./pages/StudentMessages";
 import StudentEvents from "./pages/StudentEvents";
 import Announcements from "./pages/Announcements";
+import ManageActivityLogs from "./pages/ManageActivityLogs";
 
 const queryClient = new QueryClient();
 
@@ -108,6 +109,7 @@ const App = () => (
             <Route path="/admin/events/:id" element={<EventDetails />} />
             <Route path="/admin/awards" element={<ProtectedRoute requiredPermission="can_manage_events"><ManageAwards /></ProtectedRoute>} />
             <Route path="/admin/announcements" element={<ProtectedRoute requiredPermission="can_manage_announcements"><Announcements /></ProtectedRoute>} />
+            <Route path="/admin/activity-logs" element={<ProtectedRoute requiredRoles={['admin']}><ManageActivityLogs /></ProtectedRoute>} />
             {/* Student Assignments removed */}
             <Route path="/resources" element={<Resources />} />
             <Route path="/office-bearer" element={<OfficeBearerDashboard />} />

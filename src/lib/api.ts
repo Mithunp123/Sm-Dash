@@ -788,15 +788,7 @@ class ApiClient {
     });
   }
 
-  // Alumni endpoints
-  async getAlumni() {
-    const response = await this.request('/alumni');
-    // Handle permission denied by returning empty array
-    if (!response.success && response.message?.includes('forbidden')) {
-      return { success: true, alumni: [] };
-    }
-    return response;
-  }
+
 
   async bulkAssignStudentsToProject(projectId: number, studentIds: number[]) {
     return this.request(`/projects/${projectId}/bulk-assign-students`, {

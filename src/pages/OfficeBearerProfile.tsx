@@ -93,7 +93,8 @@ const OfficeBearerProfile = () => {
         gender: "",
         dob: "",
         address: "",
-        hosteller_dayscholar: ""
+        hosteller_dayscholar: "",
+        position: ""
       };
 
       // Load office bearer profile using the unified profile endpoint
@@ -584,6 +585,16 @@ const OfficeBearerProfile = () => {
                             <SelectItem value="Dayscholar">Dayscholar</SelectItem>
                           </SelectContent>
                         </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="font-medium text-sm text-foreground">Position in SM Volunteers</Label>
+                        <Input
+                          value={profileData.position || ''}
+                          onChange={(e) => setProfileData({ ...profileData, position: e.target.value })}
+                          placeholder="e.g., President, Secretary, etc."
+                          className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all duration-300 focus:ring-2 focus:ring-primary/20 cursor-text"
+                          disabled={!isEditing}
+                        />
                       </div>
                     </div>
 

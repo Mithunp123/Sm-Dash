@@ -159,14 +159,18 @@ export default function ViewFeedbackReports() {
       XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
 
       // Detailed responses sheet
-      const detailsData = responses.map(r => ({
-        'Student': r.student_name,
-        'Email': r.student_email,
-        'Question': r.question_text,
-        'Rating': r.rating || 'N/A',
-        'Feedback': r.feedback_text || '',
-        'Date': new Date(r.created_at).toLocaleDateString(),
-      }));
+      const detailsData = responses.map(r => {
+        const question = questions.find(q => q.id === r.question_id);
+        return {
+          'Student Name': r.student_name,
+          'Email': r.student_email,
+          'Event': question?.event_title || 'General Feedback',
+          'Question': r.question_text || question?.question_text,
+          'Rating': r.rating || 'N/A',
+          'Feedback': r.feedback_text || '',
+          'Date': new Date(r.created_at).toLocaleDateString(),
+        };
+      });
 
       const detailsSheet = XLSX.utils.json_to_sheet(detailsData);
       XLSX.utils.book_append_sheet(workbook, detailsSheet, 'Detailed Responses');
@@ -249,83 +253,102 @@ export default function ViewFeedbackReports() {
                 const hasResponses = (questionStats?.totalResponses || 0) > 0;
 
                 return (
-                  <Card key={question.id} className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-800">
-                          {question.question_text}
-                        </h3>
-                        {question.event_title && (
-                          <p className="text-sm text-blue-600 font-medium mt-1">
-                            📅 Event: {question.event_title} ({new Date(question.event_date).toLocaleDateString()})
-                          </p>
-                        )}
-                        {!question.event_title && (
-                          <p className="text-sm text-purple-600 font-medium mt-1">
-                            📋 General Feedback
-                          </p>
-                        )}
-                        <div className="flex items-center gap-4 mt-3">
-                          <span className="text-sm text-gray-600">
-                            <span className="font-semibold text-lg">
-                              {questionStats?.totalResponses || 0}
-                            </span>{' '}
-                            responses
-                          </span>
-                          {hasResponses && (
-                            <>
-                              <span className="text-sm text-gray-600">
-                                Average Rating:{' '}
-                                <span className="font-semibold">
-                                  {questionStats?.averageRating.toFixed(1)}/5 ⭐
-                                </span>
+                  <div key={question.id} className="group relative overflow-hidden rounded-xl border border-border/50 bg-card hover:bg-muted/50 transition-all duration-300">
+                    <div className="p-6">
+                      <div className="flex flex-col md:flex-row gap-6 items-start">
+                        <div className="flex-1 space-y-3">
+                          <div className="flex items-start justify-between gap-4">
+                            <h3 className="text-lg font-semibold text-foreground leading-tight">
+                              {question.question_text}
+                            </h3>
+                            <span className="shrink-0 px-2 py-1 rounded text-[10px] uppercase font-bold tracking-wider bg-muted text-muted-foreground">
+                              {question.question_type === 'rating' ? 'Rating' : 'Text'}
+                            </span>
+                          </div>
+
+                          {question.event_title ? (
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-medium border border-blue-500/10">
+                                📅 {question.event_title}
                               </span>
-                              {/* Rating distribution bars */}
-                              <div className="flex gap-1">
-                                {[5, 4, 3, 2, 1].map(rating => {
-                                  const count = questionStats?.ratingDistribution[rating] || 0;
-                                  const percentage =
-                                    (questionStats?.totalResponses || 0) > 0
-                                      ? (count / (questionStats?.totalResponses || 1)) * 100
-                                      : 0;
-                                  return (
-                                    <div
-                                      key={rating}
-                                      className="flex flex-col items-center"
-                                      title={`${rating} stars: ${count} (${percentage.toFixed(0)}%)`}
-                                    >
-                                      <div className="w-6 bg-gray-200 rounded overflow-hidden h-12">
-                                        <div
-                                          className={`w-full transition-all ${rating >= 4
-                                            ? 'bg-green-500'
-                                            : rating === 3
-                                              ? 'bg-yellow-500'
-                                              : 'bg-red-500'
-                                            }`}
-                                          style={{ height: `${percentage || 5}%` }}
-                                        />
-                                      </div>
-                                      <span className="text-xs mt-1 font-semibold">{rating}</span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </>
+                              <span className="text-xs text-muted-foreground">{new Date(question.event_date!).toLocaleDateString()}</span>
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-medium border border-purple-500/10">
+                              📋 General Feedback
+                            </span>
                           )}
                         </div>
+
+                        <div className="w-full md:w-auto flex flex-col items-end gap-3 min-w-[200px]">
+                          {hasResponses ? (
+                            <div className="text-right">
+                              <div className="text-2xl font-bold text-foreground">
+                                {questionStats?.totalResponses}
+                                <span className="text-sm font-normal text-muted-foreground ml-1">responses</span>
+                              </div>
+                              {question.question_type === 'rating' && (
+                                <div className="text-sm font-medium text-amber-500 flex items-center justify-end gap-1">
+                                  {questionStats?.averageRating.toFixed(1)} <span className="text-amber-400">★</span> Avg
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-muted-foreground text-sm italic py-2">No responses yet</div>
+                          )}
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewDetails(question.id)}
+                            disabled={!hasResponses}
+                            className="w-full md:w-auto gap-2"
+                          >
+                            <Eye className="w-4 h-4" />
+                            View Analysis
+                          </Button>
+                        </div>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleViewDetails(question.id)}
-                        disabled={!hasResponses}
-                        className="gap-2"
-                      >
-                        <Eye className="w-4 h-4" />
-                        View Details
-                      </Button>
+
+                      {/* Mini Viz for Rating */}
+                      {hasResponses && question.question_type === 'rating' && (
+                        <div className="mt-6 pt-6 border-t border-border/50">
+                          <div className="flex items-end gap-1 h-12">
+                            {[1, 2, 3, 4, 5].map(rating => {
+                              const count = questionStats?.ratingDistribution[rating] || 0;
+                              const total = questionStats?.totalResponses || 1;
+                              const percentage = (count / total) * 100;
+
+                              // Color gradient from Red (1) to Green (5)
+                              const colorClass =
+                                rating === 1 ? 'bg-red-500' :
+                                  rating === 2 ? 'bg-orange-500' :
+                                    rating === 3 ? 'bg-yellow-500' :
+                                      rating === 4 ? 'bg-lime-500' : 'bg-green-500';
+
+                              return (
+                                <div key={rating} className="flex-1 flex flex-col justify-end gap-1 group/bar cursor-default">
+                                  <div className="w-full bg-muted/30 rounded-t-sm relative h-full">
+                                    <div
+                                      className={`absolute bottom-0 left-0 right-0 rounded-t-sm transition-all duration-500 ${colorClass} opacity-80 group-hover/bar:opacity-100`}
+                                      style={{ height: `${percentage}%` }}
+                                    />
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="text-[10px] text-muted-foreground font-medium">{rating}★</div>
+                                  </div>
+                                  {/* Tooltip-ish */}
+                                  <div className="hidden group-hover/bar:block absolute -mt-8 bg-popover text-popover-foreground text-[10px] px-2 py-1 rounded shadow-sm z-10 whitespace-nowrap">
+                                    {count} votes ({percentage.toFixed(0)}%)
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </Card>
+                  </div>
                 );
               })}
             </div>

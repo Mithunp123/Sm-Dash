@@ -116,7 +116,7 @@ const LandingPage = () => {
   const [submittingVolunteer, setSubmittingVolunteer] = useState(false);
   const [departments, setDepartments] = useState<string[]>([]);
   const [pageReady, setPageReady] = useState(false);
-  const [selectedAlumni, setSelectedAlumni] = useState<any>(null);
+
   const [officeBearers, setOfficeBearers] = useState<any[]>([]);
 
   useEffect(() => {
@@ -1635,35 +1635,7 @@ const LandingPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Alumni Detail Dialog */}
-      <Dialog open={selectedAlumni !== null} onOpenChange={() => setSelectedAlumni(null)}>
-        <DialogContent className="max-w-xl bg-slate-900 border-slate-800 p-0 overflow-hidden rounded-[2.5rem]">
-          {selectedAlumni && (
-            <div className="relative">
-              <div className="h-32 bg-gradient-to-r from-primary/20 to-blue-600/20"></div>
-              <div className="px-8 pb-10 -mt-12">
-                <div className="w-24 h-24 rounded-3xl bg-slate-800 border-4 border-slate-900 flex items-center justify-center text-4xl font-black text-primary shadow-2xl mb-6">
-                  {selectedAlumni.name.charAt(0)}
-                </div>
-                <h3 className="text-3xl font-black text-white mb-1">{selectedAlumni.name}</h3>
-                <p className="text-primary font-bold uppercase tracking-widest text-sm mb-6">
-                  {selectedAlumni.dept} • Batch {selectedAlumni.batch}
-                </p>
-                <div className="space-y-4">
-                  <div className="w-20 h-1 bg-primary/30 rounded-full"></div>
-                  <p className="text-slate-300 text-lg italic leading-relaxed font-medium">
-                    "{selectedAlumni.content}"
-                  </p>
-                </div>
-                <div className="mt-8 pt-8 border-t border-slate-800 flex justify-between items-center">
-                  <p className="text-slate-500 text-sm font-bold uppercase tracking-tighter">SM Volunteer Alumni Network</p>
-                  <Button variant="ghost" className="text-slate-400" onClick={() => setSelectedAlumni(null)}>Close</Button>
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+
     </motion.div >
   );
 };
@@ -1697,12 +1669,7 @@ const facultyCoordinators = [
   }
 ];
 
-const alumniData = [
-  { name: "Saran Kumar", dept: "B.Tech Biotechnology", batch: "2023", content: "SM Volunteers shaped my perspective on social responsibility. It wasn't just service; it was a leadership journey." },
-  { name: "Priyanka S", dept: "BE Computer Science", batch: "2022", content: "The networking and impact we created through Bhumi collaborations were the highlights of my college years." },
-  { name: "Manoj Rathinam", dept: "BE Mechatronics", batch: "2023", content: "Grateful for the opportunities to serve. The awards we won together remain my proudest achievement." },
-  { name: "Deepika R", dept: "B.Tech IT", batch: "2022", content: "Fostering empathy and skills through volunteering helped me grow personally and professionally." }
-];
+
 
 const otherActiveVolunteers = [
   { name: "Naveen Raj", dept: "BE EEE", year: "3rd Year" },

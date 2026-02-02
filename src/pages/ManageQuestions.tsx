@@ -232,32 +232,58 @@ export default function ManageQuestions() {
           ) : (
             <div className="space-y-4">
               {questions.map(question => (
-                <Card key={question.id} className="p-6 gradient-card border-border/50">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-800">
-                        {question.question_text}
-                      </h3>
-                      <div className="flex items-center gap-4 mt-2 text-sm text-gray-600 flex-wrap">
-                        <span className="bg-gray-100 px-2 py-1 rounded">
-                          {question.question_type === 'rating' ? '⭐ Rating Scale' : '📝 Text'}
-                        </span>
-                        {question.event_title && (
-                          <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                            📅 {question.event_title}
+                <div key={question.id} className="group relative overflow-hidden rounded-xl border border-border/50 bg-card hover:bg-muted/50 transition-all duration-300">
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${question.is_enabled ? 'bg-green-500' : 'bg-muted-foreground/30'}`} />
+
+                  <div className="p-5 pl-7 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-start justify-between sm:justify-start gap-3">
+                        <h3 className="font-semibold text-lg text-foreground leading-tight">
+                          {question.question_text}
+                        </h3>
+                        {question.is_enabled ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 uppercase tracking-wide">
+                            Active
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground border border-border uppercase tracking-wide">
+                            Disabled
                           </span>
                         )}
-                        {!question.event_title && (
-                          <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50 border border-border/50">
+                          {question.question_type === 'rating' ? (
+                            <>
+                              <span className="text-amber-500">⭐</span> Rating Scale
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-blue-500">📝</span> Text Response
+                            </>
+                          )}
+                        </span>
+
+                        {question.event_title ? (
+                          <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-500/5 text-blue-600 dark:text-blue-400 border border-blue-500/10">
+                            📅 {question.event_title}
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-purple-500/5 text-purple-600 dark:text-purple-400 border border-purple-500/10">
                             📋 General Feedback
                           </span>
                         )}
-                        <span>Created: {new Date(question.created_at).toLocaleDateString()}</span>
+
+                        <span className="px-2 py-1">
+                          Created: {new Date(question.created_at).toLocaleDateString()}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+
+                    <div className="flex items-center gap-2 self-end sm:self-center pt-2 sm:pt-0 border-t sm:border-t-0 w-full sm:w-auto mt-2 sm:mt-0 justify-end">
                       <Button
-                        variant="outline"
+                        variant={question.is_enabled ? "outline" : "default"}
                         size="sm"
                         onClick={async () => {
                           try {
@@ -267,33 +293,35 @@ export default function ManageQuestions() {
                             toast({ title: 'Error', description: e.message || 'Failed to toggle question', variant: 'destructive' });
                           }
                         }}
-                        className="gap-2"
+                        className={`h-8 text-xs ${!question.is_enabled ? 'bg-green-600 hover:bg-green-700' : ''}`}
                       >
                         {question.is_enabled ? 'Disable' : 'Enable'}
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleOpen(question)}
-                        className="gap-2"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => setDeleteId(question.id)}
-                        className="gap-2"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Delete
-                      </Button>
+
+                      <div className="flex bg-muted/50 rounded-md border border-border/50 p-0.5">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleOpen(question)}
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </Button>
+                        <div className="w-px bg-border/50 my-1" />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeleteId(question.id)}
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </Card>
+                </div>
               ))}
-            </div>
+            </div >
           )}
 
           {/* Create/Edit Dialog */}
@@ -416,9 +444,9 @@ export default function ManageQuestions() {
               </div>
             </AlertDialogContent>
           </AlertDialog>
-        </div>
-      </main>
+        </div >
+      </main >
 
-    </div>
+    </div >
   );
 }

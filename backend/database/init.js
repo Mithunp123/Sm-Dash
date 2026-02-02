@@ -83,7 +83,7 @@ export const initDatabase = async () => {
         name TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
-        role TEXT NOT NULL CHECK(role IN ('admin', 'office_bearer', 'student', 'alumni', 'spoc')),
+        role TEXT NOT NULL CHECK(role IN ('admin', 'office_bearer', 'student')),
         must_change_password INTEGER DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -139,12 +139,12 @@ export const initDatabase = async () => {
       )
     `);
 
-    // Unified profiles table (stores common profile fields for students, office bearers, alumni and SPOCs)
+    // Unified profiles table (stores common profile fields for students and office bearers)
     await run(database, `
       CREATE TABLE IF NOT EXISTS profiles (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
-        role TEXT NOT NULL CHECK(role IN ('student','office_bearer','alumni','spoc')),
+        role TEXT NOT NULL CHECK(role IN ('admin', 'student','office_bearer')),
         dept TEXT,
         year TEXT,
         phone TEXT,
@@ -153,6 +153,11 @@ export const initDatabase = async () => {
         dob TEXT,
         address TEXT,
         photo_url TEXT,
+        register_no TEXT,
+        academic_year TEXT,
+        father_number TEXT,
+        hosteller_dayscholar TEXT,
+        position TEXT,
         custom_fields TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -186,6 +191,10 @@ export const initDatabase = async () => {
         await run(database, `ALTER TABLE profiles ADD COLUMN hosteller_dayscholar TEXT`);
         console.log('✅ Added hosteller_dayscholar column to profiles table');
       }
+      if (!columnNames.includes('position')) {
+        await run(database, `ALTER TABLE profiles ADD COLUMN position TEXT`);
+        console.log('✅ Added position column to profiles table');
+      }
     } catch (e) {
       console.warn('⚠️  Could not check/add columns:', e.message);
     }
@@ -212,15 +221,7 @@ export const initDatabase = async () => {
           }
         } catch (e) { }
 
-        // Legacy spoc_profiles are intentionally skipped (SPOC role removed)
-
-        // For alumni, ensure there is a profiles row (alumni table has extra fields which we keep)
-        try {
-          const alums = await all(database, 'SELECT * FROM alumni');
-          for (const a of alums) {
-            await run(database, `INSERT OR IGNORE INTO profiles (user_id, role, dept, year, phone, blood_group, gender, dob, address, custom_fields) VALUES (?, 'alumni', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)`, [a.user_id]);
-          }
-        } catch (e) { }
+        // Legacy spoc and alumni profiles are intentionally skipped (roles removed)
       }
     } catch (e) {
       // ignore migration errors
@@ -379,7 +380,7 @@ export const initDatabase = async () => {
         can_manage_volunteers INTEGER DEFAULT 0,
         can_manage_messages INTEGER DEFAULT 0,
         can_manage_students INTEGER DEFAULT 0,
-        can_manage_alumni INTEGER DEFAULT 0,
+
         can_manage_feedback_questions INTEGER DEFAULT 0,
         can_manage_feedback_reports INTEGER DEFAULT 0,
         can_manage_permissions_module INTEGER DEFAULT 0,
@@ -409,7 +410,7 @@ export const initDatabase = async () => {
       'can_manage_volunteers',
       'can_manage_messages',
       'can_manage_students',
-      'can_manage_alumni',
+
       'can_manage_feedback_questions',
       'can_manage_feedback_reports',
       'can_manage_permissions_module',
@@ -548,19 +549,17 @@ export const initDatabase = async () => {
       // Column already exists, ignore
     }
 
-    // Alumni table
+    // Activity logs table
     await run(database, `
-      CREATE TABLE IF NOT EXISTS alumni (
+      CREATE TABLE IF NOT EXISTS activity_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        graduation_year INTEGER,
-        current_position TEXT,
-        company TEXT,
-        achievements TEXT,
-        contact_email TEXT,
-        linkedin_url TEXT,
+        user_id INTEGER,
+        action TEXT NOT NULL,
+        details TEXT,
+        ip_address TEXT,
+        user_agent TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
       )
     `);
 
@@ -1212,22 +1211,7 @@ export const initDatabase = async () => {
       )
     `);
 
-    // SPOC Project/Event Assignments - Links SPOCs to projects/events they manage
-    await run(database, `
-      CREATE TABLE IF NOT EXISTS spoc_assignments (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        spoc_id INTEGER NOT NULL,
-        project_id INTEGER,
-        event_id INTEGER,
-        assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        assigned_by INTEGER,
-        FOREIGN KEY (spoc_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
-        FOREIGN KEY (assigned_by) REFERENCES users(id) ON DELETE SET NULL,
-        CHECK((project_id IS NOT NULL AND event_id IS NULL) OR (project_id IS NULL AND event_id IS NOT NULL))
-      )
-    `);
+
 
     // Volunteer Assignments - Links registered students as volunteers to events
     await run(database, `

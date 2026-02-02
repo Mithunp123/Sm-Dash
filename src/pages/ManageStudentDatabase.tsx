@@ -126,7 +126,7 @@ const ManageStudentDatabase = () => {
       if (usersRes.success) {
         const users = usersRes.users || [];
 
-        // Fetch profiles for students, office bearers, and alumni
+        // Fetch profiles for students and office bearers
         const usersWithProfiles = await Promise.all(
           users.map(async (u: any) => {
             try {
@@ -140,17 +140,6 @@ const ManageStudentDatabase = () => {
                 });
                 const data = await res.json();
                 profile = data.success ? data.profile : null;
-              } else if (u.role === 'alumni') {
-                // For alumni, try to get profile from unified profiles table
-                try {
-                  const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/${u.id}/profile`, {
-                    headers: { 'Authorization': `Bearer ${auth.getToken()}` }
-                  });
-                  const data = await res.json();
-                  profile = data.success ? data.profile : null;
-                } catch {
-                  profile = null;
-                }
               }
               return { ...u, profile };
             } catch {
@@ -214,17 +203,6 @@ const ManageStudentDatabase = () => {
         res = await api.updateStudentProfile(selectedUser.id, profileData);
       } else if (selectedUser.role === 'office_bearer') {
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/profile/office-bearer/${selectedUser.id}`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${auth.getToken()}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(profileData)
-        });
-        res = await response.json();
-      } else if (selectedUser.role === 'alumni') {
-        // For alumni, update using unified profiles endpoint
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/${selectedUser.id}/profile`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${auth.getToken()}`,
@@ -363,8 +341,7 @@ const ManageStudentDatabase = () => {
   const roleLabels: Record<string, string> = {
     'admin': 'Admin',
     'student': 'Student',
-    'office_bearer': 'Office Bearer',
-    'alumni': 'Alumni'
+    'office_bearer': 'Office Bearer'
   };
 
   return (
@@ -389,7 +366,7 @@ const ManageStudentDatabase = () => {
               <div className="mb-6 flex items-center justify-between">
                 <div>
                   <h1 className="text-3xl font-semibold text-foreground mb-1">User Database</h1>
-                  <p className="text-sm text-muted-foreground">View, edit, and manage all user records (Students, Office Bearers, Alumni)</p>
+                  <p className="text-sm text-muted-foreground">View, edit, and manage all user records (Students, Office Bearers)</p>
                 </div>
                 {!canEdit && (
                   <div className="flex items-center gap-3">

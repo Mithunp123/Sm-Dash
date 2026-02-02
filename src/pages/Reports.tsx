@@ -423,8 +423,8 @@ const Reports = () => {
 
               <div className="w-full">
                 {!currentFolder ? (
-                  /* Root View: Folders Grid */
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  /* Root View: Folders Grid Pattern */
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {loading ? (
                       <div className="col-span-full text-center py-12">
                         <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-primary" />
@@ -436,10 +436,10 @@ const Reports = () => {
                       const matchesSearch = f.name.toLowerCase().includes(searchQuery.toLowerCase());
                       return matchesFolder && matchesType && matchesSearch;
                     }).length === 0 ? (
-                      <div className="col-span-full py-20 text-center border-2 border-dashed rounded-xl bg-card/30">
-                        <Folder className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-                        <p className="text-lg font-medium text-muted-foreground">No folders yet</p>
-                        <p className="text-sm text-muted-foreground mb-6">Create your first folder to start organizing reports</p>
+                      <div className="col-span-full py-20 text-center border-2 border-dashed border-muted-foreground/20 rounded-xl bg-muted/5">
+                        <Folder className="w-16 h-16 text-muted-foreground/20 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-foreground">No folders yet</h3>
+                        <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">Create your first folder to start organizing your {activeTypeLabel.toLowerCase()}s.</p>
                         <Button
                           variant="outline"
                           onClick={() => {
@@ -464,9 +464,9 @@ const Reports = () => {
                           return matchesFolder && matchesType && matchesSearch;
                         })
                         .map((folder) => (
-                          <Card
+                          <div
                             key={folder.id}
-                            className={`group hover:border-primary/50 transition-all cursor-pointer hover:shadow-lg bg-card/50 backdrop-blur-sm ${folder.description?.includes('[DISABLED]') ? 'opacity-70 bg-red-50/10' : ''}`}
+                            className={`group relative p-5 rounded-xl border border-border/50 bg-card hover:bg-muted/50 transition-all duration-300 hover:shadow-md cursor-pointer overflow-hidden ${folder.description?.includes('[DISABLED]') ? 'opacity-70 bg-red-50/10' : ''}`}
                             onClick={() => {
                               const isDisabled = folder.description?.includes('[DISABLED]');
                               if (isDisabled && !auth.hasRole('admin')) {
@@ -477,71 +477,84 @@ const Reports = () => {
                               loadFiles();
                             }}
                           >
-                            <CardContent className="p-5">
-                              <div className="flex flex-col gap-3">
-                                <div className="flex items-start justify-between">
-                                  <div className={`p-2.5 rounded-lg transition-colors ${folder.description?.includes('[DISABLED]') && !auth.hasRole('admin') ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white'}`}>
-                                    <Folder className="w-6 h-6" />
-                                  </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeleteFolder(folder.id);
-                                    }}
-                                    className="h-8 w-8 p-0 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
+                            <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteFolder(folder.id);
+                                }}
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+
+                            <div className="flex flex-col h-full justify-between gap-4">
+                              <div>
+                                <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 transition-colors ${folder.category === 'TQI' ? 'bg-orange-100 text-orange-600' :
+                                  folder.category === 'BHUMI' ? 'bg-green-100 text-green-600' :
+                                    folder.category === 'SM' ? 'bg-blue-100 text-blue-600' :
+                                      'bg-primary/10 text-primary'
+                                  }`}>
+                                  <Folder className="w-6 h-6" fill="currentColor" fillOpacity={0.2} />
                                 </div>
-                                <div className="space-y-1">
-                                  <h3 className="font-semibold text-lg truncate group-hover:text-primary transition-colors flex items-center gap-2">
-                                    {folder.name}
-                                    {folder.description?.includes('[DISABLED]') && <Badge variant="destructive" className="text-[10px] h-5">Disabled</Badge>}
-                                  </h3>
-                                  {folder.category && (
-                                    <span className="inline-block text-[10px] px-2 py-0.5 bg-primary/10 text-primary rounded-full font-bold uppercase tracking-wider border border-primary/20">
-                                      {folder.category}
-                                    </span>
+
+                                <h3 className="font-semibold text-lg leading-tight group-hover:text-primary transition-colors line-clamp-1 mb-1">
+                                  {folder.name}
+                                </h3>
+
+                                <div className="flex items-center gap-2">
+                                  {folder.description?.includes('[DISABLED]') && (
+                                    <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">Disabled</Badge>
                                   )}
-                                  {folder.description && (
-                                    <p className="text-sm text-muted-foreground line-clamp-1">{folder.description.replace('[DISABLED]', '').trim()}</p>
+                                  {folder.category && (
+                                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-normal bg-muted text-muted-foreground border-0">
+                                      {folder.category}
+                                    </Badge>
                                   )}
                                 </div>
 
-                                <div className="pt-2 border-t mt-2 flex justify-end">
-                                  {auth.hasRole('admin') && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setEditingFolder(folder);
-                                        setFolderName(folder.name);
-                                        const isDisabled = folder.description?.includes('[DISABLED]');
-                                        setIsFolderDisabled(isDisabled);
-                                        setFolderDescription(folder.description ? folder.description.replace('[DISABLED]', '').trim() : '');
-                                        setShowFolderModal(true);
-                                      }}
-                                      className="h-6 text-xs gap-1 opacity-0 group-hover:opacity-100"
-                                    >
-                                      <Edit className="w-3 h-3" /> Edit
-                                    </Button>
-                                  )}
-                                </div>
+                                {folder.description && (
+                                  <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                                    {folder.description.replace('[DISABLED]', '').trim()}
+                                  </p>
+                                )}
                               </div>
-                            </CardContent>
-                          </Card>
+
+                              {auth.hasRole('admin') && (
+                                <div className="pt-2 border-t border-border/50 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingFolder(folder);
+                                      setFolderName(folder.name);
+                                      const isDisabled = folder.description?.includes('[DISABLED]');
+                                      setIsFolderDisabled(isDisabled);
+                                      setFolderDescription(folder.description ? folder.description.replace('[DISABLED]', '').trim() : '');
+                                      setShowFolderModal(true);
+                                    }}
+                                    className="text-xs font-medium text-muted-foreground hover:text-primary flex items-center gap-1"
+                                  >
+                                    <Edit className="w-3 h-3" /> Edit
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         ))
                     )}
                   </div>
                 ) : (
                   /* Folder View: Files List */
-                  <Card className="bg-card/50 backdrop-blur-sm">
-                    <CardHeader className="flex flex-row items-center justify-between border-b pb-4">
+                  <Card className="border-border/50 shadow-none bg-card/50 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-2">
+                    <CardHeader className="flex flex-row items-center justify-between border-b px-6 py-4">
                       <div className="space-y-1">
-                        <CardTitle className="text-xl">{getCurrentFolderName()}</CardTitle>
+                        <CardTitle className="text-xl flex items-center gap-2">
+                          <Folder className="w-5 h-5 text-primary" />
+                          {getCurrentFolderName()}
+                        </CardTitle>
                         <CardDescription>
                           Viewing files in this folder
                         </CardDescription>
@@ -555,9 +568,11 @@ const Reports = () => {
                         </div>
                       ) : files.filter(f => (f.title || f.original_name).toLowerCase().includes(searchQuery.toLowerCase())).length === 0 ? (
                         <div className="py-20 text-center">
-                          <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-                          <p className="text-lg font-medium text-muted-foreground">No files here</p>
-                          <p className="text-sm text-muted-foreground mb-6">Start by uploading a report to this folder</p>
+                          <div className="bg-muted/30 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <FileText className="w-8 h-8 text-muted-foreground/30" />
+                          </div>
+                          <p className="text-lg font-medium text-foreground">No files here</p>
+                          <p className="text-sm text-muted-foreground mb-6">Start by uploading a {activeTypeLabel.toLowerCase()} to this folder</p>
                           <Button
                             variant="outline"
                             onClick={() => setShowUploadModal(true)}
@@ -568,7 +583,7 @@ const Reports = () => {
                           </Button>
                         </div>
                       ) : (
-                        <div className="divide-y">
+                        <div className="divide-y divide-border/50">
                           {files
                             .filter(f => (f.title || f.original_name).toLowerCase().includes(searchQuery.toLowerCase()))
                             .map((file) => (
@@ -577,26 +592,32 @@ const Reports = () => {
                                 className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors group"
                               >
                                 <div className="flex items-center gap-4 flex-1 min-w-0">
-                                  <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                                  <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
                                     <FileText className="w-5 h-5" />
                                   </div>
                                   <div className="min-w-0 flex-1">
                                     <p className="font-semibold text-foreground truncate group-hover:text-primary transition-colors">
                                       {file.title || file.original_name}
                                     </p>
-                                    <p className="text-xs text-muted-foreground font-medium">
-                                      {file.upload_date && file.upload_time
-                                        ? `${file.upload_date} • ${file.upload_time}`
-                                        : new Date(file.created_at).toLocaleDateString()}
+                                    <p className="text-xs text-muted-foreground font-medium flex items-center gap-2">
+                                      <span>{new Date(file.created_at).toLocaleDateString()}</span>
+                                      {(file.uploader_name || file.user_name) && (
+                                        <>
+                                          <span className="w-1 h-1 rounded-full bg-border"></span>
+                                          <span className="text-primary/70">by {file.uploader_name || file.user_name}</span>
+                                        </>
+                                      )}
+                                      <span className="w-1 h-1 rounded-full bg-border"></span>
+                                      <span>{activeTypeLabel}</span>
                                     </p>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => window.open(buildFileUrl(file), '_blank')}
-                                    className="h-8 rounded-full px-4"
+                                    className="h-8 px-3 text-xs"
                                   >
                                     View
                                   </Button>
@@ -611,15 +632,15 @@ const Reports = () => {
                                       link.click();
                                       document.body.removeChild(link);
                                     }}
-                                    className="h-8 rounded-full px-4 bg-primary/10 text-primary hover:bg-primary/20 border-none"
+                                    className="h-8 px-3 text-xs bg-primary/10 text-primary hover:bg-primary/20 border-none"
                                   >
                                     Download
                                   </Button>
                                   <Button
                                     variant="ghost"
-                                    size="sm"
+                                    size="icon"
                                     onClick={() => handleDeleteFile(file.id)}
-                                    className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                    className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                                   >
                                     <Trash2 className="w-4 h-4" />
                                   </Button>

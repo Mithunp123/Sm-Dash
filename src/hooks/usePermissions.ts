@@ -42,9 +42,6 @@ interface Permissions {
   can_manage_students: boolean;
   can_manage_students_view: boolean;
   can_manage_students_edit: boolean;
-  can_manage_alumni: boolean;
-  can_manage_alumni_view: boolean;
-  can_manage_alumni_edit: boolean;
   can_manage_feedback_questions: boolean;
   can_manage_feedback_questions_view: boolean;
   can_manage_feedback_questions_edit: boolean;
@@ -110,9 +107,6 @@ export const usePermissions = () => {
     can_manage_students: false,
     can_manage_students_view: false,
     can_manage_students_edit: false,
-    can_manage_alumni: false,
-    can_manage_alumni_view: false,
-    can_manage_alumni_edit: false,
     can_manage_feedback_questions: false,
     can_manage_feedback_questions_view: false,
     can_manage_feedback_questions_edit: false,
@@ -187,9 +181,6 @@ export const usePermissions = () => {
           can_manage_students: true,
           can_manage_students_view: true,
           can_manage_students_edit: true,
-          can_manage_alumni: true,
-          can_manage_alumni_view: true,
-          can_manage_alumni_edit: true,
           can_manage_feedback_questions: true,
           can_manage_feedback_questions_view: true,
           can_manage_feedback_questions_edit: true,
@@ -254,9 +245,7 @@ export const usePermissions = () => {
           can_manage_students: false,
           can_manage_students_view: false,
           can_manage_students_edit: false,
-          can_manage_alumni: false,
-          can_manage_alumni_view: false,
-          can_manage_alumni_edit: false,
+
           can_manage_feedback_questions: false,
           can_manage_feedback_questions_view: false,
           can_manage_feedback_questions_edit: false,
@@ -280,7 +269,7 @@ export const usePermissions = () => {
           can_manage_announcements_edit: false
         });
       } else {
-        // All other roles get no permissions (alumni, etc.)
+        // All other roles get no permissions
         setPermissions({
           can_manage_users: false,
           can_manage_users_view: false,
@@ -321,9 +310,7 @@ export const usePermissions = () => {
           can_manage_students: false,
           can_manage_students_view: false,
           can_manage_students_edit: false,
-          can_manage_alumni: false,
-          can_manage_alumni_view: false,
-          can_manage_alumni_edit: false,
+
           can_manage_feedback_questions: false,
           can_manage_feedback_questions_view: false,
           can_manage_feedback_questions_edit: false,

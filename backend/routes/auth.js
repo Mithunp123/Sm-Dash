@@ -6,6 +6,7 @@ import { authenticateToken } from '../middleware/auth.js';
 import { body, validationResult } from 'express-validator';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
+import { logActivity } from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -113,6 +114,7 @@ router.post('/login', [
         console.log('   Available users in database:', allUsers);
       }
 
+      await logActivity(null, 'LOGIN_FAILED', { email, reason: 'User not found' }, req);
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
@@ -124,6 +126,7 @@ router.post('/login', [
 
     if (!isValidPassword) {
       console.log(`❌ Login failed: Invalid password for email: ${email}`);
+      await logActivity(user.id, 'LOGIN_FAILED', { email, reason: 'Invalid password' }, req);
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
@@ -146,6 +149,8 @@ router.post('/login', [
       process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
+
+    await logActivity(user.id, 'LOGIN_SUCCESS', { email: user.email, role: user.role }, req);
 
     res.json({
       success: true,
@@ -393,6 +398,8 @@ router.post('/change-password', authenticateToken, [
       console.error(`❌ Password verification failed after update for user ${user.email}`);
       return res.status(500).json({ success: false, message: 'Password update verification failed' });
     }
+
+    await logActivity(req.user.id, 'PASSWORD_CHANGED', { email: user.email }, req);
 
     res.json({ success: true, message: 'Password changed successfully' });
   } catch (error) {

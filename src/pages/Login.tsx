@@ -197,9 +197,7 @@ const Login = () => {
       case "student":
         navigate("/student");
         break;
-      case "alumni":
-        navigate("/admin/student-db");
-        break;
+
       default:
         navigate("/");
     }

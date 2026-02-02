@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
@@ -12,6 +12,7 @@ interface MainLayoutProps {
 
 const MainLayout = ({ showSidebar = true }: MainLayoutProps) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const location = useLocation();
 
     return (
         <div className="flex min-h-screen w-full flex-col bg-background text-foreground relative selection:bg-primary/20 overflow-x-hidden">
@@ -61,7 +62,7 @@ const MainLayout = ({ showSidebar = true }: MainLayoutProps) => {
                     <Outlet />
                 </main>
 
-                <Footer />
+                {location.pathname === '/' && <Footer />}
             </div>
         </div>
     );

@@ -223,16 +223,9 @@ const ManageOfficeBearers = () => {
 
   const downloadMasterExcel = async () => {
     try {
-      toast.loading("Gathering volunteer and alumni data...");
+      toast.loading("Gathering volunteer data...");
 
-      // Get Alumni Data - Fixed with try/catch to prevent 404 crash
-      let alumniList = [];
-      try {
-        const alumniRes = await api.getAlumni();
-        alumniList = alumniRes.success ? alumniRes.alumni : [];
-      } catch (e) {
-        console.warn("Alumni API failed, proceeding without alumni data", e);
-      }
+
 
       // Get Volunteer Data (from localStorage where Submissions are stored)
       const subJson = localStorage.getItem("volunteer_submissions");
@@ -282,19 +275,7 @@ const ManageOfficeBearers = () => {
       const wsSub = XLSX.utils.json_to_sheet(subData);
       XLSX.utils.book_append_sheet(wb, wsSub, "Volunteer Applications");
 
-      // Alumni Sheet
-      const alData = alumniList.map((al: any) => ({
-        Name: al.name,
-        Batch: al.batch || '-',
-        Department: al.dept || '-',
-        Message: al.content || '-'
-      }));
-      if (alData.length === 0) {
-        // Add sample header if empty
-        alData.push({ Name: '-', Batch: '-', Department: '-', Message: '-' });
-      }
-      const wsAlumni = XLSX.utils.json_to_sheet(alData);
-      XLSX.utils.book_append_sheet(wb, wsAlumni, "Alumni Network");
+
 
       // Download
       XLSX.writeFile(wb, `SM_Volunteers_Community_Directory_${new Date().toISOString().slice(0, 10)}.xlsx`);

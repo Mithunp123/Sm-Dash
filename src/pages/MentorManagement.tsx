@@ -948,7 +948,7 @@ const MentorManagement = () => {
                     <Button
                       onClick={() => setShowExcelUploadDialog(true)}
                       variant="outline"
-                      className="gap-2 border-blue-200 text-blue-700 hover:bg-blue-50"
+                      className="gap-2"
                     >
                       <FileSpreadsheet className="w-4 h-4" />
                       Upload Excel
@@ -960,7 +960,7 @@ const MentorManagement = () => {
                         setShowBulkExpectedClassesDialog(true);
                       }}
                       variant="outline"
-                      className="gap-2 border-orange-200 text-orange-700 hover:bg-orange-50"
+                      className="gap-2"
                     >
                       <Settings className="w-4 h-4" />
                       Set Expected Classes (All)
@@ -975,7 +975,7 @@ const MentorManagement = () => {
                         await loadViewAttendance();
                       }}
                       variant="outline"
-                      className="gap-2 border-green-200 text-green-700 hover:bg-green-50"
+                      className="gap-2"
                     >
                       <FileSpreadsheet className="w-4 h-4" />
                       View Attendance
@@ -1004,31 +1004,31 @@ const MentorManagement = () => {
                 <div className="overflow-x-auto border rounded-lg">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-white dark:bg-slate-900 hover:bg-white dark:hover:bg-slate-900">
-                        <TableHead className="w-16 text-center font-bold text-gray-700 dark:text-slate-200">S.No</TableHead>
-                        <TableHead className="font-bold text-gray-700 dark:text-slate-200">Name</TableHead>
-                        <TableHead className="font-bold text-gray-700 dark:text-slate-200">Phone / Mentor</TableHead>
-                        <TableHead className="font-bold text-gray-700 dark:text-slate-200">Standard</TableHead>
-                        <TableHead className="font-bold text-gray-700 dark:text-slate-200">School</TableHead>
-                        <TableHead className="font-bold text-gray-700 dark:text-slate-200">District</TableHead>
-                        <TableHead className="font-bold text-gray-700 dark:text-slate-200">Panchayat</TableHead>
-                        <TableHead className="font-bold text-gray-700 dark:text-slate-200">Status</TableHead>
-                        <TableHead className="font-bold text-center text-gray-700 dark:text-slate-200">Expected Classes</TableHead>
-                        <TableHead className="font-bold text-center text-gray-700 dark:text-slate-200">Classes Taken</TableHead>
-                        <TableHead className="font-bold text-right text-gray-700 dark:text-slate-200">Actions</TableHead>
+                      <TableRow className="bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                        <TableHead className="w-16 text-center font-bold">S.No</TableHead>
+                        <TableHead className="font-bold">Name</TableHead>
+                        <TableHead className="font-bold">Phone / Mentor</TableHead>
+                        <TableHead className="font-bold">Standard</TableHead>
+                        <TableHead className="font-bold">School</TableHead>
+                        <TableHead className="font-bold">District</TableHead>
+                        <TableHead className="font-bold">Panchayat</TableHead>
+                        <TableHead className="font-bold">Status</TableHead>
+                        <TableHead className="font-bold text-center">Expected Classes</TableHead>
+                        <TableHead className="font-bold text-center">Classes Taken</TableHead>
+                        <TableHead className="font-bold text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredMentees.map((mentee, idx) => (
-                        <TableRow key={mentee.id} className="bg-grey hover:bg-gray-50/30">
-                          <TableCell className="text-center font-medium text-gray-600">{idx + 1}</TableCell>
-                          <TableCell className="font-medium text-indigo-700">{mentee.mentee_name}</TableCell>
-                          <TableCell className="text-gray-700">
+                        <TableRow key={mentee.id} className="hover:bg-muted/50">
+                          <TableCell className="text-center font-medium">{idx + 1}</TableCell>
+                          <TableCell className="font-medium text-foreground">{mentee.mentee_name}</TableCell>
+                          <TableCell>
                             <div className="flex items-center gap-3 flex-wrap">
                               {mentee.mentee_phone && (
                                 <a
                                   href={`tel:${mentee.mentee_phone}`}
-                                  className="flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline"
+                                  className="flex items-center gap-1 text-primary hover:underline"
                                 >
                                   <PhoneCall className="w-4 h-4" />
                                   <span>{mentee.mentee_phone}</span>
@@ -1037,50 +1037,46 @@ const MentorManagement = () => {
                               {!mentee.mentee_phone && <span>—</span>}
                               {mentee.volunteer_name && (
                                 <div className="flex items-center gap-1">
-                                  <span className="text-xs text-gray-500">Mentor:</span>
+                                  <span className="text-xs text-muted-foreground">Mentor:</span>
                                   {mentee.volunteer_phone ? (
                                     <a
                                       href={`tel:${mentee.volunteer_phone}`}
-                                      className="flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                                      className="flex items-center gap-1 text-primary hover:underline font-medium"
                                     >
                                       <PhoneCall className="w-3.5 h-3.5" />
                                       <span>{mentee.volunteer_name}</span>
                                     </a>
                                   ) : (
-                                    <span className="text-xs text-gray-700 font-medium">{mentee.volunteer_name}</span>
+                                    <span className="text-xs font-medium">{mentee.volunteer_name}</span>
                                   )}
                                 </div>
                               )}
                             </div>
                           </TableCell>
-                          <TableCell className="text-gray-700">{mentee.mentee_year || "—"}</TableCell>
-                          <TableCell className="text-gray-700">{mentee.mentee_school || "—"}</TableCell>
-                          <TableCell className="text-gray-700">{mentee.mentee_district || "—"}</TableCell>
-                          <TableCell className="text-gray-700">{(mentee as any).mentee_address || "—"}</TableCell>
+                          <TableCell>{mentee.mentee_year || "—"}</TableCell>
+                          <TableCell>{mentee.mentee_school || "—"}</TableCell>
+                          <TableCell>{mentee.mentee_district || "—"}</TableCell>
+                          <TableCell>{(mentee as any).mentee_address || "—"}</TableCell>
                           <TableCell>
                             <Badge
                               variant={mentee.mentee_status === "active" ? "default" : "secondary"}
-                              className={mentee.mentee_status === "active" ? "bg-blue-100 text-blue-700 hover:bg-blue-200" : ""}
                             >
                               {mentee.mentee_status || "active"}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-center">
                             <div className="flex flex-col items-center">
-                              <span className="font-medium text-gray-700">{(mentee as any).expected_classes || "—"}</span>
+                              <span className="font-medium">{(mentee as any).expected_classes || "—"}</span>
                               {(mentee as any).expected_classes && (
-                                <span className="text-xs text-gray-500">Scheduled</span>
+                                <span className="text-xs text-muted-foreground">Scheduled</span>
                               )}
                             </div>
                           </TableCell>
                           <TableCell className="text-center">
                             <div className="flex flex-col items-center">
-                              <span className="font-medium text-gray-700">{mentee.total_classes || 0}</span>
+                              <span className="font-medium">{mentee.total_classes || 0}</span>
                               {(mentee as any).expected_classes && (
-                                <span className={`text-xs ${(mentee.total_classes || 0) >= ((mentee as any).expected_classes || 0)
-                                  ? "text-emerald-600"
-                                  : "text-orange-600"
-                                  }`}>
+                                <span className="text-xs text-muted-foreground">
                                   of {(mentee as any).expected_classes}
                                 </span>
                               )}
@@ -1092,7 +1088,7 @@ const MentorManagement = () => {
                                 size="sm"
                                 variant="default"
                                 onClick={() => openAssignMentorDialog(mentee)}
-                                className="h-8 px-2 gap-2 bg-green-600 hover:bg-green-700"
+                                className="h-8 px-2 gap-2"
                                 title="Assign Mentor"
                               >
                                 <UserCheck className="w-3.5 h-3.5" />
@@ -1370,11 +1366,11 @@ const MentorManagement = () => {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 mt-4">
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="p-3 bg-muted/50 border rounded-lg">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-blue-900">Need a sample file?</p>
-                      <p className="text-xs text-blue-700 mt-1">Download the Excel template with example data</p>
+                      <p className="text-sm font-medium">Need a sample file?</p>
+                      <p className="text-xs text-muted-foreground mt-1">Download the Excel template with example data</p>
                     </div>
                     <Button
                       variant="outline"
@@ -1485,7 +1481,7 @@ const MentorManagement = () => {
                     filteredMentees.map((mentee) => (
                       <div
                         key={mentee.id}
-                        className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                        className="p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
                         onClick={() => {
                           if (selectDialogType) {
                             openHistoryDialog(mentee, selectDialogType);
@@ -1496,14 +1492,13 @@ const MentorManagement = () => {
                       >
                         <div className="flex justify-between items-center">
                           <div>
-                            <p className="font-medium text-gray-900">{mentee.mentee_name}</p>
-                            <p className="text-sm text-gray-600">
+                            <p className="font-medium">{mentee.mentee_name}</p>
+                            <p className="text-sm text-muted-foreground">
                               {mentee.mentee_phone || "—"} • {mentee.mentee_school || "—"} • {mentee.mentee_district || "—"}
                             </p>
                           </div>
                           <Badge
                             variant={mentee.mentee_status === "active" ? "default" : "secondary"}
-                            className={mentee.mentee_status === "active" ? "bg-emerald-100 text-emerald-700" : ""}
                           >
                             {mentee.mentee_status || "active"}
                           </Badge>
@@ -1537,19 +1532,19 @@ const MentorManagement = () => {
                 {assigningMentee && (
                   <>
                     {assigningMentee.project_title && (
-                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-sm font-medium text-blue-900">Project: {assigningMentee.project_title}</p>
+                      <div className="p-3 bg-muted/50 border rounded-lg">
+                        <p className="text-sm font-medium">Project: {assigningMentee.project_title}</p>
                       </div>
                     )}
                     <div className="space-y-2">
                       <Label>Select Volunteer (Mentor) *</Label>
                       {loadingVolunteers ? (
-                        <div className="p-3 border border-gray-200 rounded-md bg-gray-50">
-                          <p className="text-sm text-gray-600">Loading volunteers...</p>
+                        <div className="p-3 border rounded-md bg-muted/50">
+                          <p className="text-sm text-muted-foreground">Loading volunteers...</p>
                         </div>
                       ) : projectVolunteers.length === 0 ? (
-                        <div className="p-3 border border-yellow-200 rounded-md bg-yellow-50">
-                          <p className="text-sm text-yellow-800">
+                        <div className="p-3 border rounded-md bg-destructive/10 border-destructive/20">
+                          <p className="text-sm text-destructive">
                             {assigningMentee.project_id
                               ? "No volunteers found in this project. Please add volunteers to the project first."
                               : "Mentee is not assigned to any project."}
@@ -1777,7 +1772,7 @@ const MentorManagement = () => {
                     </div>
                     <div className="overflow-x-auto border rounded-xl">
                       <Table>
-                        <TableHeader className="bg-slate-50 dark:bg-slate-900">
+                        <TableHeader className="bg-muted/50">
                           <TableRow>
                             <TableHead className="font-bold">Mentee Name</TableHead>
                             <TableHead className="font-bold">Phone</TableHead>

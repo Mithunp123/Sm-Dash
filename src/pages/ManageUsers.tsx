@@ -355,7 +355,6 @@ const ManageUsers = () => {
       case 'admin': return 'destructive';
       case 'office_bearer': return 'default';
       case 'student': return 'outline';
-      case 'alumni': return 'outline';
       default: return 'outline';
     }
   };
@@ -566,7 +565,6 @@ const ManageUsers = () => {
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="office_bearer">Office Bearer</SelectItem>
                   <SelectItem value="student">Student</SelectItem>
-                  <SelectItem value="alumni">Alumni</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -839,7 +837,6 @@ const ManageUsers = () => {
                               <SelectContent>
                                 <SelectItem value="student">Student</SelectItem>
                                 <SelectItem value="office_bearer">Office Bearer</SelectItem>
-                                {/* SPOC role removed */}
                               </SelectContent>
                             </Select>
                           </TableCell>

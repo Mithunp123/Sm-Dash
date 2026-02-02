@@ -38,8 +38,6 @@ const AdminDashboard = () => {
       toast.error("Access denied. Management access required.");
       if (role === 'student') {
         navigate("/student");
-      } else if (role === 'alumni') {
-        navigate("/student"); // Or wherever alumni go
       } else {
         navigate("/");
       }
