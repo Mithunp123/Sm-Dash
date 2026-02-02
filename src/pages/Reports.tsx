@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import DeveloperCredit from '@/components/DeveloperCredit';
+import { BackButton } from '@/components/BackButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -324,6 +325,11 @@ const Reports = () => {
       <main className="flex-1 p-4 md:p-8 bg-transparent w-full overflow-y-auto">
         <div className="w-full">
 
+          {/* Back Button */}
+          <div className="mb-4">
+            <BackButton />
+          </div>
+
           {/* Page Header */}
           <div className="mb-6 flex items-center justify-between">
             <div>
@@ -592,7 +598,22 @@ const Reports = () => {
                                     onClick={() => window.open(buildFileUrl(file), '_blank')}
                                     className="h-8 rounded-full px-4"
                                   >
-                                    View File
+                                    View
+                                  </Button>
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => {
+                                      const link = document.createElement('a');
+                                      link.href = buildFileUrl(file);
+                                      link.download = file.title || file.original_name;
+                                      document.body.appendChild(link);
+                                      link.click();
+                                      document.body.removeChild(link);
+                                    }}
+                                    className="h-8 rounded-full px-4 bg-primary/10 text-primary hover:bg-primary/20 border-none"
+                                  >
+                                    Download
                                   </Button>
                                   <Button
                                     variant="ghost"

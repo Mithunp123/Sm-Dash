@@ -33,7 +33,7 @@ const Index = () => {
             <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-12 mb-12 animate-fade-in">
               {/* KSRCT Logo */}
               <div className="logo-container group">
-                <div className="w-32 h-32 md:w-40 md:h-40 bg-card/50 rounded-lg flex items-center justify-center border-2 border-primary/30 hover:border-primary transition-all duration-300 hover:scale-105 hover:shadow-[0_0_25px_rgb(255,122,0)] overflow-hidden">
+                <div className="w-40 h-40 md:w-48 md:h-48 bg-card/50 rounded-lg flex items-center justify-center border-2 border-primary/30 hover:border-primary transition-all duration-300 hover:scale-105 hover:shadow-[0_0_25px_rgb(255,122,0)] overflow-hidden">
                   <img
                     src="Images/Brand_logo.png"
                     alt="K.S.Rangasamy College of Technology"
@@ -73,7 +73,7 @@ const Index = () => {
 
               {/* NGO Logos */}
               <div className="logo-container group">
-                <div className="w-32 h-32 md:w-40 md:h-40 bg-card/50 rounded-lg flex items-center justify-center border-2 border-violet/30 hover:border-violet transition-all duration-300 hover:scale-105 hover:shadow-[0_0_25px_rgb(156,106,255)] p-2 overflow-hidden relative">
+                <div className="w-40 h-40 md:w-48 md:h-48 bg-card/50 rounded-lg flex items-center justify-center border-2 border-violet/30 hover:border-violet transition-all duration-300 hover:scale-105 hover:shadow-[0_0_25px_rgb(156,106,255)] p-2 overflow-hidden relative">
                   <div className="grid grid-cols-3 gap-1 w-full h-full">
                     <div className="flex items-center justify-center">
                       <img

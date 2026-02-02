@@ -22,6 +22,8 @@ import { usePermissions } from "@/hooks/usePermissions";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import brandLogo from "../../Images/Brand_logo.png";
+import ksrctLogo from "../../Images/original logo.png"; // Assuming this is correct based on dir list
 
 const ManageEvents = () => {
   const navigate = useNavigate();
@@ -222,7 +224,7 @@ const ManageEvents = () => {
     }
   };
 
-  const downloadVolunteersPDF = () => {
+  const downloadVolunteersPDF = async () => {
     if (!eventVolunteers || eventVolunteers.length === 0) {
       toast.error('No volunteers to export');
       return;
@@ -230,8 +232,58 @@ const ManageEvents = () => {
 
     try {
       const doc = new jsPDF();
+      const eventTitle = selectedEvent?.title || 'Event';
 
-      const tableColumn = ["S.No", "Name", "Department", "Year", "Phone", "Registered On", "Signature"];
+      // Load images
+      const loadImage = (src: string): Promise<HTMLImageElement> => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.src = src;
+          img.onload = () => resolve(img);
+          img.onerror = (e) => resolve(img); // Resolve anyway to avoid crash, maybe log error
+        });
+      };
+
+      try {
+        const [logo1, logo2] = await Promise.all([
+          loadImage(ksrctLogo),
+          loadImage(brandLogo)
+        ]);
+
+        // Add Header
+        // KSRCT Logo (Left)
+        if (logo1) {
+          doc.addImage(logo1, 'PNG', 14, 10, 20, 20);
+        }
+
+        // SM Logo (Right)
+        if (logo2) {
+          doc.addImage(logo2, 'PNG', 176, 10, 20, 20);
+        }
+
+        // Text (Center)
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text("K.S.Rangasamy College of Technology", 105, 18, { align: "center" });
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.text("(Autonomous)", 105, 24, { align: "center" });
+
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text(eventTitle, 105, 32, { align: "center" });
+
+        doc.setFontSize(10);
+        doc.text("Attendance Sheet", 105, 38, { align: "center" });
+
+      } catch (e) {
+        console.error("Error loading logos", e);
+        // Fallback title if logos fail
+        doc.setFontSize(16);
+        doc.text(`${eventTitle} - Volunteers List`, 14, 15);
+      }
+
+      const tableColumn = ["S.No", "Name", "Department", "Year", "Phone", "Signature"];
       const tableRows: any[] = [];
 
       eventVolunteers.forEach((volunteer, index) => {
@@ -241,33 +293,26 @@ const ManageEvents = () => {
           volunteer.department || '',
           volunteer.year || '',
           volunteer.phone || '',
-          new Date(volunteer.created_at || volunteer.registered_at).toLocaleDateString('en-IN', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-          }),
           '' // Empty signature column
         ];
         tableRows.push(volunteerData);
       });
 
-      // Add title
-      doc.setFontSize(16);
-      doc.text(`${selectedEvent?.title || 'Event'} - Volunteers List`, 14, 15);
-
       autoTable(doc, {
         head: [tableColumn],
         body: tableRows,
-        startY: 20,
-        styles: { fontSize: 10 },
+        startY: 45,
+        styles: { fontSize: 10, cellPadding: 3 },
         columnStyles: {
           0: { cellWidth: 15 }, // S.No
-          6: { cellWidth: 40 }  // Signature
+          5: { cellWidth: 40 }  // Signature
         },
-        theme: 'grid'
+        theme: 'grid',
+        didDrawPage: (data) => {
+          // Footer??
+        }
       });
 
-      const eventTitle = selectedEvent?.title || 'Event';
       doc.save(`${eventTitle.replace(/[^a-z0-9]/gi, '_')}_volunteers.pdf`);
       toast.success('PDF file downloaded successfully');
     } catch (error: any) {

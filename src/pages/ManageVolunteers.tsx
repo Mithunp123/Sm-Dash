@@ -422,7 +422,7 @@ const ManageVolunteers = () => {
   return (
     <div className="flex-1 flex flex-col">
       <main className="flex-1 p-4 md:p-8 bg-transparent overflow-y-auto">
-        <div className="max-w-7xl mx-auto">
+        <div className="w-full space-y-6">
           {/* dev bypass banner */}
           {(typeof window !== 'undefined' && window.location && window.location.hostname && window.location.hostname.includes('localhost')) && !(auth.isAuthenticated() && (auth.hasRole('admin') || permissions?.can_manage_volunteers)) && !devBypass && (
             <div className="mb-4">

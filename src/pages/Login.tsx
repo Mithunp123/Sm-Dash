@@ -473,13 +473,9 @@ const Login = () => {
           className="hidden md:flex flex-col items-center justify-center p-12 rounded-3xl backdrop-blur-xl bg-white/60 dark:bg-slate-900/60 border border-white/40 shadow-2xl hover:bg-white/70 dark:hover:bg-slate-900/70 transition-all duration-500 group [perspective:1000px] overflow-hidden"
           style={{ transformStyle: "preserve-3d" }}
         >
-          <div className="relative" style={{ transformStyle: "preserve-3d" }}>
+          <div className="relative">
             <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse"></div>
-            <motion.div
-              animate={{ rotateY: 360 }}
-              transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-              style={{ transformStyle: "preserve-3d" }}
-            >
+            <motion.div>
               <img
                 src="/Images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
                 alt="SM Volunteers Logo"

@@ -589,9 +589,15 @@ class ApiClient {
   }
 
   // Bill endpoints
-  async getBills(eventId?: number) {
-    if (eventId) {
-      return this.request(`/bills?event_id=${eventId}`);
+  async getBills(param?: number | { eventId?: number; folderId?: number }) {
+    if (typeof param === 'number') {
+      return this.request(`/bills?event_id=${param}`);
+    }
+    if (param?.eventId || param?.folderId) {
+      const query = new URLSearchParams();
+      if (param.eventId) query.append('event_id', param.eventId.toString());
+      if (param.folderId) query.append('folderId', param.folderId.toString());
+      return this.request(`/bills?${query.toString()}`);
     }
     return this.request('/bills');
   }
@@ -796,6 +802,26 @@ class ApiClient {
     return this.request(`/projects/${projectId}/bulk-assign-students`, {
       method: 'POST',
       body: JSON.stringify({ studentIds }),
+    });
+  }
+
+  // Announcement endpoints
+  async getAnnouncements() {
+    // Landing page ticker needs this publicly occasionally, but for now we'll use authenticated req
+    // Since it's for landing page, if no token, we can try public endpoint if exists
+    return this.request('/announcements');
+  }
+
+  async createAnnouncement(data: any) {
+    return this.request('/announcements', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async deleteAnnouncement(id: number) {
+    return this.request(`/announcements/${id}`, {
+      method: 'DELETE'
     });
   }
 
@@ -1196,6 +1222,46 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  // Office Bearers endpoints
+  async getOfficeBearers() {
+    return this.request('/office-bearers');
+  }
+
+  async getPublicOfficeBearers() {
+    const fullUrl = `${this.baseURL}/office-bearers/public`;
+    try {
+      const res = await fetch(fullUrl);
+      if (!res.ok) return { success: true, officeBearers: [] };
+      return res.json();
+    } catch (e) {
+      return { success: true, officeBearers: [] };
+    }
+  }
+
+  async createOfficeBearer(formData: FormData) {
+    const url = `${this.baseURL}/office-bearers`;
+    const headers: HeadersInit = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+    const res = await fetch(url, { method: 'POST', body: formData, headers });
+    return res.json();
+  }
+
+  async updateOfficeBearer(id: number, formData: FormData) {
+    const url = `${this.baseURL}/office-bearers/${id}`;
+    const headers: HeadersInit = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+    const res = await fetch(url, { method: 'PUT', body: formData, headers });
+    return res.json();
+  }
+
+  async deleteOfficeBearer(id: number) {
+    return this.request(`/office-bearers/${id}`, { method: 'DELETE' });
   }
 
   async logout() {

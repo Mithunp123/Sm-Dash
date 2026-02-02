@@ -47,7 +47,6 @@ import ManageEvents from "./pages/ManageEvents";
 import EventDetails from "./pages/EventDetails";
 import ManageAwards from "./pages/ManageAwards";
 import AdminResources from "./pages/AdminResources";
-import ManageStudentAssignments from "./pages/ManageStudentAssignments";
 import Resources from "./pages/Resources";
 import Reports from "./pages/Reports";
 import ManageTeams from "./pages/ManageTeams";
@@ -57,6 +56,7 @@ import MentorManagement from "./pages/MentorManagement";
 import PhoneMentoringUpdate from "./pages/PhoneMentoringUpdate";
 import StudentMessages from "./pages/StudentMessages";
 import StudentEvents from "./pages/StudentEvents";
+import Announcements from "./pages/Announcements";
 
 const queryClient = new QueryClient();
 
@@ -88,7 +88,7 @@ const App = () => (
             <Route path="/admin/projects" element={<ProtectedRoute requiredPermission="can_manage_projects"><ManageProjects /></ProtectedRoute>} />
             <Route path="/admin/projects/:id/assign" element={<ProtectedRoute requiredPermission="can_manage_projects"><AssignProjectStudents /></ProtectedRoute>} />
             <Route path="/admin/projects/:id" element={<ProtectedRoute blockedRoles={['student']}><ProjectDetails /></ProtectedRoute>} />
-            <Route path="/admin/office-bearers" element={<ProtectedRoute requiredPermission="can_manage_users"><ManageOfficeBearers /></ProtectedRoute>} />
+            <Route path="/admin/office-bearers" element={<ProtectedRoute requiredRoles={['admin']}><ManageOfficeBearers /></ProtectedRoute>} />
             <Route path="/admin/attendance" element={<ProtectedRoute requiredPermission="can_manage_attendance"><ManageAttendance /></ProtectedRoute>} />
             <Route path="/admin/attendance/projects" element={<ProtectedRoute requiredPermission="can_manage_attendance"><AttendanceProjects /></ProtectedRoute>} />
             <Route path="/admin/attendance/meetings" element={<ProtectedRoute requiredPermission="can_manage_attendance"><AttendanceMeetings /></ProtectedRoute>} />
@@ -101,12 +101,13 @@ const App = () => (
             <Route path="/admin/resources" element={<ProtectedRoute requiredPermission="can_manage_resources"><AdminResources /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute requiredPermission="can_view_reports"><Reports /></ProtectedRoute>} />
             <Route path="/admin/teams" element={<ProtectedRoute requiredPermission="can_manage_teams"><ManageTeams /></ProtectedRoute>} />
-            <Route path="/admin/mentor-management" element={<ProtectedRoute requiredPermission="can_manage_projects"><MentorManagement /></ProtectedRoute>} />
-            <Route path="/admin/mentees/:projectId/:id" element={<ProtectedRoute requiredPermission="can_manage_projects"><MenteeDetails /></ProtectedRoute>} />
+            <Route path="/admin/mentor-management" element={<ProtectedRoute requiredRoles={['admin']}><MentorManagement /></ProtectedRoute>} />
+            <Route path="/admin/mentees/:projectId/:id" element={<ProtectedRoute requiredRoles={['admin']}><MenteeDetails /></ProtectedRoute>} />
             <Route path="/admin/messages" element={<ProtectedRoute requiredPermission="can_manage_messages"><AdminMessages /></ProtectedRoute>} />
             <Route path="/admin/events" element={<ProtectedRoute requiredPermission="can_manage_events"><ManageEvents /></ProtectedRoute>} />
             <Route path="/admin/events/:id" element={<EventDetails />} />
             <Route path="/admin/awards" element={<ProtectedRoute requiredPermission="can_manage_events"><ManageAwards /></ProtectedRoute>} />
+            <Route path="/admin/announcements" element={<ProtectedRoute requiredPermission="can_manage_announcements"><Announcements /></ProtectedRoute>} />
             {/* Student Assignments removed */}
             <Route path="/resources" element={<Resources />} />
             <Route path="/office-bearer" element={<OfficeBearerDashboard />} />

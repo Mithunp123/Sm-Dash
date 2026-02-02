@@ -804,8 +804,8 @@ router.post('/:id/volunteers', async (req, res) => {
   }
 });
 
-// GET - Get all volunteers registered for an event (admin only)
-router.get('/:id/volunteers', authenticateToken, requireRole('admin'), async (req, res) => {
+// GET - Get all volunteers registered for an event (admin and office bearer)
+router.get('/:id/volunteers', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
   try {
     const db = getDatabase();
     const { id } = req.params;
@@ -846,8 +846,8 @@ router.get('/:id/volunteers', authenticateToken, requireRole('admin'), async (re
   }
 });
 
-// PUT - Update a volunteer registration (admin only)
-router.put('/:eventId/volunteers/:volunteerId', authenticateToken, requireRole('admin'), async (req, res) => {
+// PUT - Update a volunteer registration (admin and office bearer)
+router.put('/:eventId/volunteers/:volunteerId', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
   try {
     const db = getDatabase();
     const { eventId, volunteerId } = req.params;
@@ -911,8 +911,8 @@ router.put('/:eventId/volunteers/:volunteerId', authenticateToken, requireRole('
   }
 });
 
-// DELETE - Delete a volunteer registration (admin only)
-router.delete('/:eventId/volunteers/:volunteerId', authenticateToken, requireRole('admin'), async (req, res) => {
+// DELETE - Delete a volunteer registration (admin and office bearer)
+router.delete('/:eventId/volunteers/:volunteerId', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
   try {
     const db = getDatabase();
     const { eventId, volunteerId } = req.params;
@@ -951,8 +951,8 @@ router.delete('/:eventId/volunteers/:volunteerId', authenticateToken, requireRol
 // STUDENT EVENT REGISTRATION ENDPOINTS
 // ============================================
 
-// POST - Student registers for an event
-router.post('/:id/register', authenticateToken, requireRole('student'), async (req, res) => {
+// POST - Student/OB registers for an event
+router.post('/:id/register', authenticateToken, requireRole('student', 'office_bearer'), async (req, res) => {
   try {
     const db = getDatabase();
     const { id } = req.params;

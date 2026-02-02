@@ -289,7 +289,7 @@ const StudentAttendance = () => {
   return (
     <div className="min-h-full w-full">
       <DeveloperCredit />
-      <div className="container mx-auto p-4 md:p-8 w-full">
+      <div className="w-full p-4 md:p-8">
         {/* Back Button */}
         <div className="mb-4">
           <div className="max-w-7xl mx-auto space-y-8">

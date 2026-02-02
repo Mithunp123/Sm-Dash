@@ -59,6 +59,9 @@ interface Permissions {
   can_manage_settings_edit: boolean;
   can_view_analytics: boolean;
   can_view_reports: boolean;
+  can_manage_announcements: boolean;
+  can_manage_announcements_view: boolean;
+  can_manage_announcements_edit: boolean;
   // Assignment-based access for students
   can_view_assigned_projects: boolean;
   can_view_assigned_attendance: boolean;
@@ -127,7 +130,10 @@ export const usePermissions = () => {
     can_view_assigned_projects: false,
     can_view_assigned_attendance: false,
     can_view_assigned_bills: false,
-    can_view_assigned_reports: false
+    can_view_assigned_reports: false,
+    can_manage_announcements: false,
+    can_manage_announcements_view: false,
+    can_manage_announcements_edit: false
   });
   const [loading, setLoading] = useState(true);
 
@@ -201,7 +207,10 @@ export const usePermissions = () => {
           can_view_assigned_projects: true,
           can_view_assigned_attendance: true,
           can_view_assigned_bills: true,
-          can_view_assigned_reports: true
+          can_view_assigned_reports: true,
+          can_manage_announcements: true,
+          can_manage_announcements_view: true,
+          can_manage_announcements_edit: true
         });
       } else if (user.role === 'student') {
         // Students: permissions system removed as requested
@@ -265,7 +274,10 @@ export const usePermissions = () => {
           can_view_assigned_projects: false,
           can_view_assigned_attendance: false,
           can_view_assigned_bills: false,
-          can_view_assigned_reports: false
+          can_view_assigned_reports: false,
+          can_manage_announcements: false,
+          can_manage_announcements_view: false,
+          can_manage_announcements_edit: false
         });
       } else {
         // All other roles get no permissions (alumni, etc.)
@@ -329,7 +341,10 @@ export const usePermissions = () => {
           can_view_assigned_projects: false,
           can_view_assigned_attendance: false,
           can_view_assigned_bills: false,
-          can_view_assigned_reports: false
+          can_view_assigned_reports: false,
+          can_manage_announcements: false,
+          can_manage_announcements_view: false,
+          can_manage_announcements_edit: false
         });
       }
 

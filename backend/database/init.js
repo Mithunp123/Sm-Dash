@@ -1278,6 +1278,57 @@ export const initDatabase = async () => {
       // Removed password reset logic - password changes will persist across restarts
     }
 
+    // Office Bearers table - stores student office bearers for each year
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS office_bearers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        position TEXT NOT NULL,
+        contact TEXT,
+        email TEXT,
+        photo_url TEXT,
+        academic_year TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Announcements table
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS announcements (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        priority TEXT DEFAULT 'normal' CHECK(priority IN ('normal', 'important')),
+        link_url TEXT,
+        image_url TEXT,
+        send_email INTEGER DEFAULT 0,
+        target TEXT DEFAULT 'all',
+        created_by INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        deleted_at DATETIME,
+        FOREIGN KEY (created_by) REFERENCES users(id)
+      )
+    `);
+
+    // Ensure link_url and image_url columns exist (Migration)
+    try {
+      await run(database, `ALTER TABLE announcements ADD COLUMN link_url TEXT`);
+    } catch (e) { /* Column might already exist */ }
+    try {
+      await run(database, `ALTER TABLE announcements ADD COLUMN image_url TEXT`);
+    } catch (e) { /* Column might already exist */ }
+    try {
+      await run(database, `ALTER TABLE announcements ADD COLUMN deadline TEXT`);
+    } catch (e) { /* Column might already exist */ }
+
+    // Add can_manage_announcements to permissions if missing
+    try {
+      await run(database, `ALTER TABLE permissions ADD COLUMN can_manage_announcements INTEGER DEFAULT 0`);
+      await run(database, `ALTER TABLE permissions ADD COLUMN can_manage_announcements_view INTEGER DEFAULT 0`);
+      await run(database, `ALTER TABLE permissions ADD COLUMN can_manage_announcements_edit INTEGER DEFAULT 0`);
+    } catch (e) { }
+
     console.log('✅ Database tables initialized successfully');
   } catch (error) {
     console.error('❌ Error initializing database:', error);

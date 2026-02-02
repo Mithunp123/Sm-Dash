@@ -4,7 +4,7 @@ import DeveloperCredit from "@/components/DeveloperCredit";
 import {
   Users, Calendar, FileText, Briefcase, UserCircle, BarChart3, XCircle,
   MessageSquare, ClipboardCheck, LayoutDashboard, Star, Clock, ChevronRight,
-  TrendingUp, Layers, CheckCircle2, BookOpen, Trophy, UsersRound
+  TrendingUp, Layers, CheckCircle2, BookOpen, Trophy, UsersRound, Megaphone
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
@@ -124,59 +124,59 @@ const OfficeBearerDashboard = () => {
   return (
     <>
       <DeveloperCredit />
-      <div className="max-w-7xl mx-auto space-y-8 pb-12">
+      <div className="max-w-[1400px] mx-auto space-y-12 pb-20 px-4 md:px-8">
         {/* Premium Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-black text-foreground tracking-tight uppercase">
-              OB <span className="text-primary/60 italic">Control Center</span>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pt-4">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-black text-foreground tracking-tight uppercase">
+              OB <span className="text-primary/60 italic font-medium">Control Center</span>
             </h1>
             <p className="text-sm font-bold text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2">
-              <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-              Welcome back, {user?.name || 'Office Bearer'}
+              <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+              Welcome back, <span className="text-foreground">{user?.name || 'Office Bearer'}</span>
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" className="rounded-full font-bold uppercase text-[10px] tracking-widest border-primary/20 hover:bg-primary/5" onClick={() => navigate("/office-bearer/profile")}>
+          <div className="flex items-center gap-4">
+            <Button variant="outline" className="rounded-full h-11 px-6 font-black uppercase text-[10px] tracking-widest border-primary/20 hover:bg-primary/5 hover:border-primary/40 shadow-sm transition-all" onClick={() => navigate("/office-bearer/profile")}>
               <UserCircle className="w-4 h-4 mr-2" />
-              Profile
+              View Profile
             </Button>
           </div>
         </div>
 
         {!hasAnyPermission ? (
-          <Card className="border-none shadow-xl bg-card/50 backdrop-blur-xl rounded-[2.5rem] p-12 overflow-hidden relative">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-            <CardContent className="relative z-10">
-              <div className="text-center py-12">
-                <div className="w-20 h-20 bg-muted/20 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                  <XCircle className="w-10 h-10 text-muted-foreground" />
-                </div>
-                <h3 className="text-2xl font-black mb-3 uppercase tracking-tight">Access Restricted</h3>
-                <p className="text-muted-foreground max-w-md mx-auto font-medium">
-                  Your account currently has no elective permissions. Please coordinate with the Head Administrator to activate your role dashboard.
+          <Card className="border-none shadow-2xl bg-card/50 backdrop-blur-xl rounded-[3rem] p-16 overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
+            <CardContent className="relative z-10 text-center space-y-8">
+              <div className="w-24 h-24 bg-muted/20 rounded-[2rem] flex items-center justify-center mx-auto ring-1 ring-border/50">
+                <XCircle className="w-12 h-12 text-muted-foreground" />
+              </div>
+              <div className="space-y-3">
+                <h3 className="text-3xl font-black uppercase tracking-tight">Access Restricted</h3>
+                <p className="text-muted-foreground max-w-lg mx-auto text-lg font-medium leading-relaxed">
+                  Your account currently has no elective permissions. Please coordinate with the Head Administrator to activate your role dashboard modules.
                 </p>
               </div>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 duration-1000">
             {/* Stats Overview */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
-                { label: 'Active Projects', value: stats.projects, icon: Briefcase, color: 'text-emerald-600', bg: 'bg-emerald-50/50 dark:bg-emerald-900/20' },
-                { label: 'Upcoming Meets', value: stats.events, icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-50/50 dark:bg-purple-900/20' },
-                { label: 'Total Reports', value: stats.reports, icon: FileText, color: 'text-rose-600', bg: 'bg-rose-50/50 dark:bg-rose-900/20' },
-                { label: 'Hours Logged', value: stats.hours, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50/50 dark:bg-amber-900/20' }
+                { label: 'Active Projects', value: stats.projects, icon: Briefcase, color: 'text-emerald-500', bg: 'bg-emerald-50/50 dark:bg-emerald-500/10' },
+                { label: 'Upcoming Meets', value: stats.events, icon: Calendar, color: 'text-purple-500', bg: 'bg-purple-50/50 dark:bg-purple-500/10' },
+                { label: 'Total Reports', value: stats.reports, icon: FileText, color: 'text-rose-500', bg: 'bg-rose-50/50 dark:bg-rose-500/10' },
+                { label: 'Hours Logged', value: stats.hours, icon: Clock, color: 'text-amber-500', bg: 'bg-amber-50/50 dark:bg-amber-500/10' }
               ].map((stat, i) => (
-                <Card key={i} className="border-none shadow-sm hover:shadow-md transition-all rounded-3xl overflow-hidden bg-card/40 backdrop-blur-md group cursor-default">
-                  <CardContent className="p-5 flex flex-col gap-3">
-                    <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
-                      <stat.icon className="w-6 h-6" />
+                <Card key={i} className="border-none shadow-xl hover:shadow-2xl transition-all duration-500 rounded-[2.5rem] overflow-hidden bg-card/60 backdrop-blur-xl group cursor-default border border-border/10">
+                  <CardContent className="p-7 flex flex-col gap-5">
+                    <div className={`w-14 h-14 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500`}>
+                      <stat.icon className="w-7 h-7" />
                     </div>
                     <div>
-                      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">{stat.label}</p>
-                      <p className="text-2xl font-black tracking-tight">{stat.value}</p>
+                      <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.15em] mb-1">{stat.label}</p>
+                      <p className="text-3xl font-black tracking-tighter text-foreground">{stat.value}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -273,6 +273,20 @@ const OfficeBearerDashboard = () => {
                       </CardContent>
                     </Card>
                   )}
+                  {permissions.can_manage_announcements && (
+                    <Card className="rounded-[2.5rem] border-none bg-card/40 backdrop-blur-md shadow-sm hover:shadow-xl transition-all hover:scale-[1.02] cursor-pointer group" onClick={() => navigate("/admin/announcements")}>
+                      <CardContent className="p-8 flex items-center gap-6">
+                        <div className="w-16 h-16 rounded-[1.5rem] bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 flex items-center justify-center shrink-0 group-hover:rotate-6 transition-transform">
+                          <Megaphone className="w-8 h-8" />
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="font-black text-xl tracking-tight uppercase">Broadcast</h4>
+                          <p className="text-sm text-muted-foreground font-medium">Post announcements and send alerts.</p>
+                        </div>
+                        <ChevronRight className="w-6 h-6 ml-auto text-muted-foreground/30 group-hover:text-primary transition-colors" />
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
               </div>
 
@@ -313,6 +327,13 @@ const OfficeBearerDashboard = () => {
                         <div className="flex items-center gap-3">
                           <BookOpen className="w-4 h-4 text-primary" />
                           <span className="text-xs font-bold uppercase tracking-widest">Update Resources</span>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-white/20" />
+                      </div>
+                      <div className="flex items-center justify-between p-4 rounded-[1.5rem] bg-white/5 hover:bg-white/10 transition-colors cursor-pointer" onClick={() => navigate("/admin/announcements")}>
+                        <div className="flex items-center gap-3">
+                          <Megaphone className="w-4 h-4 text-primary" />
+                          <span className="text-xs font-bold uppercase tracking-widest">Publish Alerts</span>
                         </div>
                         <ChevronRight className="w-4 h-4 text-white/20" />
                       </div>

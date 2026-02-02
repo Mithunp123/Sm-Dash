@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import principalImg from "../../Images/Dr.R. Gopalakrishnan.jpg";
 import palaniappanImg from "../../Images/Dr.A.Palaniappan.jpg";
 import mythiliImg from "../../Images/MYTHILI MAM.png";
@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Heart, Award, ChevronRight, MapPin, Mail, Phone, Calendar, Sparkles, X, Activity } from "lucide-react";
+import { Heart, Award, ChevronRight, MapPin, Mail, Phone, Calendar, Sparkles, X, Activity, Users, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { auth } from "@/lib/auth";
@@ -19,8 +19,11 @@ import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 import EventCard from "@/components/landing/EventCard";
 import AwardCard from "@/components/landing/AwardCard";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useInView } from "framer-motion";
 import { buildImageUrl } from "@/utils/imageUtils";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
@@ -37,6 +40,36 @@ const staggerContainer = {
 };
 
 // Components extracted to separate files
+
+const RunningNumber = ({ value, duration = 2 }: { value: string, duration?: number }) => {
+  const [count, setCount] = useState(0);
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
+
+  const numericValue = parseInt(value.replace(/[^0-9]/g, '')) || 0;
+  const suffix = value.replace(/[0-9]/g, '');
+
+  useEffect(() => {
+    if (isInView) {
+      let startTime: number | null = null;
+      const animate = (timestamp: number) => {
+        if (!startTime) startTime = timestamp;
+        const progress = Math.min((timestamp - startTime) / (duration * 1000), 1);
+        setCount(Math.floor(progress * numericValue));
+        if (progress < 1) {
+          window.requestAnimationFrame(animate);
+        }
+      };
+      window.requestAnimationFrame(animate);
+    }
+  }, [isInView, numericValue, duration]);
+
+  return <span ref={ref}>{count}{suffix}</span>;
+};
+
+const openInGmail = (email: string) => {
+  window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${email}`, '_blank');
+};
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -83,6 +116,41 @@ const LandingPage = () => {
   const [submittingVolunteer, setSubmittingVolunteer] = useState(false);
   const [departments, setDepartments] = useState<string[]>([]);
   const [pageReady, setPageReady] = useState(false);
+  const [selectedAlumni, setSelectedAlumni] = useState<any>(null);
+  const [officeBearers, setOfficeBearers] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchOfficeBearers = async () => {
+      try {
+        const response = await api.getPublicOfficeBearers();
+        if (response.success) {
+          setOfficeBearers(response.officeBearers || []);
+        }
+      } catch (e) {
+        console.error("Failed to load OBs", e);
+      }
+    };
+    fetchOfficeBearers();
+  }, []);
+
+  const handleExcelImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt: any) => {
+      try {
+        const bstr = evt.target.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws);
+        toast.success(`Successfully parsed ${data.length} records! Ready for PDF output.`);
+      } catch (err) {
+        toast.error("Error reading Excel file.");
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
 
   // Use Embla Carousel for smooth, performant scrolling
   const [eventsRef] = useEmblaCarousel({ loop: true, align: 'center' }, [Autoplay({ delay: 4000, stopOnInteraction: false })]);
@@ -157,6 +225,109 @@ const LandingPage = () => {
     return "/login";
   };
 
+  const downloadSampleExcel = () => {
+    toast.info("Preparing Coordinator Template...", {
+      description: "Your download will start automatically."
+    });
+
+    setTimeout(() => {
+      const wb = XLSX.utils.book_new();
+      const sampleData = [
+        {
+          Name: "John Doe",
+          Position: "President",
+          Contact: "9876543210",
+          Email: "john@example.com",
+          "Academic Year": "2024-2025"
+        }
+      ];
+      const ws = XLSX.utils.json_to_sheet(sampleData);
+      XLSX.utils.book_append_sheet(wb, ws, "Office Bearers Template");
+      XLSX.writeFile(wb, "SM_Office_Bearers_Template.xlsx");
+      toast.success("Template Downloaded!");
+    }, 800);
+  };
+
+  // Announcement state
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Load announcements for the ticker
+    const loadAnnouncements = async () => {
+      try {
+        const res = await api.getAnnouncements?.() || { success: false, announcements: [] };
+        if (res.success) {
+          setAnnouncements(res.announcements);
+        }
+      } catch (err) {
+        // Fallback or silent fail
+      }
+    };
+    loadAnnouncements();
+  }, []);
+
+  const RunningNotification = () => {
+    if (announcements.length === 0) {
+      const defaultText = "Welcome to SM Volunteers! Join our mission to create social impact through student-led initiatives. • Register for upcoming events and contribute to the community. • Check the latest updates in your volunteer portal.";
+      return (
+        <div className="w-full bg-primary/10 border-b border-primary/20 py-2 relative overflow-hidden whitespace-nowrap z-50">
+          <div className="inline-block animate-marquee whitespace-nowrap px-4">
+            <span className="text-[10px] md:text-xs font-black text-primary uppercase tracking-[0.3em]">
+              {defaultText} &nbsp; • &nbsp; {defaultText}
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-full bg-primary/10 border-b border-primary/20 py-2 relative overflow-hidden whitespace-nowrap z-50">
+        <div className="inline-block animate-marquee hover:pause whitespace-nowrap px-4">
+          <div className="flex gap-12 items-center">
+            {[...announcements, ...announcements].map((a, i) => (
+              <div key={`${a.id}-${i}`} className="flex items-center gap-3">
+                {a.priority === 'important' && (
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                  </span>
+                )}
+                <span className={`text-[10px] md:text-sm font-black uppercase tracking-widest ${a.priority === 'important' ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-primary'}`}>
+                  {a.title}: <span className="font-medium normal-case tracking-normal opacity-90">{a.content}</span>
+                </span>
+                {a.link_url && (
+                  <a
+                    href={a.link_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-1 px-3 py-1 bg-primary text-white text-[9px] rounded-full font-black hover:bg-primary/80 transition-all transform hover:scale-110 shadow-lg"
+                  >
+                    GO TO LINK
+                  </a>
+                )}
+                <span className="text-muted-foreground/30 px-2">•</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <style dangerouslySetInnerHTML={{
+          __html: `
+          @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+          .animate-marquee {
+            display: inline-block;
+            animation: marquee 40s linear infinite;
+          }
+          .animate-marquee:hover {
+            animation-play-state: paused;
+          }
+        `}} />
+      </div>
+    );
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -164,6 +335,7 @@ const LandingPage = () => {
       transition={{ duration: 0.5, delay: 0.2 }}
       className="flex-1 w-full bg-transparent text-foreground relative selection:bg-primary/20"
     >
+      <RunningNotification />
 
       <AnimatePresence>
         {!pageReady && (
@@ -209,7 +381,7 @@ const LandingPage = () => {
           <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900"></div>
 
           <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000"
+            className="absolute inset-0 bg-cover bg-[center_35%] bg-no-repeat transition-opacity duration-1000"
             style={{
               backgroundImage: 'url("/images/Home.jpg")',
               filter: 'brightness(1)',
@@ -228,21 +400,33 @@ const LandingPage = () => {
             viewport={{ once: true }}
             className="max-w-4xl mx-auto space-y-8"
           >
-            <br></br> <br></br><br></br>
+            <br></br> <br></br>
             <motion.h1
               variants={fadeInUp}
-              className="text-4xl sm:text-6xl md:text-8xl font-black drop-shadow-2xl tracking-tighter px-4"
+              className="text-3xl sm:text-5xl md:text-6xl font-black drop-shadow-2xl tracking-tighter px-4"
             >
-              <span className="text-[#1a237e] dark:text-[#3f51b5]">SM</span>{" "}
+              <br></br>
+              <span className="text-[#1a237e] dark:text-[#3f51b5]"> <br></br><br></br>SM</span>{" "}
               <span className="bg-gradient-to-r from-[#ff6d00] to-[#ffab40] bg-clip-text text-transparent">
                 VOLUNTEERS
               </span>
             </motion.h1>
             <motion.p
               variants={fadeInUp}
-              className="text-xl md:text-2xl text-blue-100/90 font-medium italic drop-shadow-lg"
+              className="relative px-6 py-4"
             >
-              To build the ministry of socially responsible volunteers who can serve society with a passion
+              <span className="block text-xl md:text-3xl font-black italic tracking-[0.1em] bg-gradient-to-r from-white via-blue-200 to-white bg-clip-text text-transparent drop-shadow-2xl uppercase leading-tight">
+                To build the ministry of <br /> socially responsible volunteers
+              </span>
+              <span className="block text-lg md:text-xl text-orange-400 font-black mt-3 drop-shadow-[0_2px_10px_rgba(251,146,60,0.5)] tracking-widest uppercase">
+                who can serve society with a passion
+              </span>
+              <motion.div
+                initial={{ width: 0, opacity: 0 }}
+                animate={{ width: "80%", opacity: 1 }}
+                transition={{ duration: 1.5, delay: 0.8 }}
+                className="h-1 bg-gradient-to-r from-transparent via-orange-500 to-transparent mx-auto mt-6 rounded-full"
+              />
             </motion.p>
 
             {/* CTA Buttons - Removed for cleaner look matching image */}
@@ -281,11 +465,13 @@ const LandingPage = () => {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 relative z-10">
-          {/* About SM Volunteers */}
-
-
-
-          {/* About SM Volunteers - Styled like KSRCT */}
+          {/* About SM Volunteers Title */}
+          <div className="text-center mb-12">
+            <h2 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white mb-4 tracking-tighter uppercase">
+              About SM Volunteers
+            </h2>
+            <div className="w-24 h-2 bg-blue-600 mx-auto rounded-full"></div>
+          </div>
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -319,9 +505,6 @@ const LandingPage = () => {
                     We have received honourable awards like Leelavati under women and adolescent health for the year 2021 and the Bhumi award for Best Volunteering Engagement for the year 2022.
                   </p>
                 </div>
-                <div className="absolute top-4 right-4 text-blue-100 dark:text-blue-900/20 opacity-40">
-                  <Heart className="w-12 h-12 sm:w-16 sm:h-16 fill-current" />
-                </div>
               </motion.div>
 
               <motion.div
@@ -333,13 +516,15 @@ const LandingPage = () => {
               >
                 <div className="absolute -inset-4 bg-blue-600/10 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 <div
-                  className="cursor-pointer relative z-10"
-                  onClick={() => window.location.reload()}
+                  className="relative z-10 cursor-default"
                 >
-                  <img
+                  <motion.img
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 1, ease: "easeOut" }}
                     src="/Images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
                     alt="SM Volunteers Logo"
-                    className="w-64 h-64 sm:w-80 sm:h-80 object-contain drop-shadow-2xl hover:scale-110 transition-transform duration-500"
+                    className="h-64 sm:h-80 w-auto object-contain drop-shadow-[0_0_30px_rgba(37,99,235,0.2)] transition-all duration-500"
                     onError={(e) => {
                       const fallback = '/Images/Brand_logo.png';
                       if (!e.currentTarget.src.includes(fallback)) {
@@ -348,7 +533,7 @@ const LandingPage = () => {
                     }}
                   />
                 </div>
-                <div className="absolute inset-0 rounded-full border-2 border-blue-600/10 z-0 animate-pulse"></div>
+                <div className="absolute inset-0 rounded-full border-2 border-primary/5 z-0"></div>
               </motion.div>
             </div>
           </motion.div>
@@ -396,7 +581,9 @@ const LandingPage = () => {
                   variants={fadeInUp}
                   className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm p-6 rounded-2xl border border-slate-200 dark:border-slate-700 text-center hover:scale-105 transition-transform"
                 >
-                  <div className="text-3xl md:text-4xl font-black text-primary mb-2 tracking-tighter">{stat.value}</div>
+                  <div className="text-3xl md:text-4xl font-black text-primary mb-2 tracking-tighter">
+                    <RunningNumber value={stat.value} />
+                  </div>
                   <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">{stat.label}</div>
                 </motion.div>
               ))}
@@ -409,7 +596,7 @@ const LandingPage = () => {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.8 }}
-                className="relative group"
+                className="relative group order-1"
               >
                 <div className="absolute -inset-4 bg-primary/20 blur-2xl rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 <img
@@ -425,7 +612,7 @@ const LandingPage = () => {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.8 }}
-                className="bg-slate-900 text-white p-8 md:p-10 rounded-3xl shadow-2xl border border-slate-800 relative h-full flex flex-col justify-center"
+                className="bg-slate-900 text-white p-8 md:p-10 rounded-3xl shadow-2xl border border-slate-800 relative h-full flex flex-col justify-center order-2"
               >
                 <h3 className="text-2xl font-bold mb-6 text-primary flex items-center gap-2">
                   <span className="w-8 h-1 bg-primary rounded-full"></span>
@@ -539,17 +726,23 @@ const LandingPage = () => {
               ))}
             </div>
           ) : awards.length > 0 ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 1 }}
-              className="overflow-hidden relative group"
-            >
-              <div className="flex animate-marquee gap-6 py-4">
-                {/* Double the items to create a seamless loop */}
+            <div className="relative overflow-hidden">
+              <motion.div
+                className="flex gap-6"
+                animate={{
+                  x: [0, -(awards.length * 350)]
+                }}
+                transition={{
+                  x: {
+                    repeat: Infinity,
+                    repeatType: "loop",
+                    duration: awards.length * 5,
+                    ease: "linear"
+                  }
+                }}
+              >
                 {[...awards, ...awards].map((award, index) => (
-                  <div key={`${award.id}-${index}`} className="w-[300px] sm:w-[350px] flex-shrink-0">
+                  <div key={`${award.id}-${index}`} className="flex-shrink-0 w-[320px]">
                     <AwardCard
                       award={award}
                       awardDate={new Date(award.award_date)}
@@ -557,11 +750,8 @@ const LandingPage = () => {
                     />
                   </div>
                 ))}
-              </div>
-              {/* Optional: Add gradient overlays for a smoother fade at edges */}
-              <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-background to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              <div className="absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-background to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            </motion.div>
+              </motion.div>
+            </div>
           ) : (
             <div className="text-center py-20 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-[3rem] border-4 border-dashed border-yellow-200">
               <Award className="w-20 h-20 mx-auto text-yellow-200 mb-6" />
@@ -615,15 +805,18 @@ const LandingPage = () => {
                   </CardHeader>
                   <CardContent className="space-y-6 pt-8 px-8 pb-8 flex-grow flex flex-col justify-between">
                     <p className="text-muted-foreground leading-relaxed text-lg font-medium italic">
-                      "Our institution is committed to producing engineers who are not just technically competent but also socially responsible."
+                      "Our Institution is committed to producing engineers who are not just technically competent but also socially responsible."
                     </p>
                     <div className="space-y-4 text-base bg-muted/30 p-5 rounded-xl border border-border/50">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <button
+                        onClick={() => openInGmail("principal@ksrct.ac.in")}
+                        className="flex items-center gap-4 hover:text-primary transition-all text-left group"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20">
                           <Mail className="w-5 h-5 text-primary" />
                         </div>
                         <span className="text-foreground font-semibold break-all">principal@ksrct.ac.in</span>
-                      </div>
+                      </button>
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                           <Phone className="w-5 h-5 text-primary" />
@@ -707,41 +900,200 @@ const LandingPage = () => {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.2 }}
-                className="h-full"
+                className="h-[400px] perspective-1000 group"
               >
-                <Card className="bg-card border-border/50 overflow-hidden hover:shadow-xl transition-all group h-full flex flex-col items-center text-center rounded-2xl">
-                  <div className="w-full bg-muted/20 flex items-center justify-center p-8 border-b border-border/50 relative overflow-hidden">
-                    <div className="absolute inset-0 dot-grid opacity-10"></div>
-                    <div className="w-40 h-40 rounded-full border-4 border-primary/20 overflow-hidden shadow-xl group-hover:scale-110 transition-transform duration-500 relative z-10">
-                      <img
-                        src={coordinator.image}
-                        alt={coordinator.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = "/Images/Brand_logo.png";
-                        }}
-                      />
+                <div className="relative w-full h-full transition-transform duration-700 preserve-3d group-hover:rotate-y-180 cursor-pointer">
+                  {/* Front Side */}
+                  <Card className="absolute inset-0 backface-hidden bg-card border-border/50 overflow-hidden shadow-xl flex flex-col items-center text-center rounded-2xl h-full">
+                    <div className="w-full bg-primary/5 flex items-center justify-center p-8 border-b border-border/50 relative overflow-hidden flex-shrink-0">
+                      <div className="absolute inset-0 dot-grid opacity-10"></div>
+                      <div className="w-40 h-40 rounded-full border-4 border-primary/20 overflow-hidden shadow-xl relative z-10 bg-background">
+                        <img
+                          src={coordinator.image}
+                          alt={coordinator.name}
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            e.currentTarget.src = "/Images/Brand_logo.png";
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="p-6 space-y-3 flex-grow flex flex-col justify-center">
+                      <div>
+                        <h3 className="text-xl font-black text-foreground mb-1 leading-tight">{coordinator.name}</h3>
+                        <p className="text-primary font-bold uppercase tracking-wider text-[10px]">{coordinator.role}</p>
+                      </div>
+                      <p className="text-muted-foreground text-xs leading-relaxed font-medium line-clamp-3">
+                        {coordinator.description}
+                      </p>
+                      <div className="pt-2 mt-auto">
+                        <p className="text-[10px] text-primary font-black uppercase tracking-widest animate-pulse">Click for contact</p>
+                      </div>
+                    </div>
+                  </Card>
+
+                  {/* Back Side */}
+                  <Card className="absolute inset-0 rotate-y-180 backface-hidden bg-slate-50 dark:bg-slate-900 border-primary/20 overflow-hidden shadow-2xl flex flex-col items-center justify-center text-center rounded-2xl p-6 h-full">
+                    <div className="w-full space-y-6">
+                      <div className="relative mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 shadow-lg">
+                        <Mail className="w-8 h-8 text-primary" />
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="text-xl font-black text-primary">{coordinator.name}</h3>
+                        <p className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">{coordinator.role}</p>
+                      </div>
+                      <div className="space-y-3">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openInGmail(coordinator.email); }}
+                          className="flex items-center gap-3 p-3 rounded-xl bg-background border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all w-full group/btn"
+                        >
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center group-hover/btn:bg-primary/20 transition-colors">
+                            <Mail className="w-5 h-5 text-primary" />
+                          </div>
+                          <div className="text-left overflow-hidden">
+                            <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1">Email Address</p>
+                            <p className="text-xs font-bold text-foreground truncate">{coordinator.email}</p>
+                          </div>
+                        </button>
+
+                        <a
+                          href={`tel:${coordinator.phone}`}
+                          className="flex items-center gap-3 p-3 rounded-xl bg-background border border-border/20 w-full hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all group/btn"
+                        >
+                          <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center group-hover/btn:bg-emerald-500/20 transition-colors">
+                            <Phone className="w-5 h-5 text-emerald-500" />
+                          </div>
+                          <div className="text-left">
+                            <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1">Mobile Contact</p>
+                            <p className="text-xs font-bold text-foreground">{coordinator.phone}</p>
+                          </div>
+                        </a>
+                      </div>
+                      <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] pt-2">SM Volunteer Management</p>
+                    </div>
+                  </Card>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="office-bearers-section" className="py-24 bg-slate-950 text-white relative overflow-hidden">
+        {/* Decorative background atoms */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 blur-[100px] rounded-full -mr-48 -mt-48 animate-pulse"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary/10 blur-[100px] rounded-full -ml-48 -mb-48"></div>
+
+        <div className="max-w-7xl mx-auto px-4 relative z-10">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-16">
+            <div>
+              <h2 className="text-4xl md:text-6xl font-black tracking-tighter uppercase">
+                Student Office <span className="text-primary/70">Bearers</span>
+              </h2>
+              <p className="text-slate-400 max-w-2xl text-lg font-medium mt-4">
+                The dedicated leadership team guiding our volunteer missions and community impact.
+              </p>
+            </div>
+            <div className="px-6 py-3 bg-primary/10 border border-primary/20 rounded-full backdrop-blur-md">
+              <span className="text-primary text-sm font-black uppercase tracking-widest italic">Leadership {new Date().getFullYear()}</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {officeBearers.map((ob, i) => (
+              <motion.div
+                key={ob.id || i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="h-[400px] perspective-1000 group"
+              >
+                <div className="relative w-full h-full transition-transform duration-700 preserve-3d group-hover:rotate-y-180 cursor-pointer">
+                  {/* Front Side */}
+                  <div className="absolute inset-0 backface-hidden rounded-[2rem] overflow-hidden border border-slate-800 bg-slate-900 shadow-2xl transition-all duration-500 group-hover:border-primary/50 group-hover:shadow-primary/10 flex flex-col h-full">
+                    {/* Photo Section */}
+                    <div className="h-[75%] relative overflow-hidden bg-slate-900">
+                      {ob.photo_url ? (
+                        <img
+                          src={`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${ob.photo_url}`}
+                          alt={ob.name}
+                          className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
+                          onError={(e) => {
+                            (e.target as any).src = '/Images/Brand_logo.png';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-slate-800">
+                          <Users className="w-20 h-20 text-slate-700" />
+                        </div>
+                      )}
+                      {/* Premium Gradient Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80"></div>
+                      <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 to-transparent"></div>
+                    </div>
+
+                    {/* Text Section relative to the bottom of the card */}
+                    <div className="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent pt-12">
+                      <div className="flex items-end justify-between gap-3">
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-8 h-0.5 bg-cyan-500 rounded-full"></div>
+                            <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">{ob.position}</p>
+                          </div>
+                          <h4 className="text-2xl font-black text-white leading-none tracking-tight">{ob.name}</h4>
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-slate-800/80 backdrop-blur-sm border border-slate-700 flex items-center justify-center group-hover:bg-cyan-500 group-hover:border-cyan-500 transition-all duration-300 shadow-lg">
+                          <ArrowRight className="w-4 h-4 text-cyan-400 group-hover:text-white transition-colors" />
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="p-8 space-y-4 flex-grow flex flex-col">
-                    <div>
-                      <h3 className="text-2xl font-black text-foreground mb-1">{coordinator.name}</h3>
-                      <p className="text-primary font-bold uppercase tracking-wider text-sm">{coordinator.role}</p>
-                    </div>
-                    <p className="text-muted-foreground text-sm leading-relaxed font-medium flex-grow">
-                      {coordinator.description}
-                    </p>
-                    <div className="pt-4 mt-auto">
-                      <a
-                        href={`mailto:${coordinator.email}`}
-                        className="inline-flex items-center justify-center gap-2 text-sm text-foreground font-semibold bg-primary/5 py-2.5 px-6 rounded-full border border-primary/10 hover:bg-primary/20 transition-colors"
-                      >
-                        <Mail className="w-4 h-4 text-primary" />
-                        <span>{coordinator.email}</span>
-                      </a>
+
+                  {/* Back Side */}
+                  <div className="absolute inset-0 rotate-y-180 backface-hidden rounded-[2rem] bg-slate-900 border border-primary/20 p-8 flex flex-col justify-center text-center shadow-2xl shadow-primary/10">
+                    <div className="space-y-6">
+                      <div className="relative mx-auto w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30 shadow-lg">
+                        <Users className="w-8 h-8 text-primary" />
+                      </div>
+
+                      <div>
+                        <h4 className="text-2xl font-black text-white leading-tight mb-1">{ob.name}</h4>
+                        <p className="text-primary font-bold uppercase tracking-widest text-xs">{ob.position}</p>
+                      </div>
+
+                      <div className="space-y-3 pt-2">
+                        {ob.email && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); openInGmail(ob.email); }}
+                            className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-primary/50 transition-all w-full group/btn"
+                          >
+                            <Mail className="w-4 h-4 text-primary" />
+                            <div className="text-left overflow-hidden">
+                              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Send Mail</p>
+                              <p className="text-xs font-bold text-slate-200 truncate">{ob.email}</p>
+                            </div>
+                          </button>
+                        )}
+
+                        {ob.contact && (
+                          <a
+                            href={`tel:${ob.contact}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-emerald-500/50 transition-all w-full group/btn"
+                          >
+                            <Phone className="w-4 h-4 text-emerald-500" />
+                            <div className="text-left">
+                              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Call Now</p>
+                              <p className="text-xs font-bold text-slate-200">{ob.contact}</p>
+                            </div>
+                          </a>
+                        )}
+                      </div>
+                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">SM Volunteer Leadership</p>
                     </div>
                   </div>
-                </Card>
+                </div>
               </motion.div>
             ))}
           </div>
@@ -834,7 +1186,6 @@ const LandingPage = () => {
         id="contact-section"
         className="bg-slate-50 dark:bg-[#020617] text-slate-900 dark:text-white py-24 relative overflow-hidden"
       >
-        {/* Background elements */}
         <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
           <div className="absolute top-0 left-1/4 w-px h-full bg-primary/20"></div>
           <div className="absolute top-0 right-1/4 w-px h-full bg-primary/20"></div>
@@ -865,13 +1216,6 @@ const LandingPage = () => {
             </Button>
             <Button
               size="lg"
-              className="bg-orange-600 text-white hover:bg-orange-700 font-bold shadow-xl transition-all transform hover:scale-105 px-10 py-7 rounded-xl text-lg"
-              onClick={() => navigate('/volunteer-registration')}
-            >
-              Register Now
-            </Button>
-            <Button
-              size="lg"
               variant="outline"
               className="bg-background/50 backdrop-blur-sm text-foreground hover:bg-muted border-2 border-primary/20 font-bold shadow-xl transition-all transform hover:scale-105 px-10 py-7 rounded-xl text-lg"
               onClick={() => setContactOpen(true)}
@@ -880,47 +1224,9 @@ const LandingPage = () => {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-12 border-t border-border/50">
-            <div className="space-y-3">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <MapPin className="w-6 h-6 text-primary" />
-              </div>
-              <h4 className="font-bold text-lg">Location</h4>
-              <p className="text-muted-foreground text-sm font-medium leading-relaxed">
-                K.S. Rangasamy College of Technology<br />
-                Tiruchengode, Tamil Nadu, India - 637215
-              </p>
-            </div>
-            <div className="space-y-3">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <Mail className="w-6 h-6 text-primary" />
-              </div>
-              <h4 className="font-bold text-lg">Email Us</h4>
-              <p className="text-muted-foreground text-sm font-medium">
-                <a href="mailto:smvolunteers@ksrct.ac.in" className="hover:text-primary transition-colors">smvolunteers@ksrct.ac.in</a><br />
-                <a href="mailto:principal@ksrct.ac.in" className="hover:text-primary transition-colors">principal@ksrct.ac.in</a>
-              </p>
-            </div>
-            <div className="space-y-3">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <Phone className="w-6 h-6 text-primary" />
-              </div>
-              <h4 className="font-bold text-lg">Call Us</h4>
-              <p className="text-muted-foreground text-sm font-medium">
-                +91-99941 50505<br />
-                +91-4288 274741
-              </p>
-            </div>
-          </div>
 
-          <div className="pt-8">
-            <p className="text-primary font-black uppercase tracking-[0.3em] text-sm">
-              K.S. Rangasamy College of Technology
-            </p>
-            <p className="text-muted-foreground text-xs mt-1 font-bold italic opacity-70">
-              Approved by AICTE | Affiliated to Anna University | (Autonomous)
-            </p>
-          </div>
+
+
         </motion.div>
       </section>
 
@@ -950,7 +1256,6 @@ const LandingPage = () => {
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setContactOpen(false)}>Cancel</Button>
               <Button onClick={() => {
-                // save message to localStorage for admin
                 const store = localStorage.getItem('admin_messages');
                 const arr = store ? JSON.parse(store) : [];
                 const msg = {
@@ -964,7 +1269,6 @@ const LandingPage = () => {
                 };
                 arr.unshift(msg);
                 localStorage.setItem('admin_messages', JSON.stringify(arr));
-                // Trigger notification update
                 window.dispatchEvent(new Event('adminMessage'));
                 toast.success('Message sent to admin');
                 setContactName(''); setContactEmail(''); setContactPhone(''); setContactMessage(''); setContactOpen(false);
@@ -1330,22 +1634,56 @@ const LandingPage = () => {
           </form>
         </DialogContent>
       </Dialog>
-    </motion.div>
+
+      {/* Alumni Detail Dialog */}
+      <Dialog open={selectedAlumni !== null} onOpenChange={() => setSelectedAlumni(null)}>
+        <DialogContent className="max-w-xl bg-slate-900 border-slate-800 p-0 overflow-hidden rounded-[2.5rem]">
+          {selectedAlumni && (
+            <div className="relative">
+              <div className="h-32 bg-gradient-to-r from-primary/20 to-blue-600/20"></div>
+              <div className="px-8 pb-10 -mt-12">
+                <div className="w-24 h-24 rounded-3xl bg-slate-800 border-4 border-slate-900 flex items-center justify-center text-4xl font-black text-primary shadow-2xl mb-6">
+                  {selectedAlumni.name.charAt(0)}
+                </div>
+                <h3 className="text-3xl font-black text-white mb-1">{selectedAlumni.name}</h3>
+                <p className="text-primary font-bold uppercase tracking-widest text-sm mb-6">
+                  {selectedAlumni.dept} • Batch {selectedAlumni.batch}
+                </p>
+                <div className="space-y-4">
+                  <div className="w-20 h-1 bg-primary/30 rounded-full"></div>
+                  <p className="text-slate-300 text-lg italic leading-relaxed font-medium">
+                    "{selectedAlumni.content}"
+                  </p>
+                </div>
+                <div className="mt-8 pt-8 border-t border-slate-800 flex justify-between items-center">
+                  <p className="text-slate-500 text-sm font-bold uppercase tracking-tighter">SM Volunteer Alumni Network</p>
+                  <Button variant="ghost" className="text-slate-400" onClick={() => setSelectedAlumni(null)}>Close</Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </motion.div >
   );
 };
 
+
+
 const facultyCoordinators = [
   {
-    name: "Dr. G. Mythili",
+    name: "Dr. B. Mythili Gnanamangai",
     role: "Faculty Coordinator",
-    email: "mythili@ksrct.ac.in",
+    email: "mythilignanamangai@ksrct.ac.in",
+    phone: "+91 9487088678",
     image: mythiliImg,
-    description: "Dr. G. Mythili has been a pillar of strength for SM Volunteers, guiding students with her expertise in community service and social impact."
+    description: "Dr. B. Mythili Gnanamangai has been a pillar of strength for SM Volunteers, guiding students with her expertise in community service and social impact."
   },
   {
     name: "Mr. S. Rajkumar",
     role: "Faculty Coordinator",
-    email: "rajkumar@ksrct.ac.in",
+    email: "rajkumars@ksrct.ac.in",
+    phone: "+91 9003718103",
     image: rajkumarImg,
     description: "Mr. S. Rajkumar actively coordinates various social initiatives and ensures the smooth functioning of volunteer activities across the campus."
   },
@@ -1353,9 +1691,26 @@ const facultyCoordinators = [
     name: "Dr. A. Palaniappan",
     role: "Faculty Coordinator",
     email: "palaniappan@ksrct.ac.in",
+    phone: "+91 9894366121",
     image: palaniappanImg,
     description: "Dr. A. Palaniappan provides strategic guidance and academic leadership for SM Volunteers, fostering an environment of service excellence and student development."
   }
+];
+
+const alumniData = [
+  { name: "Saran Kumar", dept: "B.Tech Biotechnology", batch: "2023", content: "SM Volunteers shaped my perspective on social responsibility. It wasn't just service; it was a leadership journey." },
+  { name: "Priyanka S", dept: "BE Computer Science", batch: "2022", content: "The networking and impact we created through Bhumi collaborations were the highlights of my college years." },
+  { name: "Manoj Rathinam", dept: "BE Mechatronics", batch: "2023", content: "Grateful for the opportunities to serve. The awards we won together remain my proudest achievement." },
+  { name: "Deepika R", dept: "B.Tech IT", batch: "2022", content: "Fostering empathy and skills through volunteering helped me grow personally and professionally." }
+];
+
+const otherActiveVolunteers = [
+  { name: "Naveen Raj", dept: "BE EEE", year: "3rd Year" },
+  { name: "Shalini K", dept: "B.Tech BioTech", year: "2nd Year" },
+  { name: "Rahul S", dept: "BE Mechanical", year: "4th Year" },
+  { name: "Divya P", dept: "BE ECE", year: "3rd Year" },
+  { name: "Vignesh A", dept: "B.Tech IT", year: "2nd Year" },
+  { name: "Akshaya G", dept: "BE Civil", year: "4th Year" }
 ];
 
 // NGO Partners Data

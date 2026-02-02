@@ -12,7 +12,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DeveloperCredit from "@/components/DeveloperCredit";
 import { BackButton } from "@/components/BackButton";
-import { Plus, ArrowLeft, Edit, Trash2, Search, Briefcase } from "lucide-react";
+import { Plus, ArrowLeft, Edit, Trash2, Search, Briefcase, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
 import { api } from "@/lib/api";
@@ -77,7 +77,7 @@ const ManageBills = () => {
   const loadBills = async () => {
     try {
       setLoading(true);
-      const response = await api.getBills(selectedFolderId ? { folderId: selectedFolderId } : undefined);
+      const response = await api.getBills({ folderId: selectedFolderId || undefined });
       if (response.success) setBills(response.bills || []);
     } catch (e) {
       console.error(e);
@@ -508,6 +508,79 @@ const ManageBills = () => {
                             <TableCell>{getStatusBadge(bill.status)}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex gap-2 justify-end">
+                                <Button
+                                  className="h-8 w-8 p-0"
+                                  variant="ghost"
+                                  title="Download PDF"
+                                  onClick={async (e) => {
+                                    const { jsPDF } = await import('jspdf');
+                                    const autoTable = (await import('jspdf-autotable')).default;
+                                    const doc = new jsPDF();
+                                    const primaryColor = [79, 70, 229]; // Indigo-600
+
+                                    // Header Styling
+                                    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                                    doc.rect(0, 0, 210, 40, 'F');
+
+                                    doc.setTextColor(255, 255, 255);
+                                    doc.setFontSize(24);
+                                    doc.setFont('helvetica', 'bold');
+                                    doc.text('SM VOLUNTEERS', 20, 25);
+
+                                    doc.setFontSize(10);
+                                    doc.setFont('helvetica', 'normal');
+                                    doc.text('K.S.Rangasamy College of Technology', 20, 32);
+
+                                    doc.setFontSize(18);
+                                    doc.setTextColor(0, 0, 0);
+                                    doc.text('PAYMENT VOUCHER', 105, 55, { align: 'center' });
+
+                                    // Info Section
+                                    doc.setFontSize(10);
+                                    doc.setTextColor(100, 100, 100);
+                                    doc.text(`Voucher ID: #${bill.id}`, 20, 70);
+                                    doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 75);
+
+                                    doc.setDrawColor(200, 200, 200);
+                                    doc.line(20, 80, 190, 80);
+
+                                    doc.setFontSize(11);
+                                    doc.setTextColor(0, 0, 0);
+                                    doc.text(`Bill For: ${bill.title || bill.name}`, 20, 90);
+                                    doc.text(`Date: ${new Date(bill.bill_date || bill.date).toLocaleDateString()}`, 20, 97);
+                                    doc.text(`Category: ${String(bill.bill_type || bill.type).toUpperCase()}`, 20, 104);
+                                    doc.text(`Status: ${String(bill.status).toUpperCase()}`, 140, 90);
+
+                                    const tableData = (bill.items || []).length > 0
+                                      ? bill.items.map((it: any) => [it.category, it.description || (it.from ? `${it.from} -> ${it.to}` : ''), `Rs. ${it.amount}`])
+                                      : (bill.transport_trips || []).length > 0
+                                        ? bill.transport_trips.map((t: any) => ['transport', `${t.from} -> ${t.to}`, `Rs. ${t.amount}`])
+                                        : [['Generic', bill.description || bill.title, `Rs. ${bill.amount}`]];
+
+                                    autoTable(doc, {
+                                      startY: 115,
+                                      head: [['Category', 'Description', 'Amount']],
+                                      body: tableData,
+                                      foot: [['', 'GRAND TOTAL', `Rs. ${bill.amount}`]],
+                                      theme: 'striped',
+                                      headStyles: { fillColor: primaryColor, textColor: 255, fontStyle: 'bold' } as any,
+                                      footStyles: { fillColor: [245, 245, 245], textColor: [0, 0, 0], fontStyle: 'bold' } as any,
+                                      styles: { fontSize: 10, cellPadding: 5 }
+                                    });
+
+                                    // Signature area
+                                    const finalY = (doc as any).lastAutoTable.finalY + 30;
+                                    doc.line(20, finalY, 70, finalY);
+                                    doc.text('Authorized Signature', 20, finalY + 5);
+
+                                    doc.line(140, finalY, 190, finalY);
+                                    doc.text('Receiver Signature', 140, finalY + 5);
+
+                                    doc.save(`Bill_${bill.id}_${bill.title || 'Voucher'}.pdf`);
+                                  }}
+                                >
+                                  <FileText className="w-4 h-4 text-primary" />
+                                </Button>
                                 <Button className="h-8 w-8 p-0" variant="ghost" title="Edit" onClick={(e) => { e.stopPropagation(); handleEdit(bill); }}>
                                   <Edit className="w-4 h-4" />
                                 </Button>

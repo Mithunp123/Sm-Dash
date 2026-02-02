@@ -65,8 +65,8 @@ const StudentEvents = () => {
     }
 
     const userRole = auth.getRole();
-    // Only allow student role
-    if (userRole !== 'student') {
+    // Allow student, office_bearer, and admin roles
+    if (!['student', 'office_bearer', 'admin'].includes(userRole || '')) {
       navigate("/login");
       return;
     }
@@ -207,7 +207,7 @@ const StudentEvents = () => {
             <div>
               <h1 className="text-3xl font-bold text-foreground">Events</h1>
               <p className="text-muted-foreground mt-1">
-                {auth.getRole() === 'student'
+                {['student', 'office_bearer'].includes(auth.getRole() || '')
                   ? "Register for upcoming events and volunteer opportunities"
                   : "View and manage assigned events"}
               </p>
@@ -226,9 +226,9 @@ const StudentEvents = () => {
                   return (
                     <Card
                       key={event.id}
-                      className={`overflow-hidden hover:shadow-lg transition-all border-border/50 group ${!registered && auth.getRole() === 'student' ? 'cursor-pointer hover:border-primary/50' : ''}`}
+                      className={`overflow-hidden hover:shadow-lg transition-all border-border/50 group ${!registered && ['student', 'office_bearer'].includes(auth.getRole() || '') ? 'cursor-pointer hover:border-primary/50' : ''}`}
                       onClick={() => {
-                        if (!registered && auth.getRole() === 'student') {
+                        if (!registered && ['student', 'office_bearer'].includes(auth.getRole() || '')) {
                           openRegisterDialog(event);
                         }
                       }}
@@ -240,7 +240,7 @@ const StudentEvents = () => {
                             alt={event.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
-                          {!registered && auth.getRole() === 'student' && (
+                          {!registered && ['student', 'office_bearer'].includes(auth.getRole() || '') && (
                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                               <span className="text-white font-bold px-4 py-2 border-2 border-white rounded-full">Register Now</span>
                             </div>
@@ -278,7 +278,7 @@ const StudentEvents = () => {
                           )}
 
                           {/* Only show button if NOT registered (or for admin view). If registered, the badge is enough, or show disabled button as visual confirmation */}
-                          {auth.getRole() === 'student' ? (
+                          {['student', 'office_bearer'].includes(auth.getRole() || '') ? (
                             <Button
                               onClick={(e) => {
                                 e.stopPropagation();

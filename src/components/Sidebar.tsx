@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Users, Calendar, FileText, BarChart3, GraduationCap,
   Settings, UserCircle, Briefcase, ClipboardCheck, KeyRound, MessageSquare,
-  UsersRound, FileBarChart, PhoneCall, UserCheck, Trophy, LogOut
+  UsersRound, FileBarChart, PhoneCall, UserCheck, Trophy, LogOut, Megaphone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth";
@@ -38,6 +38,7 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
   const adminMenuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
     { icon: Users, label: "Manage Users", path: "/admin/users" },
+    { icon: UsersRound, label: "Manage Office Bearers", path: "/admin/office-bearers" },
     { icon: Users, label: "Student Database", path: "/admin/student-db" },
     { icon: Briefcase, label: "Manage Projects", path: "/admin/projects" },
     { icon: UserCheck, label: "Mentor Management", path: "/admin/mentor-management" },
@@ -52,6 +53,8 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
     { icon: Users, label: "Volunteer Submissions", path: "/admin/volunteers" },
     { icon: MessageSquare, label: "Messages", path: "/admin/messages" },
     { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
+    { icon: Megaphone, label: "Announcements", path: "/admin/announcements" },
+    { icon: UserCircle, label: "My Profile", path: "/office-bearer/profile" },
     { icon: MessageSquare, label: "Feedback Questions", path: "/admin/feedback/questions" },
     { icon: BarChart3, label: "Feedback Reports", path: "/admin/feedback/reports" },
     { icon: Settings, label: "Settings", path: "/admin/settings" },
@@ -62,7 +65,6 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
       { icon: LayoutDashboard, label: "Dashboard", path: "/office-bearer" },
       { icon: Users, label: "Student Database", path: "/admin/student-db" },
       { icon: Briefcase, label: "Manage Projects", path: "/admin/projects" },
-      { icon: UserCheck, label: "Mentor Management", path: "/admin/mentor-management" },
       { icon: Calendar, label: "Meetings", path: "/admin/meetings" },
       { icon: Calendar, label: "Events", path: "/admin/events" },
       { icon: ClipboardCheck, label: "Attendance", path: "/admin/attendance" },
@@ -70,6 +72,7 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
       { icon: FileText, label: "Resources", path: "/admin/resources" },
       { icon: FileBarChart, label: "Reports", path: "/admin/reports" },
       { icon: UsersRound, label: "Teams", path: "/admin/teams" },
+      { icon: Megaphone, label: "Announcements", path: "/admin/announcements" },
       { icon: MessageSquare, label: "Messages", path: "/admin/messages" },
       { icon: MessageSquare, label: "Feedback Questions", path: "/admin/feedback/questions" },
       { icon: UserCircle, label: "My Profile", path: "/office-bearer/profile" },

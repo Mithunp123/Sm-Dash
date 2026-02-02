@@ -24,6 +24,8 @@ import teamsRoutes from './routes/teams.js';
 import uploadRoutes from './routes/upload.js';
 import phoneMentoringRoutes from './routes/phoneMentoring.js';
 import spocRoutes from './routes/spoc.js';
+import officeBearersRoutes from './routes/office_bearers.js';
+import announcementRoutes from './routes/announcements.js';
 import { initDatabase } from './database/init.js';
 
 // Load .env from backend directory first, then fallback to root directory
@@ -106,6 +108,8 @@ app.use('/api/teams', teamsRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/phone-mentoring', phoneMentoringRoutes);
 app.use('/api/spoc', spocRoutes);
+app.use('/api/office-bearers', officeBearersRoutes);
+app.use('/api/announcements', announcementRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

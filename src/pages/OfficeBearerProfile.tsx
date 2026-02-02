@@ -60,17 +60,15 @@ const OfficeBearerProfile = () => {
   }, [profileData.dob]);
 
   useEffect(() => {
-    if (!auth.isAuthenticated()) {
+    const role = auth.getRole();
+    if (!['office_bearer', 'admin'].includes(role || '')) {
       navigate("/login");
-      return;
-    }
-    // If user is not an office bearer, send them to admin dashboard instead of forcing a login
-    if (!auth.hasRole('office_bearer')) {
-      navigate("/admin");
       return;
     }
     loadProfile();
   }, []);
+
+  const backPath = auth.getRole() === 'admin' ? '/admin' : '/office-bearer';
 
   const loadProfile = async () => {
     try {
@@ -98,9 +96,9 @@ const OfficeBearerProfile = () => {
         hosteller_dayscholar: ""
       };
 
-      // Load office bearer profile
+      // Load office bearer profile using the unified profile endpoint
       const profileRes = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/profile/office-bearer/${currentUser.id}`,
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/${currentUser.id}/profile`,
         {
           headers: {
             'Authorization': `Bearer ${auth.getToken()}`
@@ -199,8 +197,45 @@ const OfficeBearerProfile = () => {
         }
       }
 
+      // Update user name and email first
+      if (profileData.name || profileData.email) {
+        try {
+          const updateUserRes = await fetch(
+            `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/${currentUser.id}`,
+            {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${auth.getToken()}`
+              },
+              body: JSON.stringify({
+                name: profileData.name || undefined,
+                email: profileData.email || undefined
+              })
+            }
+          );
+
+          if (updateUserRes.ok) {
+            const updateUserData = await updateUserRes.json();
+            if (updateUserData.success) {
+              // Update local user data
+              const current = auth.getUser();
+              if (current) {
+                auth.setUser({
+                  ...current,
+                  name: profileData.name || current.name,
+                  email: profileData.email || current.email
+                });
+              }
+            }
+          }
+        } catch (err: any) {
+          console.error('Failed to update user info:', err);
+        }
+      }
+
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/profile/office-bearer/${currentUser.id}`,
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/${currentUser.id}/profile`,
         {
           method: 'PUT',
           headers: {
