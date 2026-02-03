@@ -120,25 +120,27 @@ export const CalendarMonth = ({
     return map;
   }, [events]);
 
-  const weekdayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const weekdayLabelsShort = ["S", "M", "T", "W", "T", "F", "S"];
+  const weekdayLabelsFull = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   return (
     <div className={cn("w-full", className)}>
       {showHeader && (
         <div className="flex items-center justify-center mb-4">
-          <div className="text-2xl font-bold text-gray-900 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          <div className="text-xl md:text-2xl font-bold text-gray-900 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             {monthLabel}
           </div>
         </div>
       )}
-      <div className="grid grid-cols-7 gap-1 text-xs text-muted-foreground mb-2">
-        {weekdayLabels.map((w) => (
-          <div key={w} className="px-2 py-2 text-center font-semibold">
-            {w}
+      <div className="grid grid-cols-7 gap-0.5 md:gap-1 text-[10px] md:text-xs text-muted-foreground mb-2">
+        {weekdayLabelsFull.map((w, i) => (
+          <div key={w} className="px-1 py-2 text-center font-semibold">
+            <span className="hidden sm:inline">{w}</span>
+            <span className="sm:hidden">{weekdayLabelsShort[i]}</span>
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-0.5 md:gap-1">
         {gridDays.map(({ date, iso, inMonth }) => {
           const day = date.getDate();
           const dayEvents = eventsByDay[iso] || [];
@@ -149,26 +151,30 @@ export const CalendarMonth = ({
               type="button"
               onClick={() => onDayClick && onDayClick(iso)}
               className={cn(
-                "min-h-[96px] rounded-md border p-1 text-left hover:bg-accent transition-colors",
-                !inMonth && "opacity-50",
-                isToday && "border-primary"
+                "min-h-[60px] md:min-h-[96px] rounded-md border p-0.5 md:p-1 text-left hover:bg-accent transition-colors",
+                !inMonth && "opacity-30",
+                isToday && "border-primary bg-primary/5",
+                !inMonth && "hidden md:flex flex-col" // Hide out-of-month days on ultra small screens? No, keep for grid.
               )}
             >
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-muted-foreground">{weekdayLabels[date.getDay()]}</span>
-                <span className={cn("text-sm font-semibold px-1 rounded", isToday && "bg-primary text-primary-foreground")}>
+              <div className="flex items-center justify-between mb-0.5 md:mb-1">
+                <span className="text-[8px] md:text-xs text-muted-foreground hidden sm:inline">{weekdayLabelsFull[date.getDay()]}</span>
+                <span className={cn(
+                  "text-[10px] md:text-sm font-semibold px-0.5 md:px-1 rounded flex items-center justify-center min-w-[16px]",
+                  isToday && "bg-primary text-primary-foreground"
+                )}>
                   {day}
                 </span>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-0.5 overflow-hidden">
                 {dayEvents.slice(0, 3).map((ev) => (
                   <div
                     key={String(ev.id)}
                     className={cn(
-                      "truncate rounded px-1 py-0.5 text-xs",
-                      ev.type === 'holiday' ? "bg-red-100 text-red-900 border border-red-200" :
-                        ev.type === 'important' ? "bg-amber-100 text-amber-900 border border-amber-200" :
-                          "bg-primary/10"
+                      "truncate rounded px-0.5 md:px-1 py-0 px-0.5 md:py-0.5 text-[8px] md:text-xs leading-tight",
+                      ev.type === 'holiday' ? "bg-red-100/80 text-red-900 border-red-200" :
+                        ev.type === 'important' ? "bg-amber-100/80 text-amber-900 border-amber-200" :
+                          "bg-primary/20 text-primary-900"
                     )}
                     title={ev.title}
                   >
@@ -176,8 +182,8 @@ export const CalendarMonth = ({
                   </div>
                 ))}
                 {dayEvents.length > 3 && (
-                  <div className="text-[10px] text-muted-foreground">
-                    +{dayEvents.length - 3} more
+                  <div className="text-[7px] md:text-[10px] text-muted-foreground font-medium pl-0.5">
+                    +{dayEvents.length - 3}
                   </div>
                 )}
               </div>

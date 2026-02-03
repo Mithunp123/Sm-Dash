@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { MessageSquare, Mail, Send, Loader2, Trash, Edit2, Copy, Clock, Search, CheckCheck } from "lucide-react";
+import { MessageSquare, Mail, Send, Loader2, Trash, Edit2, Copy, Clock, Search, CheckCheck, ArrowLeft } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
@@ -148,9 +148,9 @@ const StudentMessagesTab = () => {
     );
 
     return (
-        <div className="flex gap-4 h-[calc(100vh-250px)]">
+        <div className="flex gap-4 h-[calc(100vh-250px)] relative">
             {/* Contacts List */}
-            <Card className="w-80 flex flex-col border-border/50">
+            <Card className={`${selectedContact ? 'hidden md:flex' : 'flex'} w-full md:w-80 flex-col border-border/50`}>
                 <div className="p-4 border-b border-border/50">
                     <h3 className="font-semibold text-foreground mb-3">Contacts</h3>
                     <div className="relative">
@@ -203,15 +203,23 @@ const StudentMessagesTab = () => {
             {/* Chat View */}
             {selectedContact ? (
                 <Card className="flex-1 flex flex-col border-border/50">
-                    <div className="p-4 border-b border-border/50 bg-muted/30 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
+                    <div className="p-4 border-b border-border/50 bg-muted/30 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="md:hidden -ml-2 h-8 w-8 flex-shrink-0"
+                                onClick={() => setSelectedContact(null)}
+                            >
+                                <ArrowLeft className="w-5 h-5" />
+                            </Button>
+                            <Avatar className="h-10 w-10 flex-shrink-0">
                                 <AvatarImage src={selectedContact.photo_url ? buildImageUrl(selectedContact.photo_url) : undefined} />
                                 <AvatarFallback>{selectedContact.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                             </Avatar>
-                            <div>
-                                <h2 className="font-semibold text-foreground">{selectedContact.name}</h2>
-                                <p className="text-xs text-muted-foreground capitalize">
+                            <div className="min-w-0">
+                                <h2 className="font-semibold text-foreground truncate">{selectedContact.name}</h2>
+                                <p className="text-xs text-muted-foreground capitalize truncate">
                                     {selectedContact.role.replace('_', ' ')}
                                 </p>
                             </div>
@@ -219,11 +227,20 @@ const StudentMessagesTab = () => {
                         <Button
                             variant="outline"
                             size="sm"
-                            className="gap-2"
+                            className="gap-2 shrink-0 hidden sm:flex"
                             onClick={() => setPermOpen(true)}
                         >
                             <Clock className="w-4 h-4" />
-                            Request Permission
+                            <span className="hidden lg:inline">Request Permission</span>
+                            <span className="lg:hidden">Request</span>
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="sm:hidden shrink-0"
+                            onClick={() => setPermOpen(true)}
+                        >
+                            <Clock className="w-4 h-4" />
                         </Button>
                     </div>
 
@@ -241,7 +258,7 @@ const StudentMessagesTab = () => {
                                     key={msg.id}
                                     className={`flex ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
                                 >
-                                    <div className={`max-w-[75%] relative group ${msg.sender_id === user?.id
+                                    <div className={`max-w-[85%] md:max-w-[75%] relative group ${msg.sender_id === user?.id
                                         ? 'bg-primary text-primary-foreground rounded-2xl rounded-tr-sm'
                                         : 'bg-muted rounded-2xl rounded-tl-sm'
                                         } px-4 py-2 shadow-sm`}
@@ -290,7 +307,7 @@ const StudentMessagesTab = () => {
                     </div>
                 </Card>
             ) : (
-                <Card className="flex-1 flex items-center justify-center border-border/50">
+                <Card className="hidden md:flex flex-1 items-center justify-center border-border/50">
                     <div className="text-center text-muted-foreground">
                         <MessageSquare className="w-16 h-16 mx-auto mb-4 opacity-10" />
                         <p className="text-lg font-medium">Select a contact to start messaging</p>

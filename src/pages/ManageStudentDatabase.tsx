@@ -11,7 +11,8 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DeveloperCredit from "@/components/DeveloperCredit";
 import { BackButton } from "@/components/BackButton";
-import { Users, Edit, Trash2, Search, Plus, ArrowLeft, Download } from "lucide-react";
+import { Users, Edit, Trash2, Search, Plus, ArrowLeft, Download, User } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
@@ -354,51 +355,48 @@ const ManageStudentDatabase = () => {
 
       <DeveloperCredit />
       <div className="flex flex-1">
-        <main className="flex-1 p-2 md:p-4 bg-background w-full">
+        <main className="flex-1 p-4 md:p-6 bg-background w-full">
           <ErrorBoundary>
-            <div className="w-full">
-              {/* Back Button */}
+            <div className="w-full p-2 md:p-4 space-y-6">
               <div className="mb-4">
                 <BackButton to="/admin" />
               </div>
 
               {/* Page Header */}
-              <div className="mb-6 flex items-center justify-between">
+              <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                 <div>
-                  <h1 className="text-3xl font-semibold text-foreground mb-1">User Database</h1>
-                  <p className="text-sm text-muted-foreground">View, edit, and manage all user records (Students, Office Bearers)</p>
+                  <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter">Student <span className="text-primary italic">Database</span></h1>
+                  <p className="text-[10px] sm:text-xs md:text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Unified records for the entire community</p>
                 </div>
                 {!canEdit && (
-                  <div className="flex items-center gap-3">
-                    <div className="text-sm text-muted-foreground">View-only access</div>
+                  <div className="flex items-center gap-3 bg-muted/50 p-2 rounded-lg border border-border/50">
+                    <div className="text-xs font-medium text-muted-foreground px-2">View-only</div>
                     {user?.role === 'office_bearer' && (
-                      <Button size="sm" onClick={() => setRequestDialogOpen(true)} variant="outline">Request Edit Access</Button>
+                      <Button size="sm" onClick={() => setRequestDialogOpen(true)} variant="outline" className="h-8 text-xs">Request Edit Access</Button>
                     )}
                   </div>
                 )}
               </div>
 
               {/* Search and Filter Controls */}
-              <Card className="gradient-card border-border/50 mb-8 shadow-md bg-white/50 backdrop-blur-sm">
-                <CardContent className="pt-6">
+              <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-xl rounded-3xl overflow-hidden mb-8">
+                <CardContent className="p-4 md:p-6 bg-muted/20">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                      <Label htmlFor="search">Search</Label>
+                    <div className="md:col-span-1 relative group">
+                      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors w-5 h-5" />
                       <Input
-                        id="search"
-                        placeholder="Search by name, email, dept..."
+                        placeholder="Search records..."
+                        className="pl-12 h-12 bg-background border-border/50 focus:ring-primary/20 transition-all rounded-2xl text-sm"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="border-orange-200/50 focus:border-orange-500 focus:ring-orange-500"
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="role">Filter by Role</Label>
+                    <div className="space-y-1">
                       <Select value={filterRole} onValueChange={setFilterRole}>
-                        <SelectTrigger id="role" className="border-orange-200/50 focus:border-orange-500 focus:ring-orange-500">
+                        <SelectTrigger className="h-12 bg-background border-border/50 rounded-2xl font-bold text-[10px] uppercase tracking-widest">
                           <SelectValue placeholder="All roles" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="rounded-2xl">
                           <SelectItem value="all">All Roles</SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
                           <SelectItem value="student">Student</SelectItem>
@@ -406,13 +404,12 @@ const ManageStudentDatabase = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div>
-                      <Label htmlFor="dept">Filter by Department</Label>
+                    <div className="space-y-1">
                       <Select value={filterDept} onValueChange={setFilterDept}>
-                        <SelectTrigger id="dept" className="border-orange-200/50 focus:border-orange-500 focus:ring-orange-500">
+                        <SelectTrigger className="h-12 bg-background border-border/50 rounded-2xl font-bold text-[10px] uppercase tracking-widest">
                           <SelectValue placeholder="All departments" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="max-h-[300px] rounded-2xl">
                           <SelectItem value="all">All Departments</SelectItem>
                           {departments.map(dept => (
                             <SelectItem key={dept} value={dept}>{dept}</SelectItem>
@@ -420,104 +417,190 @@ const ManageStudentDatabase = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="flex items-end gap-2">
-                      <Button onClick={() => loadData()} variant="outline" className="flex-1 border-orange-200/50 hover:border-orange-300">Refresh</Button>
-                      <Button onClick={() => handleExportExcel()} variant="outline" className="gap-2 border-orange-200/50 hover:border-orange-300">
+                    <div className="flex gap-2">
+                      <Button onClick={() => loadData()} variant="outline" className="flex-1 h-12 rounded-2xl font-bold text-[10px] uppercase tracking-widest border-2">
+                        Refresh
+                      </Button>
+                      <Button onClick={() => handleExportExcel()} className="flex-1 h-12 rounded-2xl font-bold text-[10px] uppercase tracking-widest gap-2 shadow-lg shadow-primary/20">
                         <Download className="w-4 h-4" />
-                        Export Excel
+                        Export
                       </Button>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="gradient-card">
-                <CardHeader>
-                  <CardTitle>Users ({filtered.length})</CardTitle>
-                  <CardDescription>List of all users and their profile details</CardDescription>
+              <Card className="border-border/50 shadow-xl bg-white/50 dark:bg-slate-900/50 backdrop-blur-md overflow-hidden">
+                <CardHeader className="border-b border-border/40 pb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-xl">Users</CardTitle>
+                      <CardDescription>Found {filtered.length} matching records</CardDescription>
+                    </div>
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                      {filtered.length}
+                    </div>
+                  </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-0 sm:px-6 py-6">
                   {error ? (
-                    <div className="text-center py-8 text-red-500">
-                      {error}
-                      <div className="mt-4">
-                        <Button variant="outline" onClick={() => loadData()}>
-                          Retry
-                        </Button>
+                    <div className="text-center py-12">
+                      <div className="bg-rose-500/10 text-rose-500 p-4 rounded-xl inline-block mb-4">
+                        <Users className="w-8 h-8 mx-auto opacity-50" />
                       </div>
+                      <p className="text-rose-500 font-medium">{error}</p>
+                      <Button variant="outline" onClick={() => loadData()} className="mt-4">
+                        Retry Connection
+                      </Button>
                     </div>
                   ) : loading ? (
-                    <div className="text-center py-8">Loading users...</div>
+                    <div className="text-center py-20">
+                      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-4"></div>
+                      <p className="text-muted-foreground animate-pulse">Fetching records...</p>
+                    </div>
                   ) : filtered.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">No users found</div>
+                    <div className="text-center py-20 text-muted-foreground">
+                      <Search className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                      <p className="text-lg font-medium">No results found</p>
+                      <p className="text-sm">Try adjusting your filters or search terms</p>
+                    </div>
                   ) : (
-                    <div>
+                    <div className="space-y-4">
                       {!canEdit && (
-                        <div className="mb-4 p-3 bg-yellow-50 text-yellow-800 rounded">
-                          You have view-only access to the user database. Editing, adding, and deleting users is disabled.
+                        <div className="mx-4 sm:mx-0 mb-6 p-4 bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 rounded-xl text-sm flex items-start gap-3">
+                          <div className="mt-0.5 shrink-0 px-2 py-0.5 bg-amber-500 text-white rounded text-[10px] font-bold uppercase">Note</div>
+                          <p>You have view-only access. Actions like Edit or Delete are restricted.</p>
                         </div>
                       )}
-                      <div className="overflow-x-auto border rounded-xl">
+
+                      {/* Mobile Card View */}
+                      <div className="grid grid-cols-1 gap-4 px-4 sm:hidden">
+                        {filtered.map((u, i) => (
+                          <Card key={u.id} className="rounded-3xl border-border/40 overflow-hidden bg-white shadow-md active:scale-[0.98] transition-all">
+                            <CardContent className="p-5">
+                              <div className="flex items-center gap-4 mb-4">
+                                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black uppercase text-base">
+                                  {u.name.charAt(0)}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="font-black text-foreground uppercase tracking-tight truncate pr-2">{u.name}</h3>
+                                  <div className="flex gap-2 mt-1">
+                                    <Badge className="bg-primary/10 text-primary border-none font-bold text-[9px] uppercase tracking-wider px-2 py-0.5">
+                                      {roleLabels[u.role] || u.role}
+                                    </Badge>
+                                    <Badge variant="outline" className="font-bold border-primary/30 text-primary/70 text-[9px] px-2 py-0.5">
+                                      {u.profile?.dept || "N/A"}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2 mb-4">
+                                <div className="bg-muted/30 p-2 rounded-xl">
+                                  <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Reg No</p>
+                                  <p className="text-xs font-bold text-foreground truncate">{u.profile?.register_no || "-"}</p>
+                                </div>
+                                <div className="bg-muted/30 p-2 rounded-xl">
+                                  <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Year</p>
+                                  <p className="text-xs font-bold text-foreground truncate">{u.profile?.year || "-"}</p>
+                                </div>
+                              </div>
+
+                              <p className="text-[10px] font-medium text-muted-foreground mb-4 italic truncate">{u.email}</p>
+
+                              {canEdit && (
+                                <div className="flex gap-2 pt-4 border-t border-border/50">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleEdit(u)}
+                                    className="flex-1 h-9 rounded-xl font-bold text-[10px] uppercase tracking-widest border-2"
+                                  >
+                                    Edit
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => handleDelete(u)}
+                                    className="h-9 w-9 rounded-xl flex items-center justify-center p-0"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+
+                      {/* Desktop Table View */}
+                      <div className="hidden sm:block overflow-x-auto border rounded-xl mx-4 sm:mx-0">
                         <Table>
-                          <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
+                          <TableHeader className="bg-muted/50">
                             <TableRow>
-                              <TableHead className="bg-white">S.No</TableHead>
-                              <TableHead className="bg-white">Name</TableHead>
-                              <TableHead className="bg-white">Email</TableHead>
-                              <TableHead className="bg-white">Role</TableHead>
-                              <TableHead className="bg-white">Reg No</TableHead>
-                              <TableHead className="bg-white">Dept</TableHead>
-                              <TableHead className="bg-white">Year</TableHead>
-                              <TableHead className="bg-white">Academic Year</TableHead>
-                              <TableHead className="bg-white">Phone</TableHead>
-                              <TableHead className="bg-white">Father Number</TableHead>
-                              <TableHead className="bg-white">Blood</TableHead>
-                              <TableHead className="bg-white">Gender</TableHead>
-                              <TableHead className="bg-white">DOB</TableHead>
-                              <TableHead className="bg-white">Hosteller/Dayscholar</TableHead>
-                              <TableHead className="bg-white">Address</TableHead>
-                              <TableHead className="text-right bg-white">Actions</TableHead>
+                              <TableHead className="w-[60px]">S.No</TableHead>
+                              <TableHead>User Information</TableHead>
+                              <TableHead>Academic Info</TableHead>
+                              <TableHead>Contact</TableHead>
+                              <TableHead>Identity</TableHead>
+                              {canEdit && <TableHead className="text-right">Actions</TableHead>}
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {filtered.map((u, i) => (
-                              <TableRow key={u.id}>
-                                <TableCell>{i + 1}</TableCell>
-                                <TableCell className="font-medium">{u.name}</TableCell>
-                                <TableCell className="text-sm">{u.email}</TableCell>
-                                <TableCell><span className="text-xs bg-primary/20 px-2 py-1 rounded">{roleLabels[u.role] || u.role}</span></TableCell>
-                                <TableCell>{u.profile?.register_no || '-'}</TableCell>
-                                <TableCell>{u.profile?.dept || '-'}</TableCell>
-                                <TableCell>{u.profile?.year || '-'}</TableCell>
-                                <TableCell>{u.profile?.academic_year || '-'}</TableCell>
-                                <TableCell>{u.profile?.phone || '-'}</TableCell>
-                                <TableCell>{u.profile?.father_number || '-'}</TableCell>
-                                <TableCell>{u.profile?.blood_group || '-'}</TableCell>
-                                <TableCell>{u.profile?.gender || '-'}</TableCell>
-                                <TableCell>{u.profile?.dob || '-'}</TableCell>
-                                <TableCell>{u.profile?.hosteller_dayscholar || '-'}</TableCell>
-                                <TableCell className="text-sm">{u.profile?.address || '-'}</TableCell>
-                                <TableCell className="text-right">
-                                  <div className="flex gap-2 justify-end">
-                                    {canEdit ? (
-                                      <>
-                                        <Button size="sm" variant="outline" onClick={() => handleEdit(u)} className="gap-1">
-                                          <Edit className="w-4 h-4" /> Edit
-                                        </Button>
-                                        <Button size="sm" variant="destructive" onClick={() => handleDelete(u)} className="gap-1">
-                                          <Trash2 className="w-4 h-4" /> Delete
-                                        </Button>
-                                      </>
-                                    ) : null}
+                              <TableRow key={u.id} className="hover:bg-muted/30 transition-colors group">
+                                <TableCell className="font-medium text-muted-foreground py-4">{i + 1}</TableCell>
+                                <TableCell className="py-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="h-9 w-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                      <User className="w-5 h-5" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <span className="font-semibold text-foreground leading-tight">{u.name}</span>
+                                      <span className="text-xs text-muted-foreground">{u.email}</span>
+                                    </div>
                                   </div>
                                 </TableCell>
+                                <TableCell className="py-4">
+                                  <div className="flex flex-col">
+                                    <span className="text-sm font-medium">{u.profile?.dept || '-'}</span>
+                                    <span className="text-xs text-muted-foreground">Year: {u.profile?.year || '-'} | {u.profile?.academic_year || '-'}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="py-4">
+                                  <div className="flex flex-col">
+                                    <span className="text-sm font-medium">{u.profile?.phone || '-'}</span>
+                                    <span className="text-xs text-muted-foreground">F: {u.profile?.father_number || '-'}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="py-4">
+                                  <div className="flex flex-col gap-1.5">
+                                    <span className="text-[10px] w-fit font-bold uppercase tracking-wider bg-primary/10 text-primary px-1.5 py-0.5 rounded leading-none">
+                                      {roleLabels[u.role] || u.role}
+                                    </span>
+                                    <span className="text-xs font-mono">{u.profile?.register_no || '-'}</span>
+                                  </div>
+                                </TableCell>
+                                {canEdit && (
+                                  <TableCell className="text-right py-4">
+                                    <div className="flex gap-2 justify-end">
+                                      <Button size="icon" variant="ghost" onClick={() => handleEdit(u)} className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10">
+                                        <Edit className="w-4 h-4" />
+                                      </Button>
+                                      <Button size="icon" variant="ghost" onClick={() => handleDelete(u)} className="h-8 w-8 text-muted-foreground hover:text-rose-500 hover:bg-rose-50">
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                )}
                               </TableRow>
                             ))}
                           </TableBody>
                         </Table>
                       </div>
                     </div>
-                  )}
+                  )
+                  }
                 </CardContent>
               </Card>
             </div>

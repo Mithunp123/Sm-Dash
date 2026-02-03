@@ -313,145 +313,225 @@ const ManageOfficeBearers = () => {
   };
 
   return (
-    <main className="flex-1 p-4 md:p-8 bg-background">
-      <div className="w-full px-4 md:px-6 lg:px-8">
-        <div className="mb-4">
+    <main className="flex-1 w-full bg-background overflow-x-hidden min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 w-full">
+        <div className="mb-8">
           <BackButton to="/admin" />
         </div>
 
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <div>
-            <h1 className="text-4xl font-black text-primary uppercase tracking-tighter">Office Bearers</h1>
-            <p className="text-muted-foreground font-medium">Manage student coordinators year by year</p>
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-6">
+          <div className="space-y-2">
+            <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter">
+              Office <span className="text-primary italic">Bearers</span>
+            </h1>
+            <p className="text-muted-foreground font-medium text-sm md:text-base border-l-4 border-primary/30 pl-3">
+              Manage student coordinators and leadership directory
+            </p>
           </div>
-          <div className="flex items-center gap-3">
-            {/* Round Excel Button requested by user */}
-            <Button
-              onClick={downloadMasterExcel}
-              className="w-12 h-12 rounded-full p-0 flex items-center justify-center shadow-lg shadow-green-500/20 bg-green-600 hover:bg-green-700 text-white transition-all transform hover:scale-110"
-              title="Download Master Excel"
-            >
-              <FileSpreadsheet className="w-6 h-6" />
-            </Button>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
+            <div className="grid grid-cols-3 sm:flex items-center gap-3">
+              <Button
+                onClick={downloadMasterExcel}
+                className="w-full sm:w-11 h-11 rounded-xl sm:rounded-full p-0 flex items-center justify-center shadow-lg shadow-green-500/20 bg-green-600 hover:bg-green-700 text-white transition-all transform hover:scale-105"
+                title="Download Master Excel"
+              >
+                <FileSpreadsheet className="w-5 h-5" />
+              </Button>
+
+              <Button
+                onClick={downloadSampleExcel}
+                variant="outline"
+                className="flex-1 px-4 py-2 border-green-500/30 hover:bg-green-50 text-green-600 font-bold gap-2 rounded-xl h-11 text-xs sm:text-sm"
+              >
+                <FileSpreadsheet className="w-4 h-4 hidden sm:block" />
+                <span>Sample</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={exportPDF}
+                className="flex-1 gap-2 border-primary/20 hover:bg-primary/5 text-primary font-bold h-11 text-xs sm:text-sm rounded-xl"
+              >
+                <FileText className="w-4 h-4 hidden sm:block" />
+                <span>PDF</span>
+              </Button>
+            </div>
 
             <Button
-              onClick={downloadSampleExcel}
-              variant="outline"
-              className="px-4 py-2 border-green-500/50 hover:bg-green-50 text-green-600 font-bold gap-2 rounded-xl h-10"
+              onClick={() => setShowAddDialog(true)}
+              className="gap-2 shadow-xl shadow-primary/30 font-bold px-8 h-12 text-sm w-full sm:w-auto rounded-xl bg-primary hover:bg-primary/90 transition-all hover:translate-y-[-2px] group"
             >
-              <FileSpreadsheet className="w-4 h-4" />
-              Sample Excel
-            </Button>
-
-            <Button variant="outline" onClick={exportPDF} className="gap-2 border-primary/20 hover:bg-primary/5 text-primary font-bold">
-              <FileText className="w-5 h-5" />
-              Export PDF
-            </Button>
-            <Button onClick={() => setShowAddDialog(true)} className="gap-2 shadow-lg shadow-primary/20 font-bold px-6">
-              <Plus className="w-5 h-5" />
+              <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
               Add New Bearer
             </Button>
           </div>
         </div>
 
-        <Card className="gradient-card border-border/50 mb-6">
-          <CardContent className="pt-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+        <Card className="border-border/50 mb-10 shadow-xl bg-white/50 dark:bg-slate-900/50 backdrop-blur-md overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-transparent pointer-events-none"></div>
+          <CardContent className="p-4 md:p-6 relative z-10">
+            <div className="relative group">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors w-5 h-5" />
               <Input
-                placeholder="Search by name, position, or year..."
+                placeholder="Search by name, position, year..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-12 bg-background/50 border-border/50 focus:border-primary/50 transition-all rounded-xl"
+                className="pl-12 h-14 bg-background/50 border-border/50 focus:ring-primary/20 transition-all rounded-2xl text-base md:text-lg shadow-inner"
               />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="gradient-card border-border/50 overflow-hidden">
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-slate-50/50 dark:bg-slate-900/50">
-                    <TableHead className="font-bold py-4 w-16 text-center">S.No</TableHead>
-                    <TableHead className="font-bold">Bearer Details</TableHead>
-                    <TableHead className="font-bold">Position</TableHead>
-                    <TableHead className="font-bold">Year</TableHead>
-                    <TableHead className="font-bold">Contact Info</TableHead>
-                    <TableHead className="font-bold">Academic Year</TableHead>
-                    <TableHead className="font-bold text-right pr-6">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {officeBearers.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-12 text-muted-foreground font-medium">
-                        No office bearers found. Add one to get started.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    officeBearers
-                      .filter(ob =>
-                        ob.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        ob.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        (ob.academic_year && ob.academic_year.includes(searchQuery))
-                      )
-                      .map((ob, index) => (
-                        <TableRow key={ob.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
-                          <TableCell className="text-center font-bold text-muted-foreground w-16">
-                            {index + 1}
-                          </TableCell>
-                          <TableCell className="py-4">
-                            <div className="flex items-center gap-4 pl-2">
-                              <Avatar className="w-12 h-12 rounded-xl border-2 border-primary/10">
-                                <AvatarImage src={ob.photo_url ? `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${ob.photo_url}` : undefined} />
-                                <AvatarFallback className="bg-primary/5 text-primary font-black uppercase">
-                                  {ob.name.charAt(0)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="font-bold text-lg leading-none mb-1">{ob.name}</p>
-                                <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">{ob.email || 'No Email'}</p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-3 py-1 font-bold">
-                              {ob.position}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="font-bold border-primary/30 text-primary/70">
-                              {ob.year || 'IV Year'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1 text-sm font-medium">
-                              <p>{ob.contact || 'No Contact'}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <span className="font-black text-slate-500">{ob.academic_year}</span>
-                          </TableCell>
-                          <TableCell className="text-right pr-6">
-                            <div className="flex justify-end gap-2">
-                              <Button size="icon" variant="ghost" onClick={() => openEditDialog(ob)} className="text-blue-500 hover:text-blue-600 hover:bg-blue-50/50">
+        <div className="space-y-4">
+          {/* Mobile Card List */}
+          <div className="grid grid-cols-1 gap-4 md:hidden">
+            {officeBearers.length === 0 ? (
+              <Card className="p-12 text-center border-dashed">
+                <p className="text-muted-foreground font-medium">No office bearers found.</p>
+              </Card>
+            ) : (
+              officeBearers
+                .filter(ob =>
+                  ob.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  ob.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  (ob.academic_year && ob.academic_year.includes(searchQuery))
+                )
+                .map((ob) => (
+                  <Card key={ob.id} className="overflow-hidden border-border/50 shadow-sm hover:shadow-md transition-all active:scale-[0.98]">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-4">
+                        <Avatar className="w-14 h-14 rounded-2xl border-2 border-primary/10 shrink-0">
+                          <AvatarImage src={ob.photo_url ? `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${ob.photo_url}` : undefined} />
+                          <AvatarFallback className="bg-primary/5 text-primary font-black uppercase text-xl">
+                            {ob.name.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start">
+                            <h3 className="font-bold text-lg truncate pr-2">{ob.name}</h3>
+                            <div className="flex gap-1 shrink-0">
+                              <Button size="icon" variant="ghost" onClick={() => openEditDialog(ob)} className="w-8 h-8 text-blue-500 hover:bg-blue-50">
                                 <Edit className="w-4 h-4" />
                               </Button>
-                              <Button size="icon" variant="ghost" onClick={() => { setSelectedOB(ob); setShowDeleteDialog(true); }} className="text-red-500 hover:text-red-600 hover:bg-red-50/50">
+                              <Button size="icon" variant="ghost" onClick={() => { setSelectedOB(ob); setShowDeleteDialog(true); }} className="w-8 h-8 text-red-500 hover:bg-red-50">
                                 <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+                          </div>
+                          <p className="text-sm text-muted-foreground truncate mb-2">{ob.email || 'No Email'}</p>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-2 py-0.5 font-bold text-[10px] uppercase tracking-wider">
+                              {ob.position}
+                            </Badge>
+                            <Badge variant="outline" className="font-bold border-primary/30 text-primary/70 text-[10px] px-2 py-0.5">
+                              {ob.year || 'IV Year'}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-4 border-t flex items-center justify-between text-xs font-bold text-muted-foreground">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-slate-400">Academic:</span>
+                          <span className="text-primary/70">{ob.academic_year}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-slate-400">Contact:</span>
+                          <span className="text-foreground/80">{ob.contact || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+            )}
+          </div>
+
+          {/* Desktop Table */}
+          <Card className="hidden md:block border-border/50 overflow-hidden shadow-sm">
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50/50 dark:bg-slate-900/50">
+                      <TableHead className="font-bold py-4 w-16 text-center">S.No</TableHead>
+                      <TableHead className="font-bold">Bearer Details</TableHead>
+                      <TableHead className="font-bold">Position</TableHead>
+                      <TableHead className="font-bold">Year</TableHead>
+                      <TableHead className="font-bold">Contact Info</TableHead>
+                      <TableHead className="font-bold">Academic Year</TableHead>
+                      <TableHead className="font-bold text-right pr-6">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {officeBearers.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-12 text-muted-foreground font-medium">
+                          No office bearers found. Add one to get started.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      officeBearers
+                        .filter(ob =>
+                          ob.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          ob.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (ob.academic_year && ob.academic_year.includes(searchQuery))
+                        )
+                        .map((ob, index) => (
+                          <TableRow key={ob.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
+                            <TableCell className="text-center font-bold text-muted-foreground">
+                              {index + 1}
+                            </TableCell>
+                            <TableCell className="py-4">
+                              <div className="flex items-center gap-4 pl-2">
+                                <Avatar className="w-12 h-12 rounded-xl border-2 border-primary/10">
+                                  <AvatarImage src={ob.photo_url ? `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${ob.photo_url}` : undefined} />
+                                  <AvatarFallback className="bg-primary/5 text-primary font-black uppercase">
+                                    {ob.name.charAt(0)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="font-bold text-lg leading-none mb-1">{ob.name}</p>
+                                  <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">{ob.email || 'No Email'}</p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-3 py-1 font-bold">
+                                {ob.position}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="font-bold border-primary/30 text-primary/70">
+                                {ob.year || 'IV Year'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-1 text-sm font-medium">
+                                <p>{ob.contact || 'No Contact'}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className="font-black text-slate-500">{ob.academic_year}</span>
+                            </TableCell>
+                            <TableCell className="text-right pr-6">
+                              <div className="flex justify-end gap-2">
+                                <Button size="icon" variant="ghost" onClick={() => openEditDialog(ob)} className="text-blue-500 hover:text-blue-600 hover:bg-blue-50/50">
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button size="icon" variant="ghost" onClick={() => { setSelectedOB(ob); setShowDeleteDialog(true); }} className="text-red-500 hover:text-red-600 hover:bg-red-50/50">
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Add Dialog */}
@@ -462,53 +542,57 @@ const ManageOfficeBearers = () => {
             <DialogDescription>Add a new student coordinator for the current year</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddOfficeBearer} className="space-y-6 pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="flex flex-col items-center justify-center border-2 border-dashed border-border/50 rounded-2xl p-6 bg-slate-50/30 group hover:border-primary/30 transition-all cursor-pointer relative" onClick={() => fileInputRef.current?.click()}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-6">
+                <div className="flex flex-col items-center justify-center border-2 border-dashed border-primary/20 rounded-3xl p-8 bg-primary/5 group hover:border-primary/40 transition-all cursor-pointer relative overflow-hidden" onClick={() => fileInputRef.current?.click()}>
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   {photoPreview ? (
-                    <img src={photoPreview} alt="Preview" className="w-32 h-32 rounded-2xl object-cover shadow-xl" />
+                    <img src={photoPreview} alt="Preview" className="w-40 h-40 rounded-2xl object-cover shadow-2xl relative z-10" />
                   ) : (
-                    <div className="w-32 h-32 rounded-2xl bg-slate-100 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
-                      <Camera className="w-10 h-10 text-slate-400 group-hover:text-primary transition-colors" />
+                    <div className="w-40 h-40 rounded-2xl bg-white dark:bg-slate-800 flex items-center justify-center shadow-inner relative z-10">
+                      <Camera className="w-12 h-12 text-slate-300 group-hover:text-primary transition-colors" />
                     </div>
                   )}
-                  <p className="mt-3 text-xs font-bold text-slate-500 uppercase tracking-widest">{photoPreview ? 'Change Photo' : 'Upload Photo'}</p>
+                  <p className="mt-4 text-[10px] font-black text-primary uppercase tracking-[0.2em] relative z-10">{photoPreview ? 'Change Photo' : 'Upload Photo'}</p>
                   <input type="file" ref={fileInputRef} onChange={handlePhotoChange} className="hidden" accept="image/*" />
                 </div>
-                <div className="space-y-2">
-                  <Label className="font-bold">Academic Year *</Label>
-                  <Input value={formData.academic_year} onChange={e => setFormData({ ...formData, academic_year: e.target.value })} required placeholder="e.g. 2024-2025" />
-                </div>
-                <div className="space-y-2">
-                  <Label className="font-bold">Student Year *</Label>
-                  <Select value={formData.year} onValueChange={val => setFormData({ ...formData, year: val })}>
-                    <SelectTrigger><SelectValue placeholder="Select Year" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="I Year">I Year</SelectItem>
-                      <SelectItem value="II Year">II Year</SelectItem>
-                      <SelectItem value="III Year">III Year</SelectItem>
-                      <SelectItem value="IV Year">IV Year</SelectItem>
-                    </SelectContent>
-                  </Select>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Academic Year *</Label>
+                    <Input value={formData.academic_year} onChange={e => setFormData({ ...formData, academic_year: e.target.value })} required className="h-11 rounded-xl" placeholder="e.g. 2024-2025" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Student Year *</Label>
+                    <Select value={formData.year} onValueChange={val => setFormData({ ...formData, year: val })}>
+                      <SelectTrigger className="h-11 rounded-xl"><SelectValue placeholder="Select Year" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="I Year">I Year</SelectItem>
+                        <SelectItem value="II Year">II Year</SelectItem>
+                        <SelectItem value="III Year">III Year</SelectItem>
+                        <SelectItem value="IV Year">IV Year</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="font-bold">Full Name *</Label>
-                  <Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required placeholder="Enter name" />
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Full Name *</Label>
+                  <Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required className="h-11 rounded-xl" placeholder="Enter name" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="font-bold">Position *</Label>
-                  <Input value={formData.position} onChange={e => setFormData({ ...formData, position: e.target.value })} required placeholder="e.g. President, Secretary" />
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Position *</Label>
+                  <Input value={formData.position} onChange={e => setFormData({ ...formData, position: e.target.value })} required className="h-11 rounded-xl" placeholder="e.g. President, Secretary" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="font-bold">Contact Number</Label>
-                  <Input value={formData.contact} onChange={e => setFormData({ ...formData, contact: e.target.value })} placeholder="+91 00000 00000" />
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Contact Number</Label>
+                  <Input value={formData.contact} onChange={e => setFormData({ ...formData, contact: e.target.value })} className="h-11 rounded-xl" placeholder="+91 00000 00000" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="font-bold">Email Address</Label>
-                  <Input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="email@example.com" />
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Email Address</Label>
+                  <Input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="h-11 rounded-xl" placeholder="email@example.com" />
                 </div>
               </div>
             </div>
@@ -528,53 +612,57 @@ const ManageOfficeBearers = () => {
             <DialogDescription>Update coordinator details</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEditOfficeBearer} className="space-y-6 pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="flex flex-col items-center justify-center border-2 border-dashed border-border/50 rounded-2xl p-6 bg-slate-50/30 group hover:border-primary/30 transition-all cursor-pointer relative" onClick={() => fileInputRef.current?.click()}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-6">
+                <div className="flex flex-col items-center justify-center border-2 border-dashed border-primary/20 rounded-3xl p-8 bg-primary/5 group hover:border-primary/40 transition-all cursor-pointer relative overflow-hidden" onClick={() => fileInputRef.current?.click()}>
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   {photoPreview ? (
-                    <img src={photoPreview} alt="Preview" className="w-32 h-32 rounded-2xl object-cover shadow-xl" />
+                    <img src={photoPreview} alt="Preview" className="w-40 h-40 rounded-2xl object-cover shadow-2xl relative z-10" />
                   ) : (
-                    <div className="w-32 h-32 rounded-2xl bg-slate-100 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
-                      <Camera className="w-10 h-10 text-slate-400 group-hover:text-primary transition-colors" />
+                    <div className="w-40 h-40 rounded-2xl bg-white dark:bg-slate-800 flex items-center justify-center shadow-inner relative z-10">
+                      <Camera className="w-12 h-12 text-slate-300 group-hover:text-primary transition-colors" />
                     </div>
                   )}
-                  <p className="mt-3 text-xs font-bold text-slate-500 uppercase tracking-widest">Change Photo</p>
+                  <p className="mt-4 text-[10px] font-black text-primary uppercase tracking-[0.2em] relative z-10">Change Photo</p>
                   <input type="file" ref={fileInputRef} onChange={handlePhotoChange} className="hidden" accept="image/*" />
                 </div>
-                <div className="space-y-2">
-                  <Label className="font-bold">Academic Year *</Label>
-                  <Input value={formData.academic_year} onChange={e => setFormData({ ...formData, academic_year: e.target.value })} required />
-                </div>
-                <div className="space-y-2">
-                  <Label className="font-bold">Student Year *</Label>
-                  <Select value={formData.year} onValueChange={val => setFormData({ ...formData, year: val })}>
-                    <SelectTrigger><SelectValue placeholder="Select Year" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="I Year">I Year</SelectItem>
-                      <SelectItem value="II Year">II Year</SelectItem>
-                      <SelectItem value="III Year">III Year</SelectItem>
-                      <SelectItem value="IV Year">IV Year</SelectItem>
-                    </SelectContent>
-                  </Select>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Academic Year *</Label>
+                    <Input value={formData.academic_year} onChange={e => setFormData({ ...formData, academic_year: e.target.value })} required className="h-11 rounded-xl" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Student Year *</Label>
+                    <Select value={formData.year} onValueChange={val => setFormData({ ...formData, year: val })}>
+                      <SelectTrigger className="h-11 rounded-xl"><SelectValue placeholder="Select Year" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="I Year">I Year</SelectItem>
+                        <SelectItem value="II Year">II Year</SelectItem>
+                        <SelectItem value="III Year">III Year</SelectItem>
+                        <SelectItem value="IV Year">IV Year</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="font-bold">Full Name *</Label>
-                  <Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required />
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Full Name *</Label>
+                  <Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required className="h-11 rounded-xl" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="font-bold">Position *</Label>
-                  <Input value={formData.position} onChange={e => setFormData({ ...formData, position: e.target.value })} required />
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Position *</Label>
+                  <Input value={formData.position} onChange={e => setFormData({ ...formData, position: e.target.value })} required className="h-11 rounded-xl" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="font-bold">Contact Number</Label>
-                  <Input value={formData.contact} onChange={e => setFormData({ ...formData, contact: e.target.value })} />
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Contact Number</Label>
+                  <Input value={formData.contact} onChange={e => setFormData({ ...formData, contact: e.target.value })} className="h-11 rounded-xl" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="font-bold">Email Address</Label>
-                  <Input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Email Address</Label>
+                  <Input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="h-11 rounded-xl" />
                 </div>
               </div>
             </div>

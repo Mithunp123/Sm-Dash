@@ -12,7 +12,7 @@ import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
 import { BackButton } from "@/components/BackButton";
-import { Send, MessageSquare, Trash2, Search, UserPlus, Users, CheckCircle2 } from "lucide-react";
+import { Send, MessageSquare, Trash2, Search, UserPlus, Users, CheckCircle2, ArrowLeft } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { buildImageUrl } from "@/utils/imageUtils";
 
@@ -183,7 +183,7 @@ const AdminMessages = () => {
   );
 
   return (
-    <main className="flex-1 p-2 md:p-4 bg-background w-full h-screen">
+    <main className="flex-1 p-2 md:p-4 bg-background w-full h-[100dvh]">
       <div className="w-full h-full flex flex-col">
         <div className="mb-4">
           <BackButton to="/admin" />
@@ -196,13 +196,13 @@ const AdminMessages = () => {
           </div>
         </div>
 
-        <div className="flex-1 flex gap-4 overflow-hidden h-[calc(100vh-180px)]">
+        <div className="flex-1 flex gap-4 overflow-hidden h-[calc(100dvh-160px)] md:h-[calc(100dvh-180px)] relative">
           {/* Conversations Sidebar */}
-          <Card className="w-96 flex flex-col border-border/50 bg-card overflow-hidden">
-            <div className="p-4 border-b border-border/50">
-              <Button onClick={() => { setShowNewChatDialog(true); loadUsers(); }} className="w-full gap-2">
+          <Card className={`${selectedContact ? 'hidden md:flex' : 'flex'} w-full md:w-96 flex-col border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden rounded-2xl md:rounded-3xl shadow-xl`}>
+            <div className="p-3 md:p-4 border-b border-border/50">
+              <Button onClick={() => { setShowNewChatDialog(true); loadUsers(); }} className="w-full gap-2 rounded-xl h-11">
                 <UserPlus className="w-4 h-4" />
-                New Conversation
+                New Chat
               </Button>
             </div>
 
@@ -230,7 +230,7 @@ const AdminMessages = () => {
                     <button
                       key={convo.contact_id}
                       onClick={() => handleSelectContact(convo)}
-                      className={`w-full p-4 text-left hover:bg-muted/50 transition-colors ${selectedContact?.contact_id === convo.contact_id ? 'bg-muted' : ''
+                      className={`w-full p-3 text-left hover:bg-muted/50 transition-colors ${selectedContact?.contact_id === convo.contact_id ? 'bg-muted' : ''
                         } ${convo.is_read === 0 && convo.sender_id !== currentUser?.id ? 'bg-primary/5' : ''}`}
                     >
                       <div className="flex items-start gap-3">
@@ -264,6 +264,14 @@ const AdminMessages = () => {
             <Card className="flex-1 flex flex-col border-border/50 bg-card overflow-hidden">
               <div className="p-4 border-b border-border/50 flex items-center justify-between bg-muted/30">
                 <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="md:hidden -ml-2 h-8 w-8"
+                    onClick={() => setSelectedContact(null)}
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </Button>
                   <Avatar className="w-10 h-10">
                     <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                       {selectedContact.contact_name.substring(0, 2).toUpperCase()}
@@ -284,7 +292,7 @@ const AdminMessages = () => {
                 ) : (
                   messages.map((msg) => (
                     <div key={msg.id} className={`flex w-full ${msg.sender_id === currentUser?.id ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[70%] group relative ${msg.sender_id === currentUser?.id
+                      <div className={`max-w-[85%] md:max-w-[70%] group relative ${msg.sender_id === currentUser?.id
                         ? 'bg-primary text-primary-foreground rounded-2xl rounded-tr-sm'
                         : 'bg-muted rounded-2xl rounded-tl-sm'
                         } px-4 py-2 shadow-sm`}>
@@ -327,7 +335,7 @@ const AdminMessages = () => {
               </div>
             </Card>
           ) : (
-            <Card className="flex-1 flex items-center justify-center border-border/50 bg-card">
+            <Card className="hidden md:flex flex-1 flex items-center justify-center border-border/50 bg-card">
               <div className="text-center text-muted-foreground">
                 <MessageSquare className="w-16 h-16 mx-auto mb-4 opacity-10" />
                 <p>Select a conversation to start messaging</p>

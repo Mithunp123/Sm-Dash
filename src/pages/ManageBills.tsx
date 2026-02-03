@@ -357,10 +357,10 @@ const ManageBills = () => {
           </div>
 
           {/* Page Header */}
-          <div className="mb-6 flex items-center justify-between">
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-semibold text-foreground mb-1">{viewTitle}</h1>
-              <p className="text-sm text-muted-foreground">{currentView === 'folders' ? 'Manage folders to organize bills' : 'Manage bills in this folder'}</p>
+              <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight uppercase">{viewTitle}</h1>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{currentView === 'folders' ? 'Manage folders to organize bills' : 'Manage bills in this folder'}</p>
             </div>
             {currentView === 'folders' ? (
               <Button onClick={() => {
@@ -369,12 +369,12 @@ const ManageBills = () => {
                 setNewFolderDesc('');
                 setNewFolderDisabled(false);
                 setShowFolderDialog(true);
-              }} className="gap-2">
+              }} className="gap-2 rounded-2xl h-12 shadow-lg shadow-primary/20">
                 <Plus className="w-4 h-4" />
                 Create Folder
               </Button>
             ) : (
-              <Button onClick={() => { resetForm(); setShowDialog(true); }} className="gap-2">
+              <Button onClick={() => { resetForm(); setShowDialog(true); }} className="gap-2 rounded-2xl h-12 shadow-lg shadow-primary/20">
                 <Plus className="w-4 h-4" />
                 Create Bill
               </Button>
@@ -382,24 +382,17 @@ const ManageBills = () => {
           </div>
 
           {currentView === 'folders' ? (
-            // FOLDERS GRID VIEW
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {folders.map(folder => {
-                // Calculate bill count for this folder locally or fetch? 
-                // For now filtering bills array if loaded, or just show icon
                 const count = bills.filter(b => b.folder_id === folder.id).length;
                 const isDisabled = folder.description?.includes('[DISABLED]');
                 const isAdmin = auth.hasRole('admin');
 
-                // If disabled and not admin, show locked or hide?
-                // User requirement: "Disable ... for Office Bearers". 
-                // We'll show it as locked visually
-
                 return (
-                  <Card key={folder.id} className={`hover:shadow-md transition-shadow bg-card border-border/50 group relative ${isDisabled ? 'opacity-75 border-red-200 bg-red-50/10' : ''}`}>
-                    <CardContent className="p-6 flex flex-col items-center text-center space-y-3">
+                  <Card key={folder.id} className={`hover:shadow-xl transition-all duration-300 bg-card/50 backdrop-blur-sm border-border/50 group relative overflow-hidden rounded-[2rem] ${isDisabled ? 'opacity-75' : ''}`}>
+                    <div className="p-6 flex flex-col items-center text-center space-y-4 relative z-10">
                       <div
-                        className={`p-4 rounded-full transition-colors ${isDisabled && !isAdmin ? 'bg-muted cursor-not-allowed' : 'bg-primary/10 group-hover:bg-primary/20 cursor-pointer'}`}
+                        className={`p-5 rounded-3xl transition-all duration-500 ${isDisabled && !isAdmin ? 'bg-muted cursor-not-allowed' : 'bg-primary/10 group-hover:bg-primary/20 group-hover:scale-110 group-hover:rotate-3 cursor-pointer'}`}
                         onClick={() => {
                           if (isDisabled && !isAdmin) {
                             toast.error("This folder is currently disabled");
@@ -408,7 +401,7 @@ const ManageBills = () => {
                           handleFolderClick(folder);
                         }}
                       >
-                        <Briefcase className={`w-8 h-8 ${isDisabled ? 'text-muted-foreground' : 'text-primary'}`} />
+                        <Briefcase className={`w-10 h-10 ${isDisabled ? 'text-muted-foreground' : 'text-primary'}`} />
                       </div>
                       <div
                         className={`w-full ${isDisabled && !isAdmin ? 'cursor-not-allowed' : 'cursor-pointer'}`}
@@ -417,22 +410,21 @@ const ManageBills = () => {
                           handleFolderClick(folder);
                         }}
                       >
-                        <h3 className="font-semibold text-lg flex items-center justify-center gap-2">
+                        <h3 className="font-black text-foreground uppercase tracking-tight text-lg flex items-center justify-center gap-2">
                           {folder.name}
-                          {isDisabled && <Badge variant="destructive" className="text-[10px] h-5">Disabled</Badge>}
                         </h3>
-                        <p className="text-sm text-muted-foreground">{count} bills</p>
-                        {isDisabled && !isAdmin && <p className="text-xs text-destructive mt-1">Access Restricted</p>}
+                        {isDisabled && <Badge variant="destructive" className="text-[10px] h-5 px-2 font-black uppercase tracking-widest mt-1">Disabled</Badge>}
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-2">{count} bills recorded</p>
                       </div>
 
                       {/* Edit/Delete Buttons */}
-                      <div className="flex gap-2 w-full pt-2 border-t">
+                      <div className="flex gap-2 w-full pt-4 border-t border-border/50">
                         {(auth.hasRole('admin')) && (
                           <>
                             <Button
                               size="sm"
                               variant="outline"
-                              className="flex-1 h-8 gap-1"
+                              className="flex-1 h-10 gap-1 rounded-xl border-border/50 hover:bg-primary/5 transition-all text-[10px] font-black uppercase tracking-widest"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setEditingFolder(folder);
@@ -443,23 +435,23 @@ const ManageBills = () => {
                                 setShowFolderDialog(true);
                               }}
                             >
-                              <Edit className="w-3 h-3" /> Edit
+                              <Edit className="w-3.5 h-3.5" /> Edit
                             </Button>
                             <Button
                               size="sm"
                               variant="outline"
-                              className="flex-1 h-8 gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              className="flex-1 h-10 gap-1 rounded-xl border-border/50 text-destructive hover:bg-destructive/5 transition-all text-[10px] font-black uppercase tracking-widest"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDeleteFolder(folder.id);
                               }}
                             >
-                              <Trash2 className="w-3 h-3" /> Delete
+                              <Trash2 className="w-3.5 h-3.5" /> Delete
                             </Button>
                           </>
                         )}
                       </div>
-                    </CardContent>
+                    </div>
                   </Card>
                 );
               })}

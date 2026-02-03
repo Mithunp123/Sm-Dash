@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 
 import DeveloperCredit from "@/components/DeveloperCredit";
 import { BackButton } from "@/components/BackButton";
-import { Users, Plus, ArrowLeft, Key, Search, Filter, Edit, Trash2, Upload } from "lucide-react";
+import { Users, Plus, ArrowLeft, Key, Search, Filter, Edit, Trash2, Upload, RefreshCw } from "lucide-react";
 import * as XLSX from 'xlsx';
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
@@ -362,59 +362,57 @@ const ManageUsers = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-
       <DeveloperCredit />
-
       <div className="flex flex-1">
-        <main className="flex-1 p-2 md:p-4 bg-background">
-          <div className="w-full">
+        <main className="flex-1 w-full bg-background overflow-x-hidden">
+          <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 w-full">
             {/* Back Button */}
-            <div className="mb-4">
+            <div className="mb-6">
               <BackButton to="/admin" />
             </div>
 
-            {/* Page Header */}
-            <div className="mb-6 flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
               <div>
-                <h1 className="text-3xl font-semibold text-foreground mb-1">Users</h1>
-                <p className="text-sm text-muted-foreground">Add, edit, or remove users</p>
+                <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter">User <span className="text-primary italic">Control</span></h1>
+                <p className="text-[10px] sm:text-xs md:text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Manage platform access and permissions</p>
               </div>
-              <div className="flex gap-2">
-                <Button onClick={downloadTemplate} variant="outline" className="gap-2">
-                  <Upload className="w-4 h-4" />
-                  Download Template
-                </Button>
-                <Button onClick={() => setShowImportDialog(true)} variant="outline" className="gap-2">
-                  <Upload className="w-4 h-4" />
-                  Import from Excel
-                </Button>
-                <Button onClick={() => setShowAddDialog(true)} className="gap-2">
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <Button onClick={() => setShowAddDialog(true)} className="gap-2 h-11 px-6 rounded-2xl shadow-lg shadow-primary/20 font-bold bg-primary uppercase tracking-widest text-[10px]">
                   <Plus className="w-4 h-4" />
                   Add User
                 </Button>
+                <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
+                  <Button onClick={downloadTemplate} variant="outline" className="gap-2 h-11 rounded-2xl border-2 font-black text-[9px] uppercase tracking-widest">
+                    <Upload className="w-3.5 h-3.5 text-primary" />
+                    Template
+                  </Button>
+                  <Button onClick={() => setShowImportDialog(true)} variant="outline" className="gap-2 h-11 rounded-2xl border-2 font-black text-[9px] uppercase tracking-widest">
+                    <Upload className="w-3.5 h-3.5 text-primary" />
+                    Import
+                  </Button>
+                </div>
               </div>
             </div>
 
             {/* Filter Section */}
-            <Card className="border-border/50 mb-6 bg-card">
-              <CardContent className="pt-6">
+            <Card className="border-border/40 mb-8 bg-card/60 backdrop-blur-md shadow-xl rounded-3xl overflow-hidden">
+              <CardContent className="p-4 md:p-6 bg-muted/20">
                 <div className="flex flex-col md:flex-row gap-4">
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <div className="flex-1 relative group">
+                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors w-5 h-5" />
                     <Input
                       placeholder="Search users by name or email..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
+                      className="pl-12 h-12 bg-background border-border/50 focus:ring-primary/20 transition-all rounded-2xl text-sm"
                     />
                   </div>
                   <div className="flex items-center gap-2">
-                    <Filter className="w-4 h-4 text-muted-foreground" />
                     <Select value={roleFilter} onValueChange={setRoleFilter}>
-                      <SelectTrigger className="w-40">
+                      <SelectTrigger className="w-full md:w-48 h-12 rounded-2xl bg-background border-border/50 font-bold text-xs uppercase tracking-widest">
                         <SelectValue placeholder="Filter by role" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="rounded-2xl">
                         <SelectItem value="all">All Roles</SelectItem>
                         <SelectItem value="admin">Admin</SelectItem>
                         <SelectItem value="office_bearer">Office Bearer</SelectItem>
@@ -441,81 +439,77 @@ const ManageUsers = () => {
                     return matchesSearch && matchesRole;
                   })
                   .map((user) => (
-                    <Card key={user.id} className="border-border/50 hover:border-primary/50 transition-all hover:scale-105 bg-card">
-                      <CardHeader>
+                    <Card key={user.id} className="group relative overflow-hidden rounded-3xl border-border/40 bg-card/60 backdrop-blur-md shadow-md hover:shadow-xl hover:translate-y-[-4px] transition-all duration-300">
+                      <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full opacity-10 blur-xl ${user.role === 'admin' ? 'bg-red-500' : user.role === 'office_bearer' ? 'bg-primary' : 'bg-slate-400'}`} />
+                      <div className={`absolute left-0 top-0 bottom-0 w-1 ${user.role === 'admin' ? 'bg-red-500' : user.role === 'office_bearer' ? 'bg-primary' : 'bg-slate-400'}`} />
+
+                      <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
-                          <CardTitle className="text-lg">{user.name}</CardTitle>
-                          <Badge variant={getRoleBadgeColor(user.role)}>
-                            {user.role.replace('_', ' ').toUpperCase()}
+                          <div className="min-w-0">
+                            <CardTitle className="text-xl font-black text-foreground uppercase tracking-tight truncate pr-2 leading-none mb-1">{user.name}</CardTitle>
+                            <CardDescription className="text-[10px] font-bold text-muted-foreground truncate tracking-wide">{user.email}</CardDescription>
+                          </div>
+                          <Badge variant={getRoleBadgeColor(user.role)} className="font-bold text-[9px] uppercase tracking-widest px-2 py-0.5 h-5">
+                            {user.role.replace('_', ' ')}
                           </Badge>
                         </div>
-                        <CardDescription>{user.email}</CardDescription>
                       </CardHeader>
+
                       <CardContent>
-                        <div className="space-y-2">
-                          <div className="text-sm text-muted-foreground">
-                            Created: {new Date(user.created_at).toLocaleDateString()}
-                          </div>
-                          <div className="flex flex-col gap-2 pt-2">
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedUser(user);
-                                  setFormData({
-                                    name: user.name,
-                                    email: user.email,
-                                    role: user.role,
-                                    password: ""
-                                  });
-                                  setShowEditDialog(true);
-                                }}
-                                className="gap-2 flex-1"
-                              >
-                                <Edit className="w-4 h-4" />
-                                Edit
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedUser(user);
-                                  setShowDeleteDialog(true);
-                                }}
-                                className="gap-2 flex-1"
-                                disabled={user.role === 'admin'}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                                Remove
-                              </Button>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedUser(user);
-                                  setShowSetPasswordDialog(true);
-                                }}
-                                className="gap-2 flex-1"
-                              >
-                                <Key className="w-4 h-4" />
-                                Set Password
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedUser(user);
-                                  setShowResetDialog(true);
-                                }}
-                                className="gap-2 flex-1"
-                              >
-                                Reset
-                              </Button>
-                            </div>
-                          </div>
+                        <div className="grid grid-cols-2 gap-2 mb-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setShowSetPasswordDialog(true);
+                            }}
+                            className="h-9 rounded-xl font-black text-[9px] uppercase tracking-widest border-2 hover:bg-primary/5 hover:text-primary transition-all gap-1.5"
+                          >
+                            <Key className="w-3.5 h-3.5" />
+                            Password
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setShowResetDialog(true);
+                            }}
+                            className="h-9 rounded-xl font-black text-[9px] uppercase tracking-widest border-2 hover:bg-orange-500/10 hover:text-orange-500 transition-all gap-1.5"
+                          >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            Reset
+                          </Button>
+                        </div>
+
+                        <div className="flex gap-2 pt-4 border-t border-border/50">
+                          <Button
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setFormData({
+                                name: user.name,
+                                email: user.email,
+                                role: user.role,
+                                password: ""
+                              });
+                              setShowEditDialog(true);
+                            }}
+                            className="flex-1 h-9 rounded-xl font-black text-[10px] uppercase tracking-widest bg-primary hover:primary/90 transition-all"
+                          >
+                            Edit Profile
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setShowDeleteDialog(true);
+                            }}
+                            className="h-9 w-9 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>

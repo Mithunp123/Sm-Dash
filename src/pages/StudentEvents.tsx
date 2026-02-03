@@ -25,7 +25,10 @@ interface Event {
   registration_id?: number;
   registration_type?: string;
   registration_status?: string;
-  registration_at?: string; // Fix typo or just add alias
+  registration_at?: string;
+  current_volunteers?: number;
+  max_volunteers?: number;
+  volunteer_registration_deadline?: string;
   // Properties found in usage
   event_id?: number;
   status?: string;
@@ -49,14 +52,28 @@ const StudentEvents = () => {
 
   // Pre-fill user data if available from auth
   useEffect(() => {
-    const user = auth.getUser();
-    if (user) {
-      setFormData(prev => ({
-        ...prev,
-        name: user.name || "",
-        // Other fields might not be in the basic auth user object, but we set what we can
-      }));
-    }
+    const fetchProfile = async () => {
+      try {
+        const user = auth.getUser();
+        if (!user || !user.id) return;
+
+        const res = await api.getProfile(user.id);
+        if (res.success && res.profile) {
+          const p = res.profile;
+          setFormData(prev => ({
+            ...prev,
+            name: p.name || prev.name,
+            regNo: p.register_no || "",
+            year: p.year || "",
+            department: p.dept || "",
+            phone: p.phone || ""
+          }));
+        }
+      } catch (e) {
+        console.error("Failed to fetch profile for pre-fill", e);
+      }
+    };
+    fetchProfile();
   }, []);
 
   useEffect(() => {
@@ -183,6 +200,15 @@ const StudentEvents = () => {
     }
   };
 
+  const isDeadlinePassed = (deadline?: string) => {
+    if (!deadline) return false;
+    return new Date() > new Date(deadline);
+  };
+
+  const isFull = (event: Event) => {
+    return !!(event.max_volunteers && (event.current_volunteers || 0) >= event.max_volunteers);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -223,13 +249,16 @@ const StudentEvents = () => {
                 {upcomingEvents.map((event) => {
                   const registered = isRegistered(event.id);
                   const status = getRegistrationStatus(event.id);
+                  const deadlinePassed = isDeadlinePassed(event.volunteer_registration_deadline);
+                  const registrationFull = isFull(event);
+                  const canRegister = !registered && !deadlinePassed && !registrationFull && ['student', 'office_bearer'].includes(auth.getRole() || '');
 
                   return (
                     <Card
                       key={event.id}
-                      className={`overflow-hidden hover:shadow-lg transition-all border-border/50 group ${!registered && ['student', 'office_bearer'].includes(auth.getRole() || '') ? 'cursor-pointer hover:border-primary/50' : ''}`}
+                      className={`overflow-hidden hover:shadow-lg transition-all border-border/50 group ${canRegister ? 'cursor-pointer hover:border-primary/50' : ''}`}
                       onClick={() => {
-                        if (!registered && ['student', 'office_bearer'].includes(auth.getRole() || '')) {
+                        if (canRegister) {
                           openRegisterDialog(event);
                         }
                       }}
@@ -241,7 +270,7 @@ const StudentEvents = () => {
                             alt={event.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
-                          {!registered && ['student', 'office_bearer'].includes(auth.getRole() || '') && (
+                          {canRegister && (
                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                               <span className="text-white font-bold px-4 py-2 border-2 border-white rounded-full">Register Now</span>
                             </div>
@@ -264,9 +293,16 @@ const StudentEvents = () => {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-3">
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Calendar className="w-4 h-4 text-primary" />
-                            <span>{formatDate(event.date)}</span>
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Calendar className="w-4 h-4 text-primary" />
+                              <span>{formatDate(event.date)}</span>
+                            </div>
+                            {event.max_volunteers ? (
+                              <div className={`font-medium ${registrationFull ? 'text-destructive' : 'text-primary'}`}>
+                                {event.current_volunteers || 0} / {event.max_volunteers} Spots
+                              </div>
+                            ) : null}
                           </div>
 
                           {registered && status && (
@@ -283,11 +319,11 @@ const StudentEvents = () => {
                             <Button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (!registered) openRegisterDialog(event);
+                                if (canRegister) openRegisterDialog(event);
                               }}
-                              disabled={registered || registering === event.id}
+                              disabled={registered || registering === event.id || deadlinePassed || registrationFull}
                               className={`w-full ${registered ? 'opacity-80' : ''}`}
-                              variant={registered ? "secondary" : "default"}
+                              variant={registered ? "secondary" : (deadlinePassed || registrationFull) ? "outline" : "default"}
                             >
                               {registering === event.id ? (
                                 <>
@@ -298,6 +334,16 @@ const StudentEvents = () => {
                                 <>
                                   <CheckCircle2 className="w-4 h-4 mr-2" />
                                   Already Registered
+                                </>
+                              ) : deadlinePassed ? (
+                                <>
+                                  <Clock className="w-4 h-4 mr-2" />
+                                  Registration Closed
+                                </>
+                              ) : registrationFull ? (
+                                <>
+                                  <AlertCircle className="w-4 h-4 mr-2" />
+                                  Registration Full
                                 </>
                               ) : (
                                 <>

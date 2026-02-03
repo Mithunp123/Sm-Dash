@@ -239,272 +239,348 @@ const ManageMeetings = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-
       <DeveloperCredit />
-
-      <main className="flex-1 p-2 md:p-4 bg-background">
-        <div className="w-full">
-          {/* Back Button */}
+      <main className="flex-1 w-full bg-background overflow-x-hidden">
+        <div className="w-full p-2 md:p-4 space-y-6">
           <div className="mb-4">
             <BackButton to="/admin" />
           </div>
 
           {/* Page Header */}
-          <div className="mb-6 flex items-center justify-between">
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 px-2">
             <div>
-              <h1 className="text-3xl font-semibold text-foreground mb-1">Meetings</h1>
-              <p className="text-sm text-muted-foreground">Schedule and manage meetings</p>
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter">Meetings <span className="text-primary italic">& Days</span></h1>
+              <p className="text-[10px] sm:text-xs md:text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Schedule community gatherings and observe special occasions</p>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setShowCalendar((s) => !s)} className="gap-2">
-                {showCalendar ? "List View" : "Calendar View"}
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              <Button
+                onClick={() => setShowCalendar(!showCalendar)}
+                variant="outline"
+                className="gap-2 h-11 px-6 rounded-2xl font-bold text-[10px] uppercase tracking-widest border-2 w-full sm:w-auto"
+              >
+                <Calendar className="w-4 h-4" />
+                {showCalendar ? "Switch to List" : "Switch to Calendar"}
               </Button>
-              <Button onClick={() => setShowImportantDayDialog(true)} variant="secondary" className="gap-2 bg-amber-100 text-amber-900 hover:bg-amber-200">
+              <Button
+                onClick={() => setShowAddDialog(true)}
+                className="gap-2 h-11 px-6 rounded-2xl font-bold text-[10px] uppercase tracking-widest bg-primary shadow-lg shadow-primary/20 w-full sm:w-auto"
+              >
                 <Plus className="w-4 h-4" />
-                Add Important Day
+                Add Meeting
               </Button>
-              <Button onClick={() => setShowAddDialog(true)} className="gap-2">
+              <Button
+                onClick={() => setShowImportantDayDialog(true)}
+                variant="secondary"
+                className="gap-2 h-11 px-6 rounded-2xl font-bold text-[10px] uppercase tracking-widest w-full sm:w-auto shadow-md"
+              >
                 <Plus className="w-4 h-4" />
-                New Meeting
+                Add Imp Day
               </Button>
             </div>
           </div>
 
-          {showCalendar ? (
-            <Card className="border-border/50 bg-card">
-              <CardHeader className="space-y-4">
-                <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Calendar className="w-5 h-5" />
-                      Calendar View
-                    </CardTitle>
-                    <CardDescription>Click a day to create a meeting on that date</CardDescription>
-                  </div>
-                  <div className="flex flex-wrap gap-2 items-center">
-                    <Button variant="outline" size="icon" onClick={handlePrevMonth} aria-label="Previous month">
-                      <ChevronLeft className="w-4 h-4" />
-                    </Button>
-                    <div className="hidden sm:block font-semibold">{monthLabel}</div>
-                    <Button variant="outline" size="icon" onClick={handleNextMonth} aria-label="Next month">
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
+          <div className="grid grid-cols-1 gap-6">
+            {showCalendar ? (
+              <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-xl rounded-3xl overflow-hidden mb-8">
+                <CardHeader className="p-4 md:p-6 bg-muted/30 border-b">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 rounded-lg">
+                        <Calendar className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl font-bold">Calendar View</CardTitle>
+                        <CardDescription className="text-xs">Click a day to schedule</CardDescription>
+                      </div>
+                    </div>
 
-                    <Select value={String(viewDate.getFullYear())} onValueChange={handleYearChange}>
-                      <SelectTrigger className="w-28">
-                        <SelectValue placeholder="Year">{viewDate.getFullYear()}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {yearRange.map((year) => (
-                          <SelectItem key={year} value={String(year)}>
-                            {year}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button variant="ghost" onClick={resetToToday}>
-                      Today
-                    </Button>
+                    <div className="flex items-center gap-1.5 bg-background p-1 rounded-xl border border-border/50 shadow-sm self-center sm:self-auto">
+                      <Button variant="ghost" size="icon" onClick={handlePrevMonth} className="h-8 w-8 rounded-lg">
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+
+                      <div className="px-2 font-bold text-sm min-w-[120px] text-center">
+                        {monthLabel}
+                      </div>
+
+                      <Button variant="ghost" size="icon" onClick={handleNextMonth} className="h-8 w-8 rounded-lg">
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+
+                      <div className="h-4 w-[1px] bg-border mx-1"></div>
+
+                      <Select value={String(viewDate.getFullYear())} onValueChange={handleYearChange}>
+                        <SelectTrigger className="w-24 h-8 border-none bg-transparent hover:bg-muted font-bold text-xs ring-0 focus:ring-0">
+                          <SelectValue placeholder="Year" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                          {yearRange.map((year) => (
+                            <SelectItem key={year} value={String(year)} className="text-xs font-bold">
+                              {year}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Button variant="ghost" size="sm" onClick={resetToToday} className="h-8 px-2 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10 rounded-lg">
+                        Today
+                      </Button>
+                    </div>
                   </div>
+                </CardHeader>
+                <CardContent className="p-4 md:p-6">
+                  <CalendarMonth
+                    showHeader={false}
+                    month={viewDate.getMonth()}
+                    year={viewDate.getFullYear()}
+                    events={[
+                      ...meetings.map(
+                        (m): CalendarEvent => ({
+                          id: `meet-${m.id}`,
+                          title: m.title,
+                          date: m.date,
+                          type: 'meeting'
+                        })
+                      ),
+                      ...(events || []).map(
+                        (e: any): CalendarEvent => ({
+                          id: `event-${e.id}`,
+                          title: e.title,
+                          date: e.date,
+                          type: e.is_special_day ? 'holiday' : 'important'
+                        })
+                      ),
+                      ...getHolidays(viewDate.getFullYear())
+                    ]}
+                    onDayClick={(iso) => {
+                      setFormData((fd) => ({
+                        ...fd,
+                        date: iso + "T10:00"
+                      }));
+                      setShowAddDialog(true);
+                    }}
+                  />
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-xl rounded-3xl overflow-hidden mb-8">
+                <CardHeader className="bg-muted/30 border-b border-border/40">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-xl font-black uppercase tracking-tight">All Meetings</CardTitle>
+                      <CardDescription className="text-[10px] font-bold uppercase tracking-widest opacity-70">Found {meetings.length} records</CardDescription>
+                    </div>
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                      {meetings.length}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {loading ? (
+                    <div className="flex items-center justify-center p-12">
+                      <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                    </div>
+                  ) : meetings.length === 0 ? (
+                    <div className="text-center p-12 text-muted-foreground font-bold uppercase tracking-widest text-xs italic">
+                      No meetings found
+                    </div>
+                  ) : (
+                    <>
+                      {/* Desktop Table View */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-muted/50 border-b border-border/40">
+                              <TableHead className="font-black text-[10px] uppercase tracking-widest">Title</TableHead>
+                              <TableHead className="font-black text-[10px] uppercase tracking-widest">Date</TableHead>
+                              <TableHead className="font-black text-[10px] uppercase tracking-widest">Location</TableHead>
+                              <TableHead className="font-black text-[10px] uppercase tracking-widest">Organizer</TableHead>
+                              <TableHead className="font-black text-[10px] uppercase tracking-widest">Status</TableHead>
+                              <TableHead className="font-black text-[10px] uppercase tracking-widest text-right pr-6">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {meetings.map((meeting) => (
+                              <TableRow key={meeting.id} className="hover:bg-muted/30 transition-colors border-b border-border/40 group">
+                                <TableCell className="font-bold text-foreground">{meeting.title}</TableCell>
+                                <TableCell className="font-medium text-sm">
+                                  {new Date(meeting.date).toLocaleString('en-IN', {
+                                    day: '2-digit', month: 'short', year: 'numeric',
+                                    hour: '2-digit', minute: '2-digit'
+                                  })}
+                                </TableCell>
+                                <TableCell className="text-sm">{meeting.location || "N/A"}</TableCell>
+                                <TableCell className="text-sm font-medium">{meeting.organizer_name || "N/A"}</TableCell>
+                                <TableCell>{getStatusBadge(meeting.status)}</TableCell>
+                                <TableCell className="text-right pr-6">
+                                  <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Button size="icon" variant="ghost" onClick={() => handleEditMeeting(meeting)} className="h-8 w-8 text-primary hover:bg-primary/10">
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
+                                    <Button size="icon" variant="ghost" onClick={() => handleDeleteMeeting(meeting.id)} className="h-8 w-8 text-destructive hover:bg-destructive/10">
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+
+                      {/* Mobile Card View */}
+                      <div className="md:hidden grid grid-cols-1 gap-4 p-4 mb-4">
+                        {meetings.map((meeting) => (
+                          <Card key={meeting.id} className="group relative overflow-hidden rounded-3xl border-border/40 bg-card shadow-md active:scale-[0.98] transition-all">
+                            <CardContent className="p-5">
+                              <div className="flex justify-between items-start mb-4">
+                                <div className="flex-1 pr-4">
+                                  <h4 className="font-black text-lg text-foreground uppercase tracking-tight leading-tight mb-1">{meeting.title}</h4>
+                                  <div className="flex items-center gap-2 text-primary font-bold text-[10px] uppercase tracking-widest">
+                                    <Calendar className="w-3 h-3" />
+                                    {new Date(meeting.date).toLocaleString('en-IN', {
+                                      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                                    })}
+                                  </div>
+                                </div>
+                                <div className="shrink-0">{getStatusBadge(meeting.status)}</div>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2 mb-4">
+                                <div className="bg-muted/30 p-2 rounded-xl">
+                                  <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Location</p>
+                                  <p className="text-[10px] font-bold text-foreground truncate">{meeting.location || "N/A"}</p>
+                                </div>
+                                <div className="bg-muted/30 p-2 rounded-xl">
+                                  <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">By</p>
+                                  <p className="text-[10px] font-bold text-foreground truncate">{meeting.organizer_name || "N/A"}</p>
+                                </div>
+                              </div>
+
+                              <div className="flex gap-2 pt-4 border-t border-border/50">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditMeeting(meeting)}
+                                  className="flex-1 h-9 rounded-xl font-bold text-[10px] uppercase tracking-widest border-2"
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleDeleteMeeting(meeting.id)}
+                                  className="h-9 w-9 rounded-xl flex items-center justify-center p-0 text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          <Dialog open={showAddDialog} onOpenChange={(open) => {
+            setShowAddDialog(open);
+            if (!open) resetForm();
+          }}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editingMeeting ? 'Edit Meeting' : 'Create New Meeting'}</DialogTitle>
+                <DialogDescription>
+                  {editingMeeting ? 'Update the meeting details' : 'Schedule a new meeting or event'}
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleAddMeeting} className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Title *</Label>
+                  <Input
+                    id="title"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    required
+                  />
                 </div>
-              </CardHeader>
-              <CardContent>
-                <CalendarMonth
-                  showHeader={false}
-                  month={viewDate.getMonth()}
-                  year={viewDate.getFullYear()}
-                  events={[
-                    ...(meetings || []).map(
-                      (m): CalendarEvent => ({
-                        id: m.id,
-                        title: m.title,
-                        date: m.date,
-                        type: 'meeting'
-                      })
-                    ),
-                    ...(events || []).map(
-                      (e: any): CalendarEvent => ({
-                        id: `event-${e.id}`,
-                        title: e.title,
-                        date: e.date,
-                        type: e.is_special_day ? 'holiday' : 'important' // Map events to holiday/important
-                      })
-                    ),
-                    ...getHolidays(viewDate.getFullYear())
-                  ]}
-                  onDayClick={(iso) => {
-                    setFormData((fd) => ({
-                      ...fd,
-                      date: iso + "T10:00"
-                    }));
-                    setShowAddDialog(true);
-                  }}
-                />
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="border-border/50 bg-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  All Meetings ({meetings.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="text-center py-8">Loading meetings...</div>
-                ) : meetings.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">No meetings found</div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Title</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Location</TableHead>
-                        <TableHead>Organizer</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {meetings.map((meeting) => (
-                        <TableRow key={meeting.id}>
-                          <TableCell className="font-medium">{meeting.title}</TableCell>
-                          <TableCell>
-                            {new Date(meeting.date).toLocaleString()}
-                          </TableCell>
-                          <TableCell>{meeting.location || "N/A"}</TableCell>
-                          <TableCell>{meeting.organizer_name || "N/A"}</TableCell>
-                          <TableCell>{getStatusBadge(meeting.status)}</TableCell>
-                          <TableCell className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEditMeeting(meeting)}
-                              className="gap-1"
-                            >
-                              <Edit className="w-4 h-4" />
-                              Edit
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleDeleteMeeting(meeting.id)}
-                              className="gap-1"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Delete
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          )}
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    rows={3}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="date">Date & Time *</Label>
+                  <Input
+                    id="date"
+                    type="datetime-local"
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="location">Location</Label>
+                  <Input
+                    id="location"
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    placeholder="e.g. Conference Room A"
+                  />
+                </div>
+                <div className="flex gap-2 justify-end pt-4">
+                  <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
+                  <Button type="submit">{editingMeeting ? 'Update Meeting' : 'Create Meeting'}</Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={showImportantDayDialog} onOpenChange={setShowImportantDayDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Important Day / Holiday</DialogTitle>
+                <DialogDescription>
+                  Add a special day to the community calendar.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleAddImportantDay} className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label>Title *</Label>
+                  <Input
+                    value={importantDayForm.title}
+                    onChange={(e) => setImportantDayForm({ ...importantDayForm, title: e.target.value })}
+                    placeholder="e.g. Founder's Day"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Date *</Label>
+                  <Input
+                    type="datetime-local"
+                    value={importantDayForm.date}
+                    onChange={(e) => setImportantDayForm({ ...importantDayForm, date: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button type="button" variant="outline" onClick={() => setShowImportantDayDialog(false)}>Cancel</Button>
+                  <Button type="submit">Add Important Day</Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </main>
-
-      {/* Add Meeting Dialog */}
-      <Dialog open={showAddDialog} onOpenChange={(open) => {
-        setShowAddDialog(open);
-        if (!open) resetForm();
-      }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingMeeting ? 'Edit Meeting' : 'Create New Meeting'}</DialogTitle>
-            <DialogDescription>
-              {editingMeeting ? 'Update the meeting details' : 'Schedule a new meeting or event'}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleAddMeeting} className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Title *</Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={3}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="date">Date & Time *</Label>
-              <Input
-                id="date"
-                type="datetime-local"
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-              />
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">{editingMeeting ? 'Update Meeting' : 'Create Meeting'}</Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Important Day Dialog */}
-      <Dialog open={showImportantDayDialog} onOpenChange={setShowImportantDayDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Important Day</DialogTitle>
-            <DialogDescription>Mark a day as important or a holiday</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleAddImportantDay} className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label>Title *</Label>
-              <Input
-                value={importantDayForm.title}
-                onChange={(e) => setImportantDayForm({ ...importantDayForm, title: e.target.value })}
-                placeholder="e.g. Founder's Day"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Date *</Label>
-              <Input
-                type="datetime-local"
-                value={importantDayForm.date}
-                onChange={(e) => setImportantDayForm({ ...importantDayForm, date: e.target.value })}
-                required
-              />
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={() => setShowImportantDayDialog(false)}>Cancel</Button>
-              <Button type="submit">Add Important Day</Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-
-    </div >
+    </div>
   );
 };
 
 export default ManageMeetings;
-

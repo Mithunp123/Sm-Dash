@@ -30,6 +30,7 @@ const EventDetails = () => {
     const [loading, setLoading] = useState(true);
     const [members, setMembers] = useState<any[]>([]); // Assigned Students (OD)
     const [volunteers, setVolunteers] = useState<any[]>([]); // Registered Volunteers
+    const [registrations, setRegistrations] = useState<any[]>([]); // New state for all registrations
     const [students, setStudents] = useState<any[]>([]); // All students for assignment
     const [activeTab, setActiveTab] = useState("overview");
 
@@ -77,6 +78,12 @@ const EventDetails = () => {
             } else {
                 toast.error("Event not found");
             }
+
+            // Load Registrations
+            try {
+                const regRes = await api.getEventRegistrations(pid);
+                if (regRes.success) setRegistrations(regRes.registrations || []);
+            } catch (e) { console.error(e); }
 
             // Load all students
             const sRes = await api.getStudentsScoped();
@@ -411,11 +418,12 @@ const EventDetails = () => {
                     </div>
                 </div>
 
-                <Tabs defaultValue="overview" className="w-full space-y-6">
-                    <TabsList className="bg-muted/50 p-1">
+                <Tabs defaultValue="overview" className="mt-6">
+                    <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
                         <TabsTrigger value="overview">Overview</TabsTrigger>
-                        <TabsTrigger value="od">OD Students ({members.length})</TabsTrigger>
-                        <TabsTrigger value="volunteers">Volunteers ({volunteers.length})</TabsTrigger>
+                        <TabsTrigger value="registrations">Registrations</TabsTrigger>
+                        <TabsTrigger value="od">OD Students</TabsTrigger>
+                        <TabsTrigger value="volunteers">Attendance Sheet</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="overview">
@@ -508,6 +516,66 @@ const EventDetails = () => {
                         </Card>
                     </TabsContent>
 
+                    <TabsContent value="registrations">
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                <div>
+                                    <CardTitle>All Event Registrations</CardTitle>
+                                    <CardDescription>Consolidated list of all registered students including participants and volunteers</CardDescription>
+                                </div>
+                                <Button size="sm" variant="outline" onClick={() => {
+                                    // Custom export for all registrations if needed
+                                    toast.info("Consolidated registration list ready");
+                                }}>
+                                    <Download className="w-4 h-4 mr-2" /> Export All
+                                </Button>
+                            </CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="w-16">S.No</TableHead>
+                                            <TableHead>Student Name</TableHead>
+                                            <TableHead>Reg No</TableHead>
+                                            <TableHead>Dept / Year</TableHead>
+                                            <TableHead>Type</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Registered At</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {registrations.map((reg, i) => (
+                                            <TableRow key={reg.id || i}>
+                                                <TableCell>{i + 1}</TableCell>
+                                                <TableCell className="font-medium">{reg.name}</TableCell>
+                                                <TableCell>{reg.register_no || reg.regNo || (reg.notes ? JSON.parse(reg.notes).regNo : '-')}</TableCell>
+                                                <TableCell>{reg.department || (reg.notes ? JSON.parse(reg.notes).department : '-')} / {reg.year || (reg.notes ? JSON.parse(reg.notes).year : '-')}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className="capitalize">{reg.registration_type}</Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant={reg.status === 'confirmed' ? 'default' : 'secondary'} className="capitalize">
+                                                        {reg.status}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                                                    {new Date(reg.registered_at).toLocaleDateString()}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                        {registrations.length === 0 && (
+                                            <TableRow>
+                                                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                                    No registrations found for this event.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
                     <TabsContent value="volunteers">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between">
@@ -527,6 +595,7 @@ const EventDetails = () => {
                                         <TableRow>
                                             <TableHead className="w-16">S.No</TableHead>
                                             <TableHead>Name</TableHead>
+                                            <TableHead>Reg No</TableHead>
                                             <TableHead>Dept</TableHead>
                                             <TableHead>Year</TableHead>
                                             <TableHead>Phone</TableHead>
@@ -538,13 +607,14 @@ const EventDetails = () => {
                                             <TableRow key={i}>
                                                 <TableCell className="font-medium">{i + 1}</TableCell>
                                                 <TableCell className="font-medium">{v.name}</TableCell>
+                                                <TableCell>{v.regNo || '-'}</TableCell>
                                                 <TableCell>{v.department}</TableCell>
                                                 <TableCell>{v.year}</TableCell>
                                                 <TableCell>{v.phone}</TableCell>
                                                 <TableCell className="border-b border-muted"></TableCell>
                                             </TableRow>
                                         ))}
-                                        {volunteers.length === 0 && <TableRow><TableCell colSpan={6} className="text-center">No volunteers registered.</TableCell></TableRow>}
+                                        {volunteers.length === 0 && <TableRow><TableCell colSpan={7} className="text-center">No volunteers registered.</TableCell></TableRow>}
                                     </TableBody>
                                 </Table>
                             </CardContent>

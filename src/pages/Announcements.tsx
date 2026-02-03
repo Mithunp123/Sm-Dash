@@ -106,15 +106,16 @@ const Announcements = () => {
     };
 
     return (
-        <div className="w-full px-2 md:px-4 py-4 space-y-8 animate-in fade-in duration-700">
-            <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
+        <div className="w-full px-3 md:px-6 py-4 space-y-6 md:space-y-8 animate-in fade-in duration-700">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex items-center gap-3">
                     <BackButton to="/admin" />
                     <div>
-                        <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tighter uppercase flex items-center gap-3">
-                            Announcement <span className="bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent italic">Control Center</span>
+                        <h1 className="text-xl md:text-3xl lg:text-4xl font-black text-foreground tracking-tight uppercase flex flex-wrap items-center gap-x-2">
+                            Announcement
+                            <span className="bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent italic">Control Center</span>
                         </h1>
-                        <p className="text-muted-foreground font-medium">Broadcast updates to the landing page in real-time.</p>
+                        <p className="text-[10px] md:text-sm text-muted-foreground font-medium uppercase tracking-widest opacity-80 mt-1">Broadcast updates in real-time</p>
                     </div>
                 </div>
             </div>
@@ -122,10 +123,10 @@ const Announcements = () => {
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
                 {/* Create Section */}
                 <div className="xl:col-span-4 space-y-6">
-                    <Card className="border-none bg-card/60 backdrop-blur-xl shadow-2xl rounded-[2.5rem] overflow-hidden border border-white/10">
-                        <CardHeader className="bg-primary/5 border-b border-primary/10 py-6">
-                            <CardTitle className="flex items-center gap-2 text-primary uppercase tracking-tight font-black">
-                                <Megaphone className="w-5 h-5" />
+                    <Card className="border-none bg-card/60 backdrop-blur-xl shadow-2xl rounded-[2rem] md:rounded-[2.5rem] overflow-hidden border border-white/10">
+                        <CardHeader className="bg-primary/5 border-b border-primary/10 py-5 md:py-6">
+                            <CardTitle className="flex items-center gap-2 text-primary uppercase tracking-tight font-black text-sm md:text-base">
+                                <Megaphone className="w-4 h-4 md:w-5 md:h-5" />
                                 {editingId ? "Edit Update" : "Post New Update"}
                             </CardTitle>
                             {editingId && (
@@ -134,13 +135,13 @@ const Announcements = () => {
                                     variant="ghost"
                                     size="sm"
                                     onClick={handleCancelEdit}
-                                    className="text-xs font-bold"
+                                    className="text-[10px] font-bold h-7 px-2"
                                 >
                                     Cancel Edit
                                 </Button>
                             )}
                         </CardHeader>
-                        <CardContent className="p-8">
+                        <CardContent className="p-4 md:p-8">
                             <form onSubmit={handleSend} className="space-y-6">
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Notification Title</Label>
@@ -264,16 +265,16 @@ const Announcements = () => {
 
                 {/* History Section */}
                 <div className="xl:col-span-8">
-                    <Card className="border-none bg-card/40 backdrop-blur-md shadow-xl rounded-[2.5rem] overflow-hidden h-full border border-white/5">
-                        <CardHeader className="border-b border-border/50 py-6 px-10 flex flex-row items-center justify-between">
+                    <Card className="border-none bg-card/40 backdrop-blur-md shadow-xl rounded-[2rem] md:rounded-[2.5rem] overflow-hidden h-full border border-white/5">
+                        <CardHeader className="border-b border-border/50 py-5 md:py-6 px-5 md:px-10 flex flex-row items-center justify-between">
                             <div>
-                                <CardTitle className="flex items-center gap-2 text-foreground uppercase tracking-tight font-black text-xl">
-                                    <History className="w-5 h-5 text-muted-foreground" />
+                                <CardTitle className="flex items-center gap-2 text-foreground uppercase tracking-tight font-black text-lg md:text-xl">
+                                    <History className="w-4 h-4 md:w-5 md:h-5 text-muted-foreground" />
                                     Broadcast Feed
                                 </CardTitle>
-                                <CardDescription className="font-medium">Managing the flow of active announcements.</CardDescription>
+                                <CardDescription className="font-medium text-[10px] md:text-sm">Managing the flow of active announcements.</CardDescription>
                             </div>
-                            <Button variant="outline" size="sm" onClick={loadAnnouncements} className="rounded-xl font-bold bg-background/50">
+                            <Button variant="outline" size="sm" onClick={loadAnnouncements} className="rounded-xl font-bold bg-background/50 h-8 md:h-10 text-[10px] md:text-xs">
                                 Refresh
                             </Button>
                         </CardHeader>

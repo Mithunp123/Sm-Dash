@@ -113,152 +113,154 @@ const AdminDashboard = () => {
   return (
     <>
       <DeveloperCredit />
-      <div className="w-full space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-primary tracking-tight">Admin Dashboard</h1>
-          {/* Add date or other top-level actions here if needed */}
-        </div>
+      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 w-full overflow-x-hidden">
+        <div className="w-full space-y-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl md:text-3xl font-bold text-primary tracking-tight">Admin Dashboard</h1>
+            {/* Add date or other top-level actions here if needed */}
+          </div>
 
-        {/* Statistics Cards - high level */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-          {/* ... Cards content preserved ... */}
-          <Card className="hover:shadow-md transition-all border-border/60">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <Users className="w-4 h-4 text-primary" />
-                Total Volunteers
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {stats.volunteers.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Active members</p>
-            </CardContent>
-          </Card>
+          {/* Statistics Cards - high level */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+            {/* ... Cards content preserved ... */}
+            <Card className="hover:shadow-md transition-all border-border/60">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <Users className="w-4 h-4 text-primary" />
+                  Total Volunteers
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-foreground">
+                  {stats.volunteers.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Active members</p>
+              </CardContent>
+            </Card>
 
-          <Card className="hover:shadow-md transition-all border-border/60">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <Calendar className="w-4 h-4 text-primary" />
-                Events
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {stats.events.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Total meetings</p>
-            </CardContent>
-          </Card>
+            <Card className="hover:shadow-md transition-all border-border/60">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <Calendar className="w-4 h-4 text-primary" />
+                  Events
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-foreground">
+                  {stats.events.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Total meetings</p>
+              </CardContent>
+            </Card>
 
-          <Card className="hover:shadow-md transition-all border-border/60">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <FileText className="w-4 h-4 text-primary" />
-                Reports
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {stats.reports.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Total bills</p>
-            </CardContent>
-          </Card>
+            <Card className="hover:shadow-md transition-all border-border/60">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <FileText className="w-4 h-4 text-primary" />
+                  Reports
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-foreground">
+                  {stats.reports.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Total bills</p>
+              </CardContent>
+            </Card>
 
-          <Card className="hover:shadow-md transition-all border-border/60">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <Trophy className="w-4 h-4 text-primary" />
-                Awards
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {stats.awards.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Total awards</p>
-            </CardContent>
-          </Card>
+            <Card className="hover:shadow-md transition-all border-border/60">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <Trophy className="w-4 h-4 text-primary" />
+                  Awards
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-foreground">
+                  {stats.awards.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Total awards</p>
+              </CardContent>
+            </Card>
 
-          <Card className="hover:shadow-md transition-all border-border/60">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <BarChart3 className="w-4 h-4 text-primary" />
-                Hours Logged
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {stats.hours.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Total hours</p>
-            </CardContent>
-          </Card>
-        </div>
+            <Card className="hover:shadow-md transition-all border-border/60">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <BarChart3 className="w-4 h-4 text-primary" />
+                  Hours Logged
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-foreground">
+                  {stats.hours.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Total hours</p>
+              </CardContent>
+            </Card>
+          </div>
 
-        {/* Detailed entity counts */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="hover:shadow-md transition-all border-border/60">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <UsersRound className="w-4 h-4 text-primary" />
-                Students
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {stats.students.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">In database</p>
-            </CardContent>
-          </Card>
+          {/* Detailed entity counts */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <Card className="hover:shadow-md transition-all border-border/60">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <UsersRound className="w-4 h-4 text-primary" />
+                  Students
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-foreground">
+                  {stats.students.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">In database</p>
+              </CardContent>
+            </Card>
 
-          <Card className="hover:shadow-md transition-all border-border/60">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <Briefcase className="w-4 h-4 text-primary" />
-                Projects
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {stats.projects.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Active projects</p>
-            </CardContent>
-          </Card>
+            <Card className="hover:shadow-md transition-all border-border/60">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <Briefcase className="w-4 h-4 text-primary" />
+                  Projects
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-foreground">
+                  {stats.projects.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Active projects</p>
+              </CardContent>
+            </Card>
 
-          <Card className="hover:shadow-md transition-all border-border/60">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <FileText className="w-4 h-4 text-primary" />
-                Resources
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {stats.resources.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Shared items</p>
-            </CardContent>
-          </Card>
+            <Card className="hover:shadow-md transition-all border-border/60">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <FileText className="w-4 h-4 text-primary" />
+                  Resources
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-foreground">
+                  {stats.resources.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Shared items</p>
+              </CardContent>
+            </Card>
 
-          <Card className="hover:shadow-md transition-all border-border/60">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <UsersRound className="w-4 h-4 text-primary" />
-                Teams
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {stats.teams.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Active teams</p>
-            </CardContent>
-          </Card>
+            <Card className="hover:shadow-md transition-all border-border/60">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <UsersRound className="w-4 h-4 text-primary" />
+                  Teams
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-foreground">
+                  {stats.teams.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Active teams</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </>

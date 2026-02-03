@@ -360,21 +360,21 @@ const AttendanceDetails = () => {
                 </div>
 
                 {/* Header */}
-                <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-primary/10 rounded-xl p-3">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+                    <div className="flex items-center gap-4">
+                        <div className="bg-primary/10 rounded-2xl p-3 shadow-inner">
                             {getIcon()}
                         </div>
-                        <div>
-                            <h1 className="text-3xl font-bold tracking-tight text-foreground">{title}</h1>
-                            <p className="text-muted-foreground">Attendance management and records</p>
+                        <div className="space-y-1">
+                            <h1 className="text-2xl md:text-3xl font-black text-foreground uppercase tracking-tight line-clamp-1">{title}</h1>
+                            <p className="text-muted-foreground font-medium text-xs md:text-sm border-l-4 border-primary/30 pl-3">Attendance management and records</p>
                         </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
                         <Button
                             onClick={handleMarkAllPresent}
                             disabled={!selectedDate || filteredRecords.length === 0 || markingAll}
-                            className="gap-2"
+                            className="h-11 rounded-xl bg-primary hover:bg-primary/90 font-bold shadow-lg shadow-primary/20 transition-all gap-2 flex-1 sm:flex-none"
                         >
                             <CheckCircle2 className="w-4 h-4" />
                             {markingAll ? "Marking..." : "Mark All Present"}
@@ -382,53 +382,56 @@ const AttendanceDetails = () => {
                         <Button
                             onClick={handleDownloadExcel}
                             disabled={!selectedDate || attendanceRecords.length === 0}
-                            className="gap-2"
+                            className="h-11 rounded-xl bg-white border-2 border-border/50 hover:bg-muted font-bold transition-all gap-2 flex-1 sm:flex-none"
                             variant="outline"
                         >
                             <Download className="w-4 h-4" />
-                            Export Excel
+                            Export
                         </Button>
                     </div>
                 </div>
 
                 {/* Filters and Summary */}
                 {selectedDate && (
-                    <div className="mb-6 flex flex-wrap gap-2 items-center">
-                        <StatusFilterButton status="all" label="All" count={counts.total} colorClass="bg-primary text-primary-foreground ring-primary" />
-                        <StatusFilterButton status="present" label="Present" count={counts.present} colorClass="bg-emerald-600 text-white ring-emerald-600" />
-                        <StatusFilterButton status="absent" label="Absent" count={counts.absent} colorClass="bg-destructive text-white ring-destructive" />
-                        <StatusFilterButton status="late" label="Late" count={counts.late} colorClass="bg-amber-600 text-white ring-amber-600" />
-                        <StatusFilterButton status="excused" label="Excused" count={counts.excused} colorClass="bg-blue-600 text-white ring-blue-600" />
+                    <div className="mb-8 flex flex-wrap gap-2 items-center bg-card/40 p-2 rounded-2xl border border-border/40 backdrop-blur-sm">
+                        <StatusFilterButton status="all" label="All" count={counts.total} colorClass="bg-primary text-primary-foreground font-bold shadow-lg shadow-primary/20" />
+                        <StatusFilterButton status="present" label="Present" count={counts.present} colorClass="bg-green-500 text-white font-bold shadow-lg shadow-green-500/20" />
+                        <StatusFilterButton status="absent" label="Absent" count={counts.absent} colorClass="bg-red-500 text-white font-bold shadow-lg shadow-red-500/20" />
+                        <StatusFilterButton status="late" label="Late" count={counts.late} colorClass="bg-amber-500 text-white font-bold shadow-lg shadow-amber-500/20" />
+                        <StatusFilterButton status="excused" label="Excused" count={counts.excused} colorClass="bg-blue-500 text-white font-bold shadow-lg shadow-blue-500/20" />
                     </div>
                 )}
 
                 <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-200px)]">
                     {/* Sidebar - Saved Dates */}
-                    <Card className="w-full lg:w-72 h-full flex flex-col border-border/50 bg-card overflow-hidden">
-                        <div className="p-4 border-b border-border/50 bg-muted/30">
-                            <h3 className="font-semibold text-foreground flex items-center gap-2">
-                                <Calendar className="w-4 h-4" />
-                                Saved Dates
+                    <Card className="w-full lg:w-72 h-auto lg:h-full flex flex-col border-border/40 bg-card/60 backdrop-blur-md overflow-hidden rounded-3xl shadow-xl">
+                        <div className="p-4 border-b border-border/40 bg-muted/20">
+                            <h3 className="font-black text-foreground uppercase tracking-widest text-xs flex items-center gap-2">
+                                <Calendar className="w-4 h-4 text-primary" />
+                                Review Sessions
                             </h3>
                         </div>
-                        <CardContent className="flex-1 overflow-y-auto p-2 space-y-2">
+                        <CardContent className="flex-1 overflow-y-auto lg:overflow-y-auto p-2 lg:space-y-2 flex lg:block gap-2 overflow-x-auto no-scrollbar">
                             {loadingDates ? (
-                                <div className="text-center text-sm text-muted-foreground py-8">Loading dates...</div>
+                                <div className="text-center text-sm text-muted-foreground py-8 w-full group">
+                                    <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-2"></div>
+                                    Syncing dates...
+                                </div>
                             ) : savedDates.length === 0 ? (
-                                <div className="text-center text-sm text-muted-foreground py-8">No records found</div>
+                                <div className="text-center text-sm text-muted-foreground py-8 w-full">No records found</div>
                             ) : (
                                 savedDates.filter(d => d.date && d.date !== 'Invalid Date').map((dateInfo) => (
                                     <button
                                         key={dateInfo.date}
                                         onClick={() => setSelectedDate(dateInfo.date)}
-                                        className={`w-full text-left px-4 py-3 rounded-lg transition-all border ${selectedDate === dateInfo.date
-                                            ? "bg-primary text-primary-foreground border-primary shadow-md"
-                                            : "bg-card hover:bg-muted border-transparent hover:border-border text-foreground"
+                                        className={`shrink-0 lg:w-full text-left px-4 py-3 rounded-2xl transition-all border-2 ${selectedDate === dateInfo.date
+                                            ? "bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/20 active:scale-95"
+                                            : "bg-background border-border/50 hover:border-primary/30 text-foreground"
                                             }`}
                                     >
-                                        <div className="font-medium">{formatDate(dateInfo.date)}</div>
-                                        <div className={`text-xs mt-1 ${selectedDate === dateInfo.date ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
-                                            {dateInfo.count} {dateInfo.count === 1 ? "record" : "records"}
+                                        <div className="font-bold whitespace-nowrap lg:whitespace-normal">{formatDate(dateInfo.date)}</div>
+                                        <div className={`text-[10px] uppercase font-black tracking-widest mt-1 ${selectedDate === dateInfo.date ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                                            {dateInfo.count} Records
                                         </div>
                                     </button>
                                 ))
@@ -437,92 +440,119 @@ const AttendanceDetails = () => {
                     </Card>
 
                     {/* Main Content - Table */}
-                    <Card className="flex-1 h-full flex flex-col border-border/50 bg-card overflow-hidden">
-                        <div className="p-4 border-b border-border/50 bg-muted/30 flex flex-col md:flex-row justify-between items-center gap-4">
-                            <h3 className="font-semibold text-foreground whitespace-nowrap">
-                                {selectedDate ? `Records for ${formatDate(selectedDate)}` : 'Select a date from sidebar'}
+                    <Card className="flex-1 h-full flex flex-col border-border/40 bg-card/60 backdrop-blur-md overflow-hidden rounded-3xl shadow-xl">
+                        <div className="p-4 border-b border-border/40 bg-muted/20 flex flex-col md:flex-row justify-between items-center gap-4">
+                            <h3 className="font-black text-foreground uppercase tracking-widest text-xs">
+                                {selectedDate ? formatDate(selectedDate) : 'Select Session'}
                             </h3>
                             <div className="flex items-center gap-4 w-full md:w-auto">
-                                <div className="relative w-full md:w-64">
-                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <div className="relative w-full md:w-72">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                     <Input
-                                        placeholder="Search student..."
+                                        placeholder="Search by student name..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="pl-8 bg-background"
+                                        className="pl-9 h-11 bg-background/50 border-border/50 rounded-xl focus:ring-primary/20"
                                     />
                                 </div>
-                                {filteredRecords.length > 0 && (
-                                    <Badge variant="outline" className="text-muted-foreground whitespace-nowrap">
-                                        Total: {filteredRecords.length}
-                                    </Badge>
-                                )}
                             </div>
                         </div>
                         <CardContent className="flex-1 overflow-auto p-0">
                             {!selectedDate ? (
-                                <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
-                                    <Calendar className="w-12 h-12 opacity-20" />
-                                    <p>Select a date to view attendance</p>
+                                <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-muted-foreground gap-4">
+                                    <div className="bg-muted p-6 rounded-full">
+                                        <Calendar className="w-12 h-12 opacity-20" />
+                                    </div>
+                                    <p className="font-bold text-lg">Pick a Session</p>
+                                    <p className="text-sm max-w-[200px] text-center">Select a date from the list to review specific records.</p>
                                 </div>
                             ) : loading ? (
-                                <div className="flex items-center justify-center h-full text-muted-foreground">
-                                    <p>Loading records...</p>
-                                </div>
-                            ) : filteredRecords.length === 0 && searchQuery ? (
-                                <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
-                                    <Users className="w-12 h-12 opacity-20" />
-                                    <p>No students found matching your search</p>
-                                </div>
-                            ) : filteredRecords.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
-                                    <Users className="w-12 h-12 opacity-20" />
-                                    <p>No attendance records found for this date</p>
+                                <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-muted-foreground gap-4">
+                                    <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                                    <p className="font-bold">Syncing Records...</p>
                                 </div>
                             ) : (
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow className="hover:bg-transparent bg-muted/30">
-                                            <TableHead className="font-semibold">Student Name</TableHead>
-                                            <TableHead className="font-semibold">Department</TableHead>
-                                            <TableHead className="font-semibold">Year</TableHead>
-                                            <TableHead className="font-semibold">Status</TableHead>
-                                            <TableHead className="font-semibold">Notes</TableHead>
-                                            <TableHead className="text-right font-semibold">Actions</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {filteredRecords.map((record) => (
-                                            <TableRow key={record.id} className="hover:bg-muted/50">
-                                                <TableCell className="font-medium text-foreground">
-                                                    {record.user_name}
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground text-sm">
-                                                    {record.user_dept || "—"}
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground text-sm">
-                                                    {record.user_year || "—"}
-                                                </TableCell>
-                                                <TableCell>{getStatusBadge(record.status)}</TableCell>
-                                                <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
-                                                    {record.notes || "—"}
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <div className="flex items-center gap-2 justify-end">
+                                <>
+                                    {/* Table for Desktop */}
+                                    <div className="hidden md:block overflow-x-auto">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow className="hover:bg-transparent bg-muted/30">
+                                                    <TableHead className="font-black uppercase tracking-widest text-[10px]">Student Details</TableHead>
+                                                    <TableHead className="font-black uppercase tracking-widest text-[10px]">Dept / Year</TableHead>
+                                                    <TableHead className="font-black uppercase tracking-widest text-[10px]">Status</TableHead>
+                                                    <TableHead className="font-black uppercase tracking-widest text-[10px]">Notes</TableHead>
+                                                    <TableHead className="text-right font-black uppercase tracking-widest text-[10px] pr-6">Actions</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {filteredRecords.length === 0 ? (
+                                                    <TableRow>
+                                                        <TableCell colSpan={5} className="text-center py-20 text-muted-foreground font-bold">No students found matching your filters.</TableCell>
+                                                    </TableRow>
+                                                ) : (
+                                                    filteredRecords.map((record) => (
+                                                        <TableRow key={record.id} className="hover:bg-muted/50 border-border/40">
+                                                            <TableCell className="font-bold py-4">
+                                                                <div className="pl-2">{record.user_name}</div>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <div className="flex items-center gap-2">
+                                                                    <Badge variant="outline" className="font-bold border-border/50 text-[10px]">{record.user_dept || "—"}</Badge>
+                                                                    <Badge variant="outline" className="font-bold border-border/50 text-[10px]">{record.user_year || "—"}</Badge>
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell>{getStatusBadge(record.status)}</TableCell>
+                                                            <TableCell className="text-xs font-medium text-muted-foreground max-w-xs truncate">
+                                                                {record.notes || "—"}
+                                                            </TableCell>
+                                                            <TableCell className="text-right pr-6">
+                                                                <Button
+                                                                    size="icon"
+                                                                    variant="ghost"
+                                                                    onClick={() => handleEditRecord(record)}
+                                                                    className="h-10 w-10 text-blue-500 hover:bg-blue-50 rounded-xl"
+                                                                >
+                                                                    <Edit className="w-4 h-4" />
+                                                                </Button>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+
+                                    {/* Cards for Mobile */}
+                                    <div className="md:hidden p-4 space-y-4">
+                                        {filteredRecords.length === 0 ? (
+                                            <div className="text-center py-10 text-muted-foreground font-bold">No students found.</div>
+                                        ) : (
+                                            filteredRecords.map((record) => (
+                                                <div key={record.id} className="bg-background/80 border-2 border-border/40 rounded-2xl p-4 shadow-sm active:scale-[0.98] transition-all">
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <div>
+                                                            <h4 className="font-bold text-foreground leading-tight">{record.user_name}</h4>
+                                                            <p className="text-[10px] text-muted-foreground mt-1 uppercase font-black tracking-widest">{record.user_dept} • {record.user_year}</p>
+                                                        </div>
                                                         <Button
-                                                            size="sm"
+                                                            size="icon"
                                                             variant="ghost"
                                                             onClick={() => handleEditRecord(record)}
-                                                            className="h-8 w-8 p-0"
+                                                            className="h-10 w-10 text-blue-500 bg-blue-50 rounded-xl"
                                                         >
                                                             <Edit className="w-4 h-4" />
                                                         </Button>
                                                     </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
+                                                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/40">
+                                                        {getStatusBadge(record.status)}
+                                                        <span className="text-[10px] text-muted-foreground italic truncate max-w-[150px]">{record.notes || "No notes"}</span>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </>
                             )}
                         </CardContent>
                     </Card>

@@ -197,17 +197,17 @@ export default function ManageQuestions() {
         <div className="max-w-6xl mx-auto">
 
           {/* Page Header */}
-          <div className="mb-4">
+          <div className="mb-6">
             <BackButton to="/admin" />
           </div>
-          <div className="mb-6 flex items-center justify-between">
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-semibold text-foreground mb-1">Feedback Questions</h1>
-              <p className="text-sm text-muted-foreground">Manage feedback questions and responses</p>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-foreground uppercase tracking-tight">Feedback <span className="text-primary italic">Questions</span></h1>
+              <p className="text-[10px] sm:text-xs md:text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-70">Manage questions and responses</p>
             </div>
             <Button
               onClick={() => handleOpen()}
-              className="gap-2"
+              className="gap-2 h-11 px-6 rounded-2xl shadow-lg shadow-primary/20 font-bold w-full sm:w-auto mt-2 sm:mt-0"
             >
               <Plus className="w-4 h-4" />
               New Question
@@ -219,11 +219,11 @@ export default function ManageQuestions() {
               <p className="text-gray-600">Loading questions...</p>
             </div>
           ) : questions.length === 0 ? (
-            <Card className="p-12 text-center">
-              <p className="text-gray-600 mb-4">No feedback questions yet</p>
+            <Card className="p-12 text-center border-none bg-card/40 backdrop-blur-md shadow-xl rounded-3xl">
+              <p className="text-muted-foreground font-bold italic mb-6">No feedback questions yet</p>
               <Button
                 onClick={() => handleOpen()}
-                className="gap-2 bg-blue-600 hover:bg-blue-700"
+                className="gap-2 bg-primary hover:bg-primary/90 rounded-2xl h-12 px-8 font-black uppercase tracking-widest shadow-xl shadow-primary/20"
               >
                 <Plus className="w-4 h-4" />
                 Create First Question
@@ -232,8 +232,8 @@ export default function ManageQuestions() {
           ) : (
             <div className="space-y-4">
               {questions.map(question => (
-                <div key={question.id} className="group relative overflow-hidden rounded-xl border border-border/50 bg-card hover:bg-muted/50 transition-all duration-300">
-                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${question.is_enabled ? 'bg-green-500' : 'bg-muted-foreground/30'}`} />
+                <div key={question.id} className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card/60 backdrop-blur-sm hover:border-primary/30 transition-all duration-300 shadow-sm hover:shadow-md">
+                  <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${question.is_enabled ? 'bg-primary' : 'bg-muted-foreground/30'}`} />
 
                   <div className="p-5 pl-7 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
                     <div className="flex-1 space-y-2">

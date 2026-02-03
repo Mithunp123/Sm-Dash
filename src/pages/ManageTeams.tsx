@@ -25,7 +25,8 @@ import {
   Bell,
   Check,
   X,
-  ArrowLeft
+  ArrowLeft,
+  RefreshCw
 } from "lucide-react";
 import { api } from "@/lib/api";
 
@@ -427,39 +428,41 @@ const ManageTeams = () => {
   };
 
   return (
-    <div className="min-h-full w-full">
+    <div className="min-h-screen flex flex-col">
       <DeveloperCredit />
-      <div className="container mx-auto p-2 md:p-4">
-        {/* Back Button */}
-        <div className="mb-4">
-          <BackButton to="/admin" />
-        </div>
-
-        {/* Page Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold text-foreground mb-1">Teams</h1>
-            <p className="text-sm text-muted-foreground">Create teams, assign members, and track assignments</p>
+      <main className="flex-1 w-full bg-background overflow-x-hidden">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 w-full">
+          <div className="mb-2">
+            <Button variant="ghost" className="gap-2 font-bold text-muted-foreground hover:text-primary transition-colors" onClick={() => window.history.back()}>
+              <RefreshCw className="w-4 h-4" /> Back to Dashboard
+            </Button>
           </div>
-          <div className="flex gap-2">
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+            <div>
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter">Manage <span className="text-primary italic">Teams</span></h1>
+              <p className="text-[10px] sm:text-xs md:text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Coordinate volunteers and project workflows</p>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
             <Button
               onClick={() => {
                 setShowRequests(!showRequests);
                 if (!showRequests) loadTeamRequests();
               }}
               variant={showRequests ? "default" : "outline"}
-              className="gap-2"
+              className="gap-2 h-10 px-4 text-sm w-full sm:w-auto shadow-sm"
             >
-              <Bell className="w-5 h-5" />
-              Team Requests
+              <Bell className="w-4 h-4" />
+              Requests
               {teamRequests.filter(r => r.status === 'pending').length > 0 && (
-                <Badge className="ml-2 bg-red-500">
+                <Badge className="ml-1 bg-red-500 hover:bg-red-600">
                   {teamRequests.filter(r => r.status === 'pending').length}
                 </Badge>
               )}
             </Button>
-            <Button onClick={() => setShowCreateTeam(true)} className="gap-2">
-              <Plus className="w-5 h-5" />
+            <Button onClick={() => setShowCreateTeam(true)} className="gap-2 h-10 px-4 text-sm w-full sm:w-auto shadow-sm">
+              <Plus className="w-4 h-4" />
               Create Team
             </Button>
           </div>
@@ -567,41 +570,51 @@ const ManageTeams = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : !selectedTeam ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
             {teams.map((team) => (
               <Card
                 key={team.id}
-                className="cursor-pointer hover:shadow-lg transition-all"
+                className="group relative overflow-hidden rounded-3xl border-border/40 bg-card/60 backdrop-blur-md shadow-md hover:shadow-xl hover:translate-y-[-4px] transition-all duration-300 cursor-pointer"
                 onClick={() => {
                   setSelectedTeam(team);
                   loadTeamDetails(team.id);
                 }}
               >
-                <CardHeader>
+                <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Users className="w-5 h-5 text-primary" />
-                      {team.name}
-                    </CardTitle>
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 rounded-xl">
+                        <Users className="w-5 h-5 text-primary" />
+                      </div>
+                      <CardTitle className="text-xl font-black text-foreground uppercase tracking-tight">{team.name}</CardTitle>
+                    </div>
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="icon"
+                      className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDeleteTeam(team.id);
                       }}
                     >
-                      <Trash2 className="w-4 h-4 text-destructive" />
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
-                  {team.description && (
-                    <CardDescription>{team.description}</CardDescription>
-                  )}
                 </CardHeader>
                 <CardContent>
-                  <div className="flex gap-4 text-sm text-muted-foreground">
-                    <span>{team.member_count || 0} Members</span>
-                    <span>{team.assignment_count || 0} Assignments</span>
+                  <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed h-8 mb-4">
+                    {team.description || "No description provided."}
+                  </p>
+                  <div className="flex items-center justify-between pt-4 border-t border-border/50">
+                    <div className="flex -space-x-2">
+                      {/* Placeholder for member count or avatars */}
+                      <Badge className="bg-primary/5 text-primary border-none font-bold text-[9px] uppercase tracking-widest px-2 py-0.5">
+                        Click to View Details
+                      </Badge>
+                    </div>
+                    <div className="text-[10px] font-black uppercase text-muted-foreground tracking-widest group-hover:text-primary transition-colors">
+                      Open Team
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -769,259 +782,212 @@ const ManageTeams = () => {
             </Card>
           </div>
         )}
-      </div>
 
-
-
-      {/* Create Team Modal */}
-      <Dialog open={showCreateTeam} onOpenChange={setShowCreateTeam}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Team</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Team Name *</Label>
-              <Input
-                value={teamForm.name}
-                onChange={(e) => setTeamForm({ ...teamForm, name: e.target.value })}
-                placeholder="e.g., Content Team"
-              />
-            </div>
-            <div>
-              <Label>Description</Label>
-              <Input
-                value={teamForm.description}
-                onChange={(e) => setTeamForm({ ...teamForm, description: e.target.value })}
-                placeholder="Team description"
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowCreateTeam(false)}>Cancel</Button>
-              <Button onClick={handleCreateTeam}>Create Team</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Member Modal */}
-      <Dialog open={showAddMember} onOpenChange={setShowAddMember}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Member to Team</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Select User *</Label>
-              <select
-                value={memberForm.user_id}
-                onChange={(e) => setMemberForm({ ...memberForm, user_id: e.target.value })}
-                className="w-full h-10 bg-background border border-input rounded-md px-3 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
-              >
-                <option value="">Choose a user...</option>
-                {allUsers
-                  .filter(u => !teamMembers.find(m => m.user_id === u.id))
-                  .map(user => (
-                    <option key={user.id} value={user.id}>
-                      {user.name} ({user.email}) - {user.role}
-                    </option>
-                  ))}
-              </select>
-            </div>
-            <div>
-              <Label>Role</Label>
-              <select
-                value={memberForm.role}
-                onChange={(e) => setMemberForm({ ...memberForm, role: e.target.value })}
-                className="w-full h-10 bg-background border border-input rounded-md px-3 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
-              >
-                <option value="member">Member</option>
-                <option value="leader">Leader</option>
-              </select>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowAddMember(false)}>Cancel</Button>
-              <Button onClick={handleAddMember}>Add Member</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Create Assignment Modal */}
-      <Dialog open={showCreateAssignment} onOpenChange={setShowCreateAssignment}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create Assignment</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Title *</Label>
-              <Input
-                value={assignmentForm.title}
-                onChange={(e) => setAssignmentForm({ ...assignmentForm, title: e.target.value })}
-                placeholder="Assignment title"
-              />
-            </div>
-            <div>
-              <Label>Description</Label>
-              <textarea
-                value={assignmentForm.description}
-                onChange={(e) => setAssignmentForm({ ...assignmentForm, description: e.target.value })}
-                className="w-full bg-background border border-input rounded-md px-3 py-2 min-h-20 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
-                placeholder="Assignment description"
-              />
-            </div>
-            <div>
-              <Label>Assign To</Label>
-              {teamMembers && teamMembers.length > 0 ? (
-                <select
-                  value={assignmentForm.assigned_to}
-                  onChange={(e) => setAssignmentForm({ ...assignmentForm, assigned_to: e.target.value })}
-                  className="w-full h-10 bg-background border border-input rounded-md px-3 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
-                >
-                  <option value="">Unassigned</option>
-                  {teamMembers.map(member => {
-                    const currentUser = auth.getUser();
-                    const isCurrentUser = member.user_id === currentUser?.id;
-                    return (
-                      <option key={member.user_id} value={member.user_id}>
-                        {member.name} {isCurrentUser ? '(Me)' : ''}
-                      </option>
-                    );
-                  })}
-                </select>
-              ) : (
-                <div className="p-2 text-sm text-muted-foreground bg-muted rounded">
-                  No team members available. Please select a team first.
-                </div>
-              )}
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+        {/* Create Team Modal */}
+        <Dialog open={showCreateTeam} onOpenChange={setShowCreateTeam}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New Team</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
               <div>
-                <Label>Due Date</Label>
+                <Label>Team Name *</Label>
                 <Input
-                  type="date"
-                  value={assignmentForm.due_date}
-                  onChange={(e) => setAssignmentForm({ ...assignmentForm, due_date: e.target.value })}
+                  value={teamForm.name}
+                  onChange={(e) => setTeamForm({ ...teamForm, name: e.target.value })}
+                  placeholder="e.g., Content Team"
                 />
               </div>
               <div>
-                <Label>Priority</Label>
-                <select
-                  value={assignmentForm.priority}
-                  onChange={(e) => setAssignmentForm({ ...assignmentForm, priority: e.target.value })}
-                  className="w-full h-10 bg-background border border-input rounded-md px-3 text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
-                </select>
+                <Label>Description</Label>
+                <Input
+                  value={teamForm.description}
+                  onChange={(e) => setTeamForm({ ...teamForm, description: e.target.value })}
+                  placeholder="Team description"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowCreateTeam(false)}>Cancel</Button>
+                <Button onClick={handleCreateTeam}>Create Team</Button>
               </div>
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowCreateAssignment(false)}>Cancel</Button>
-              <Button onClick={handleCreateAssignment}>Create Assignment</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
 
-      {/* Assignment Details Modal */}
-      <Dialog open={showAssignmentDetails} onOpenChange={setShowAssignmentDetails}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{selectedAssignment?.title}</DialogTitle>
-          </DialogHeader>
-          {selectedAssignment && (
+        {/* Add Member Modal */}
+        <Dialog open={showAddMember} onOpenChange={setShowAddMember}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Team Member</DialogTitle>
+            </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label>Status</Label>
-                <Badge className={getStatusColor(selectedAssignment.status)}>
-                  {selectedAssignment.status}
-                </Badge>
+                <Label>Select User</Label>
+                <select
+                  className="w-full p-2 border rounded bg-background"
+                  value={memberForm.user_id}
+                  onChange={(e) => setMemberForm({ ...memberForm, user_id: e.target.value })}
+                >
+                  <option value="">Select a student...</option>
+                  {allUsers.filter(u => u.role === 'student').map(user => (
+                    <option key={user.id} value={user.id}>{user.name} ({user.email})</option>
+                  ))}
+                </select>
               </div>
-              {selectedAssignment.description && (
-                <div>
-                  <Label>Description</Label>
-                  <p className="text-sm">{selectedAssignment.description}</p>
-                </div>
-              )}
+              <div>
+                <Label>Role</Label>
+                <select
+                  className="w-full p-2 border rounded bg-background"
+                  value={memberForm.role}
+                  onChange={(e) => setMemberForm({ ...memberForm, role: e.target.value })}
+                >
+                  <option value="member">Member</option>
+                  <option value="leader">Leader</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-2">
+                < Button variant="outline" onClick={() => setShowAddMember(false)}>Cancel</Button>
+                <Button onClick={handleAddMember}>Add Member</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Create Assignment Modal */}
+        <Dialog open={showCreateAssignment} onOpenChange={setShowCreateAssignment}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Assignment</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Title *</Label>
+                <Input
+                  value={assignmentForm.title}
+                  onChange={(e) => setAssignmentForm({ ...assignmentForm, title: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Description</Label>
+                <Input
+                  value={assignmentForm.description}
+                  onChange={(e) => setAssignmentForm({ ...assignmentForm, description: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Assign To</Label>
+                <select
+                  className="w-full p-2 border rounded bg-background"
+                  value={assignmentForm.assigned_to}
+                  onChange={(e) => setAssignmentForm({ ...assignmentForm, assigned_to: e.target.value })}
+                >
+                  <option value="">Unassigned</option>
+                  {teamMembers.map(member => (
+                    <option key={member.id} value={member.user_id}>{member.name}</option>
+                  ))}
+                </select>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Assigned To</Label>
-                  <p className="text-sm">{selectedAssignment.assigned_to_name || 'Unassigned'}</p>
+                  <Label>Due Date</Label>
+                  <Input
+                    type="date"
+                    value={assignmentForm.due_date}
+                    onChange={(e) => setAssignmentForm({ ...assignmentForm, due_date: e.target.value })}
+                  />
                 </div>
                 <div>
-                  <Label>Due Date</Label>
-                  <p className="text-sm">
-                    {selectedAssignment.due_date ? new Date(selectedAssignment.due_date).toLocaleDateString() : 'No due date'}
-                  </p>
+                  <Label>Priority</Label>
+                  <select
+                    className="w-full p-2 border rounded bg-background"
+                    value={assignmentForm.priority}
+                    onChange={(e) => setAssignmentForm({ ...assignmentForm, priority: e.target.value })}
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
                 </div>
               </div>
-              <div>
-                <Label>Priority</Label>
-                <Badge className={getPriorityColor(selectedAssignment.priority)}>
-                  {selectedAssignment.priority}
-                </Badge>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowCreateAssignment(false)}>Cancel</Button>
+                <Button onClick={handleCreateAssignment}>Create Assignment</Button>
               </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
-              <div>
-                <Label className="mb-2 block">Tracking History</Label>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {tracking.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No tracking history</p>
-                  ) : (
-                    tracking.map((track) => (
-                      <div key={track.id} className="p-2 border rounded text-sm">
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold">{track.user_name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(track.created_at).toLocaleString()}
-                          </span>
+        {/* Assignment Details Modal */}
+        <Dialog open={showAssignmentDetails} onOpenChange={setShowAssignmentDetails}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Assignment Details</DialogTitle>
+            </DialogHeader>
+            {selectedAssignment && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground">Title</Label>
+                    <p className="font-semibold">{selectedAssignment.title}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Status</Label>
+                    <Badge className={getStatusColor(selectedAssignment.status)}>
+                      {selectedAssignment.status}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-muted-foreground">Description</Label>
+                  <p>{selectedAssignment.description || 'No description'}</p>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h4 className="font-semibold mb-3">Activity Log</h4>
+                  <div className="space-y-3">
+                    {tracking.map((log, i) => (
+                      <div key={i} className="flex gap-3 text-sm border-l-2 pl-3 ml-1">
+                        <div className="flex-1">
+                          <p>
+                            <span className="font-medium">{log.user_name}</span> marked as{" "}
+                            <Badge variant="outline" className="text-[10px] h-4">
+                              {log.new_status}
+                            </Badge>
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(log.changed_at).toLocaleString()}
+                          </p>
                         </div>
-                        <p className="text-muted-foreground">{track.action}</p>
-                        {track.comment && (
-                          <p className="mt-1">{track.comment}</p>
-                        )}
                       </div>
-                    ))
+                    ))}
+                    {tracking.length === 0 && (
+                      <p className="text-sm text-muted-foreground italic">No activity recorded</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4 border-t">
+                  <Button variant="outline" onClick={() => setShowAssignmentDetails(false)}>Close</Button>
+                  {selectedAssignment.status === 'pending' && (
+                    <Button
+                      onClick={() => {
+                        handleUpdateAssignment(selectedAssignment.id, 'in_progress');
+                        setShowAssignmentDetails(false);
+                      }}
+                    >
+                      Start Assignment
+                    </Button>
                   )}
                 </div>
               </div>
-
-              <div className="flex gap-2 pt-4 border-t">
-                {selectedAssignment.status !== 'completed' && (
-                  <Button
-                    onClick={() => {
-                      handleUpdateAssignment(selectedAssignment.id, 'completed');
-                      setShowAssignmentDetails(false);
-                    }}
-                    className="bg-green-500 hover:bg-green-600"
-                  >
-                    <CheckCircle2 className="w-4 h-4 mr-2" />
-                    Mark Complete
-                  </Button>
-                )}
-                {selectedAssignment.status === 'pending' && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      handleUpdateAssignment(selectedAssignment.id, 'in_progress');
-                      setShowAssignmentDetails(false);
-                    }}
-                  >
-                    Start Assignment
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </main >
+    </div >
   );
 };
 
 export default ManageTeams;
-

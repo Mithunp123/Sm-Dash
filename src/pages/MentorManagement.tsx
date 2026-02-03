@@ -894,39 +894,39 @@ const MentorManagement = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <DeveloperCredit />
-      <main className="flex-1 p-2 md:p-4 bg-background">
-        <div className="w-full">
+      <main className="flex-1 p-4 md:p-6 bg-background w-full">
+        <div className="w-full max-w-7xl mx-auto">
           {/* Back Button */}
-          <div className="mb-4">
+          <div className="mb-6">
             <BackButton to="/admin" />
           </div>
 
           {/* Page Header */}
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-foreground">Mentor Management</h1>
-            <p className="text-muted-foreground">Manage mentors, mentees, assignments, and attendance</p>
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">Mentor Management</h1>
+              <p className="text-sm text-muted-foreground mt-1">Manage mentors, mentees, assignments, and attendance</p>
+            </div>
+            <Button onClick={() => openMenteeForm()} className="gap-2 shadow-lg shadow-primary/20">
+              <Plus className="w-4 h-4" />
+              Add Mentee
+            </Button>
           </div>
 
-          {/* Mentees Section */}
-          <Card className="border shadow-xl bg-grey">
-            <CardHeader className="pb-4">
-              <div className="flex flex-col gap-4">
-                <div className="flex items-start justify-end">
-                  <Button onClick={() => openMenteeForm()} className="gap-2">
-                    <Plus className="w-4 h-4" />
-                    Add Mentee
-                  </Button>
-                </div>
-
-                {/* Search and Filter Section */}
-                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between pt-3 border-t">
-                  <div className="flex flex-1 gap-3 w-full">
+          {/* Search and Filter Section */}
+          <Card className="border-border/50 mb-8 shadow-xl bg-white/50 dark:bg-slate-900/50 backdrop-blur-md overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none"></div>
+            <CardContent className="pt-6 relative z-10">
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="md:col-span-1">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">Filter by Project</Label>
                     <Select
                       value={selectedProjectFilter}
                       onValueChange={(val) => setSelectedProjectFilter(val)}
                     >
-                      <SelectTrigger className="w-[200px]">
-                        <SelectValue placeholder="Filter by Project" />
+                      <SelectTrigger className="bg-background/50 border-border/50">
+                        <SelectValue placeholder="All Projects" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Projects</SelectItem>
@@ -937,192 +937,294 @@ const MentorManagement = () => {
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">Search Mentees</Label>
                     <Input
                       placeholder="Search by name, phone, school, or district..."
                       value={menteeSearchQuery}
                       onChange={(e) => setMenteeSearchQuery(e.target.value)}
-                      className="flex-1"
+                      className="bg-background/50 border-border/50 focus:ring-primary/20 transition-all"
                     />
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      onClick={() => setShowExcelUploadDialog(true)}
-                      variant="outline"
-                      className="gap-2"
-                    >
-                      <FileSpreadsheet className="w-4 h-4" />
-                      Upload Excel
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setBulkExpectedClasses("");
-                        setBulkExpectedClassesProjectId("all");
-                        setShowBulkExpectedClassesDialog(true);
-                      }}
-                      variant="outline"
-                      className="gap-2"
-                    >
-                      <Settings className="w-4 h-4" />
-                      Set Expected Classes (All)
-                    </Button>
-                    {/* Mark Attendance button removed as requested – attendance is now managed via View Attendance with edit option */}
-                    <Button
-                      onClick={async () => {
-                        setViewAttendanceStartDate("");
-                        setViewAttendanceEndDate("");
-                        setViewAttendanceData([]);
-                        setShowViewAttendanceDialog(true);
-                        await loadViewAttendance();
-                      }}
-                      variant="outline"
-                      className="gap-2"
-                    >
-                      <FileSpreadsheet className="w-4 h-4" />
-                      View Attendance
-                    </Button>
-                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 pt-4 border-t border-border/40">
+                  <Button
+                    onClick={() => setShowExcelUploadDialog(true)}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 h-9 border-border/50 hover:bg-muted transition-colors"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    Upload Excel
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setBulkExpectedClasses("");
+                      setBulkExpectedClassesProjectId("all");
+                      setShowBulkExpectedClassesDialog(true);
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 h-9 border-border/50 hover:bg-muted transition-colors"
+                  >
+                    <Settings className="w-3.5 h-3.5" />
+                    Set Expected Classes (All)
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      setViewAttendanceStartDate("");
+                      setViewAttendanceEndDate("");
+                      setViewAttendanceData([]);
+                      setShowViewAttendanceDialog(true);
+                      await loadViewAttendance();
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 h-9 border-border/50 hover:bg-muted transition-colors"
+                  >
+                    <ClipboardList className="w-3.5 h-3.5" />
+                    View Attendance
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Mentees Content List */}
+          <Card className="border-border/50 shadow-xl bg-white/50 dark:bg-slate-900/50 backdrop-blur-md overflow-hidden">
+            <CardHeader className="border-b border-border/40 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl">Mentees</CardTitle>
+                  <CardDescription>Found {filteredMentees.length} matching records</CardDescription>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                  {filteredMentees.length}
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="pt-0">
-
+            <CardContent className="px-0 sm:px-6 py-6">
               {loading ? (
-                <div className="flex flex-col items-center justify-center py-16">
-                  <div className="relative">
-                    <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                <div className="text-center py-20">
+                  <div className="relative inline-block">
+                    <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto"></div>
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Users className="w-5 h-5 text-primary animate-pulse" />
                     </div>
                   </div>
-                  <p className="mt-4 text-sm font-medium text-gray-600">Loading mentees...</p>
+                  <p className="mt-4 text-muted-foreground animate-pulse font-medium">Fetching mentors and mentees...</p>
                 </div>
               ) : filteredMentees.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  No mentees found. Add a mentee to get started.
+                <div className="text-center py-20 text-muted-foreground">
+                  <div className="bg-muted w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Users className="w-8 h-8 opacity-20" />
+                  </div>
+                  <p className="text-lg font-medium">No mentees found</p>
+                  <p className="text-sm">Try adjusting your filters or add a new mentee</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto border rounded-lg">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-50 dark:hover:bg-slate-900/50">
-                        <TableHead className="w-16 text-center font-bold">S.No</TableHead>
-                        <TableHead className="font-bold">Name</TableHead>
-                        <TableHead className="font-bold">Phone / Mentor</TableHead>
-                        <TableHead className="font-bold">Standard</TableHead>
-                        <TableHead className="font-bold">School</TableHead>
-                        <TableHead className="font-bold">District</TableHead>
-                        <TableHead className="font-bold">Panchayat</TableHead>
-                        <TableHead className="font-bold">Status</TableHead>
-                        <TableHead className="font-bold text-center">Expected Classes</TableHead>
-                        <TableHead className="font-bold text-center">Classes Taken</TableHead>
-                        <TableHead className="font-bold text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredMentees.map((mentee, idx) => (
-                        <TableRow key={mentee.id} className="hover:bg-muted/50">
-                          <TableCell className="text-center font-medium">{idx + 1}</TableCell>
-                          <TableCell className="font-medium text-foreground">{mentee.mentee_name}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-3 flex-wrap">
-                              {mentee.mentee_phone && (
-                                <a
-                                  href={`tel:${mentee.mentee_phone}`}
-                                  className="flex items-center gap-1 text-primary hover:underline"
-                                >
-                                  <PhoneCall className="w-4 h-4" />
-                                  <span>{mentee.mentee_phone}</span>
+                <div className="space-y-4">
+                  {/* Mobile Card View */}
+                  <div className="grid grid-cols-1 gap-4 px-4 sm:hidden">
+                    {filteredMentees.map((mentee, idx) => (
+                      <div key={mentee.id} className="group relative bg-card border border-border/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
+                        <div className="absolute top-4 right-4 h-7 w-7 rounded-full bg-primary/5 flex items-center justify-center text-[10px] font-bold text-primary/40 group-hover:text-primary transition-colors">
+                          {idx + 1}
+                        </div>
+
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-primary">
+                            <span className="text-lg font-bold">{mentee.mentee_name.charAt(0)}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-foreground leading-tight truncate">{mentee.mentee_name}</h3>
+                            <div className="flex flex-col gap-1 mt-1">
+                              {mentee.mentee_phone ? (
+                                <a href={`tel:${mentee.mentee_phone}`} className="inline-flex items-center gap-1.5 text-xs text-primary font-medium">
+                                  <PhoneCall className="w-3 h-3" /> {mentee.mentee_phone}
                                 </a>
-                              )}
-                              {!mentee.mentee_phone && <span>—</span>}
-                              {mentee.volunteer_name && (
-                                <div className="flex items-center gap-1">
-                                  <span className="text-xs text-muted-foreground">Mentor:</span>
-                                  {mentee.volunteer_phone ? (
-                                    <a
-                                      href={`tel:${mentee.volunteer_phone}`}
-                                      className="flex items-center gap-1 text-primary hover:underline font-medium"
-                                    >
-                                      <PhoneCall className="w-3.5 h-3.5" />
-                                      <span>{mentee.volunteer_name}</span>
-                                    </a>
-                                  ) : (
-                                    <span className="text-xs font-medium">{mentee.volunteer_name}</span>
-                                  )}
-                                </div>
-                              )}
+                              ) : <span className="text-xs text-muted-foreground">No phone</span>}
                             </div>
-                          </TableCell>
-                          <TableCell>{mentee.mentee_year || "—"}</TableCell>
-                          <TableCell>{mentee.mentee_school || "—"}</TableCell>
-                          <TableCell>{mentee.mentee_district || "—"}</TableCell>
-                          <TableCell>{(mentee as any).mentee_address || "—"}</TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={mentee.mentee_status === "active" ? "default" : "secondary"}
-                            >
-                              {mentee.mentee_status || "active"}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          <Badge variant={mentee.mentee_status === "active" ? "default" : "secondary"} className="text-[10px] px-2 py-0">
+                            {mentee.mentee_status || "active"}
+                          </Badge>
+                          {mentee.mentee_year && (
+                            <Badge variant="outline" className="text-[10px] px-2 py-0 border-primary/20 text-primary">
+                              Std: {mentee.mentee_year}
                             </Badge>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex flex-col items-center">
-                              <span className="font-medium">{(mentee as any).expected_classes || "—"}</span>
-                              {(mentee as any).expected_classes && (
-                                <span className="text-xs text-muted-foreground">Scheduled</span>
-                              )}
+                          )}
+                        </div>
+
+                        {mentee.volunteer_name && (
+                          <div className="mb-4 p-2 bg-muted/30 rounded-lg border border-border/40">
+                            <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Assigned Mentor</p>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold">{mentee.volunteer_name}</span>
+                              {mentee.volunteer_phone ? (
+                                <a href={`tel:${mentee.volunteer_phone}`} className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                  <PhoneCall className="w-3.5 h-3.5" />
+                                </a>
+                              ) : null}
                             </div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex flex-col items-center">
-                              <span className="font-medium">{mentee.total_classes || 0}</span>
-                              {(mentee as any).expected_classes && (
-                                <span className="text-xs text-muted-foreground">
-                                  of {(mentee as any).expected_classes}
-                                </span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex gap-1 justify-end">
-                              <Button
-                                size="sm"
-                                variant="default"
-                                onClick={() => openAssignMentorDialog(mentee)}
-                                className="h-8 px-2 gap-2"
-                                title="Assign Mentor"
-                              >
-                                <UserCheck className="w-3.5 h-3.5" />
-                                Assign
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => navigate(`/admin/mentees/${mentee.project_id || 0}/${mentee.id}`)}
-                                className="h-8 px-2 gap-2"
-                                title="View Details"
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                                View
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleDeleteMentee(mentee)}
-                                className="h-8 px-2"
-                                title="Delete Mentee"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
-                            </div>
-                          </TableCell>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-y-4 gap-x-2 pt-4 border-t border-border/40">
+                          <div>
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">School</span>
+                            <p className="text-xs font-medium truncate">{mentee.mentee_school || '-'}</p>
+                          </div>
+                          <div>
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">District</span>
+                            <p className="text-xs font-medium truncate">{mentee.mentee_district || '-'}</p>
+                          </div>
+                          <div>
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Scheduled Classes</span>
+                            <p className="text-xs font-medium">{(mentee as any).expected_classes || '-'}</p>
+                          </div>
+                          <div>
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Classes Taken</span>
+                            <p className="text-xs font-medium">{mentee.total_classes || 0}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-2 mt-6 pt-4 border-t border-border/40">
+                          <Button size="sm" onClick={() => openAssignMentorDialog(mentee)} className="h-9 gap-2 rounded-xl">
+                            <UserCheck className="w-3.5 h-3.5" /> Assign Mentor
+                          </Button>
+                          <div className="flex gap-2 w-full">
+                            <Button size="sm" variant="outline" onClick={() => navigate(`/admin/mentees/${mentee.project_id || 0}/${mentee.id}`)} className="flex-1 h-9 gap-2 rounded-xl">
+                              <Eye className="w-3.5 h-3.5" /> View
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => handleDeleteMentee(mentee)} className="h-9 w-9 px-0 rounded-xl text-rose-500 hover:bg-rose-50">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop Table View */}
+                  <div className="hidden sm:block overflow-x-auto border rounded-xl mx-4 sm:mx-0">
+                    <Table>
+                      <TableHeader className="bg-muted/50">
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="w-[60px] text-center font-bold">S.No</TableHead>
+                          <TableHead className="font-bold">Mentee Information</TableHead>
+                          <TableHead className="font-bold">Contact & Mentor</TableHead>
+                          <TableHead className="font-bold">School Info</TableHead>
+                          <TableHead className="font-bold text-center">Progress</TableHead>
+                          <TableHead className="font-bold">Status</TableHead>
+                          <TableHead className="font-bold text-right pt-2 px-10">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredMentees.map((mentee, idx) => (
+                          <TableRow key={mentee.id} className="hover:bg-muted/30 transition-colors group">
+                            <TableCell className="text-center font-medium text-muted-foreground">{idx + 1}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <div className="h-9 w-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-primary group-hover:scale-110 transition-transform font-bold">
+                                  {mentee.mentee_name.charAt(0)}
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="font-semibold text-foreground leading-tight">{mentee.mentee_name}</span>
+                                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Std: {mentee.mentee_year || '—'}</span>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col gap-1.5">
+                                {mentee.mentee_phone && (
+                                  <a href={`tel:${mentee.mentee_phone}`} className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-medium">
+                                    <PhoneCall className="w-3 h-3" /> {mentee.mentee_phone}
+                                  </a>
+                                )}
+                                {mentee.volunteer_name ? (
+                                  <div className="flex items-center gap-1 px-1.5 py-0.5 bg-primary/5 border border-primary/10 rounded-md w-fit">
+                                    <span className="text-[9px] font-bold text-muted-foreground uppercase mr-1">Mentor:</span>
+                                    <span className="text-[10px] font-bold text-primary">{mentee.volunteer_name}</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-[10px] italic text-muted-foreground">No mentor assigned</span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span className="text-xs font-medium text-foreground max-w-[150px] truncate">{mentee.mentee_school || "—"}</span>
+                                <span className="text-[10px] text-muted-foreground">{mentee.mentee_district || "—"}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col items-center">
+                                <div className="flex items-baseline gap-1">
+                                  <span className="text-xs font-bold text-foreground">{mentee.total_classes || 0}</span>
+                                  <span className="text-[10px] text-muted-foreground">/ {(mentee as any).expected_classes || "—"}</span>
+                                </div>
+                                <div className="w-16 h-1.5 bg-muted rounded-full mt-1 overflow-hidden">
+                                  <div
+                                    className="h-full bg-primary"
+                                    style={{
+                                      width: `${Math.min(100, (mentee.total_classes || 0) / (Number((mentee as any).expected_classes) || 1) * 100)}%`
+                                    }}
+                                  ></div>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={mentee.mentee_status === "active" ? "default" : "secondary"} className="text-[10px] py-0">
+                                {mentee.mentee_status || "active"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex gap-1 justify-end">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => openAssignMentorDialog(mentee)}
+                                  className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                  title="Assign Mentor"
+                                >
+                                  <UserCheck className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => navigate(`/admin/mentees/${mentee.project_id || 0}/${mentee.id}`)}
+                                  className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                  title="View Details"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => handleDeleteMentee(mentee)}
+                                  className="h-8 w-8 text-muted-foreground hover:text-rose-500 hover:bg-rose-50"
+                                  title="Delete Mentee"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
+
 
           {/* Add/Edit Mentee Dialog */}
           <Dialog open={showMenteeDialog} onOpenChange={setShowMenteeDialog}>
@@ -1153,7 +1255,7 @@ const MentorManagement = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Mentee Name *</Label>
                     <Input
@@ -1170,7 +1272,7 @@ const MentorManagement = () => {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Standard</Label>
                     <Input
@@ -1196,7 +1298,7 @@ const MentorManagement = () => {
                     </Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>School</Label>
                     <Input
@@ -1219,7 +1321,7 @@ const MentorManagement = () => {
                     onChange={(e) => setMenteeForm({ ...menteeForm, mentee_address: e.target.value })}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Parent Contact</Label>
                     <Input
@@ -1770,76 +1872,153 @@ const MentorManagement = () => {
                         Download Excel
                       </Button>
                     </div>
-                    <div className="overflow-x-auto border rounded-xl">
-                      <Table>
-                        <TableHeader className="bg-muted/50">
-                          <TableRow>
-                            <TableHead className="font-bold">Mentee Name</TableHead>
-                            <TableHead className="font-bold">Phone</TableHead>
-                            <TableHead className="font-bold">Date</TableHead>
-                            <TableHead className="font-bold">Status</TableHead>
-                            <TableHead className="font-bold">Notes</TableHead>
-                            <TableHead className="font-bold">Call Recording</TableHead>
-                            <TableHead className="text-right font-bold">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {viewAttendanceData.map((record: any, index: number) => (
-                            <TableRow key={`${record.menteeId}-${record.date}-${index}`}>
-                              <TableCell className="font-medium">{record.menteeName}</TableCell>
-                              <TableCell>{record.phone || '-'}</TableCell>
-                              <TableCell>
-                                {new Date(record.date).toLocaleDateString('en-IN', {
-                                  year: 'numeric',
-                                  month: 'short',
-                                  day: 'numeric'
-                                })}
-                              </TableCell>
-                              <TableCell>
-                                <Badge
-                                  variant={
-                                    record.rawStatus === 'PRESENT' ? 'default' :
-                                      record.rawStatus === 'ABSENT' ? 'destructive' :
-                                        record.rawStatus === 'FOLLOW_UP' ? 'secondary' :
-                                          'outline'
-                                  }
-                                >
-                                  {record.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="max-w-xs truncate">{record.notes || '-'}</TableCell>
-                              <TableCell>{record.callRecording}</TableCell>
-                              <TableCell className="text-right">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8 px-2 text-xs"
-                                  onClick={() => {
-                                    if (!record.id || !record.assignmentId) {
-                                      toast.error("Cannot edit: missing record information");
-                                      return;
-                                    }
-                                    setEditingAttendanceRecord({
-                                      id: record.id,
-                                      assignmentId: record.assignmentId,
-                                      menteeId: record.menteeId,
-                                      menteeName: record.menteeName,
-                                      date: record.date,
-                                      status: record.rawStatus || 'PRESENT',
-                                      notes: record.notes || ''
-                                    });
-                                    setAttendanceStatus(record.rawStatus || 'PRESENT');
-                                    setAttendanceNotes(record.notes || '');
-                                    setShowEditAttendanceDialog(true);
-                                  }}
-                                >
-                                  Edit
-                                </Button>
-                              </TableCell>
+                    <div className="space-y-3">
+                      {/* Mobile Cards for Attendance */}
+                      <div className="grid grid-cols-1 gap-4 sm:hidden">
+                        {viewAttendanceData.map((record: any, index: number) => (
+                          <div key={`${record.menteeId}-${record.date}-${index}`} className="p-4 border rounded-xl bg-card shadow-sm">
+                            <div className="flex justify-between items-start mb-3">
+                              <div>
+                                <h4 className="font-bold text-foreground">{record.menteeName}</h4>
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(record.date).toLocaleDateString('en-IN', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  })}
+                                </p>
+                              </div>
+                              <Badge
+                                variant={
+                                  record.rawStatus === 'PRESENT' ? 'default' :
+                                    record.rawStatus === 'ABSENT' ? 'destructive' :
+                                      record.rawStatus === 'FOLLOW_UP' ? 'secondary' :
+                                        'outline'
+                                }
+                                className="text-[10px]"
+                              >
+                                {record.status}
+                              </Badge>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                              <div>
+                                <span className="text-muted-foreground block font-medium">Phone</span>
+                                <span>{record.phone || '-'}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground block font-medium">Call Recording</span>
+                                <span className="truncate block">{record.callRecording || '-'}</span>
+                              </div>
+                            </div>
+
+                            {record.notes && (
+                              <div className="p-2 bg-muted/50 rounded-lg text-xs mb-3 italic">
+                                "{record.notes}"
+                              </div>
+                            )}
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full h-8 text-xs gap-2"
+                              onClick={() => {
+                                if (!record.id || !record.assignmentId) {
+                                  toast.error("Cannot edit: missing record information");
+                                  return;
+                                }
+                                setEditingAttendanceRecord({
+                                  id: record.id,
+                                  assignmentId: record.assignmentId,
+                                  menteeId: record.menteeId,
+                                  menteeName: record.menteeName,
+                                  date: record.date,
+                                  status: record.rawStatus || 'PRESENT',
+                                  notes: record.notes || ''
+                                });
+                                setAttendanceStatus(record.rawStatus || 'PRESENT');
+                                setAttendanceNotes(record.notes || '');
+                                setShowEditAttendanceDialog(true);
+                              }}
+                            >
+                              <Edit className="w-3.5 h-3.5" /> Edit Record
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Desktop Table for Attendance */}
+                      <div className="hidden sm:block overflow-x-auto border rounded-xl">
+                        <Table>
+                          <TableHeader className="bg-muted/50">
+                            <TableRow>
+                              <TableHead className="font-bold">Mentee Name</TableHead>
+                              <TableHead className="font-bold">Phone</TableHead>
+                              <TableHead className="font-bold">Date</TableHead>
+                              <TableHead className="font-bold">Status</TableHead>
+                              <TableHead className="font-bold">Notes</TableHead>
+                              <TableHead className="font-bold">Call Recording</TableHead>
+                              <TableHead className="text-right font-bold">Actions</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                          </TableHeader>
+                          <TableBody>
+                            {viewAttendanceData.map((record: any, index: number) => (
+                              <TableRow key={`${record.menteeId}-${record.date}-${index}`}>
+                                <TableCell className="font-medium">{record.menteeName}</TableCell>
+                                <TableCell>{record.phone || '-'}</TableCell>
+                                <TableCell>
+                                  {new Date(record.date).toLocaleDateString('en-IN', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  })}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant={
+                                      record.rawStatus === 'PRESENT' ? 'default' :
+                                        record.rawStatus === 'ABSENT' ? 'destructive' :
+                                          record.rawStatus === 'FOLLOW_UP' ? 'secondary' :
+                                            'outline'
+                                    }
+                                  >
+                                    {record.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="max-w-xs truncate">{record.notes || '-'}</TableCell>
+                                <TableCell>{record.callRecording}</TableCell>
+                                <TableCell className="text-right">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 px-2 text-xs"
+                                    onClick={() => {
+                                      if (!record.id || !record.assignmentId) {
+                                        toast.error("Cannot edit: missing record information");
+                                        return;
+                                      }
+                                      setEditingAttendanceRecord({
+                                        id: record.id,
+                                        assignmentId: record.assignmentId,
+                                        menteeId: record.menteeId,
+                                        menteeName: record.menteeName,
+                                        date: record.date,
+                                        status: record.rawStatus || 'PRESENT',
+                                        notes: record.notes || ''
+                                      });
+                                      setAttendanceStatus(record.rawStatus || 'PRESENT');
+                                      setAttendanceNotes(record.notes || '');
+                                      setShowEditAttendanceDialog(true);
+                                    }}
+                                  >
+                                    Edit
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </div>
                   </>
                 )}

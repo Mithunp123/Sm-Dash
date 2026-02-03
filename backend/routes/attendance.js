@@ -331,6 +331,50 @@ router.delete('/project/records/:id', authenticateToken, requirePermission('can_
   }
 });
 
+// Get attendance records for a specific meeting
+router.get('/meeting/:meetingId/records', authenticateToken, requirePermission('can_manage_attendance', { allowView: true }), async (req, res) => {
+  try {
+    const { meetingId } = req.params;
+    const { date } = req.query;
+    const db = getDatabase();
+
+    let query = `
+      SELECT 
+        a.id,
+        a.meeting_id,
+        a.user_id,
+        a.status,
+        a.notes,
+        a.marked_at,
+        u.name as user_name,
+        u.email as user_email,
+        sp.dept as user_dept,
+        sp.year as user_year
+      FROM attendance a
+      JOIN users u ON a.user_id = u.id
+      LEFT JOIN profiles sp ON u.id = sp.user_id
+      WHERE a.meeting_id = ?
+    `;
+    const params = [meetingId];
+
+    if (date) {
+      // Assuming marked_at or another column stores the date. 
+      // The meeting itself has a date, but attendance might be multi-day (unlikely for meetings but good to handle).
+      // If the attendance table doesn't have a date column, we use DATE(marked_at).
+      query += ' AND DATE(a.marked_at) = ?';
+      params.push(date);
+    }
+
+    query += ' ORDER BY a.marked_at DESC';
+
+    const records = await all(db, query, params);
+    res.json({ success: true, records });
+  } catch (error) {
+    console.error('Get meeting attendance records error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // Mark attendance for meetings (POST /api/attendance)
 router.post('/', authenticateToken, requirePermission('can_manage_attendance', { requireEdit: true }), [
   body('meetingId').isInt(),

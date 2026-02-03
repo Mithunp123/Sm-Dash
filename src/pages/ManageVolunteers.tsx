@@ -9,7 +9,8 @@ import { auth } from "@/lib/auth";
 import { usePermissions } from '@/hooks/usePermissions';
 import { api } from "@/lib/api";
 import { BackButton } from "@/components/BackButton";
-import { ArrowLeft, Trash2, FileText, Search, Printer, FileDown } from "lucide-react";
+import DeveloperCredit from "@/components/DeveloperCredit";
+import { ArrowLeft, Trash2, FileText, Search, Printer, FileDown, XCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -420,78 +421,75 @@ const ManageVolunteers = () => {
   });
 
   return (
-    <div className="flex-1 flex flex-col">
-      <main className="flex-1 p-4 md:p-8 bg-transparent overflow-y-auto">
-        <div className="w-full space-y-6">
-          {/* dev bypass banner */}
+    <div className="min-h-screen flex flex-col">
+      <DeveloperCredit />
+      <main className="flex-1 w-full bg-background overflow-x-hidden">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 w-full">
+          {/* dev bypass banner ... preserved ... */}
           {(typeof window !== 'undefined' && window.location && window.location.hostname && window.location.hostname.includes('localhost')) && !(auth.isAuthenticated() && (auth.hasRole('admin') || permissions?.can_manage_volunteers)) && !devBypass && (
-            <div className="mb-4">
+            <div className="mb-6">
               <div className="p-4 rounded bg-yellow-500/10 border border-yellow-500/20 text-yellow-500">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                   <div>
                     <div className="font-semibold">Dev mode: Access restricted</div>
                     <div className="text-sm opacity-90">You don't have permission to manage volunteers. For local testing you can bypass this check.</div>
                   </div>
-                  <div>
-                    <Button onClick={() => setDevBypass(true)} variant="outline" className="border-yellow-500/50 hover:bg-yellow-500/20">Continue with Dev Bypass</Button>
-                  </div>
+                  <Button onClick={() => setDevBypass(true)} variant="outline" className="border-yellow-500/50 hover:bg-yellow-500/20 w-full md:w-auto">Continue with Dev Bypass</Button>
                 </div>
               </div>
             </div>
           )}
 
-          <BackButton to="/admin" className="mb-6" />
+          <div className="mb-6">
+            <BackButton to="/admin" />
+          </div>
 
-          {/* Hero Header Section */}
-          <div className="mb-8 bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-8 shadow-xl">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-              <div>
-                <h1 className="text-4xl md:text-5xl font-bold mb-2 text-foreground">Volunteer Submissions</h1>
-                <p className="text-lg text-muted-foreground">Manage registrations and undertaking forms</p>
+          {/* Page Header */}
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+            <div>
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter">Volunteer <span className="text-primary italic">Submissions</span></h1>
+              <p className="text-[10px] sm:text-xs md:text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Manage core community registrations</p>
+            </div>
+            <div className="flex flex-col items-stretch sm:items-end gap-3 w-full sm:w-auto">
+              <div className="inline-flex rounded-2xl bg-muted/30 p-1 border-2 border-border/40 backdrop-blur-sm self-center sm:self-auto">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={!showApproved ? "secondary" : "ghost"}
+                  className={`rounded-xl px-4 font-bold text-[10px] uppercase tracking-widest transition-all ${!showApproved ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground"}`}
+                  onClick={() => setShowApproved(false)}
+                >
+                  Pending ({subs.length})
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={showApproved ? "secondary" : "ghost"}
+                  className={`rounded-xl px-4 font-bold text-[10px] uppercase tracking-widest transition-all ${showApproved ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground"}`}
+                  onClick={() => {
+                    setShowApproved(true);
+                    loadApproved();
+                  }}
+                >
+                  Approved ({approved.length})
+                </Button>
               </div>
-              <div className="flex flex-col items-end gap-3">
-                <div className="inline-flex rounded-lg bg-muted/30 p-1 border border-border/50 backdrop-blur-sm">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={!showApproved ? "secondary" : "ghost"}
-                    className={!showApproved ? "bg-primary text-primary-foreground" : "text-muted-foreground"}
-                    onClick={() => setShowApproved(false)}
-                  >
-                    Pending ({subs.length})
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={showApproved ? "secondary" : "ghost"}
-                    className={showApproved ? "bg-primary text-primary-foreground" : "text-muted-foreground"}
-                    onClick={() => {
-                      setShowApproved(true);
-                      loadApproved();
-                    }}
-                  >
-                    Approved ({approved.length})
-                  </Button>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={showApproved ? handleDownloadApproved : handleDownloadSubmissions}
-                    className="gap-2"
-                  >
-                    <FileText className="w-4 h-4" />
-                    Export Excel
-                  </Button>
-                </div>
-              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={showApproved ? handleDownloadApproved : handleDownloadSubmissions}
+                className="gap-2 h-11 rounded-xl border-2 font-bold w-full"
+              >
+                <FileDown className="w-4 h-4 text-primary" />
+                Export Data
+              </Button>
             </div>
           </div>
 
           {/* Search & Tabs */}
-          <div className="mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
+          <div className="mb-8 flex flex-col md:flex-row gap-4 items-center justify-between">
             {!showApproved && (
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2 self-start md:self-auto">
                 {filterStatuses.map((status, idx) => (
                   <Button
                     key={idx}
@@ -501,7 +499,7 @@ const ManageVolunteers = () => {
                       setFilterIdx(idx);
                       try { localStorage.setItem('volunteers_filter_idx', idx.toString()); } catch (e) { }
                     }}
-                    className="capitalize rounded-full px-4"
+                    className={`capitalize rounded-xl px-6 font-bold text-xs ${filterIdx === idx ? 'shadow-lg shadow-primary/20' : 'border-2'}`}
                   >
                     {status}
                   </Button>
@@ -509,167 +507,285 @@ const ManageVolunteers = () => {
               </div>
             )}
             {showApproved && <div />}
-            <div className="w-full md:w-80 relative">
+            <div className="w-full md:w-80 relative group">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors w-5 h-5" />
               <Input
-                placeholder="Search by name, email, reg no..."
+                placeholder="Search by name, email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-4 h-10 bg-card/50 border-border/50 focus:ring-primary/20"
+                className="pl-12 h-12 bg-card/60 backdrop-blur-md border-border/50 focus:ring-primary/20 rounded-2xl text-sm font-medium"
               />
             </div>
           </div>
 
           {showApproved ? (
-            <Card className="bg-card/50 backdrop-blur-sm overflow-hidden border-border/50">
-              <ScrollArea className="w-full">
-                <div className="min-w-[1000px]">
-                  {filteredApproved.length === 0 ? (
-                    <div className="py-20 text-center">
-                      <p className="text-muted-foreground">No approved volunteers found</p>
-                    </div>
-                  ) : (
-                    <table className="w-full">
-                      <thead>
-                        <tr className="text-left border-b border-border/50 bg-muted/30">
-                          <th className="px-6 py-4 font-semibold">Volunteer Details</th>
-                          <th className="px-6 py-4 font-semibold">Department & Year</th>
-                          <th className="px-6 py-4 font-semibold">Category</th>
-                          <th className="px-6 py-4 font-semibold">Approved On</th>
-                          <th className="px-6 py-4 font-semibold text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border/50">
-                        {filteredApproved.map((v) => (
-                          <tr key={v.id} className="hover:bg-muted/20 transition-colors">
-                            <td className="px-6 py-4">
-                              <div className="font-semibold text-foreground">{v.name}</div>
-                              <div className="text-xs text-muted-foreground">{v.email}</div>
-                              {v.phone && <div className="text-[10px] text-muted-foreground/70">{v.phone}</div>}
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="text-sm">{v.department}</div>
-                              <div className="text-xs text-muted-foreground">{v.year} Year</div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <Badge variant="outline" className="capitalize">{v.category || 'Volunteer'}</Badge>
-                            </td>
-                            <td className="px-6 py-4 text-xs text-muted-foreground">
-                              {v.created_at ? new Date(v.created_at).toLocaleDateString() : "-"}
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    setDetailItem(v);
-                                    setDetailOpen(true);
-                                  }}
-                                  className="text-primary hover:text-primary hover:bg-primary/10"
-                                >
-                                  View Form
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removeApproved(v.id)}
-                                  className="text-destructive hover:bg-destructive/10"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </td>
+            <div className="space-y-4">
+              {/* Mobile View */}
+              <div className="grid grid-cols-1 gap-4 md:hidden">
+                {filteredApproved.length === 0 ? (
+                  <div className="py-20 text-center font-bold text-muted-foreground italic bg-card/40 rounded-3xl border-2 border-dashed border-border/30">No approved volunteers found</div>
+                ) : (
+                  filteredApproved.map((v) => (
+                    <Card key={v.id} className="rounded-3xl border-border/40 overflow-hidden bg-card/60 backdrop-blur-sm shadow-md active:scale-[0.98] transition-all">
+                      <CardContent className="p-5">
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black text-lg">
+                            {v.name.charAt(0)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-black text-foreground uppercase tracking-tight truncate">{v.name}</h3>
+                            <p className="text-[10px] font-bold text-muted-foreground truncate">{v.email}</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 mb-4">
+                          <div className="bg-muted/30 p-2 rounded-xl">
+                            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Dept</p>
+                            <p className="text-[10px] font-bold text-foreground truncate">{v.department}</p>
+                          </div>
+                          <div className="bg-muted/30 p-2 rounded-xl">
+                            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Category</p>
+                            <p className="text-[10px] font-bold text-foreground truncate">{v.category || 'Volunteer'}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 h-9 rounded-xl font-bold text-[10px] uppercase tracking-widest border-2"
+                            onClick={() => { setDetailItem(v); setDetailOpen(true); }}
+                          >
+                            Form
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="h-9 w-9 rounded-xl"
+                            onClick={() => removeApproved(v.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+
+              {/* Desktop Table View */}
+              <Card className="hidden md:block bg-card/50 backdrop-blur-sm overflow-hidden border-border/50 rounded-3xl">
+                <ScrollArea className="w-full">
+                  <div className="min-w-[1000px]">
+                    {filteredApproved.length === 0 ? (
+                      <div className="py-20 text-center">
+                        <p className="text-muted-foreground">No approved volunteers found</p>
+                      </div>
+                    ) : (
+                      <table className="w-full">
+                        <thead>
+                          <tr className="text-left border-b border-border/50 bg-muted/30">
+                            <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Volunteer Details</th>
+                            <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Department & Year</th>
+                            <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Category</th>
+                            <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Approved On</th>
+                            <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground text-right">Actions</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              </ScrollArea>
-            </Card>
+                        </thead>
+                        <tbody className="divide-y divide-border/50">
+                          {filteredApproved.map((v) => (
+                            <tr key={v.id} className="hover:bg-muted/20 transition-colors group">
+                              <td className="px-6 py-4">
+                                <div className="font-black text-foreground uppercase tracking-tight">{v.name}</div>
+                                <div className="text-[10px] font-medium text-muted-foreground">{v.email}</div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="text-sm font-bold">{v.department}</div>
+                                <div className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{v.year} Year</div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <Badge className="bg-primary/5 text-primary border-none font-bold text-[10px] uppercase tracking-widest">{v.category || 'Volunteer'}</Badge>
+                              </td>
+                              <td className="px-6 py-4 text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+                                {v.created_at ? new Date(v.created_at).toLocaleDateString() : "-"}
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setDetailItem(v);
+                                      setDetailOpen(true);
+                                    }}
+                                    className="h-8 text-primary hover:text-primary hover:bg-primary/10 font-bold text-[10px] uppercase tracking-widest rounded-lg"
+                                  >
+                                    View Form
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeApproved(v.id)}
+                                    className="h-8 text-destructive hover:bg-destructive/10 rounded-lg"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </ScrollArea>
+              </Card>
+            </div>
           ) : (
-            <Card className="bg-card/50 backdrop-blur-sm overflow-hidden border-border/50">
-              <ScrollArea className="w-full">
-                <div className="min-w-[1000px]">
-                  {filteredSubs.length === 0 ? (
-                    <div className="py-20 text-center">
-                      <p className="text-muted-foreground">
-                        {filterIdx === 0 ? "No submissions found." : `No ${filterStatuses[filterIdx]} submissions found.`}
-                      </p>
-                    </div>
-                  ) : (
-                    <table className="w-full">
-                      <thead>
-                        <tr className="text-left border-b border-border/50 bg-muted/30">
-                          <th className="px-6 py-4 font-semibold">Applicant</th>
-                          <th className="px-6 py-4 font-semibold">Department & Year</th>
-                          <th className="px-6 py-4 font-semibold">Category</th>
-                          <th className="px-6 py-4 font-semibold">Submitted</th>
-                          <th className="px-6 py-4 font-semibold text-center">Status</th>
-                          <th className="px-6 py-4 font-semibold text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border/50">
-                        {filteredSubs.map((s) => (
-                          <tr key={s.id} className="hover:bg-muted/20 transition-colors">
-                            <td className="px-6 py-4">
-                              <div className="font-semibold text-foreground">{s.name}</div>
-                              <div className="text-xs text-muted-foreground">{s.email}</div>
-                              {s.phone && <div className="text-[10px] text-muted-foreground/70">{s.phone}</div>}
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="text-sm">{s.department}</div>
-                              <div className="text-xs text-muted-foreground">{s.year} Year</div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <Badge variant="outline" className="capitalize">{s.category || 'Volunteer'}</Badge>
-                            </td>
-                            <td className="px-6 py-4 text-xs text-muted-foreground">
-                              {new Date(s.created_at).toLocaleDateString()}
-                            </td>
-                            <td className="px-6 py-4 text-center">
-                              <Badge
-                                className={`capitalize font-medium ${s.status === 'approved' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
-                                  s.status === 'rejected' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
-                                    'bg-blue-500/10 text-blue-500 border-blue-500/20'
-                                  }`}
-                                variant="outline"
-                              >
-                                {s.status || 'pending'}
-                              </Badge>
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    setDetailItem(s);
-                                    setDetailOpen(true);
-                                  }}
-                                  className="text-primary hover:text-primary hover:bg-primary/10"
-                                >
-                                  Details
-                                </Button>
-                                <Button onClick={() => updateStatus(s.id, 2)} className="bg-green-500 hover:bg-green-600 text-white h-8" size="sm">
-                                  Approve
-                                </Button>
-                                <Button onClick={() => updateStatus(s.id, 3)} variant="ghost" className="text-destructive hover:bg-destructive/10 h-8" size="sm">
-                                  Reject
-                                </Button>
-                                <Button variant="ghost" size="sm" onClick={() => remove(s.id)} className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </td>
+            <div className="space-y-4">
+              {/* Mobile Card View */}
+              <div className="grid grid-cols-1 gap-4 md:hidden">
+                {filteredSubs.length === 0 ? (
+                  <div className="py-20 text-center font-bold text-muted-foreground italic bg-card/40 rounded-3xl border-2 border-dashed border-border/30">
+                    {filterIdx === 0 ? "No submissions found." : `No ${filterStatuses[filterIdx]} submissions found.`}
+                  </div>
+                ) : (
+                  filteredSubs.map((s) => (
+                    <Card key={s.id} className="rounded-3xl border-border/40 overflow-hidden bg-card/60 backdrop-blur-sm shadow-md active:scale-[0.98] transition-all">
+                      <CardContent className="p-5">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black text-base">
+                              {s.name.charAt(0)}
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="font-black text-foreground uppercase tracking-tight truncate max-w-[150px]">{s.name}</h3>
+                              <p className="text-[9px] font-bold text-muted-foreground truncate">{s.email}</p>
+                            </div>
+                          </div>
+                          <Badge className={`capitalize font-bold text-[9px] px-2 py-0.5 ${s.status === 'approved' ? 'bg-green-500/10 text-green-500' : s.status === 'rejected' ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-500'}`}>
+                            {s.status || 'pending'}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 mb-4">
+                          <div className="bg-muted/30 p-2 rounded-xl">
+                            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Submitted</p>
+                            <p className="text-[10px] font-bold text-foreground truncate">{new Date(s.created_at).toLocaleDateString()}</p>
+                          </div>
+                          <div className="bg-muted/30 p-2 rounded-xl">
+                            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Category</p>
+                            <p className="text-[10px] font-bold text-foreground truncate">{s.category || 'Volunteer'}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 h-9 rounded-xl font-bold text-[10px] uppercase tracking-widest border-2"
+                            onClick={() => { setDetailItem(s); setDetailOpen(true); }}
+                          >
+                            Details
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="flex-1 h-9 rounded-xl font-bold text-[10px] uppercase tracking-widest bg-green-500 hover:bg-green-600 shadow-lg shadow-green-500/20"
+                            onClick={() => updateStatus(s.id, 2)}
+                          >
+                            Approve
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="h-9 w-9 rounded-xl"
+                            onClick={() => updateStatus(s.id, 3)}
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+
+              {/* Desktop View */}
+              <Card className="hidden md:block bg-card/50 backdrop-blur-sm overflow-hidden border-border/50 rounded-3xl">
+                <ScrollArea className="w-full">
+                  <div className="min-w-[1000px]">
+                    {filteredSubs.length === 0 ? (
+                      <div className="py-20 text-center">
+                        <p className="text-muted-foreground">
+                          {filterIdx === 0 ? "No submissions found." : `No ${filterStatuses[filterIdx]} submissions found.`}
+                        </p>
+                      </div>
+                    ) : (
+                      <table className="w-full">
+                        <thead>
+                          <tr className="text-left border-b border-border/50 bg-muted/30">
+                            <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Applicant</th>
+                            <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Department & Year</th>
+                            <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Category</th>
+                            <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Submitted</th>
+                            <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground text-center">Status</th>
+                            <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground text-right">Actions</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              </ScrollArea>
-            </Card>
+                        </thead>
+                        <tbody className="divide-y divide-border/50">
+                          {filteredSubs.map((s) => (
+                            <tr key={s.id} className="hover:bg-muted/20 transition-colors group">
+                              <td className="px-6 py-4">
+                                <div className="font-black text-foreground uppercase tracking-tight">{s.name}</div>
+                                <div className="text-[10px] font-medium text-muted-foreground">{s.email}</div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="text-sm font-bold">{s.department}</div>
+                                <div className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{s.year} Year</div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <Badge className="bg-primary/5 text-primary border-none font-bold text-[10px] uppercase tracking-widest">{s.category || 'Volunteer'}</Badge>
+                              </td>
+                              <td className="px-6 py-4 text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+                                {new Date(s.created_at).toLocaleDateString()}
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                <Badge
+                                  className={`capitalize font-bold text-[9px] border-none px-2 py-0.5 ${s.status === 'approved' ? 'bg-green-500/10 text-green-500' :
+                                    s.status === 'rejected' ? 'bg-red-500/10 text-red-500' :
+                                      'bg-blue-500/10 text-blue-500'
+                                    }`}
+                                >
+                                  {s.status || 'pending'}
+                                </Badge>
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setDetailItem(s);
+                                      setDetailOpen(true);
+                                    }}
+                                    className="h-8 text-primary hover:text-primary hover:bg-primary/10 font-bold text-[10px] uppercase tracking-widest rounded-lg"
+                                  >
+                                    Details
+                                  </Button>
+                                  <Button onClick={() => updateStatus(s.id, 2)} className="bg-green-500 hover:bg-green-600 text-white h-8 text-[9px] font-bold uppercase tracking-widest px-3 rounded-lg" size="sm">
+                                    Approve
+                                  </Button>
+                                  <Button onClick={() => updateStatus(s.id, 3)} variant="ghost" className="text-destructive hover:bg-destructive/10 h-8 font-bold text-[9px] uppercase tracking-widest rounded-lg" size="sm">
+                                    Reject
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )
+                    }
+                  </div>
+                </ScrollArea>
+              </Card>
+            </div>
           )}
 
           {/* Details dialog redesigned as "Undertaking Form Summary" */}

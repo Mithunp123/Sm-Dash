@@ -280,17 +280,8 @@ router.get('/:id/members', authenticateToken, requirePermission('can_manage_even
        JOIN users u ON em.user_id = u.id
        LEFT JOIN profiles p ON u.id = p.user_id
        WHERE em.event_id = ?
-       
-       UNION
-       
-       SELECT er.user_id, u.name as user_name, u.email as user_email, p.dept as department, p.year, p.photo_url, er.registered_at as joined_at, 'registered' as source
-       FROM event_registrations er
-       JOIN users u ON er.user_id = u.id
-       LEFT JOIN profiles p ON u.id = p.user_id
-       WHERE er.event_id = ?
-       
        ORDER BY user_name`,
-      [id, id],
+      [id],
       (err, rows) => {
         if (err) return res.status(500).json({ success: false, message: 'Database error', error: err.message });
         res.json({ success: true, members: rows });
@@ -524,6 +515,8 @@ router.get('/active', authenticateToken, requireRole('student'), async (req, res
       db.all(
         `SELECT 
           e.*,
+          (SELECT COUNT(*) FROM event_volunteers WHERE event_id = e.id) +
+          (SELECT COUNT(*) FROM event_registrations WHERE event_id = e.id) as current_volunteers,
           er.id as registration_id,
           er.registration_type,
           er.status as registration_status,
@@ -872,9 +865,9 @@ router.get('/:id/volunteers', authenticateToken, requireRole('admin', 'office_be
     // Get all volunteers for this event (both external and internal)
     const volunteers = await new Promise((resolve, reject) => {
       db.all(
-        `SELECT id, name, department, year, phone, created_at, 'external' as source, NULL as photo_url FROM event_volunteers WHERE event_id = ?
+        `SELECT id, name, department, year, phone, created_at, 'external' as source, NULL as photo_url, NULL as notes FROM event_volunteers WHERE event_id = ?
          UNION
-         SELECT er.id, u.name, p.dept as department, p.year, p.phone, er.registered_at as created_at, 'internal' as source, p.photo_url
+         SELECT er.id, u.name, p.dept as department, p.year, p.phone, er.registered_at as created_at, 'internal' as source, p.photo_url, er.notes
          FROM event_registrations er
          JOIN users u ON er.user_id = u.id
          LEFT JOIN profiles p ON u.id = p.user_id
@@ -883,7 +876,29 @@ router.get('/:id/volunteers', authenticateToken, requireRole('admin', 'office_be
         [id, id],
         (err, rows) => {
           if (err) reject(err);
-          else resolve(rows || []);
+          else {
+            // Post-process internal volunteers to use notes data if profile data is missing
+            const processedRows = (rows || []).map(row => {
+              if (row.source === 'internal' && row.notes) {
+                try {
+                  const notesData = JSON.parse(row.notes);
+                  // Use values from notes if profile fields are empty/null
+                  return {
+                    ...row,
+                    name: row.name || notesData.name,
+                    department: row.department || notesData.department || notesData.dept,
+                    year: row.year || notesData.year,
+                    phone: row.phone || notesData.phone,
+                    regNo: notesData.regNo // Additional info from notes
+                  };
+                } catch (e) {
+                  return row;
+                }
+              }
+              return row;
+            });
+            resolve(processedRows);
+          }
         }
       );
     });
@@ -1015,7 +1030,7 @@ router.post('/:id/register', authenticateToken, requireRole('student', 'office_b
 
     // Validate event exists and is active
     const event = await new Promise((resolve, reject) => {
-      db.get('SELECT id, title, date FROM events WHERE id = ?', [id], (err, row) => {
+      db.get('SELECT id, title, date, max_volunteers, volunteer_registration_deadline FROM events WHERE id = ?', [id], (err, row) => {
         if (err) reject(err);
         else resolve(row);
       });
@@ -1023,6 +1038,44 @@ router.post('/:id/register', authenticateToken, requireRole('student', 'office_b
 
     if (!event) {
       return res.status(404).json({ success: false, message: 'Event not found' });
+    }
+
+    // Check if registration deadline has passed
+    if (event.volunteer_registration_deadline) {
+      const deadline = new Date(event.volunteer_registration_deadline);
+      const now = new Date();
+      if (now > deadline) {
+        return res.status(400).json({
+          success: false,
+          message: 'Volunteer registration deadline has passed. Registration is closed.',
+          deadlinePassed: true
+        });
+      }
+    }
+
+    // Check if volunteer count limit reached
+    if (event.max_volunteers) {
+      const currentCount = await new Promise((resolve, reject) => {
+        // Count both external volunteers and internal registrations
+        db.get(`
+          SELECT 
+            (SELECT COUNT(*) FROM event_volunteers WHERE event_id = ?) +
+            (SELECT COUNT(*) FROM event_registrations WHERE event_id = ?) as count
+        `, [id, id], (err, row) => {
+          if (err) reject(err);
+          else resolve(row?.count || 0);
+        });
+      });
+
+      if (currentCount >= event.max_volunteers) {
+        return res.status(400).json({
+          success: false,
+          message: `Registration is full. Maximum ${event.max_volunteers} volunteers allowed.`,
+          limitReached: true,
+          currentCount,
+          maxVolunteers: event.max_volunteers
+        });
+      }
     }
 
     // Check if already registered

@@ -385,69 +385,65 @@ const LandingPage = () => {
       </AnimatePresence>
 
       {/* Hero Section - Reference Site Style with Background Image */}
-      <section className="relative w-full min-h-[600px] md:min-h-[700px] overflow-hidden z-10 flex items-center justify-center">
+      <section className="relative w-full min-h-[500px] md:min-h-[700px] overflow-hidden z-10 flex items-center justify-center pt-24 pb-12">
         {/* Background Image with Overlay */}
         <div className="absolute inset-0 z-0">
-          {/* Fallback gradient if image doesn't load */}
           <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900"></div>
-
           <div
-            className="absolute inset-0 bg-cover bg-[center_35%] bg-no-repeat transition-opacity duration-1000"
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000 md:bg-[center_35%]"
             style={{
               backgroundImage: 'url("/images/Home.jpg")',
-              filter: 'brightness(1)',
+              filter: 'brightness(1.1)', // Slightly brighter for better contrast on mobile
             }}
           />
-          {/* Very light overlay for text contrast - Maximum transparency */}
-          <div className="absolute inset-0 bg-black/10"></div>
+          <div className="absolute inset-0 bg-black/20 md:bg-black/10"></div>
         </div>
 
         {/* Content */}
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-20 md:py-32 text-center text-white">
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-6 py-12 text-center text-white">
           <motion.div
             variants={staggerContainer}
             initial="initial"
             whileInView="animate"
             viewport={{ once: true }}
-            className="max-w-4xl mx-auto space-y-8"
+            className="space-y-6 md:space-y-8"
           >
-            <br></br> <br></br>
             <motion.h1
               variants={fadeInUp}
-              className="text-3xl sm:text-5xl md:text-6xl font-black drop-shadow-2xl tracking-tighter px-4"
+              className="text-4xl sm:text-5xl md:text-7xl font-black drop-shadow-2xl tracking-tighter leading-tight"
             >
-              <br></br>
-              <span className="text-[#1a237e] dark:text-[#3f51b5]"> <br></br><br></br>SM</span>{" "}
+              <span className="text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">SM</span>{" "}
+              <br className="sm:hidden" />
               <span className="bg-gradient-to-r from-[#ff6d00] to-[#ffab40] bg-clip-text text-transparent">
                 VOLUNTEERS
               </span>
             </motion.h1>
+
             <motion.div
               variants={fadeInUp}
-              className="relative px-6 py-4"
+              className="relative px-2 md:px-6"
             >
-              <span className="block text-xl md:text-3xl font-black italic tracking-[0.1em] bg-gradient-to-r from-white via-blue-200 to-white bg-clip-text text-transparent drop-shadow-2xl uppercase leading-tight">
-                To build the ministry of <br /> socially responsible volunteers
+              <span className="block text-xl md:text-3xl font-black italic tracking-wide md:tracking-[0.1em] bg-gradient-to-r from-white via-blue-200 to-white bg-clip-text text-transparent drop-shadow-2xl uppercase leading-tight">
+                To build the ministry of <br className="hidden sm:block" /> socially responsible volunteers
               </span>
-              <span className="block text-lg md:text-xl text-orange-400 font-black mt-3 drop-shadow-[0_2px_10px_rgba(251,146,60,0.5)] tracking-widest uppercase">
+              <span className="block text-base md:text-xl text-orange-400 font-black mt-3 drop-shadow-[0_2px_10px_rgba(251,146,60,0.5)] tracking-widest uppercase">
                 who can serve society with a passion
               </span>
               <motion.div
                 initial={{ width: 0, opacity: 0 }}
-                animate={{ width: "80%", opacity: 1 }}
+                animate={{ width: "60%", opacity: 1 }}
                 transition={{ duration: 1.5, delay: 0.8 }}
                 className="h-1 bg-gradient-to-r from-transparent via-orange-500 to-transparent mx-auto mt-6 rounded-full"
               />
             </motion.div>
 
-            {/* CTA Buttons - Removed for cleaner look matching image */}
             <motion.div
               variants={fadeInUp}
-              className="flex flex-wrap gap-5 pt-12 justify-center"
+              className="flex flex-wrap gap-4 pt-6 md:pt-12 justify-center"
             >
               <Button
                 size="lg"
-                className="bg-white text-blue-900 hover:bg-blue-50 shadow-2xl hover:shadow-blue-500/50 transform hover:scale-105 transition-all duration-300 px-10 py-7 text-lg font-bold rounded-2xl"
+                className="bg-white text-blue-900 hover:bg-blue-50 shadow-2xl hover:shadow-blue-500/50 transform hover:scale-105 transition-all duration-300 px-8 md:px-10 py-6 md:py-7 text-base md:text-lg font-bold rounded-2xl w-full sm:w-auto"
                 onClick={() =>
                   isAuthenticated ? navigate(getDashboardPath()) : window.location.href = "/login"
                 }
@@ -488,32 +484,26 @@ const LandingPage = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
-            className="mt-20 mb-20"
+            className="mt-12 md:mt-20 mb-20"
           >
-            <div className="grid lg:grid-cols-12 gap-12 items-center">
+            <div className="grid lg:grid-cols-12 gap-8 md:gap-12 items-center">
               <motion.div
                 initial={{ opacity: 0, x: -50 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.8, delay: 0.2 }}
-                className="lg:col-span-7 bg-white dark:bg-slate-900 text-slate-900 dark:text-white p-6 sm:p-10 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 relative h-full flex flex-col justify-center order-2 lg:order-1"
+                className="lg:col-span-7 bg-white dark:bg-slate-900 text-slate-900 dark:text-white p-6 md:p-10 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 relative h-full flex flex-col justify-center order-2 lg:order-1"
               >
-                <h3 className="text-xl sm:text-2xl font-bold mb-6 text-blue-600 flex items-center gap-2">
+                <h3 className="text-xl md:text-2xl font-bold mb-6 text-blue-600 flex items-center gap-2">
                   <span className="w-8 h-1 bg-blue-600 rounded-full"></span>
                   Service Motto Volunteers
                 </h3>
                 <div className="space-y-4">
-                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-base sm:text-lg text-justify font-medium">
+                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-sm md:text-lg text-justify font-medium">
                     Service Motto volunteers (SM Volunteers) started their journey on <strong className="text-blue-600">October 5, 2021</strong>. What began as a small group of passionate students has grown into a powerful movement within the KSRCT campus. Our primary objective is to bridge the gap between students and social service, fostering a sense of responsibility and compassion.
                   </p>
-                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-base sm:text-lg text-justify font-medium">
+                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-sm md:text-lg text-justify font-medium">
                     Through strategic collaborations with NGOs like <strong className="text-blue-600">Bhumi</strong>, we engage in diverse activities including education support, women empowerment, environmental protection, and community health. We don't just volunteer; we build leadership, empathy, and lifelong skills.
-                  </p>
-                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-base sm:text-lg text-justify font-medium">
-                    Volunteering is a service which is done to fix the dents of society. SM volunteers main motto is to foster a society.
-                  </p>
-                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-base sm:text-lg text-justify font-medium">
-                    We have received honourable awards like Leelavati under women and adolescent health for the year 2021 and the Bhumi award for Best Volunteering Engagement for the year 2022.
                   </p>
                 </div>
               </motion.div>
@@ -526,25 +516,16 @@ const LandingPage = () => {
                 className="lg:col-span-5 relative group order-1 lg:order-2 flex justify-center items-center"
               >
                 <div className="absolute -inset-4 bg-blue-600/10 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div
-                  className="relative z-10 cursor-default"
-                >
+                <div className="relative z-10">
                   <motion.img
                     initial={{ opacity: 0, scale: 0.8 }}
                     whileInView={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 1, ease: "easeOut" }}
                     src="/Images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
                     alt="SM Volunteers Logo"
-                    className="h-64 sm:h-80 w-auto object-contain drop-shadow-[0_0_30px_rgba(37,99,235,0.2)] transition-all duration-500"
-                    onError={(e) => {
-                      const fallback = '/Images/Brand_logo.png';
-                      if (!e.currentTarget.src.includes(fallback)) {
-                        e.currentTarget.src = fallback;
-                      }
-                    }}
+                    className="h-48 sm:h-64 md:h-80 w-auto object-contain drop-shadow-[0_0_30px_rgba(37,99,235,0.2)]"
                   />
                 </div>
-                <div className="absolute inset-0 rounded-full border-2 border-primary/5 z-0"></div>
               </motion.div>
             </div>
           </motion.div>
@@ -601,7 +582,7 @@ const LandingPage = () => {
             </motion.div>
 
             {/* KSRCT Description & Image */}
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="grid lg:grid-cols-2 gap-8 md:gap-12 items-center">
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
@@ -613,9 +594,8 @@ const LandingPage = () => {
                 <img
                   src="/images/Home.jpg"
                   alt="KSRCT Main Building"
-                  className="rounded-3xl shadow-2xl relative z-10 w-full object-cover h-[450px]"
+                  className="rounded-3xl shadow-2xl relative z-10 w-full object-cover h-[300px] md:h-[450px]"
                 />
-                <div className="absolute inset-0 rounded-3xl border-2 border-primary/30 z-20 pointer-events-none"></div>
               </motion.div>
 
               <motion.div
@@ -623,18 +603,15 @@ const LandingPage = () => {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.8 }}
-                className="bg-slate-900 text-white p-8 md:p-10 rounded-3xl shadow-2xl border border-slate-800 relative h-full flex flex-col justify-center order-2"
+                className="bg-slate-900 text-white p-6 md:p-10 rounded-3xl shadow-2xl border border-slate-800 relative h-full flex flex-col justify-center order-2"
               >
-                <h3 className="text-2xl font-bold mb-6 text-primary flex items-center gap-2">
+                <h3 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-primary flex items-center gap-2">
                   <span className="w-8 h-1 bg-primary rounded-full"></span>
                   K.S.Rangasamy College of Technology
                 </h3>
-                <p className="text-slate-300 leading-relaxed text-lg text-justify font-medium">
-                  K.S.Rangasamy College of Technology (KSRCT) was started in 1994. Located near Tiruchengode, Tamil Nadu, it offers quality technical education with 14 U.G., 11 P.G. and 12 Ph.D. programs. Approved by AICTE and affiliated with Anna University, Chennai, KSRCT has Autonomous status from UGC. It ranked 99th in NIRF 2017 and 51-100 band in NIRF Innovation Ranking 2023 for Engineering. Accredited with NAAC A++ grade and NBA Tier 1 departments, it features modern infrastructure including AICTE-IDEA Lab, ATAL Community Innovation Centre, and MSME Incubation centre. With NTTM funding of 8.5 crore rupees, it fosters cutting-edge research and collaborates with DST, DBT, DAE, CSIR, DRDO, and ISRO.
+                <p className="text-slate-300 leading-relaxed text-sm md:text-lg text-justify font-medium">
+                  K.S.Rangasamy College of Technology (KSRCT) was started in 1994. Approved by AICTE and affiliated with Anna University, Chennai, KSRCT has Autonomous status from UGC. It ranked 99th in NIRF 2017 and 51-100 band in NIRF Innovation Ranking 2023 for Engineering. Accredited with NAAC A++ grade and NBA Tier 1 departments.
                 </p>
-                <div className="absolute top-4 right-4 text-slate-700 opacity-20">
-                  <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" /></svg>
-                </div>
               </motion.div>
             </div>
           </motion.div>
@@ -903,7 +880,7 @@ const LandingPage = () => {
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 max-w-7xl mx-auto px-2">
             {facultyCoordinators.map((coordinator, index) => (
               <motion.div
                 key={index}
@@ -911,14 +888,13 @@ const LandingPage = () => {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.2 }}
-                className="h-[400px] perspective-1000 group"
+                className="h-[350px] md:h-[400px] perspective-1000 group mx-auto w-full max-w-sm lg:max-w-none"
               >
-                <div className="relative w-full h-full transition-transform duration-700 preserve-3d group-hover:rotate-y-180 cursor-pointer">
+                <div className="relative w-full h-full transition-transform duration-700 preserve-3d group-hover:rotate-y-180 cursor-pointer active:rotate-y-180">
                   {/* Front Side */}
-                  <Card className="absolute inset-0 backface-hidden bg-card border-border/50 overflow-hidden shadow-xl flex flex-col items-center text-center rounded-2xl h-full">
-                    <div className="w-full bg-primary/5 flex items-center justify-center p-8 border-b border-border/50 relative overflow-hidden flex-shrink-0">
-                      <div className="absolute inset-0 dot-grid opacity-10"></div>
-                      <div className="w-40 h-40 rounded-full border-4 border-primary/20 overflow-hidden shadow-xl relative z-10 bg-background">
+                  <Card className="absolute inset-0 backface-hidden bg-card border-border/50 overflow-hidden shadow-xl flex flex-col items-center text-center rounded-[2rem] h-full">
+                    <div className="w-full bg-primary/5 flex items-center justify-center p-6 md:p-8 border-b border-border/50 relative overflow-hidden flex-shrink-0">
+                      <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-primary/20 overflow-hidden shadow-xl relative z-10 bg-background">
                         <img
                           src={coordinator.image}
                           alt={coordinator.name}
@@ -929,58 +905,57 @@ const LandingPage = () => {
                         />
                       </div>
                     </div>
-                    <div className="p-6 space-y-3 flex-grow flex flex-col justify-center">
+                    <div className="p-4 md:p-6 space-y-2 md:space-y-3 flex-grow flex flex-col justify-center">
                       <div>
-                        <h3 className="text-xl font-black text-foreground mb-1 leading-tight">{coordinator.name}</h3>
+                        <h3 className="text-lg md:text-xl font-black text-foreground mb-1 leading-tight">{coordinator.name}</h3>
                         <p className="text-primary font-bold uppercase tracking-wider text-[10px]">{coordinator.role}</p>
                       </div>
-                      <p className="text-muted-foreground text-xs leading-relaxed font-medium line-clamp-3">
+                      <p className="text-muted-foreground text-[11px] md:text-xs leading-relaxed font-medium line-clamp-3 md:line-clamp-none">
                         {coordinator.description}
                       </p>
                       <div className="pt-2 mt-auto">
-                        <p className="text-[10px] text-primary font-black uppercase tracking-widest animate-pulse">Click for contact</p>
+                        <p className="text-[9px] md:text-[10px] text-primary font-black uppercase tracking-widest animate-pulse">Click for contact</p>
                       </div>
                     </div>
                   </Card>
 
                   {/* Back Side */}
-                  <Card className="absolute inset-0 rotate-y-180 backface-hidden bg-slate-50 dark:bg-slate-900 border-primary/20 overflow-hidden shadow-2xl flex flex-col items-center justify-center text-center rounded-2xl p-6 h-full">
-                    <div className="w-full space-y-6">
-                      <div className="relative mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 shadow-lg">
-                        <Mail className="w-8 h-8 text-primary" />
+                  <Card className="absolute inset-0 rotate-y-180 backface-hidden bg-slate-50 dark:bg-slate-900 border-primary/20 overflow-hidden shadow-2xl flex flex-col items-center justify-center text-center rounded-[2rem] p-6 h-full">
+                    <div className="w-full space-y-4 md:space-y-6">
+                      <div className="relative mx-auto w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 shadow-lg">
+                        <Mail className="w-6 h-6 md:w-8 md:h-8 text-primary" />
                       </div>
                       <div className="space-y-1">
-                        <h3 className="text-xl font-black text-primary">{coordinator.name}</h3>
-                        <p className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">{coordinator.role}</p>
+                        <h3 className="text-lg md:text-xl font-black text-primary leading-tight">{coordinator.name}</h3>
+                        <p className="text-muted-foreground font-bold uppercase text-[9px] md:text-[10px] tracking-widest">{coordinator.role}</p>
                       </div>
-                      <div className="space-y-3">
+                      <div className="space-y-2 md:space-y-3">
                         <button
                           onClick={(e) => { e.stopPropagation(); openInGmail(coordinator.email); }}
-                          className="flex items-center gap-3 p-3 rounded-xl bg-background border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all w-full group/btn"
+                          className="flex items-center gap-3 p-2 md:p-3 rounded-xl bg-background border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all w-full group/btn"
                         >
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center group-hover/btn:bg-primary/20 transition-colors">
-                            <Mail className="w-5 h-5 text-primary" />
+                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary/10 flex items-center justify-center group-hover/btn:bg-primary/20">
+                            <Mail className="w-4 h-4 md:w-5 md:h-5 text-primary" />
                           </div>
                           <div className="text-left overflow-hidden">
-                            <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1">Email Address</p>
-                            <p className="text-xs font-bold text-foreground truncate">{coordinator.email}</p>
+                            <p className="text-[7px] md:text-[8px] font-black uppercase text-muted-foreground tracking-widest">Email Address</p>
+                            <p className="text-[10px] md:text-xs font-bold text-foreground truncate">{coordinator.email}</p>
                           </div>
                         </button>
 
                         <a
                           href={`tel:${coordinator.phone}`}
-                          className="flex items-center gap-3 p-3 rounded-xl bg-background border border-border/20 w-full hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all group/btn"
+                          className="flex items-center gap-3 p-2 md:p-3 rounded-xl bg-background border border-border/20 w-full hover:border-emerald-500/50 transition-all group/btn"
                         >
-                          <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center group-hover/btn:bg-emerald-500/20 transition-colors">
-                            <Phone className="w-5 h-5 text-emerald-500" />
+                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                            <Phone className="w-4 h-4 md:w-5 md:h-5 text-emerald-500" />
                           </div>
                           <div className="text-left">
-                            <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1">Mobile Contact</p>
-                            <p className="text-xs font-bold text-foreground">{coordinator.phone}</p>
+                            <p className="text-[7px] md:text-[8px] font-black uppercase text-muted-foreground tracking-widest">Mobile Contact</p>
+                            <p className="text-[10px] md:text-xs font-bold text-foreground">{coordinator.phone}</p>
                           </div>
                         </a>
                       </div>
-                      <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] pt-2">SM Volunteer Management</p>
                     </div>
                   </Card>
                 </div>
@@ -1010,7 +985,7 @@ const LandingPage = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 px-2">
             {officeBearers.map((ob, i) => (
               <motion.div
                 key={ob.id || i}
@@ -1018,90 +993,70 @@ const LandingPage = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="h-[400px] perspective-1000 group"
+                className="h-[350px] md:h-[400px] perspective-1000 group w-full"
               >
-                <div className="relative w-full h-full transition-transform duration-700 preserve-3d group-hover:rotate-y-180 cursor-pointer">
+                <div className="relative w-full h-full transition-transform duration-700 preserve-3d group-hover:rotate-y-180 cursor-pointer active:rotate-y-180">
                   {/* Front Side */}
-                  <div className="absolute inset-0 backface-hidden rounded-[2rem] overflow-hidden border border-slate-800 bg-slate-900 shadow-2xl transition-all duration-500 group-hover:border-primary/50 group-hover:shadow-primary/10 flex flex-col h-full">
+                  <div className="absolute inset-0 backface-hidden rounded-[2rem] overflow-hidden border border-slate-800 bg-slate-900 shadow-2xl flex flex-col h-full">
                     {/* Photo Section */}
                     <div className="h-[75%] relative overflow-hidden bg-slate-900">
                       {ob.photo_url ? (
                         <img
                           src={buildImageUrl(ob.photo_url) || '/Images/Brand_logo.png'}
                           alt={ob.name}
-                          className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
+                          className="w-full h-full object-cover object-top"
                           onError={(e) => {
                             (e.target as any).src = '/Images/Brand_logo.png';
                           }}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-slate-800">
-                          <Users className="w-20 h-20 text-slate-700" />
+                          <Users className="w-16 md:w-20 h-16 md:h-20 text-slate-700" />
                         </div>
                       )}
-                      {/* Premium Gradient Overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80"></div>
-                      <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 to-transparent"></div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-90"></div>
                     </div>
 
                     {/* Text Section relative to the bottom of the card */}
-                    <div className="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent pt-12">
+                    <div className="absolute bottom-0 inset-x-0 p-5 md:p-6 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent pt-8 md:pt-12">
                       <div className="flex items-end justify-between gap-3">
                         <div className="flex-1 space-y-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="w-8 h-0.5 bg-cyan-500 rounded-full"></div>
-                            <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">{ob.position}</p>
+                          <div className="flex items-center gap-2 mb-1 md:mb-2">
+                            <div className="w-6 md:w-8 h-0.5 bg-cyan-500 rounded-full"></div>
+                            <p className="text-[9px] md:text-[10px] font-black text-cyan-400 uppercase tracking-widest">{ob.position}</p>
                           </div>
-                          <h4 className="text-2xl font-black text-white leading-none tracking-tight">{ob.name}</h4>
+                          <h4 className="text-xl md:text-2xl font-black text-white leading-none tracking-tight">{ob.name}</h4>
                         </div>
-                        <div className="w-10 h-10 rounded-full bg-slate-800/80 backdrop-blur-sm border border-slate-700 flex items-center justify-center group-hover:bg-cyan-500 group-hover:border-cyan-500 transition-all duration-300 shadow-lg">
-                          <ArrowRight className="w-4 h-4 text-cyan-400 group-hover:text-white transition-colors" />
+                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-800/80 backdrop-blur-sm border border-slate-700 flex items-center justify-center group-hover:bg-cyan-500 transition-all shadow-lg">
+                          <ArrowRight className="w-3 md:w-4 h-3 md:h-4 text-cyan-400 group-hover:text-white" />
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Back Side */}
-                  <div className="absolute inset-0 rotate-y-180 backface-hidden rounded-[2rem] bg-slate-900 border border-primary/20 p-8 flex flex-col justify-center text-center shadow-2xl shadow-primary/10">
-                    <div className="space-y-6">
-                      <div className="relative mx-auto w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30 shadow-lg">
-                        <Users className="w-8 h-8 text-primary" />
-                      </div>
-
+                  <div className="absolute inset-0 rotate-y-180 backface-hidden rounded-[2rem] bg-slate-900 border border-primary/20 p-6 md:p-8 flex flex-col justify-center text-center shadow-2xl shadow-primary/10">
+                    <div className="space-y-4 md:space-y-6">
                       <div>
-                        <h4 className="text-2xl font-black text-white leading-tight mb-1">{ob.name}</h4>
-                        <p className="text-primary font-bold uppercase tracking-widest text-xs">{ob.position}</p>
+                        <h4 className="text-xl md:text-2xl font-black text-white leading-tight mb-1">{ob.name}</h4>
+                        <p className="text-primary font-bold uppercase tracking-widest text-[10px] md:text-xs">{ob.position}</p>
                       </div>
 
-                      <div className="space-y-3 pt-2">
+                      <div className="space-y-2 md:space-y-3">
                         {ob.email && (
                           <button
                             onClick={(e) => { e.stopPropagation(); openInGmail(ob.email); }}
-                            className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-primary/50 transition-all w-full group/btn"
+                            className="flex items-center gap-3 p-2 md:p-3 rounded-xl bg-white/5 border border-white/10 hover:border-primary/50 transition-all w-full"
                           >
-                            <Mail className="w-4 h-4 text-primary" />
+                            <Mail className="w-3 md:w-4 h-3 md:h-4 text-primary" />
                             <div className="text-left overflow-hidden">
-                              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Send Mail</p>
-                              <p className="text-xs font-bold text-slate-200 truncate">{ob.email}</p>
+                              <p className="text-[7px] md:text-[8px] font-black text-slate-500 uppercase tracking-widest">Send Mail</p>
+                              <p className="text-[10px] md:text-xs font-bold text-slate-200 truncate">{ob.email}</p>
                             </div>
                           </button>
                         )}
-
-                        {ob.contact && (
-                          <a
-                            href={`tel:${ob.contact}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-emerald-500/50 transition-all w-full group/btn"
-                          >
-                            <Phone className="w-4 h-4 text-emerald-500" />
-                            <div className="text-left">
-                              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Call Now</p>
-                              <p className="text-xs font-bold text-slate-200">{ob.contact}</p>
-                            </div>
-                          </a>
-                        )}
                       </div>
-                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">SM Volunteer Leadership</p>
+                      <p className="text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">SM Volunteer Leadership</p>
                     </div>
                   </div>
                 </div>
@@ -1209,16 +1164,16 @@ const LandingPage = () => {
           className="max-w-6xl mx-auto px-4 text-center space-y-12 relative z-10"
         >
           <div className="space-y-4">
-            <h2 className="text-5xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tight">Ready to Make a Difference?</h2>
-            <p className="text-xl text-slate-600 dark:text-slate-400 font-medium max-w-2xl mx-auto">
+            <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">Ready to Make a Difference?</h2>
+            <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 font-medium max-w-2xl mx-auto px-4">
               Join thousands of volunteers contributing to a better society through meaningful community service.
             </p>
           </div>
 
-          <div className="flex flex-col md:flex-row gap-6 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center px-6">
             <Button
               size="lg"
-              className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold shadow-xl transition-all transform hover:scale-105 px-10 py-7 rounded-xl text-lg"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold shadow-xl transition-all transform hover:scale-105 px-8 md:px-10 py-6 md:py-7 rounded-2xl text-base md:text-lg w-full sm:w-auto"
               onClick={() =>
                 isAuthenticated ? navigate(getDashboardPath()) : window.location.href = "/login"
               }
@@ -1228,7 +1183,7 @@ const LandingPage = () => {
             <Button
               size="lg"
               variant="outline"
-              className="bg-background/50 backdrop-blur-sm text-foreground hover:bg-muted border-2 border-primary/20 font-bold shadow-xl transition-all transform hover:scale-105 px-10 py-7 rounded-xl text-lg"
+              className="bg-background/50 backdrop-blur-sm text-foreground hover:bg-muted border-2 border-primary/20 font-bold shadow-xl transition-all transform hover:scale-105 px-8 md:px-10 py-6 md:py-7 rounded-2xl text-base md:text-lg w-full sm:w-auto"
               onClick={() => setContactOpen(true)}
             >
               <Mail className="mr-2 w-5 h-5" /> Contact Us

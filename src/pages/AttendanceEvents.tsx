@@ -103,44 +103,36 @@ const AttendanceEvents = () => {
         setItemStudents([]);
 
         try {
-            // Load event members
-            const membersRes = await api.getEventMembers(selectedEvent.id);
-            let students = [];
-            if (membersRes.success && membersRes.members && membersRes.members.length > 0) {
-                students = membersRes.members.map((m: any) => ({
-                    id: m.user_id,
-                    name: m.user_name,
-                    email: m.user_email,
-                }));
-            } else {
-                toast.error("No students assigned to this event. Please import students first.");
-            }
-            setItemStudents(students);
+            // Load event members and existing records
+            const [membersRes, odRes] = await Promise.all([
+                api.getEventMembers(selectedEvent.id),
+                fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/events/${selectedEvent.id}/od?date=${selectedDate}`, {
+                    headers: { 'Authorization': `Bearer ${auth.getToken()}` }
+                }).then(r => r.json())
+            ]);
 
-            // Load existing OD
-            const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-            const res = await fetch(
-                `${API_BASE}/events/${selectedEvent.id}/od?date=${selectedDate}`,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${auth.getToken()}`
-                    }
-                }
-            );
-            const data = await res.json();
-            const initialAttendance: Record<number, string> = {};
-            if (data.success && data.records) {
-                data.records.forEach((record: any) => {
+            if (membersRes.success && membersRes.members) {
+                // The members endpoint might return user_name, user_email etc.
+                // We want to ensure we have dept and year if possible.
+                // If membersRes.members doesn't have dept/year, we might need a separate call or handle it.
+                setItemStudents(membersRes.members);
+            } else {
+                toast.error("No students assigned to this event.");
+            }
+
+            if (odRes.success && odRes.records) {
+                const initialAttendance: Record<number, string> = {};
+                odRes.records.forEach((record: any) => {
                     initialAttendance[record.user_id] = record.status;
                 });
+                setAttendanceData(initialAttendance);
             }
-            setAttendanceData(initialAttendance);
 
             setShowDatePicker(false);
             setShowMarkDialog(true);
         } catch (error) {
             console.error(error);
-            toast.error("Failed to load event students/status");
+            toast.error("Failed to load event data");
         }
     };
 
@@ -200,228 +192,286 @@ const AttendanceEvents = () => {
     };
 
     return (
-        <div className="min-h-screen flex flex-col bg-background p-4">
+        <div className="min-h-screen flex flex-col">
             <DeveloperCredit />
-            <div className="w-full px-4 md:px-6 lg:px-8 space-y-6">
-                <div className="mb-4">
-                    <BackButton to="/admin/attendance" />
-                </div>
-
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h1 className="text-3xl font-bold flex items-center gap-3">
-                            <div className="bg-primary/10 rounded-lg p-2">
-                                <Users className="w-6 h-6 text-primary" />
-                            </div>
-                            Events Attendance
-                        </h1>
-                        <p className="text-muted-foreground">Track OD / permission status for events</p>
+            <main className="flex-1 w-full bg-background overflow-x-hidden">
+                <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 w-full space-y-6">
+                    <div className="mb-6">
+                        <BackButton to="/admin/attendance" />
                     </div>
-                </div>
 
-                <Card className="border-border/50 shadow-md bg-card">
-                    <CardContent className="pt-6">
-                        <div className="flex flex-col md:flex-row gap-4">
-                            <div className="flex-1 relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                                <Input
-                                    placeholder="Search events..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="pl-10"
-                                />
-                            </div>
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                        <div className="space-y-1">
+                            <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter flex items-center gap-3">
+                                <div className="bg-primary/10 rounded-2xl p-2 md:p-2.5 shadow-inner shrink-0">
+                                    <Users className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-primary" />
+                                </div>
+                                <div className="flex flex-wrap items-center gap-x-2">
+                                    Events <span className="text-primary italic">Attendance</span>
+                                </div>
+                            </h1>
+                            <p className="text-muted-foreground font-medium text-xs md:text-base border-l-4 border-primary/30 pl-3">
+                                Track volunteer OD and permission status for events
+                            </p>
                         </div>
-                    </CardContent>
-                </Card>
-
-                {loading ? (
-                    <div className="text-center py-12">Loading events...</div>
-                ) : filteredEvents.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground">No events found</div>
-                ) : (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredEvents.map((event) => {
-                            return (
-                                <Card key={event.id} className="border-l-4 border-l-primary hover:shadow-lg transition-all">
-                                    <CardHeader className="pb-2">
-                                        <div className="flex justify-between items-start">
-                                            <Badge variant="outline" className="mb-2">
-                                                Year: {event.year}
-                                            </Badge>
-                                            {event.is_special_day ? (
-                                                <Badge className="bg-amber-500">Special Day</Badge>
-                                            ) : (
-                                                <Badge variant="outline">Regular</Badge>
-                                            )}
-                                        </div>
-                                        <CardTitle className="text-xl truncate" title={event.title}>{event.title}</CardTitle>
-                                        <CardDescription>
-                                            {event.date ? new Date(event.date).toLocaleDateString() : 'No Date'}
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="grid grid-cols-3 gap-2 mb-4 mt-2">
-                                            <div className="bg-green-50 dark:bg-green-900/10 p-2 rounded text-center">
-                                                <div className="text-xl font-bold text-green-600">{event.od_count || 0}</div>
-                                                <div className="text-xs text-muted-foreground">OD</div>
-                                            </div>
-                                            <div className="bg-red-50 dark:bg-red-900/10 p-2 rounded text-center">
-                                                <div className="text-xl font-bold text-red-600">{event.absent_count || 0}</div>
-                                                <div className="text-xs text-muted-foreground">Absent</div>
-                                            </div>
-                                            <div className="bg-blue-50 dark:bg-blue-900/10 p-2 rounded text-center">
-                                                <div className="text-xl font-bold text-blue-600">{event.permission_count || 0}</div>
-                                                <div className="text-xs text-muted-foreground">Perm</div>
-                                            </div>
-                                        </div>
-                                        <div className="flex gap-2 mt-4">
-                                            <Button className="flex-1" variant="outline" onClick={() => openDateViewer(event.id)}>
-                                                <Eye className="w-4 h-4 mr-2" /> View
-                                            </Button>
-                                            <Button className="flex-1" onClick={() => handleOpenMarkDialog(event)}>
-                                                <CheckCircle2 className="w-4 h-4 mr-2" /> Mark
-                                            </Button>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            );
-                        })}
                     </div>
-                )}
 
-                {/* Date Selection Dialog */}
-                <Dialog open={showDatePicker} onOpenChange={setShowDatePicker}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Select Date</DialogTitle>
-                            <DialogDescription>
-                                Choose date to mark attendance for {selectedEvent?.title}
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4 py-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="attendance-date">Date</Label>
-                                <Input
-                                    id="attendance-date"
-                                    type="date"
-                                    value={selectedDate}
-                                    onChange={(e) => setSelectedDate(e.target.value)}
-                                />
-                            </div>
-                            <div className="flex justify-end gap-2">
-                                <Button variant="outline" onClick={() => setShowDatePicker(false)}>Cancel</Button>
-                                <Button onClick={handleLoadAttendance}>Load Attendance</Button>
-                            </div>
-                        </div>
-                    </DialogContent>
-                </Dialog>
-
-                {/* Mark Dialog */}
-                <Dialog open={showMarkDialog} onOpenChange={setShowMarkDialog}>
-                    <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle>Mark OD/Status: {selectedEvent?.title}</DialogTitle>
-                            <DialogDescription>
-                                Date: {new Date(selectedDate).toLocaleDateString()}
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4 py-4">
-                            <div className="flex justify-between items-center">
-                                <div className="relative w-full md:w-64">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                    <Card className="border-border/40 shadow-xl bg-card/60 backdrop-blur-sm rounded-3xl overflow-hidden">
+                        <CardContent className="p-4 md:p-6">
+                            <div className="flex flex-col md:flex-row gap-4">
+                                <div className="flex-1 relative">
+                                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
                                     <Input
-                                        placeholder="Search student..."
-                                        value={dialogSearchQuery}
-                                        onChange={(e) => setDialogSearchQuery(e.target.value)}
-                                        className="pl-10"
+                                        placeholder="Search by event title..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="pl-12 h-12 bg-background/50 border-border/50 focus:ring-primary/20 transition-all rounded-2xl shadow-sm md:text-lg"
                                     />
                                 </div>
                             </div>
-                            <div className="flex justify-between items-center bg-muted p-2 rounded">
-                                <span>Marking for {itemStudents.length} students</span>
-                                <Button size="sm" onClick={handleMarkAllOD} className="gap-2">
-                                    <CheckCircle2 className="w-4 h-4" /> Mark All OD
-                                </Button>
+                        </CardContent>
+                    </Card>
+
+                    {loading ? (
+                        <div className="text-center py-12">Loading events...</div>
+                    ) : filteredEvents.length === 0 ? (
+                        <div className="text-center py-12 text-muted-foreground">No events found</div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredEvents.map((event) => {
+                                return (
+                                    <Card key={event.id} className="relative overflow-hidden group border-2 border-border/40 hover:border-primary/40 rounded-3xl shadow-xl transition-all duration-300 active:scale-[0.98]">
+                                        <div className="absolute top-0 left-0 w-2 h-full bg-primary" />
+                                        <CardHeader className="pb-4 px-6 pt-6">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <Badge variant="outline" className="px-2 py-0.5 rounded-lg border-primary/20 bg-primary/5 text-[10px] font-black uppercase tracking-widest">
+                                                    Year: {event.year}
+                                                </Badge>
+                                                {event.is_special_day ? (
+                                                    <Badge className="bg-amber-100 text-amber-900 border-amber-200 font-bold px-3 py-1 rounded-full uppercase text-[10px] tracking-widest flex items-center gap-1.5">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse"></div>
+                                                        Special Day
+                                                    </Badge>
+                                                ) : (
+                                                    <Badge variant="outline" className="px-2 py-0.5 rounded-lg border-border/50 text-[10px] font-black uppercase tracking-widest">Regular</Badge>
+                                                )}
+                                            </div>
+                                            <CardTitle className="text-2xl font-black uppercase tracking-tight line-clamp-1" title={event.title}>{event.title}</CardTitle>
+                                            <CardDescription className="flex items-center gap-2 font-bold text-xs mt-1">
+                                                <Calendar className="w-3.5 h-3.5" />
+                                                {event.date ? new Date(event.date).toLocaleDateString() : 'No Date'}
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="px-6 pb-6">
+                                            <div className="grid grid-cols-3 gap-3 mb-6 bg-muted/30 p-4 rounded-2xl border border-border/50">
+                                                <div className="flex flex-col items-center">
+                                                    <div className="text-2xl font-black text-green-500">{event.od_count || 0}</div>
+                                                    <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">OD</div>
+                                                </div>
+                                                <div className="flex flex-col items-center border-x border-border/50 px-2">
+                                                    <div className="text-2xl font-black text-red-500">{event.absent_count || 0}</div>
+                                                    <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Absent</div>
+                                                </div>
+                                                <div className="flex flex-col items-center">
+                                                    <div className="text-2xl font-black text-blue-500">{event.permission_count || 0}</div>
+                                                    <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Perm</div>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <Button className="flex-1 h-11 rounded-xl bg-background border-2 border-border/50 hover:bg-muted font-bold transition-all gap-2" variant="outline" onClick={() => openDateViewer(event.id)}>
+                                                    <Eye className="w-4 h-4" /> View
+                                                </Button>
+                                                <Button className="flex-1 h-11 rounded-xl bg-primary hover:bg-primary/90 font-bold shadow-lg shadow-primary/20 transition-all gap-2" onClick={() => handleOpenMarkDialog(event)}>
+                                                    <CheckCircle2 className="w-4 h-4" /> Mark
+                                                </Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {/* Date Selection Dialog */}
+                    <Dialog open={showDatePicker} onOpenChange={setShowDatePicker}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Select Date</DialogTitle>
+                                <DialogDescription>
+                                    Choose date to mark attendance for {selectedEvent?.title}
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="attendance-date">Date</Label>
+                                    <Input
+                                        id="attendance-date"
+                                        type="date"
+                                        value={selectedDate}
+                                        onChange={(e) => setSelectedDate(e.target.value)}
+                                    />
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                    <Button variant="outline" onClick={() => setShowDatePicker(false)}>Cancel</Button>
+                                    <Button onClick={handleLoadAttendance}>Load Attendance</Button>
+                                </div>
                             </div>
+                        </DialogContent>
+                    </Dialog>
 
-                            <div className="border rounded-md overflow-hidden">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Student</TableHead>
-                                            <TableHead>Status</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {itemStudents.filter(s => s.name.toLowerCase().includes(dialogSearchQuery.toLowerCase())).map(student => {
+                    {/* Mark Dialog */}
+                    <Dialog open={showMarkDialog} onOpenChange={setShowMarkDialog}>
+                        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+                            <DialogHeader>
+                                <DialogTitle>Mark OD/Status: {selectedEvent?.title}</DialogTitle>
+                                <DialogDescription>
+                                    Date: {new Date(selectedDate).toLocaleDateString()}
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <div className="p-4 border-b bg-primary/5 flex flex-wrap items-center justify-between gap-3">
+                                    <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
+                                        {itemStudents.filter(s => (s.name || s.user_name).toLowerCase().includes(dialogSearchQuery.toLowerCase())).length} Students Loaded
+                                    </span>
+                                    <Button size="sm" onClick={handleMarkAllOD} className="gap-2 rounded-xl font-bold bg-green-600 hover:bg-green-700 shadow-md">
+                                        <CheckCircle2 className="w-4 h-4" /> Mark All OD
+                                    </Button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                                    {/* Info Indicator */}
+                                    <div className="hidden md:flex items-center justify-between gap-3 mb-8">
+                                        <div className="flex items-center gap-3 bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl flex-1">
+                                            <div className="bg-blue-500/10 p-1.5 rounded-lg">
+                                                <Users className="w-5 h-5 text-blue-500" />
+                                            </div>
+                                            <span className="text-sm font-semibold text-blue-600 dark:text-blue-300">
+                                                Track OD status for {itemStudents.length} student(s) in this event.
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Desktop View: Table Layout */}
+                                    <div className="hidden md:block overflow-x-auto">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr className="text-[11px] font-bold text-slate-400/80 uppercase tracking-tight-[0.2em] border-b border-white/5">
+                                                    <th className="pb-5 px-2">S.No</th>
+                                                    <th className="pb-5 px-2">Name</th>
+                                                    <th className="pb-5 px-2">Department</th>
+                                                    <th className="pb-5 px-2">Year</th>
+                                                    <th className="pb-5 px-2 text-center w-[320px]">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/5">
+                                                {itemStudents.filter(s => (s.name || s.user_name).toLowerCase().includes(dialogSearchQuery.toLowerCase())).map((student, index) => {
+                                                    const id = student.user_id || student.id;
+                                                    const status = attendanceData[id] || '';
+                                                    return (
+                                                        <tr key={id} className="group hover:bg-white/[0.02] transition-colors">
+                                                            <td className="py-6 px-2 text-sm font-medium text-slate-500">{index + 1}</td>
+                                                            <td className="py-6 px-2">
+                                                                <h4 className="font-bold text-foreground uppercase tracking-tight text-sm">{student.name || student.user_name}</h4>
+                                                            </td>
+                                                            <td className="py-6 px-2 text-xs font-semibold text-slate-500 uppercase">{student.dept || student.department || student.user_dept || 'N/A'}</td>
+                                                            <td className="py-6 px-2 text-xs font-semibold text-slate-500 uppercase">{student.year || student.user_year || 'N/A'}</td>
+                                                            <td className="py-6 px-2">
+                                                                <div className="flex justify-center items-center gap-6">
+                                                                    {[
+                                                                        { id: 'od', label: 'Present', color: 'green', icon: CheckCircle2 },
+                                                                        { id: 'absent', label: 'Absent', color: 'red', icon: XCircle },
+                                                                        { id: 'permission', label: 'Permission', color: 'blue', icon: Clock }
+                                                                    ].map(btn => (
+                                                                        <div key={btn.id} className="flex flex-col items-center gap-1.5 min-w-[60px]">
+                                                                            <button
+                                                                                onClick={() => handleMarkAttendanceClick(id, btn.id)}
+                                                                                className={`h-11 w-11 rounded-full border-[2.5px] transition-all duration-300 flex items-center justify-center ${status === btn.id
+                                                                                    ? `bg-${btn.color}-500 border-${btn.color}-600 shadow-lg shadow-${btn.color}-500/40 scale-110 text-white`
+                                                                                    : 'border-slate-700/60 hover:border-slate-500 bg-transparent text-slate-600'
+                                                                                    }`}
+                                                                            >
+                                                                                <btn.icon className={`w-6 h-6 transition-all ${status === btn.id ? 'scale-110 opacity-100' : 'scale-90 opacity-40'}`} />
+                                                                            </button>
+                                                                            <span className={`text-[9px] font-bold uppercase tracking-tight transition-colors ${status === btn.id ? `text-${btn.color}-400` : 'text-slate-500'}`}>
+                                                                                {btn.label}
+                                                                            </span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {/* Mobile Cards View */}
+                                    <div className="grid grid-cols-1 md:hidden gap-3 px-1">
+                                        {itemStudents.filter(s => (s.name || s.user_name).toLowerCase().includes(dialogSearchQuery.toLowerCase())).map(student => {
                                             const id = student.user_id || student.id;
-                                            const currentStatus = attendanceData[id] || '';
+                                            const status = attendanceData[id] || '';
                                             return (
-                                                <TableRow key={id}>
-                                                    <TableCell className="font-medium">
-                                                        <div>{student.name}</div>
-                                                        <div className="text-xs text-muted-foreground">{student.email}</div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="flex gap-4 items-center">
-                                                            {/* OD Button */}
-                                                            <div className="flex flex-col items-center gap-1 cursor-pointer" onClick={() => handleMarkAttendanceClick(id, 'od')}>
-                                                                <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all hover:scale-110 ${currentStatus === 'od'
-                                                                    ? 'bg-green-500 border-green-600 shadow-lg shadow-green-500/50'
-                                                                    : 'bg-transparent border-slate-200 hover:border-green-400'
-                                                                    }`}>
-                                                                    {currentStatus === 'od' && (
-                                                                        <CheckCircle2 className="w-6 h-6 text-white" />
-                                                                    )}
-                                                                </div>
-                                                                <span className="text-[10px] uppercase font-bold text-muted-foreground">OD</span>
-                                                            </div>
-
-                                                            {/* Absent Button */}
-                                                            <div className="flex flex-col items-center gap-1 cursor-pointer" onClick={() => handleMarkAttendanceClick(id, 'absent')}>
-                                                                <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all hover:scale-110 ${currentStatus === 'absent'
-                                                                    ? 'bg-red-500 border-red-600 shadow-lg shadow-red-500/50'
-                                                                    : 'bg-transparent border-slate-200 hover:border-red-400'
-                                                                    }`}>
-                                                                    {currentStatus === 'absent' && (
-                                                                        <XCircle className="w-6 h-6 text-white" />
-                                                                    )}
-                                                                </div>
-                                                                <span className="text-[10px] uppercase font-bold text-muted-foreground">Absent</span>
-                                                            </div>
-
-                                                            {/* Permission Button */}
-                                                            <div className="flex flex-col items-center gap-1 cursor-pointer" onClick={() => handleMarkAttendanceClick(id, 'permission')}>
-                                                                <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all hover:scale-110 ${currentStatus === 'permission'
-                                                                    ? 'bg-blue-500 border-blue-600 shadow-lg shadow-blue-500/50'
-                                                                    : 'bg-transparent border-slate-200 hover:border-blue-400'
-                                                                    }`}>
-                                                                    {currentStatus === 'permission' && (
-                                                                        <Clock className="w-6 h-6 text-white" />
-                                                                    )}
-                                                                </div>
-                                                                <span className="text-[10px] uppercase font-bold text-muted-foreground">Permission</span>
-                                                            </div>
+                                                <div key={id} className={`p-6 rounded-3xl border-2 transition-all duration-300 ${status ? 'border-primary/30 bg-primary/5 shadow-xl shadow-primary/10' : 'border-border/40 bg-card shadow-md'}`}>
+                                                    <div className="flex justify-between items-start mb-6">
+                                                        <div className="space-y-1">
+                                                            <h4 className="font-black text-foreground uppercase tracking-tight text-lg leading-none">{student.name || student.user_name}</h4>
+                                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] italic truncate max-w-[180px]">{student.email || student.user_email}</p>
                                                         </div>
-                                                    </TableCell>
-                                                </TableRow>
+                                                        <div className={`h-4 w-4 rounded-full shadow-inner ${status === 'od' ? 'bg-green-500 shadow-green-500/50' :
+                                                            status === 'absent' ? 'bg-red-500 shadow-red-500/50' :
+                                                                status === 'permission' ? 'bg-blue-500 shadow-blue-500/50' :
+                                                                    'bg-slate-200'
+                                                            }`}></div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-3 gap-3">
+                                                        <button
+                                                            onClick={() => handleMarkAttendanceClick(id, 'od')}
+                                                            className={`flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all duration-300 ${status === 'od'
+                                                                ? 'bg-green-500 border-green-600 shadow-lg shadow-green-500/30 text-white scale-105'
+                                                                : 'bg-background border-border/40 text-slate-400 hover:border-green-400'}`}
+                                                        >
+                                                            <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6" />
+                                                            <span className="text-[9px] font-black uppercase tracking-widest text-center">Mark OD</span>
+                                                        </button>
+
+                                                        <button
+                                                            onClick={() => handleMarkAttendanceClick(id, 'absent')}
+                                                            className={`flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all duration-300 ${status === 'absent'
+                                                                ? 'bg-red-500 border-red-600 shadow-lg shadow-red-500/30 text-white scale-105'
+                                                                : 'bg-background border-border/40 text-slate-400 hover:border-red-400'}`}
+                                                        >
+                                                            <XCircle className="w-5 h-5 md:w-6 md:h-6" />
+                                                            <span className="text-[9px] font-black uppercase tracking-widest">Absent</span>
+                                                        </button>
+
+                                                        <button
+                                                            onClick={() => handleMarkAttendanceClick(id, 'permission')}
+                                                            className={`flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all duration-300 ${status === 'permission'
+                                                                ? 'bg-blue-500 border-blue-600 shadow-lg shadow-blue-500/30 text-white scale-105'
+                                                                : 'bg-background border-border/40 text-slate-400 hover:border-red-400'}`}
+                                                        >
+                                                            <Clock className="w-5 h-5 md:w-6 md:h-6" />
+                                                            <span className="text-[9px] font-black uppercase tracking-widest">Perm</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             );
                                         })}
-                                    </TableBody>
-                                </Table>
+                                    </div>
+                                </div>
+
+                                <div className="p-6 border-t bg-background flex flex-col sm:flex-row justify-end gap-3 sm:rounded-b-3xl">
+                                    <Button onClick={handleSaveAttendance} disabled={isSaving || Object.keys(unsavedChanges).length === 0} className="flex-1 h-11 rounded-xl bg-primary hover:bg-primary/90 font-bold shadow-lg shadow-primary/20 transition-all gap-2">
+                                        {isSaving ? 'Syncing Records...' : 'Save Changes'}
+                                    </Button>
+                                    <Button variant="ghost" className="h-11 font-bold rounded-xl px-8" onClick={() => setShowMarkDialog(false)}>Cancel</Button>
+                                </div>
                             </div>
-                            <div className="flex justify-end gap-2 pt-4">
-                                <Button variant="outline" onClick={() => setShowMarkDialog(false)}>Cancel</Button>
-                                <Button onClick={handleSaveAttendance} disabled={isSaving || Object.keys(unsavedChanges).length === 0}>
-                                    {isSaving ? 'Saving...' : 'Save Changes'}
-                                </Button>
-                            </div>
-                        </div>
-                    </DialogContent>
-                </Dialog>
-            </div>
-        </div>
+                        </DialogContent>
+                    </Dialog>
+                </div >
+            </main >
+        </div >
     );
 };
 

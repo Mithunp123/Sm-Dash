@@ -318,42 +318,40 @@ const ManageStudents = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-
       <DeveloperCredit />
-
-      <main className="flex-1 p-2 md:p-4 bg-background">
-        <div className="w-full">
+      <main className="flex-1 w-full bg-background overflow-x-hidden">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 w-full">
           {/* Back Button */}
-          <div className="mb-4">
+          <div className="mb-6">
             <BackButton to="/admin" />
           </div>
 
-          {/* Page Header */}
-          <div className="mb-6">
-            <h1 className="text-3xl font-semibold text-foreground mb-1">Students</h1>
-            <p className="text-sm text-muted-foreground">View and manage student profiles and project assignments</p>
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter">Student <span className="text-primary italic">Profiles</span></h1>
+              <p className="text-[10px] sm:text-xs md:text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Manage core community database</p>
+            </div>
           </div>
 
           {/* Filter Section */}
-          <Card className="border-border/50 mb-6 bg-card">
-            <CardContent className="pt-6">
+          <Card className="border-border/40 mb-8 bg-card/60 backdrop-blur-md shadow-xl rounded-3xl overflow-hidden">
+            <CardContent className="p-4 md:p-6 bg-muted/20">
               <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <div className="flex-1 relative group">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors w-5 h-5" />
                   <Input
                     placeholder="Search students by name or email..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
+                    className="pl-12 h-12 bg-background border-border/50 focus:ring-primary/20 transition-all rounded-2xl text-sm"
                   />
                 </div>
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-muted-foreground" />
+                <div className="flex flex-wrap items-center gap-3">
                   <Select value={deptFilter} onValueChange={setDeptFilter}>
-                    <SelectTrigger className="w-40">
+                    <SelectTrigger className="w-full sm:w-40 h-12 rounded-2xl bg-background border-border/50 font-bold text-xs uppercase tracking-widest">
                       <SelectValue placeholder="Department" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="rounded-2xl">
                       <SelectItem value="all">All Departments</SelectItem>
                       <SelectItem value="CSE">CSE</SelectItem>
                       <SelectItem value="ECE">ECE</SelectItem>
@@ -363,10 +361,10 @@ const ManageStudents = () => {
                     </SelectContent>
                   </Select>
                   <Select value={yearFilter} onValueChange={setYearFilter}>
-                    <SelectTrigger className="w-32">
+                    <SelectTrigger className="w-full sm:w-32 h-12 rounded-2xl bg-background border-border/50 font-bold text-xs uppercase tracking-widest">
                       <SelectValue placeholder="Year" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="rounded-2xl">
                       <SelectItem value="all">All Years</SelectItem>
                       <SelectItem value="I">I Year</SelectItem>
                       <SelectItem value="II">II Year</SelectItem>
@@ -380,80 +378,71 @@ const ManageStudents = () => {
           </Card>
 
           {/* Students Table - Compact Layout */}
-          <Card className="border-border/50 bg-card">
-            <CardContent className="pt-6">
+          <Card className="border-none bg-card/40 backdrop-blur-md shadow-xl rounded-3xl overflow-hidden mb-10">
+            <CardContent className="p-0">
               {students.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">No students found</div>
+                <div className="text-center py-20 text-muted-foreground italic font-bold">No students found</div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Department</TableHead>
-                        <TableHead>Year</TableHead>
-                        <TableHead>Phone</TableHead>
-                        <TableHead>DOB</TableHead>
-                        <TableHead>Gender</TableHead>
-                        <TableHead>Blood Group</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {students
-                        .filter((student) => {
-                          const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            student.email.toLowerCase().includes(searchQuery.toLowerCase());
-                          const matchesDept = deptFilter === "all" || student.profile?.dept === deptFilter;
-                          const matchesYear = yearFilter === "all" || student.profile?.year === yearFilter;
-                          return matchesSearch && matchesDept && matchesYear;
-                        })
-                        .map((student) => (
-                          <TableRow key={student.id}>
-                            <TableCell className="font-medium">
-                              <div className="flex items-center gap-3">
-                                <Avatar>
-                                  <AvatarImage src={buildImageUrl(student.profile?.photo || student.photo || student.photoUrl) || '/Images/Brand_logo.png'} alt={student.name} />
-                                  <AvatarFallback>
-                                    {((student.name || "").split(" ").map(s => s[0]).slice(0, 2).join("") || "?")}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span>{student.name}</span>
+                <>
+                  {/* Mobile Mobile Cards View */}
+                  <div className="grid grid-cols-1 gap-4 md:hidden">
+                    {students
+                      .filter((student) => {
+                        const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          student.email.toLowerCase().includes(searchQuery.toLowerCase());
+                        const matchesDept = deptFilter === "all" || student.profile?.dept === deptFilter;
+                        const matchesYear = yearFilter === "all" || student.profile?.year === yearFilter;
+                        return matchesSearch && matchesDept && matchesYear;
+                      })
+                      .map((student) => (
+                        <Card key={student.id} className="rounded-3xl border-border/40 overflow-hidden bg-card/60 backdrop-blur-sm shadow-md active:scale-[0.98] transition-all">
+                          <CardContent className="p-5">
+                            <div className="flex items-center gap-4 mb-4">
+                              <Avatar className="w-14 h-14 rounded-2xl border-2 border-primary/10">
+                                <AvatarImage src={buildImageUrl(student.profile?.photo || student.photo || student.photoUrl) || '/Images/Brand_logo.png'} />
+                                <AvatarFallback className="bg-primary/5 text-primary font-black uppercase">
+                                  {student.name.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-black text-foreground uppercase tracking-tight truncate pr-2">{student.name}</h3>
+                                <div className="flex gap-2 mt-1">
+                                  <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none font-bold text-[9px] uppercase tracking-wider px-2 py-0.5">
+                                    {student.profile?.dept || "No Dept"}
+                                  </Badge>
+                                  <Badge variant="outline" className="font-bold border-primary/30 text-primary/70 text-[9px] px-2 py-0.5">
+                                    {student.profile?.year || "N/A"}
+                                  </Badge>
+                                </div>
                               </div>
-                            </TableCell>
-                            <TableCell className="text-sm">{student.email}</TableCell>
-                            <TableCell>{student.profile?.dept || "-"}</TableCell>
-                            <TableCell>{student.profile?.year || "-"}</TableCell>
-                            <TableCell>{student.profile?.phone || "-"}</TableCell>
-                            <TableCell>{student.profile?.dob ? new Date(student.profile.dob).toLocaleDateString() : "-"}</TableCell>
-                            <TableCell>{student.profile?.gender || "-"}</TableCell>
-                            <TableCell>{student.profile?.blood_group || "-"}</TableCell>
-                            <TableCell className="flex gap-2 flex-wrap">
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 mb-4">
+                              <div className="bg-muted/30 p-2 rounded-xl">
+                                <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Phone</p>
+                                <p className="text-xs font-bold text-foreground truncate">{student.profile?.phone || "-"}</p>
+                              </div>
+                              <div className="bg-muted/30 p-2 rounded-xl">
+                                <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Blood</p>
+                                <p className="text-xs font-bold text-foreground truncate">{student.profile?.blood_group || "-"}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleEditProfile(student)}
-                                className="gap-1"
+                                className="flex-1 h-9 rounded-xl font-bold text-[10px] uppercase tracking-widest border-2"
                               >
-                                <Edit className="w-4 h-4" />
-                                View Profile
+                                Profile
                               </Button>
                               <Button
                                 size="sm"
-                                variant="default"
                                 onClick={() => handleAssignProject(student)}
-                                className="gap-1"
+                                className="flex-1 h-9 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20"
                               >
-                                📋 Project
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="default"
-                                onClick={() => handleAssignEvent(student)}
-                                className="gap-1"
-                              >
-                                🎯 Event
+                                Project
                               </Button>
                               <Button
                                 size="sm"
@@ -462,17 +451,94 @@ const ManageStudents = () => {
                                   setSelectedStudent(student);
                                   setShowDeleteDialog(true);
                                 }}
-                                className="gap-1"
+                                className="h-9 w-9 rounded-xl p-0 flex items-center justify-center"
                               >
                                 <Trash2 className="w-4 h-4" />
-                                Remove
                               </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                  </div>
+
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-border/30">
+                          <TableHead className="font-black uppercase text-[10px] tracking-widest">Name</TableHead>
+                          <TableHead className="font-black uppercase text-[10px] tracking-widest">Email</TableHead>
+                          <TableHead className="font-black uppercase text-[10px] tracking-widest">Department</TableHead>
+                          <TableHead className="font-black uppercase text-[10px] tracking-widest">Year</TableHead>
+                          <TableHead className="font-black uppercase text-[10px] tracking-widest">Phone</TableHead>
+                          <TableHead className="font-black uppercase text-[10px] tracking-widest">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {students
+                          .filter((student) => {
+                            const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                              student.email.toLowerCase().includes(searchQuery.toLowerCase());
+                            const matchesDept = deptFilter === "all" || student.profile?.dept === deptFilter;
+                            const matchesYear = yearFilter === "all" || student.profile?.year === yearFilter;
+                            return matchesSearch && matchesDept && matchesYear;
+                          })
+                          .map((student) => (
+                            <TableRow key={student.id} className="border-border/30 group hover:bg-muted/20">
+                              <TableCell className="font-medium">
+                                <div className="flex items-center gap-3">
+                                  <Avatar className="w-10 h-10 border-2 border-primary/10">
+                                    <AvatarImage src={buildImageUrl(student.profile?.photo || student.photo || student.photoUrl) || '/Images/Brand_logo.png'} alt={student.name} />
+                                    <AvatarFallback>
+                                      {((student.name || "").split(" ").map(s => s[0]).slice(0, 2).join("") || "?")}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <span className="font-black text-foreground uppercase tracking-tight">{student.name}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-sm font-medium text-muted-foreground">{student.email}</TableCell>
+                              <TableCell>
+                                <Badge className="bg-primary/5 text-primary border-none font-bold text-[10px] uppercase tracking-widest">
+                                  {student.profile?.dept || "-"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="font-black text-[10px] tracking-widest text-muted-foreground">{student.profile?.year || "-"}</TableCell>
+                              <TableCell className="text-sm font-bold">{student.profile?.phone || "-"}</TableCell>
+                              <TableCell className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleEditProfile(student)}
+                                  className="h-8 text-primary hover:text-primary hover:bg-primary/10 font-bold text-[10px] uppercase tracking-widest rounded-lg"
+                                >
+                                  View
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleAssignProject(student)}
+                                  className="h-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-bold text-[10px] uppercase tracking-widest rounded-lg"
+                                >
+                                  Project
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setSelectedStudent(student);
+                                    setShowDeleteDialog(true);
+                                  }}
+                                  className="h-8 text-destructive hover:bg-destructive/10 rounded-lg"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

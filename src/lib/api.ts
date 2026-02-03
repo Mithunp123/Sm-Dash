@@ -354,6 +354,11 @@ class ApiClient {
     return response;
   }
 
+  async getMeetingAttendance(meetingId: number, date?: string) {
+    const query = date ? `?date=${encodeURIComponent(date)}` : '';
+    return this.request(`/attendance/meeting/${meetingId}/records${query}`);
+  }
+
   async markAttendance(attendanceData: any) {
     // Ensure snake_case for backend
     const payload = {

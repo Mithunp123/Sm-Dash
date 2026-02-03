@@ -58,7 +58,7 @@ const MainLayout = ({ showSidebar = true }: MainLayoutProps) => {
                     showMenuTrigger={showSidebar}
                 />
 
-                <main className="flex-1 w-full max-w-[100vw] overflow-x-hidden overflow-y-auto pb-12">
+                <main className="flex-1 w-full max-w-full overflow-x-hidden overflow-y-auto pb-12">
                     <Outlet />
                 </main>
 

@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Download, Eye, BarChart3, ArrowLeft } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import DeveloperCredit from '@/components/DeveloperCredit';
@@ -201,11 +202,10 @@ export default function ViewFeedbackReports() {
         <DeveloperCredit />
         <main className="flex-1 p-2 md:p-4 bg-transparent w-full">
           <div className="w-full">
-            {/* Page Header */}
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
               <div>
-                <h1 className="text-3xl font-semibold text-foreground mb-1">Feedback Reports</h1>
-                <p className="text-sm text-muted-foreground">View and analyze student feedback responses</p>
+                <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter">Feedback <span className="text-primary italic">Reports</span></h1>
+                <p className="text-[10px] sm:text-xs md:text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Audit student satisfaction and event quality</p>
               </div>
             </div>
             <div className="text-center py-12">
@@ -226,16 +226,15 @@ export default function ViewFeedbackReports() {
           <div className="mb-4">
             <BackButton to="/admin" />
           </div>
-          {/* Page Header */}
-          <div className="mb-6 flex items-center justify-between">
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div>
-              <h1 className="text-3xl font-semibold text-foreground mb-1">Feedback Reports</h1>
-              <p className="text-sm text-muted-foreground">View and analyze student feedback responses</p>
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter">Feedback <span className="text-primary italic">Reports</span></h1>
+              <p className="text-[10px] sm:text-xs md:text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Audit student satisfaction and event quality</p>
             </div>
             <Button
               onClick={downloadAsExcel}
               disabled={questions.length === 0 || responses.length === 0}
-              className="gap-2 bg-white text-orange-600 hover:bg-orange-50"
+              className="gap-2 h-11 px-6 rounded-2xl shadow-lg shadow-primary/20 bg-primary font-bold w-full sm:w-auto"
             >
               <Download className="w-4 h-4" />
               Download Report
@@ -253,48 +252,48 @@ export default function ViewFeedbackReports() {
                 const hasResponses = (questionStats?.totalResponses || 0) > 0;
 
                 return (
-                  <div key={question.id} className="group relative overflow-hidden rounded-xl border border-border/50 bg-card hover:bg-muted/50 transition-all duration-300">
+                  <Card key={question.id} className="group relative overflow-hidden rounded-3xl border-border/40 bg-card/60 backdrop-blur-md shadow-md hover:shadow-xl hover:translate-y-[-4px] transition-all duration-300">
                     <div className="p-6">
                       <div className="flex flex-col md:flex-row gap-6 items-start">
-                        <div className="flex-1 space-y-3">
+                        <div className="flex-1 space-y-4">
                           <div className="flex items-start justify-between gap-4">
-                            <h3 className="text-lg font-semibold text-foreground leading-tight">
+                            <h3 className="text-xl font-black text-foreground uppercase tracking-tight leading-tight line-clamp-2">
                               {question.question_text}
                             </h3>
-                            <span className="shrink-0 px-2 py-1 rounded text-[10px] uppercase font-bold tracking-wider bg-muted text-muted-foreground">
+                            <Badge className="shrink-0 font-bold text-[9px] uppercase tracking-widest px-2 py-0.5 border-none bg-primary/10 text-primary">
                               {question.question_type === 'rating' ? 'Rating' : 'Text'}
-                            </span>
+                            </Badge>
                           </div>
 
                           {question.event_title ? (
                             <div className="flex items-center gap-2">
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-medium border border-blue-500/10">
+                              <Badge variant="outline" className="font-bold text-[9px] uppercase tracking-widest border-primary/30 text-primary/70">
                                 📅 {question.event_title}
-                              </span>
-                              <span className="text-xs text-muted-foreground">{new Date(question.event_date!).toLocaleDateString()}</span>
+                              </Badge>
+                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-50">{new Date(question.event_date!).toLocaleDateString()}</span>
                             </div>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-medium border border-purple-500/10">
+                            <Badge variant="outline" className="font-bold text-[9px] uppercase tracking-widest border-muted-foreground/30 text-muted-foreground/70">
                               📋 General Feedback
-                            </span>
+                            </Badge>
                           )}
                         </div>
 
                         <div className="w-full md:w-auto flex flex-col items-end gap-3 min-w-[200px]">
                           {hasResponses ? (
                             <div className="text-right">
-                              <div className="text-2xl font-bold text-foreground">
+                              <div className="text-3xl font-black text-foreground uppercase tracking-tighter">
                                 {questionStats?.totalResponses}
-                                <span className="text-sm font-normal text-muted-foreground ml-1">responses</span>
+                                <span className="text-[10px] font-bold text-muted-foreground ml-1">voters</span>
                               </div>
                               {question.question_type === 'rating' && (
-                                <div className="text-sm font-medium text-amber-500 flex items-center justify-end gap-1">
-                                  {questionStats?.averageRating.toFixed(1)} <span className="text-amber-400">★</span> Avg
+                                <div className="text-xs font-black text-amber-500 uppercase tracking-widest flex items-center justify-end gap-1">
+                                  {questionStats?.averageRating.toFixed(1)} <span className="text-amber-400">★</span> Avg Score
                                 </div>
                               )}
                             </div>
                           ) : (
-                            <div className="text-muted-foreground text-sm italic py-2">No responses yet</div>
+                            <div className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest italic py-2">No data recorded</div>
                           )}
 
                           <Button
@@ -302,10 +301,10 @@ export default function ViewFeedbackReports() {
                             size="sm"
                             onClick={() => handleViewDetails(question.id)}
                             disabled={!hasResponses}
-                            className="w-full md:w-auto gap-2"
+                            className="w-full md:w-auto h-9 rounded-xl font-bold text-[10px] uppercase tracking-widest border-2"
                           >
-                            <Eye className="w-4 h-4" />
-                            View Analysis
+                            <BarChart3 className="w-4 h-4 mr-2" />
+                            Analyze
                           </Button>
                         </div>
                       </div>
@@ -348,7 +347,7 @@ export default function ViewFeedbackReports() {
                         </div>
                       )}
                     </div>
-                  </div>
+                  </Card>
                 );
               })}
             </div>

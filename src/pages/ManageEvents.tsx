@@ -707,78 +707,91 @@ const ManageEvents = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-
       <DeveloperCredit />
-
-      <main className="flex-1 p-2 md:p-4 bg-background">
-        <div className="w-full">
+      <main className="flex-1 w-full bg-background overflow-x-hidden">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 w-full">
           {/* Back Button */}
-          <div className="mb-4">
+          <div className="mb-6">
             <BackButton to="/admin" />
           </div>
 
           {/* Page Header */}
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-semibold text-foreground mb-1">Events</h1>
-              <p className="text-sm text-muted-foreground">Create events and mark student OD</p>
+          <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="space-y-1">
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter">
+                Events
+              </h1>
+              <p className="text-muted-foreground font-medium text-sm md:text-base border-l-4 border-primary/30 pl-3">
+                Create events and manage student participation
+              </p>
             </div>
-            <Button onClick={() => {
-              setFormData({ title: "", description: "", date: "", year: selectedYear, is_special_day: false, image_url: "", max_volunteers: "", volunteer_registration_deadline: "" });
-              setShowAddDialog(true);
-            }} className="gap-2">
-              <Plus className="w-4 h-4" />
+            <Button
+              onClick={() => {
+                setFormData({ title: "", description: "", date: "", year: selectedYear, is_special_day: false, image_url: "", max_volunteers: "", volunteer_registration_deadline: "" });
+                setShowAddDialog(true);
+              }}
+              className="h-12 px-6 rounded-2xl font-bold shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 transition-all gap-2 w-full md:w-auto"
+            >
+              <Plus className="w-5 h-5" />
               Add Event
             </Button>
           </div>
 
-          {/* Year Filter */}
-          <Card className="border-border/50 mb-6 bg-card">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <Label>Filter by Year:</Label>
-                <Select value={selectedYear} onValueChange={setSelectedYear}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {years.map(year => (
-                      <SelectItem key={year} value={year}>{year}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          {/* Filter Card */}
+          <Card className="border-border/40 mb-8 bg-card shadow-xl overflow-hidden rounded-3xl">
+            <CardContent className="p-4 md:p-6 bg-muted/20">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:flex lg:items-center gap-4 md:gap-8">
+                <div className="space-y-2 flex-1">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground pl-1">Filter by Year</Label>
+                  <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <SelectTrigger className="w-full lg:w-40 h-12 rounded-2xl bg-background border-border/50 font-bold focus:ring-primary/20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl">
+                      {years.map(year => (
+                        <SelectItem key={year} value={year} className="font-bold">{year}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                <Label>Filter by Month:</Label>
-                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="All months" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All months</SelectItem>
-                    {monthOptions.map((m) => (
-                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2 flex-1">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground pl-1">Filter by Month</Label>
+                  <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                    <SelectTrigger className="w-full lg:w-48 h-12 rounded-2xl bg-background border-border/50 font-bold focus:ring-primary/20">
+                      <SelectValue placeholder="All months" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl">
+                      <SelectItem value="all" className="font-bold">All months</SelectItem>
+                      {monthOptions.map((m) => (
+                        <SelectItem key={m.value} value={m.value} className="font-bold">{m.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Events Table */}
-          <Card className="border-border/50 bg-card">
-            <CardHeader className="flex flex-row items-center justify-between px-0">
-              <CardTitle className="flex items-center gap-2 text-xl px-4">
-                <Calendar className="w-5 h-5 text-primary" />
-                Events ({events.length})
+          {/* Events Section */}
+          <Card className="border-border/40 bg-card shadow-2xl overflow-hidden rounded-3xl">
+            <CardHeader className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-muted/10 border-b">
+              <CardTitle className="flex items-center gap-3 text-2xl font-black uppercase tracking-tight">
+                <div className="p-2 bg-primary/10 rounded-xl">
+                  <Calendar className="w-6 h-6 text-primary" />
+                </div>
+                Events <span className="text-primary/50 text-xl font-bold italic ml-1">({events.length})</span>
               </CardTitle>
-              <div className="flex gap-2 px-4">
-                <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-md border border-border/50">
+
+              <div className="flex flex-wrap items-center justify-center gap-3 w-full sm:w-auto">
+                <div className="flex items-center gap-2 bg-background/50 px-4 py-2 rounded-2xl border border-border/50 shadow-sm">
                   <Checkbox
+                    id="bulk-select"
                     checked={events.length > 0 && selectedEventIds.length === events.length}
                     onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
-                    aria-label="Select all"
+                    className="rounded-md"
                   />
-                  <span className="text-sm font-medium">Select All</span>
+                  <Label htmlFor="bulk-select" className="text-sm font-bold uppercase tracking-wider cursor-pointer">Select All</Label>
                 </div>
 
                 {selectedEventIds.length > 0 && (
@@ -786,27 +799,33 @@ const ManageEvents = () => {
                     variant="outline"
                     onClick={downloadSelectedEventsPDF}
                     disabled={bulkDownloadLoading}
-                    className="gap-2"
+                    className="h-10 rounded-2xl font-bold border-primary/20 hover:bg-primary/5 transition-all gap-2"
                   >
                     {bulkDownloadLoading ? (
-                      <>Generating...</>
+                      <div className="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
                     ) : (
-                      <>
-                        <Download className="w-4 h-4" />
-                        Download ({selectedEventIds.length})
-                      </>
+                      <Download className="w-4 h-4 text-primary" />
                     )}
+                    <span>Download ({selectedEventIds.length})</span>
                   </Button>
                 )}
               </div>
             </CardHeader>
-            <CardContent className="px-0">
+            <CardContent className="p-4 md:p-6 bg-muted/5">
               {loading ? (
-                <div className="text-center py-8">Loading events...</div>
+                <div className="flex flex-col items-center justify-center py-20 gap-4">
+                  <div className="w-12 h-12 border-4 border-primary/10 border-t-primary rounded-full animate-spin"></div>
+                  <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">Syncing Events...</p>
+                </div>
               ) : events.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">No events found</div>
+                <div className="text-center py-20 border-2 border-dashed border-border/50 rounded-3xl bg-muted/10">
+                  <div className="bg-muted w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Calendar className="w-8 h-8 opacity-20" />
+                  </div>
+                  <p className="text-lg font-bold text-muted-foreground">No events found for this period</p>
+                </div>
               ) : (
-                <div className="grid grid-cols-1 gap-3 px-4">
+                <div className="grid grid-cols-1 gap-4">
                   {events.map((event) => {
                     const buildImageUrl = (imageUrl: string | null | undefined) => {
                       if (!imageUrl) return null;
@@ -820,101 +839,111 @@ const ManageEvents = () => {
                     const imageUrl = buildImageUrl(event.image_url);
 
                     return (
-                      <div key={event.id} className={`group flex flex-col md:flex-row items-center gap-4 p-4 rounded-xl border border-border/50 bg-card hover:bg-muted/50 transition-colors ${selectedEventIds.includes(event.id) ? 'bg-muted/40 ring-1 ring-primary/20' : ''}`}>
-                        {/* Checkbox */}
-                        <Checkbox
-                          checked={selectedEventIds.includes(event.id)}
-                          onCheckedChange={(checked) => handleSelectEvent(event.id, checked as boolean)}
-                        />
+                      <div key={event.id} className={`group relative flex flex-col md:flex-row items-center gap-6 p-5 rounded-3xl border-2 transition-all duration-300 ${selectedEventIds.includes(event.id) ? 'border-primary bg-primary/5 ring-4 ring-primary/5 shadow-primary/10' : 'border-border/40 bg-card hover:border-primary/20 hover:shadow-xl'}`}>
+                        {/* Checkbox Overlay for Mobile */}
+                        <div className="absolute top-4 left-4 z-20">
+                          <Checkbox
+                            checked={selectedEventIds.includes(event.id)}
+                            onCheckedChange={(checked) => handleSelectEvent(event.id, checked as boolean)}
+                            className="w-6 h-6 rounded-lg pointer-events-auto"
+                          />
+                        </div>
 
                         {/* Thumbnail */}
-                        <div className="flex-shrink-0 w-full md:w-20 md:h-20 h-40 rounded-lg overflow-hidden bg-muted border border-border/50 relative">
+                        <div className="flex-shrink-0 w-full md:w-32 md:h-32 h-56 rounded-2xl overflow-hidden bg-muted border border-border/50 relative shadow-inner group-hover:scale-[1.02] transition-transform">
                           {imageUrl ? (
                             <img
                               src={imageUrl}
                               alt={event.title}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                               onError={(e) => {
                                 e.currentTarget.style.display = 'none';
                               }}
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                              <ImageIcon className="w-6 h-6 opacity-30" />
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-gradient-to-br from-muted to-muted/50">
+                              <ImageIcon className="w-10 h-10 opacity-20" />
                             </div>
                           )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                         </div>
 
                         {/* Content */}
-                        <div className="flex-1 min-w-0 grid gap-1 text-center md:text-left w-full">
-                          <div className="flex flex-col md:flex-row md:items-center gap-2 justify-between">
-                            <div>
-                              <h3 className="font-semibold text-lg leading-none mb-1">{event.title}</h3>
-                              <div className="flex flex-wrap items-center gap-2 justify-center md:justify-start text-xs text-muted-foreground">
-                                <Badge variant="outline" className="font-normal bg-background/50">{event.year}</Badge>
-                                <span className="flex items-center gap-1">
-                                  <Calendar className="w-3 h-3" />
-                                  {new Date(event.date).toLocaleDateString()}
-                                </span>
+                        <div className="flex-1 min-w-0 space-y-3 w-full">
+                          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                            <div className="space-y-1 text-center md:text-left">
+                              <h3 className="font-black text-2xl text-foreground uppercase tracking-tight line-clamp-2 md:line-clamp-1">{event.title}</h3>
+                              <div className="flex flex-wrap items-center gap-3 justify-center md:justify-start">
+                                <Badge variant="outline" className="font-black bg-primary/5 text-primary border-primary/20 rounded-lg px-2 text-[10px] uppercase tracking-wider">{event.year}</Badge>
+                                <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
+                                  <div className="p-1.5 bg-muted rounded-lg">
+                                    <Calendar className="w-3.5 h-3.5" />
+                                  </div>
+                                  {new Date(event.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                </div>
                               </div>
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-2 justify-center md:justify-end mt-2 md:mt-0">
+                            <div className="flex flex-wrap items-center gap-2 justify-center md:justify-end">
                               {event.is_special_day && (
-                                <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">Special Day</Badge>
+                                <Badge className="bg-amber-100 text-amber-900 border-amber-200 font-bold px-3 py-1 rounded-full uppercase text-[10px] tracking-widest flex items-center gap-1.5">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse"></div>
+                                  Special Day
+                                </Badge>
                               )}
-                              <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/5 rounded-full text-xs font-medium text-primary">
-                                <Users className="w-3 h-3" />
-                                {volunteerCounts[event.id] || 0}
+                              <div className="flex items-center gap-2 px-3 py-1 bg-primary/5 rounded-full text-xs font-black text-primary border border-primary/10">
+                                <Users className="w-4 h-4" />
+                                {volunteerCounts[event.id] || 0} Vol.
                               </div>
                             </div>
                           </div>
-                        </div>
 
-                        {/* Actions */}
-                        <div className="flex items-center gap-2 w-full md:w-auto justify-end border-t md:border-t-0 pt-2 md:pt-0 mt-2 md:mt-0 border-border/50">
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={() => navigate(`/admin/events/${event.id}`)}
-                            className="gap-2 h-9 px-4"
-                          >
-                            <Eye className="w-4 h-4" />
-                            Manage
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => {
-                              setSelectedEvent(event);
-                              setFormData({
-                                title: event.title,
-                                description: event.description || "",
-                                date: event.date ? event.date.split('T')[0] : "",
-                                year: event.year || new Date().getFullYear().toString(),
-                                is_special_day: event.is_special_day || false,
-                                image_url: event.image_url || "",
-                                max_volunteers: event.max_volunteers?.toString() || "",
-                                volunteer_registration_deadline: event.volunteer_registration_deadline ? event.volunteer_registration_deadline.slice(0, 16) : ""
-                              });
-                              setEventImageFile(null);
-                              setShowEditDialog(true);
-                            }}
-                            className="h-9 w-9"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => {
-                              setSelectedEvent(event);
-                              setShowDeleteDialog(true);
-                            }}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
+                            <Button
+                              variant="default"
+                              onClick={() => navigate(`/admin/events/${event.id}`)}
+                              className="flex-1 sm:flex-none h-11 rounded-2xl font-bold bg-foreground text-background hover:bg-foreground/90 transition-all gap-2"
+                            >
+                              <Users className="w-4 h-4" />
+                              Manage Records
+                            </Button>
+
+                            <div className="flex items-center gap-2 flex-1 sm:flex-none">
+                              <Button
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedEvent(event);
+                                  setFormData({
+                                    title: event.title,
+                                    description: event.description || "",
+                                    date: event.date ? event.date.split('T')[0] : "",
+                                    year: event.year || new Date().getFullYear().toString(),
+                                    is_special_day: event.is_special_day || false,
+                                    image_url: event.image_url || "",
+                                    max_volunteers: event.max_volunteers?.toString() || "",
+                                    volunteer_registration_deadline: event.volunteer_registration_deadline ? event.volunteer_registration_deadline.slice(0, 16) : ""
+                                  });
+                                  setEventImageFile(null);
+                                  setShowEditDialog(true);
+                                }}
+                                className="flex-1 sm:w-11 h-11 rounded-2xl p-0 font-bold border-border/50 hover:bg-muted"
+                              >
+                                <Edit className="w-4 h-4" />
+                                <span className="sm:hidden ml-2">Edit</span>
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                className="flex-1 sm:w-11 h-11 rounded-2xl p-0 font-bold shadow-lg shadow-destructive/10"
+                                onClick={() => {
+                                  setSelectedEvent(event);
+                                  setShowDeleteDialog(true);
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                <span className="sm:hidden ml-2">Delete</span>
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     );
@@ -952,7 +981,7 @@ const ManageEvents = () => {
                 rows={3}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="date">Date *</Label>
                 <Input
@@ -960,16 +989,17 @@ const ManageEvents = () => {
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  className="rounded-xl"
                   required
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="year">Year *</Label>
                 <Select value={formData.year} onValueChange={(value) => setFormData({ ...formData, year: value })}>
-                  <SelectTrigger>
+                  <SelectTrigger className="rounded-xl">
                     <SelectValue placeholder="Select year" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-xl">
                     {years.map(year => (
                       <SelectItem key={year} value={year}>{year}</SelectItem>
                     ))}
@@ -1012,7 +1042,7 @@ const ManageEvents = () => {
               />
               <Label htmlFor="special_day">Special Day</Label>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="max_volunteers">Max Volunteers (Optional)</Label>
                 <Input
@@ -1022,6 +1052,7 @@ const ManageEvents = () => {
                   value={formData.max_volunteers}
                   onChange={(e) => setFormData({ ...formData, max_volunteers: e.target.value })}
                   placeholder="e.g., 50"
+                  className="rounded-xl"
                 />
               </div>
               <div className="space-y-2">
@@ -1031,17 +1062,18 @@ const ManageEvents = () => {
                   type="datetime-local"
                   value={formData.volunteer_registration_deadline}
                   onChange={(e) => setFormData({ ...formData, volunteer_registration_deadline: e.target.value })}
+                  className="rounded-xl"
                 />
               </div>
             </div>
-            <div className="flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={() => {
+            <div className="flex flex-col sm:flex-row gap-2 justify-end pt-4">
+              <Button type="button" variant="outline" className="rounded-xl h-11 font-bold order-2 sm:order-1" onClick={() => {
                 setShowAddDialog(false);
                 setEventImageFile(null);
               }}>
                 Cancel
               </Button>
-              <Button type="submit">Add Event</Button>
+              <Button type="submit" className="rounded-xl h-11 font-bold order-1 sm:order-2">Add Event</Button>
             </div>
           </form>
         </DialogContent>
@@ -1073,7 +1105,7 @@ const ManageEvents = () => {
                 rows={3}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-date">Date *</Label>
                 <Input
@@ -1081,16 +1113,17 @@ const ManageEvents = () => {
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  className="rounded-xl"
                   required
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-year">Year *</Label>
                 <Select value={formData.year} onValueChange={(value) => setFormData({ ...formData, year: value })}>
-                  <SelectTrigger>
+                  <SelectTrigger className="rounded-xl">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-xl">
                     {years.map(year => (
                       <SelectItem key={year} value={year}>{year}</SelectItem>
                     ))}
@@ -1133,7 +1166,7 @@ const ManageEvents = () => {
               />
               <Label htmlFor="edit-special_day">Special Day</Label>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-max_volunteers">Max Volunteers (Optional)</Label>
                 <Input
@@ -1143,6 +1176,7 @@ const ManageEvents = () => {
                   value={formData.max_volunteers}
                   onChange={(e) => setFormData({ ...formData, max_volunteers: e.target.value })}
                   placeholder="e.g., 50"
+                  className="rounded-xl"
                 />
               </div>
               <div className="space-y-2">
@@ -1152,17 +1186,18 @@ const ManageEvents = () => {
                   type="datetime-local"
                   value={formData.volunteer_registration_deadline}
                   onChange={(e) => setFormData({ ...formData, volunteer_registration_deadline: e.target.value })}
+                  className="rounded-xl"
                 />
               </div>
             </div>
-            <div className="flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={() => {
+            <div className="flex flex-col sm:flex-row gap-2 justify-end pt-4">
+              <Button type="button" variant="outline" className="rounded-xl h-11 font-bold order-2 sm:order-1" onClick={() => {
                 setShowEditDialog(false);
                 setEventImageFile(null);
               }}>
                 Cancel
               </Button>
-              <Button type="submit">Update Event</Button>
+              <Button type="submit" className="rounded-xl h-11 font-bold order-1 sm:order-2">Update Event</Button>
             </div>
           </form>
         </DialogContent>

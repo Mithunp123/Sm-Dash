@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import DeveloperCredit from "@/components/DeveloperCredit";
 import { BackButton } from "@/components/BackButton";
-import { Calendar, Plus, ArrowLeft, CheckCircle2, XCircle, Clock, Briefcase, Users, Search, Filter, Edit, Trash2, Eye, Download, X as XIcon } from "lucide-react";
+import { Calendar, Plus, ArrowLeft, CheckCircle2, XCircle, Clock, Briefcase, Users, Search, Filter, Edit, Trash2, Eye, Download, X as XIcon, Activity } from "lucide-react";
 
 import { useNavigate, useLocation } from "react-router-dom";
 import { auth } from "@/lib/auth";
@@ -524,42 +524,53 @@ const ManageAttendance = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <DeveloperCredit />
-      <main className="flex-1 p-2 md:p-4 bg-background w-full">
-        <div className="w-full">
-          <div className="mb-4">
+      <main className="flex-1 w-full bg-background overflow-x-hidden">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 w-full">
+          <div className="mb-6">
             <BackButton to="/admin" />
           </div>
 
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-semibold text-foreground mb-1">Attendance</h1>
-              <p className="text-sm text-muted-foreground">Manage attendance for projects, meetings, and events</p>
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10">
+            <div className="space-y-1">
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter flex items-center gap-3">
+                <div className="bg-primary/10 rounded-2xl p-2 md:p-2.5 shadow-inner shrink-0">
+                  <Activity className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-primary" />
+                </div>
+                <div className="flex flex-wrap items-center gap-x-2">
+                  Master <span className="text-primary italic">Attendance</span>
+                </div>
+              </h1>
+              <p className="text-muted-foreground font-medium text-xs md:text-base border-l-4 border-primary/30 pl-3">
+                Track and manage participation across all activities
+              </p>
             </div>
-            <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
-              <Plus className="w-4 h-4" />
-              Create Attendance
+            <Button onClick={() => setShowCreateDialog(true)} className="gap-2 shadow-xl shadow-primary/30 font-bold px-8 h-12 text-sm w-full lg:w-auto rounded-xl bg-primary hover:bg-primary/90 transition-all hover:translate-y-[-2px] group">
+              <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+              Quick Create
             </Button>
           </div>
 
-          <Card className="border-border/50 mb-8 shadow-md bg-card">
-            <CardContent className="pt-6">
+          <Card className="border-border/40 mb-10 bg-card/60 backdrop-blur-md shadow-xl overflow-hidden rounded-3xl">
+            <CardContent className="p-4 md:p-6 bg-muted/20">
               <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <div className="flex-1 relative group">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors w-5 h-5" />
                   <Input
-                    placeholder="Search projects or meetings..."
+                    placeholder="Search sessions, projects or locations..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
+                    className="pl-12 h-12 bg-background/50 border-border/50 focus:ring-primary/20 transition-all rounded-2xl text-base shadow-inner"
                   />
                 </div>
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-muted-foreground" />
+                <div className="flex items-center gap-3">
+                  <div className="bg-background/50 p-2.5 rounded-2xl border border-border/50">
+                    <Filter className="w-5 h-5 text-primary" />
+                  </div>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Filter by status" />
+                    <SelectTrigger className="w-full md:w-48 h-12 rounded-2xl bg-background/50 border-border/50 focus:ring-primary/20 font-bold text-xs uppercase tracking-widest">
+                      <SelectValue placeholder="All Status" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="rounded-2xl border-border/50">
                       <SelectItem value="all">All Status</SelectItem>
                       <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="scheduled">Scheduled</SelectItem>
@@ -572,27 +583,38 @@ const ManageAttendance = () => {
             </CardContent>
           </Card>
 
-          <div className="grid gap-4 md:grid-cols-3 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             {summaryCards.map(({ key, title, description, count, icon: Icon }) => (
               <button
                 key={key}
                 type="button"
                 onClick={() => handleSectionChange(key)}
-                className={`text-left rounded-2xl border px-5 py-4 shadow-sm transition-all hover:shadow-lg hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 cursor-pointer border-border bg-card/50 hover:border-primary/50`}
+                className="group relative flex flex-col p-8 rounded-[2.5rem] border-2 border-border/40 bg-card hover:bg-primary/5 hover:border-primary/40 transition-all duration-300 shadow-xl hover:shadow-primary/10 overflow-hidden active:scale-[0.98]"
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Category</p>
-                    <h3 className="text-xl font-semibold text-foreground">{title}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{description}</p>
+                <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary/5 rounded-full group-hover:scale-150 transition-transform duration-500" />
+
+                <div className="flex items-start justify-between mb-8 relative z-10">
+                  <div className="p-4 rounded-3xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300 shadow-inner">
+                    <Icon className="w-8 h-8" />
                   </div>
-                  <div className={`p-3 rounded-full transition-colors bg-muted text-muted-foreground`}>
-                    <Icon className="w-6 h-6" />
+                  <div className="text-right">
+                    <span className="text-4xl font-black text-primary group-hover:scale-110 transition-transform block leading-none">{count}</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">{title}</span>
                   </div>
                 </div>
-                <div className="mt-4">
-                  <div className="text-xs font-semibold text-muted-foreground">Items</div>
-                  <div className="text-3xl font-bold text-primary">{count}</div>
+
+                <div className="relative z-10">
+                  <h3 className="text-2xl font-black uppercase tracking-tight text-foreground group-hover:text-primary transition-colors">{title}</h3>
+                  <p className="text-sm font-medium text-muted-foreground/80 mt-2 leading-relaxed line-clamp-2">
+                    {description}
+                  </p>
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-border/40 flex items-center justify-between relative z-10 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
+                  <span className="text-xs font-black uppercase tracking-widest text-primary italic">Enter Directory</span>
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary group-hover:translate-x-1 transition-transform">
+                    <Plus className="w-4 h-4 rotate-45" />
+                  </div>
                 </div>
               </button>
             ))}

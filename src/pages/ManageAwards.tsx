@@ -175,12 +175,12 @@ const ManageAwards = () => {
         </div>
 
         {/* Page Header */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div>
-            <h1 className="text-3xl font-semibold text-foreground mb-1">Awards</h1>
-            <p className="text-sm text-muted-foreground">Create, edit, and manage awards received by SM Volunteers</p>
+            <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter">Awards <span className="text-primary italic">& Honors</span></h1>
+            <p className="text-[10px] sm:text-xs md:text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Recognizing excellence in the community</p>
           </div>
-          <Button onClick={openCreate} className="gap-2">
+          <Button onClick={() => setShowForm(true)} className="gap-2 h-11 px-6 rounded-2xl shadow-lg shadow-primary/20 font-bold w-full sm:w-auto">
             <Plus className="w-4 h-4" />
             Add Award
           </Button>
@@ -195,71 +195,70 @@ const ManageAwards = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {awards.map((award) => (
-              <Card
-                key={award.id}
-                className="hover:shadow-lg transition flex flex-col"
-              >
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Trophy className="w-4 h-4 text-orange-500" />
-                    {award.title}
-                  </CardTitle>
-                  <CardDescription>
-                    {award.recipient_name || "NGO / Recipient"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3 flex-1 flex flex-col">
-                  {award.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-3">
-                      {award.description}
-                    </p>
-                  )}
-                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                    {award.year && (
-                      <Badge variant="outline">Year: {award.year}</Badge>
-                    )}
-                    {award.category && (
-                      <Badge variant="outline">{award.category}</Badge>
-                    )}
-                    {award.award_date && (
-                      <span className="flex items-center gap-1">
-                        <CalendarIcon className="w-3 h-3" /> {award.award_date}
-                      </span>
-                    )}
-                  </div>
-                  {imgUrl(award) && (
+              <Card key={award.id} className="group relative overflow-hidden rounded-3xl border-border/40 bg-card/60 backdrop-blur-md shadow-md hover:shadow-xl hover:translate-y-[-4px] transition-all duration-300">
+                <div className="relative h-48 overflow-hidden bg-muted">
+                  {imgUrl(award) ? (
                     <img
-                      src={imgUrl(award) || ""}
+                      src={imgUrl(award)!}
                       alt={award.title}
-                      className="w-full h-32 object-cover rounded-md border"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-primary/5">
+                      <Trophy className="w-16 h-16 text-primary/20" />
+                    </div>
                   )}
-                  <div className="flex gap-2 mt-3 pt-2 border-t border-slate-100">
+                  <div className="absolute top-4 left-4">
+                    <Badge className="bg-primary text-primary-foreground font-bold text-[9px] uppercase tracking-widest px-3 py-1 rounded-lg shadow-lg">
+                      {award.category || "General"}
+                    </Badge>
+                  </div>
+                </div>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xl font-black text-foreground uppercase tracking-tight line-clamp-1">{award.title}</CardTitle>
+                  {award.recipient_name && (
+                    <CardDescription className="font-bold text-primary flex items-center gap-1 mt-1">
+                      <Trophy className="w-3 h-3" />
+                      {award.recipient_name}
+                    </CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed h-8">
+                    {award.description || "No description provided."}
+                  </p>
+                  <div className="flex items-center gap-4 text-[10px] font-black uppercase text-muted-foreground tracking-widest bg-muted/30 p-2 rounded-xl">
+                    <div className="flex items-center gap-1 text-primary">
+                      <CalendarIcon className="w-3 h-3" />
+                      {award.award_date ? new Date(award.award_date).toLocaleDateString() : award.year || "N/A"}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-2 border-t border-border/50">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 gap-2"
-                      onClick={() => openEdit(award)}
+                      className="flex-1 h-9 rounded-xl font-bold text-[10px] uppercase tracking-widest border-2"
+                      onClick={() => { setEditingAward(award); setForm({ ...award, description: award.description || "", recipient_name: award.recipient_name || "", award_date: award.award_date || "", year: award.year || "", category: award.category || "" }); setShowForm(true); }}
                     >
-                      <Pencil className="w-4 h-4" /> Edit
+                      Edit
                     </Button>
                     <Button
                       variant="destructive"
                       size="sm"
-                      className="gap-2"
+                      className="h-9 w-9 rounded-xl p-0 flex items-center justify-center"
                       onClick={() => handleDelete(award)}
                     >
-                      <Trash2 className="w-4 h-4" /> Delete
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </CardContent>
               </Card>
             ))}
-          </div>
+          </div >
         )}
-      </div>
+      </div >
 
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent className="max-w-xl">
@@ -300,11 +299,11 @@ const ManageAwards = () => {
                 onChange={(e) => setImageFile(e.target.files?.[0] || null)}
               />
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowForm(false)} disabled={saving}>
+            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
+              <Button variant="outline" className="rounded-xl h-11 font-bold order-2 sm:order-1" onClick={() => setShowForm(false)} disabled={saving}>
                 Cancel
               </Button>
-              <Button onClick={handleSave} disabled={saving} className="gap-2">
+              <Button onClick={handleSave} disabled={saving} className="rounded-xl h-11 font-bold gap-2 order-1 sm:order-2">
                 <Upload className="w-4 h-4" />
                 {saving ? "Saving..." : editingAward ? "Update" : "Create"}
               </Button>
@@ -312,7 +311,7 @@ const ManageAwards = () => {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   );
 };
 

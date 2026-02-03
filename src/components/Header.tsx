@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import NotificationBell from "./NotificationBell";
 import { motion } from "framer-motion";
 import { buildImageUrl } from "@/utils/imageUtils";
@@ -76,164 +77,239 @@ const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
           <div className="absolute top-0 left-1/4 w-1/2 h-full bg-blue-500/10 blur-[100px]"></div>
         </div>
       )}
-      <div className="max-w-7xl mx-auto relative z-10">
+      <div className="max-w-7xl mx-auto relative z-10 px-4 md:px-0">
         {!isAuthenticated ? (
           /* Landing Page: Two-Row Layout */
-          <>
-            {/* Main Header Container: Logos and Navigation Menu */}
-            <div className="flex flex-row items-center justify-between gap-4 px-4 py-8 md:px-10 overflow-x-auto">
-              {/* SM Logo (Left) */}
-              <button
-                onClick={() => window.location.reload()}
-                className="hover:opacity-100 transition-opacity cursor-pointer relative group shrink-0 [perspective:1000px]"
-              >
-                <div className="absolute -inset-2 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
-                <motion.div
-                  className="relative z-10"
-                >
-                  <img
-                    src="/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
-                    alt="SM Volunteers Logo"
-                    className="h-16 md:h-24 w-auto object-contain"
-                  />
-                  {/* Subtle Glow Effect during rotation */}
-                  <div className="absolute inset-0 rounded-full bg-primary/5 blur-md -z-10 animate-pulse"></div>
-                </motion.div>
-              </button>
+          <div className="flex flex-row items-center justify-between gap-4 py-4 md:py-8 md:px-10">
+            {/* SM Logo (Left) */}
+            <button
+              onClick={() => window.location.reload()}
+              className="hover:opacity-100 transition-opacity cursor-pointer relative group shrink-0"
+            >
+              <div className="absolute -inset-2 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
+              <motion.div className="relative z-10">
+                <img
+                  src="/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
+                  alt="SM Volunteers Logo"
+                  className="h-12 md:h-24 w-auto object-contain"
+                />
+                <div className="absolute inset-0 rounded-full bg-primary/5 blur-md -z-10 animate-pulse"></div>
+              </motion.div>
+            </button>
 
-              {/* Center: Navigation Menu */}
-              <nav className="flex items-center justify-center gap-1 md:gap-2 flex-grow max-w-7xl overflow-hidden px-2">
-                {[
-                  { label: 'Home', id: 'top' },
-                  { label: 'About', id: 'about-section' },
-                  { label: 'Events', id: 'events-section' },
-                  { label: 'Awards', id: 'awards-section' },
-                  { label: 'Team', id: 'office-bearers-section' },
-                  { label: 'Coordinators', id: 'coordinators-section' },
-                  { label: 'NGO', id: 'ngo-section' },
-                  { label: 'Contacts', id: 'contact-section' },
-                  { label: 'Login', id: 'login' },
-                ].map((item) => (
-                  <button
-                    key={item.label}
-                    onClick={(e) => {
-                      if (item.id === 'top') {
-                        window.location.reload();
-                      } else if (item.id === 'login') {
-                        window.location.href = '/login';
-                      } else {
-                        const element = document.getElementById(item.id);
-                        if (element) {
-                          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }
-                      }
-                    }}
-                    className="whitespace-nowrap text-xs md:text-sm font-bold text-slate-300 hover:text-white hover:bg-white/10 px-3 md:px-4 py-2 rounded-lg transition-all uppercase tracking-tight"
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </nav>
-
-              {/* KSRCT Logo (Right) */}
-              <div className="shrink-0 [perspective:1000px]">
-                <a
-                  href="https://ksrct.ac.in"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:opacity-100 transition-opacity cursor-pointer block relative group"
+            {/* Center: Navigation Menu (Desktop Only) */}
+            <nav className="hidden md:flex items-center justify-center gap-2 flex-grow max-w-7xl overflow-hidden px-2">
+              {[
+                { label: 'Home', id: 'top' },
+                { label: 'About', id: 'about-section' },
+                { label: 'Events', id: 'events-section' },
+                { label: 'Awards', id: 'awards-section' },
+                { label: 'Team', id: 'office-bearers-section' },
+                { label: 'Coordinators', id: 'coordinators-section' },
+                { label: 'NGO', id: 'ngo-section' },
+                { label: 'Contacts', id: 'contact-section' },
+                { label: 'Login', id: 'login' },
+              ].map((item) => (
+                <button
+                  key={item.label}
+                  onClick={() => {
+                    if (item.id === 'top') {
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    } else if (item.id === 'login') {
+                      window.location.href = '/login';
+                    } else {
+                      document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }}
+                  className="whitespace-nowrap text-xs md:text-sm font-bold text-slate-300 hover:text-white hover:bg-white/10 px-4 py-2 rounded-lg transition-all uppercase tracking-tight"
                 >
-                  <div className="absolute -inset-2 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
-                  <motion.div
-                    className="relative z-10"
-                  >
-                    <img
-                      src="/images/Brand_logo.png"
-                      alt="KSRCT Brand Logo"
-                      className="h-16 md:h-24 w-auto object-contain"
-                    />
-                    {/* Subtle Glow Effect */}
-                    <div className="absolute inset-0 rounded-full bg-primary/5 blur-md -z-10 animate-pulse"></div>
-                  </motion.div>
-                </a>
-              </div>
+                  {item.label}
+                </button>
+              ))}
+            </nav>
+
+            {/* Mobile: Hamburger Menu (Landing Page) */}
+            <div className="md:hidden flex items-center gap-2">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-white">
+                    <Menu className="h-6 w-6" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="bg-[#020617] border-slate-800 text-white p-0 w-72">
+                  <div className="flex flex-col h-full pt-20 px-6">
+                    <div className="mb-8 pl-2">
+                      <img src="/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png" alt="SM" className="h-16 w-auto mb-4" />
+                      <h3 className="text-xl font-black text-primary tracking-tighter">SM VOLUNTEERS</h3>
+                    </div>
+                    <nav className="flex flex-col gap-4">
+                      {[
+                        { label: 'Home', id: 'top' },
+                        { label: 'About', id: 'about-section' },
+                        { label: 'Events', id: 'events-section' },
+                        { label: 'Awards', id: 'awards-section' },
+                        { label: 'Team', id: 'office-bearers-section' },
+                        { label: 'Coordinators', id: 'coordinators-section' },
+                        { label: 'NGO', id: 'ngo-section' },
+                        { label: 'Contacts', id: 'contact-section' },
+                        { label: 'Login', id: 'login' },
+                      ].map((item) => (
+                        <button
+                          key={item.label}
+                          onClick={() => {
+                            if (item.id === 'top') {
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            } else if (item.id === 'login') {
+                              window.location.href = '/login';
+                            } else {
+                              document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                          }}
+                          className="flex items-center text-lg font-bold text-slate-300 hover:text-primary py-2 transition-all uppercase tracking-widest text-left"
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </nav>
+                  </div>
+                </SheetContent>
+              </Sheet>
             </div>
-          </>
-        ) : isLandingPage ? (
-          /* Landing Page when Logged In */
-          <>
-            <div className="flex flex-row items-center justify-between gap-4 px-4 py-8 md:px-10 overflow-x-auto">
-              <button
-                onClick={() => window.location.reload()}
-                className="hover:opacity-100 transition-opacity cursor-pointer relative group shrink-0 [perspective:1000px]"
+
+            {/* KSRCT Logo (Right) */}
+            <div className="shrink-0">
+              <a
+                href="https://ksrct.ac.in"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:opacity-100 transition-opacity cursor-pointer block relative group"
               >
                 <div className="absolute -inset-2 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
                 <motion.div className="relative z-10">
                   <img
-                    src="/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
-                    alt="SM Volunteers Logo"
-                    className="h-16 md:h-24 w-auto object-contain"
+                    src="/images/Brand_logo.png"
+                    alt="KSRCT Brand Logo"
+                    className="h-12 md:h-24 w-auto object-contain"
                   />
                   <div className="absolute inset-0 rounded-full bg-primary/5 blur-md -z-10 animate-pulse"></div>
                 </motion.div>
-              </button>
-
-              <nav className="flex items-center justify-center gap-1 md:gap-2 flex-grow max-w-7xl overflow-hidden px-2">
-                {[
-                  { label: 'Home', id: 'top' },
-                  { label: 'About', id: 'about-section' },
-                  { label: 'Events', id: 'events-section' },
-                  { label: 'Awards', id: 'awards-section' },
-                  { label: 'Team', id: 'office-bearers-section' },
-                  { label: 'Coordinators', id: 'coordinators-section' },
-                  { label: 'NGO', id: 'ngo-section' },
-                  { label: 'Contacts', id: 'contact-section' },
-                ].map((item) => (
-                  <button
-                    key={item.label}
-                    onClick={(e) => {
-                      if (item.id === 'top') {
-                        window.location.reload();
-                      } else {
-                        const element = document.getElementById(item.id);
-                        if (element) {
-                          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }
-                      }
-                    }}
-                    className="whitespace-nowrap text-xs md:text-sm font-bold text-slate-300 hover:text-white hover:bg-white/10 px-3 md:px-4 py-2 rounded-lg transition-all uppercase tracking-tight"
-                  >
-                    {item.label}
-                  </button>
-                ))}
-                <Button
-                  onClick={handleLogout}
-                  className="whitespace-nowrap text-xs md:text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white px-3 md:px-4 py-2 rounded-lg transition-all uppercase tracking-tight"
-                >
-                  Logout
-                </Button>
-              </nav>
-
-              <div className="shrink-0 [perspective:1000px]">
-                <a
-                  href="https://ksrct.ac.in"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:opacity-100 transition-opacity cursor-pointer block relative group"
-                >
-                  <div className="absolute -inset-2 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
-                  <motion.div className="relative z-10">
-                    <img
-                      src="/images/Brand_logo.png"
-                      alt="KSRCT Brand Logo"
-                      className="h-16 md:h-24 w-auto object-contain"
-                    />
-                    <div className="absolute inset-0 rounded-full bg-primary/5 blur-md -z-10 animate-pulse"></div>
-                  </motion.div>
-                </a>
-              </div>
+              </a>
             </div>
-          </>
+          </div>
+        ) : isLandingPage ? (
+          /* Landing Page when Logged In */
+          <div className="flex flex-row items-center justify-between gap-4 py-4 md:py-8 md:px-10">
+            <button
+              onClick={() => window.location.reload()}
+              className="hover:opacity-100 transition-opacity cursor-pointer relative group shrink-0"
+            >
+              <div className="absolute -inset-2 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
+              <motion.div className="relative z-10">
+                <img
+                  src="/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
+                  alt="SM Volunteers Logo"
+                  className="h-12 md:h-24 w-auto object-contain"
+                />
+              </motion.div>
+            </button>
+
+            <nav className="hidden md:flex items-center justify-center gap-2 flex-grow max-w-7xl overflow-hidden px-2">
+              {[
+                { label: 'Home', id: 'top' },
+                { label: 'About', id: 'about-section' },
+                { label: 'Events', id: 'events-section' },
+                { label: 'Awards', id: 'awards-section' },
+                { label: 'Team', id: 'office-bearers-section' },
+                { label: 'Coordinators', id: 'coordinators-section' },
+                { label: 'NGO', id: 'ngo-section' },
+                { label: 'Contacts', id: 'contact-section' },
+              ].map((item) => (
+                <button
+                  key={item.label}
+                  onClick={() => {
+                    if (item.id === 'top') {
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    } else {
+                      document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }}
+                  className="whitespace-nowrap text-xs md:text-sm font-bold text-slate-300 hover:text-white hover:bg-white/10 px-4 py-2 rounded-lg transition-all uppercase tracking-tight"
+                >
+                  {item.label}
+                </button>
+              ))}
+              <Button
+                onClick={handleLogout}
+                className="whitespace-nowrap text-xs md:text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg transition-all uppercase tracking-tight ml-2"
+              >
+                Logout
+              </Button>
+            </nav>
+
+            <div className="md:hidden flex items-center gap-2">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-white">
+                    <Menu className="h-6 w-6" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="bg-[#020617] border-slate-800 text-white p-0 w-72">
+                  <div className="flex flex-col h-full pt-20 px-6">
+                    <nav className="flex flex-col gap-4">
+                      {[
+                        { label: 'Home', id: 'top' },
+                        { label: 'About', id: 'about-section' },
+                        { label: 'Events', id: 'events-section' },
+                        { label: 'Awards', id: 'awards-section' },
+                        { label: 'Team', id: 'office-bearers-section' },
+                        { label: 'Coordinators', id: 'coordinators-section' },
+                        { label: 'NGO', id: 'ngo-section' },
+                        { label: 'Contacts', id: 'contact-section' },
+                      ].map((item) => (
+                        <button
+                          key={item.label}
+                          onClick={() => {
+                            if (item.id === 'top') {
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            } else {
+                              document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                          }}
+                          className="flex items-center text-lg font-bold text-slate-300 hover:text-primary py-2 transition-all uppercase tracking-widest text-left"
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                      <Button
+                        onClick={handleLogout}
+                        className="mt-4 bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 uppercase tracking-widest rounded-xl"
+                      >
+                        Logout
+                      </Button>
+                    </nav>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+
+            <div className="shrink-0">
+              <a
+                href="https://ksrct.ac.in"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:opacity-100 transition-opacity cursor-pointer block relative group"
+              >
+                <div className="absolute -inset-2 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
+                <motion.div className="relative z-10">
+                  <img
+                    src="/images/Brand_logo.png"
+                    alt="KSRCT Brand Logo"
+                    className="h-12 md:h-24 w-auto object-contain"
+                  />
+                </motion.div>
+              </a>
+            </div>
+          </div>
         ) : (
           /* Dashboard Layout (Single Row) */
           <div className="flex h-16 items-center px-4 md:px-6">
