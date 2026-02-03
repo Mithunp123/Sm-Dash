@@ -2,6 +2,8 @@ import express from 'express';
 import { getDatabase } from '../database/init.js';
 import { authenticateToken, requireRole, requirePermission } from '../middleware/auth.js';
 import { body, validationResult } from 'express-validator';
+import { logActivity } from '../utils/logger.js';
+
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -83,7 +85,7 @@ router.get('/', authenticateToken, requirePermission('can_manage_bills', { allow
     // Attach itemized entries for each bill (include transport from/to fields)
     for (const bill of bills) {
       try {
-        const items = await all(db, 'SELECT id, category, description, amount, from_loc as from, to_loc as to FROM bill_items WHERE bill_id = ?', [bill.id]);
+        const items = await all(db, 'SELECT id, category, description, amount, from_loc as `from`, to_loc as `to` FROM bill_items WHERE bill_id = ?', [bill.id]);
         bill.items = items || [];
       } catch (e) {
         bill.items = [];
@@ -133,6 +135,13 @@ router.post('/', authenticateToken, requirePermission('can_manage_bills', { requ
         await run(db, 'INSERT INTO bill_items (bill_id, category, description, amount, from_loc, to_loc) VALUES (?, ?, ?, ?, ?, ?)', [result.lastID, it.category || 'other', it.description || null, parseFloat(it.amount) || 0, fromLoc, toLoc]);
       }
     }
+
+    await logActivity(req.user.id, 'CREATE_BILL', { title, amount: totalAmount }, req, {
+      action_type: 'CREATE',
+      module_name: 'bills',
+      action_description: `Submitted bill: ${title} (Amount: ${totalAmount})`,
+      reference_id: result.lastID
+    });
 
     res.json({ success: true, message: 'Bill submitted successfully', id: result.lastID });
   } catch (error) {
@@ -199,6 +208,13 @@ router.put('/:id', authenticateToken, requirePermission('can_manage_bills', { re
 
     await run(db, `UPDATE bills SET ${updates.join(', ')} WHERE id = ?`, params);
 
+    await logActivity(req.user.id, 'UPDATE_BILL', { id: req.params.id, updates: req.body }, req, {
+      action_type: 'UPDATE',
+      module_name: 'bills',
+      action_description: `Updated bill: ${bill.title}`,
+      reference_id: req.params.id
+    });
+
     res.json({ success: true, message: 'Bill updated successfully' });
   } catch (error) {
     console.error('Update bill error:', error);
@@ -228,6 +244,13 @@ router.put('/:id/approve', authenticateToken, requirePermission('can_manage_bill
       [req.body.status, req.user.id, req.params.id]
     );
 
+    await logActivity(req.user.id, 'APPROVE_BILL', { id: req.params.id, status: req.body.status }, req, {
+      action_type: 'UPDATE',
+      module_name: 'bills',
+      action_description: `${req.body.status === 'approved' ? 'Approved' : 'Rejected'} bill: ${bill.title}`,
+      reference_id: req.params.id
+    });
+
     res.json({ success: true, message: `Bill ${req.body.status} successfully` });
   } catch (error) {
     console.error('Approve bill error:', error);
@@ -253,6 +276,13 @@ router.delete('/:id', authenticateToken, requirePermission('can_manage_bills', {
     // Remove associated items explicitly (foreign key cascade may handle it if enabled)
     await run(db, 'DELETE FROM bill_items WHERE bill_id = ?', [req.params.id]);
     await run(db, 'DELETE FROM bills WHERE id = ?', [req.params.id]);
+
+    await logActivity(req.user.id, 'DELETE_BILL', { id: req.params.id, title: bill.title }, req, {
+      action_type: 'DELETE',
+      module_name: 'bills',
+      action_description: `Deleted bill: ${bill.title}`,
+      reference_id: req.params.id
+    });
 
     res.json({ success: true, message: 'Bill deleted successfully' });
   } catch (error) {

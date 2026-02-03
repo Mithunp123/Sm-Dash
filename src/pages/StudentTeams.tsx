@@ -446,7 +446,7 @@ const StudentTeams = () => {
 
 
       <main className="flex-1 overflow-y-auto p-6 bg-transparent">
-        <div className="max-w-7xl mx-auto">
+        <div className="w-full px-4 md:px-6 lg:px-8">
 
           {/* Hero Header Section */}
           <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">

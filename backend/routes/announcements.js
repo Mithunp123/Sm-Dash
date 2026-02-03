@@ -1,6 +1,8 @@
 import express from 'express';
 import { getDatabase } from '../database/init.js';
 import { authenticateToken, requireRole, requirePermission } from '../middleware/auth.js';
+import { logActivity } from '../utils/logger.js';
+
 
 const router = express.Router();
 
@@ -60,6 +62,13 @@ router.post('/', authenticateToken, async (req, res) => {
             [title, content, priority || 'normal', userId, linkUrl || null, imageUrl || null, deadline || null]
         );
 
+        await logActivity(userId, 'CREATE_ANNOUNCEMENT', { title }, req, {
+            action_type: 'CREATE',
+            module_name: 'announcements',
+            action_description: `Created announcement: ${title}`,
+            reference_id: result.lastID
+        });
+
         res.json({ success: true, message: 'Announcement created successfully', id: result.lastID });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -72,6 +81,14 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     const db = getDatabase();
     try {
         await run(db, 'UPDATE announcements SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', [id]);
+
+        await logActivity(req.user.id, 'DELETE_ANNOUNCEMENT', { id }, req, {
+            action_type: 'DELETE',
+            module_name: 'announcements',
+            action_description: `Deleted announcement ID: ${id}`,
+            reference_id: id
+        });
+
         res.json({ success: true, message: 'Announcement deleted successfully' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

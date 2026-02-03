@@ -279,12 +279,13 @@ const LandingPage = () => {
         </div>
       );
     }
+    const showMarquee = announcements.length > 3;
 
     return (
-      <div className="w-full bg-primary/10 border-b border-primary/20 py-2 relative overflow-hidden whitespace-nowrap z-50">
-        <div className="inline-block animate-marquee hover:pause whitespace-nowrap px-4">
-          <div className="flex gap-12 items-center">
-            {[...announcements, ...announcements].map((a, i) => (
+      <div className="w-full bg-primary/10 border-b border-primary/20 py-2 relative overflow-hidden z-50">
+        <div className={`px-4 ${showMarquee ? 'inline-block animate-marquee hover:pause whitespace-nowrap' : 'flex justify-center flex-wrap gap-8'}`}>
+          <div className={`${showMarquee ? 'flex gap-12 items-center' : 'flex flex-wrap gap-x-12 gap-y-2 items-center justify-center'}`}>
+            {(showMarquee ? [...announcements, ...announcements] : announcements).map((a, i) => (
               <div key={`${a.id}-${i}`} className="flex items-center gap-3">
                 {a.priority === 'important' && (
                   <span className="relative flex h-2 w-2">
@@ -296,16 +297,25 @@ const LandingPage = () => {
                   {a.title}: <span className="font-medium normal-case tracking-normal opacity-90">{a.content}</span>
                 </span>
                 {a.link_url && (
-                  <a
-                    href={a.link_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ml-1 px-3 py-1 bg-primary text-white text-[9px] rounded-full font-black hover:bg-primary/80 transition-all transform hover:scale-110 shadow-lg"
-                  >
-                    GO TO LINK
-                  </a>
+                  a.link_url.startsWith('http') ? (
+                    <a
+                      href={a.link_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-1 px-3 py-1 bg-primary text-white text-[9px] rounded-full font-black hover:bg-primary/80 transition-all transform hover:scale-110 shadow-lg"
+                    >
+                      GO TO LINK
+                    </a>
+                  ) : (
+                    <button
+                      onClick={() => navigate(a.link_url)}
+                      className="ml-1 px-3 py-1 bg-primary text-white text-[9px] rounded-full font-black hover:bg-primary/80 transition-all transform hover:scale-110 shadow-lg"
+                    >
+                      VIEW DETAIL
+                    </button>
+                  )
                 )}
-                <span className="text-muted-foreground/30 px-2">•</span>
+                {showMarquee && <span className="text-muted-foreground/30 px-2">•</span>}
               </div>
             ))}
           </div>
@@ -318,6 +328,7 @@ const LandingPage = () => {
           }
           .animate-marquee {
             display: inline-block;
+            white-space: nowrap;
             animation: marquee 40s linear infinite;
           }
           .animate-marquee:hover {
@@ -411,7 +422,7 @@ const LandingPage = () => {
                 VOLUNTEERS
               </span>
             </motion.h1>
-            <motion.p
+            <motion.div
               variants={fadeInUp}
               className="relative px-6 py-4"
             >
@@ -427,7 +438,7 @@ const LandingPage = () => {
                 transition={{ duration: 1.5, delay: 0.8 }}
                 className="h-1 bg-gradient-to-r from-transparent via-orange-500 to-transparent mx-auto mt-6 rounded-full"
               />
-            </motion.p>
+            </motion.div>
 
             {/* CTA Buttons - Removed for cleaner look matching image */}
             <motion.div
@@ -741,7 +752,7 @@ const LandingPage = () => {
                   }
                 }}
               >
-                {[...awards, ...awards].map((award, index) => (
+                {awards.map((award, index) => (
                   <div key={`${award.id}-${index}`} className="flex-shrink-0 w-[320px]">
                     <AwardCard
                       award={award}
@@ -1016,7 +1027,7 @@ const LandingPage = () => {
                     <div className="h-[75%] relative overflow-hidden bg-slate-900">
                       {ob.photo_url ? (
                         <img
-                          src={`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${ob.photo_url}`}
+                          src={buildImageUrl(ob.photo_url) || '/Images/Brand_logo.png'}
                           alt={ob.name}
                           className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
                           onError={(e) => {
@@ -1235,6 +1246,9 @@ const LandingPage = () => {
         <DialogContent className="max-w-lg bg-card border-border">
           <DialogHeader>
             <DialogTitle className="text-foreground">Contact Admin</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Send a message to the SM Volunteers administrative team.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -1289,6 +1303,9 @@ const LandingPage = () => {
               <div className="sticky top-0 bg-background/95 backdrop-blur border-b border-border p-6 z-10 shadow-sm flex justify-between items-start">
                 <div>
                   <DialogTitle className="text-2xl font-bold text-foreground mb-1">{selectedEventImage.title}</DialogTitle>
+                  <DialogDescription className="sr-only">
+                    Full details and registration for {selectedEventImage.title}
+                  </DialogDescription>
                   <p className="text-muted-foreground flex items-center gap-2 text-sm">
                     <Calendar className="w-4 h-4" />
                     {format(new Date(selectedEventImage.date), "EEEE, MMMM do, yyyy")}

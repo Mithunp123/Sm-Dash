@@ -13,6 +13,7 @@ import { api } from "@/lib/api";
 import { toast } from "sonner";
 import DeveloperCredit from "@/components/DeveloperCredit";
 import { BackButton } from "@/components/BackButton";
+import { buildImageUrl } from "@/utils/imageUtils";
 
 interface Event {
   id: number;
@@ -201,7 +202,7 @@ const StudentEvents = () => {
       <DeveloperCredit />
 
       <div className="flex-1 p-6">
-        <div className="max-w-7xl mx-auto">
+        <div className="w-full px-4 md:px-6 lg:px-8">
           <div className="flex items-center gap-4 mb-6">
             <BackButton />
             <div>
@@ -236,7 +237,7 @@ const StudentEvents = () => {
                       {event.image_url && (
                         <div className="h-48 overflow-hidden relative">
                           <img
-                            src={event.image_url}
+                            src={buildImageUrl(event.image_url) || '/Images/Brand_logo.png'}
                             alt={event.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
@@ -340,7 +341,7 @@ const StudentEvents = () => {
                       {event.image_url && (
                         <div className="h-48 overflow-hidden">
                           <img
-                            src={event.image_url}
+                            src={buildImageUrl(event.image_url) || '/Images/Brand_logo.png'}
                             alt={event.title}
                             className="w-full h-full object-cover"
                           />

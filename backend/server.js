@@ -26,6 +26,8 @@ import phoneMentoringRoutes from './routes/phoneMentoring.js';
 import spocRoutes from './routes/spoc.js';
 import officeBearersRoutes from './routes/office_bearers.js';
 import announcementRoutes from './routes/announcements.js';
+import activityRoutes from './routes/activity.js';
+import messageRoutes from './routes/messages.js';
 import { initDatabase } from './database/init.js';
 
 // Load .env from backend directory first, then fallback to root directory
@@ -34,14 +36,13 @@ dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+let server;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Initialize database
-initDatabase();
 
 // Serve uploaded files (photos, resources, etc.) from public/uploads
 app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
@@ -100,6 +101,7 @@ app.use('/api/bills', billRoutes);
 app.use('/api/time', timeRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/messages', messageRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/awards', awardsRoutes);
 app.use('/api/ngo', ngoRoutes);
@@ -110,6 +112,7 @@ app.use('/api/phone-mentoring', phoneMentoringRoutes);
 app.use('/api/spoc', spocRoutes);
 app.use('/api/office-bearers', officeBearersRoutes);
 app.use('/api/announcements', announcementRoutes);
+app.use('/api/activity', activityRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -126,28 +129,39 @@ app.use((err, req, res, next) => {
   });
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`🚀 SM Volunteers API server running on port ${PORT}`);
-  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-}).on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`❌ Port ${PORT} is already in use. Please stop the other process or change the PORT in .env`);
-    console.error(`   To find and kill the process: Get-NetTCPConnection -LocalPort ${PORT} | Select-Object -ExpandProperty OwningProcess | Stop-Process -Force`);
-    console.error(`   Or wait a few seconds for lingering connections to clear...`);
-    // Don't exit immediately - let nodemon retry after a delay
-    setTimeout(() => {
-      process.exit(1);
-    }, 2000);
-  } else {
-    console.error('❌ Server error:', err);
+// Initialize database and start server
+const startServer = async () => {
+  try {
+    await initDatabase();
+
+    // Start server only after database is ready
+    server = app.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    }).on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${PORT} is already in use.`);
+        console.error('   Please stop the existing server or change the PORT in .env');
+        process.exit(1);
+      } else {
+        console.error('❌ Server startup error:', err);
+        process.exit(1);
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Failed to initialize database:', error);
     process.exit(1);
   }
-});
+};
+
+startServer();
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM signal received: closing HTTP server');
-  server.close(() => {
-    console.log('HTTP server closed');
-  });
+  if (server) {
+    server.close(() => {
+      console.log('HTTP server closed');
+    });
+  }
 });

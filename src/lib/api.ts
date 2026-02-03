@@ -797,6 +797,28 @@ class ApiClient {
     });
   }
 
+  // Chat message methods
+  async getConversations() {
+    return this.request('/messages/conversations');
+  }
+
+  async getMessageHistory(contactId: number) {
+    return this.request(`/messages/history/${contactId}`);
+  }
+
+  async sendChatMessage(payload: { recipientId: number; message: string; replyToId?: number }) {
+    return this.request('/messages/send', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async deleteChatMessage(messageId: number) {
+    return this.request(`/messages/${messageId}`, {
+      method: 'DELETE'
+    });
+  }
+
   // Announcement endpoints
   async getAnnouncements() {
     // Landing page ticker needs this publicly occasionally, but for now we'll use authenticated req
@@ -1259,6 +1281,23 @@ class ApiClient {
   async logout() {
     this.setToken(null);
     sessionStorage.removeItem('auth_user');
+  }
+  async uploadPhoto(formData: FormData) {
+    const url = `${this.baseURL}/upload/photo`;
+    const headers: HeadersInit = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+      headers
+    });
+    const data = await response.json().catch(() => ({ success: false, message: 'Invalid server response' }));
+    if (!response.ok) {
+      throw new Error(data.message || `Upload failed with status ${response.status}`);
+    }
+    return data;
   }
 }
 

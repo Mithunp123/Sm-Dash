@@ -4,6 +4,8 @@ import path from 'path';
 import fs from 'fs';
 import { getDatabase } from '../database/init.js';
 import { authenticateToken, requireRole, requirePermission } from '../middleware/auth.js';
+import { logActivity } from '../utils/logger.js';
+
 
 const router = express.Router();
 
@@ -273,12 +275,22 @@ router.get('/:id/members', authenticateToken, requirePermission('can_manage_even
     const db = getDatabase();
     const { id } = req.params;
     db.all(
-      `SELECT em.id, em.event_id, em.user_id, u.name as user_name, u.email as user_email, em.joined_at
+      `SELECT em.user_id, u.name as user_name, u.email as user_email, p.dept as department, p.year, p.photo_url, em.joined_at, 'assigned' as source
        FROM event_members em
        JOIN users u ON em.user_id = u.id
+       LEFT JOIN profiles p ON u.id = p.user_id
        WHERE em.event_id = ?
-       ORDER BY u.name`,
-      [id],
+       
+       UNION
+       
+       SELECT er.user_id, u.name as user_name, u.email as user_email, p.dept as department, p.year, p.photo_url, er.registered_at as joined_at, 'registered' as source
+       FROM event_registrations er
+       JOIN users u ON er.user_id = u.id
+       LEFT JOIN profiles p ON u.id = p.user_id
+       WHERE er.event_id = ?
+       
+       ORDER BY user_name`,
+      [id, id],
       (err, rows) => {
         if (err) return res.status(500).json({ success: false, message: 'Database error', error: err.message });
         res.json({ success: true, members: rows });
@@ -398,10 +410,16 @@ router.post('/:eventId/od', authenticateToken, requirePermission('can_manage_eve
         db.run(
           'UPDATE event_od SET status = ? WHERE event_id = ? AND user_id = ?',
           [status, eventId, userId],
-          function (err) {
+          async function (err) {
             if (err) {
               return res.status(500).json({ success: false, message: 'Failed to update OD', error: err.message });
             }
+            await logActivity(req.user.id, 'MARK_OD', { eventId, userId, status }, req, {
+              action_type: 'UPDATE',
+              module_name: 'events',
+              action_description: `Updated OD status for user ${userId} to ${status}`,
+              reference_id: eventId
+            });
             res.json({ success: true, message: 'OD status updated successfully' });
           }
         );
@@ -410,10 +428,16 @@ router.post('/:eventId/od', authenticateToken, requirePermission('can_manage_eve
         db.run(
           'INSERT INTO event_od (event_id, user_id, status) VALUES (?, ?, ?)',
           [eventId, userId, status],
-          function (err) {
+          async function (err) {
             if (err) {
               return res.status(500).json({ success: false, message: 'Failed to mark OD', error: err.message });
             }
+            await logActivity(req.user.id, 'MARK_OD', { eventId, userId, status }, req, {
+              action_type: 'CREATE',
+              module_name: 'events',
+              action_description: `Marked OD status for user ${userId} as ${status}`,
+              reference_id: eventId
+            });
             res.json({ success: true, message: 'OD marked successfully' });
           }
         );
@@ -595,7 +619,7 @@ router.post('/', authenticateToken, requirePermission('can_manage_events', { req
       `INSERT INTO events (title, description, date, year, is_special_day, image_url, max_volunteers, volunteer_registration_deadline, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
       [title, description || null, date, year, is_special_day ? 1 : 0, finalImageUrl, max_volunteers || null, volunteer_registration_deadline || null],
-      function (err) {
+      async function (err) {
         if (err) {
           // Clean up uploaded file on error
           if (req.file) {
@@ -603,6 +627,12 @@ router.post('/', authenticateToken, requirePermission('can_manage_events', { req
           }
           return res.status(500).json({ success: false, message: 'Failed to create event', error: err.message });
         }
+        await logActivity(req.user.id, 'CREATE_EVENT', { title, date }, req, {
+          action_type: 'CREATE',
+          module_name: 'events',
+          action_description: `Created event: ${title}`,
+          reference_id: this.lastID
+        });
         res.json({ success: true, id: this.lastID, message: 'Event created successfully' });
       }
     );
@@ -651,7 +681,7 @@ router.put('/:id', authenticateToken, requirePermission('can_manage_events', { r
       `UPDATE events SET title = ?, description = ?, date = ?, year = ?, is_special_day = ?, image_url = ?, max_volunteers = ?, volunteer_registration_deadline = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`,
       [title, description, date, year, is_special_day ? 1 : 0, finalImageUrl, max_volunteers || null, volunteer_registration_deadline || null, id],
-      function (err) {
+      async function (err) {
         if (err) {
           // Clean up uploaded file on error
           if (req.file) {
@@ -666,6 +696,12 @@ router.put('/:id', authenticateToken, requirePermission('can_manage_events', { r
           }
           return res.status(404).json({ success: false, message: 'Event not found' });
         }
+        await logActivity(req.user.id, 'UPDATE_EVENT', { id, title }, req, {
+          action_type: 'UPDATE',
+          module_name: 'events',
+          action_description: `Updated event: ${title}`,
+          reference_id: id
+        });
         res.json({ success: true, message: 'Event updated successfully' });
       }
     );
@@ -684,7 +720,7 @@ router.delete('/:id', authenticateToken, requirePermission('can_manage_events', 
     const db = getDatabase();
     const { id } = req.params;
 
-    db.run('DELETE FROM events WHERE id = ?', [id], function (err) {
+    db.run('DELETE FROM events WHERE id = ?', [id], async function (err) {
       if (err) {
         return res.status(500).json({ success: false, message: 'Failed to delete event', error: err.message });
       }
@@ -696,6 +732,12 @@ router.delete('/:id', authenticateToken, requirePermission('can_manage_events', 
         if (err) {
           console.error('Error deleting OD records:', err);
         }
+      });
+      await logActivity(req.user.id, 'DELETE_EVENT', { id }, req, {
+        action_type: 'DELETE',
+        module_name: 'events',
+        action_description: `Deleted event ID: ${id}`,
+        reference_id: id
       });
       res.json({ success: true, message: 'Event deleted successfully' });
     });
@@ -743,7 +785,12 @@ router.post('/:id/volunteers', async (req, res) => {
     // Check if volunteer count limit reached
     if (event.max_volunteers) {
       const currentCount = await new Promise((resolve, reject) => {
-        db.get('SELECT COUNT(*) as count FROM event_volunteers WHERE event_id = ?', [id], (err, row) => {
+        // Count both external volunteers and internal registrations
+        db.get(`
+          SELECT 
+            (SELECT COUNT(*) FROM event_volunteers WHERE event_id = ?) +
+            (SELECT COUNT(*) FROM event_registrations WHERE event_id = ?) as count
+        `, [id, id], (err, row) => {
           if (err) reject(err);
           else resolve(row?.count || 0);
         });
@@ -822,11 +869,18 @@ router.get('/:id/volunteers', authenticateToken, requireRole('admin', 'office_be
       return res.status(404).json({ success: false, message: 'Event not found' });
     }
 
-    // Get all volunteers for this event
+    // Get all volunteers for this event (both external and internal)
     const volunteers = await new Promise((resolve, reject) => {
       db.all(
-        'SELECT id, name, department, year, phone, created_at FROM event_volunteers WHERE event_id = ? ORDER BY created_at DESC',
-        [id],
+        `SELECT id, name, department, year, phone, created_at, 'external' as source, NULL as photo_url FROM event_volunteers WHERE event_id = ?
+         UNION
+         SELECT er.id, u.name, p.dept as department, p.year, p.phone, er.registered_at as created_at, 'internal' as source, p.photo_url
+         FROM event_registrations er
+         JOIN users u ON er.user_id = u.id
+         LEFT JOIN profiles p ON u.id = p.user_id
+         WHERE er.event_id = ? AND er.registration_type = 'volunteer'
+         ORDER BY created_at DESC`,
+        [id, id],
         (err, rows) => {
           if (err) reject(err);
           else resolve(rows || []);
@@ -1071,12 +1125,13 @@ router.get('/:id/registrations', authenticateToken, async (req, res) => {
           u.id as user_id,
           u.name,
           u.email,
-          sp.dept as department,
-          sp.year,
-          sp.phone
+          p.dept as department,
+          p.year,
+          p.phone,
+          p.photo_url
         FROM event_registrations er
         JOIN users u ON er.user_id = u.id
-        LEFT JOIN student_profiles sp ON u.id = sp.user_id
+        LEFT JOIN profiles p ON u.id = p.user_id
         WHERE er.event_id = ?
         ORDER BY er.registered_at DESC`,
         [id],

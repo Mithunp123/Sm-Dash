@@ -1,6 +1,8 @@
 import jwt from 'jsonwebtoken';
 import { getDatabase } from '../database/init.js';
 import { promisify } from 'util';
+import { logActivity } from '../utils/logger.js';
+
 
 const get = (db, query, params = []) => {
   return new Promise((resolve, reject) => {
@@ -46,6 +48,11 @@ export const requireRole = (...roles) => {
     }
 
     if (!roles.includes(req.user.role)) {
+      logActivity(req.user.id, 'UNAUTHORIZED_ACCESS', { path: req.originalUrl || req.path, requiredRoles: roles, userRole: req.user.role }, req, {
+        action_type: 'SECURITY',
+        module_name: 'auth',
+        action_description: `Unauthorized access attempt to ${req.originalUrl || req.path}`
+      });
       return res.status(403).json({ success: false, message: 'Insufficient permissions' });
     }
 

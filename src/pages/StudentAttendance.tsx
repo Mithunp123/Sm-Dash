@@ -292,7 +292,7 @@ const StudentAttendance = () => {
       <div className="w-full p-4 md:p-8">
         {/* Back Button */}
         <div className="mb-4">
-          <div className="max-w-7xl mx-auto space-y-8">
+          <div className="w-full px-4 md:px-6 lg:px-8 space-y-8">
             {/* Header */}
             <div className="flex flex-col gap-2">
               <div className="mb-2">

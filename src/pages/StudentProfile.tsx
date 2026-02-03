@@ -11,6 +11,8 @@ import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { buildImageUrl } from "@/utils/imageUtils";
+
 // Common departments list
 const DEPARTMENTS = [
   "Artificial Intelligence and Data Science",
@@ -54,80 +56,82 @@ const StudentProfile = () => {
     return age;
   }, [profileData.dob]);
 
-  // Load profile picture from localStorage
+  // Load profile picture
   useEffect(() => {
     const user = auth.getUser();
     if (user?.id) {
-      const savedPhoto = localStorage.getItem(`profile_photo_${user.id}`);
-      if (savedPhoto) {
-        setProfilePicture(savedPhoto);
-        // Also sync to auth user if not already there
-        if (!user.photo_url) {
-          auth.setUser({ ...user, photo_url: savedPhoto });
-          window.dispatchEvent(new CustomEvent('profileUpdated'));
-        }
+      if (user.photo_url) {
+        setProfilePicture(user.photo_url);
       }
     }
   }, []);
 
   // Handle profile picture upload
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Check file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         toast.error('File size must be less than 5MB');
         return;
       }
 
-      // Check file type
       if (!file.type.startsWith('image/')) {
         toast.error('Please upload an image file');
         return;
       }
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
+      try {
         const user = auth.getUser();
-        if (user?.id) {
-          localStorage.setItem(`profile_photo_${user.id}`, base64String);
-          setProfilePicture(base64String);
+        if (!user?.id) return;
 
-          // Update global auth user with new photo
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('userId', user.id.toString());
+
+        const res = await api.uploadPhoto(formData);
+        if (res.success && res.photoUrl) {
+          // Update profile in DB with new photo URL
+          await api.updateStudentProfile(user.id, { photo: res.photoUrl });
+
+          setProfilePicture(res.photoUrl);
+
+          // Update global auth user
           auth.setUser({
             ...user,
-            photo_url: base64String
+            photo_url: res.photoUrl
           });
 
-          // Refresh other components
           window.dispatchEvent(new CustomEvent('profileUpdated'));
-
           toast.success('Profile picture updated!');
+        } else {
+          throw new Error(res.message || 'Upload failed');
         }
-      };
-      reader.readAsDataURL(file);
+      } catch (err: any) {
+        console.error('Photo upload error:', err);
+        toast.error('Failed to upload photo: ' + err.message);
+      }
     }
   };
 
   // Handle profile picture delete
-  const handlePhotoDelete = () => {
+  const handlePhotoDelete = async () => {
     const user = auth.getUser();
     if (user?.id) {
-      localStorage.removeItem(`profile_photo_${user.id}`);
-      setProfilePicture(null);
+      try {
+        await api.updateStudentProfile(user.id, { photo: null });
+        setProfilePicture(null);
 
-      // Update global auth user - remove photo
-      auth.setUser({
-        ...user,
-        photo_url: undefined
-      });
+        auth.setUser({
+          ...user,
+          photo_url: undefined
+        });
 
-      // Refresh other components
-      window.dispatchEvent(new CustomEvent('profileUpdated'));
-
-      setShowDeleteConfirm(false);
-      toast.success('Profile picture removed');
+        window.dispatchEvent(new CustomEvent('profileUpdated'));
+        setShowDeleteConfirm(false);
+        toast.success('Profile picture removed');
+      } catch (err) {
+        toast.error('Failed to remove photo');
+      }
     }
   };
 
@@ -365,7 +369,7 @@ const StudentProfile = () => {
                   {/* Avatar with initials or uploaded photo */}
                   {profilePicture ? (
                     <img
-                      src={profilePicture}
+                      src={buildImageUrl(profilePicture)}
                       alt="Profile"
                       className="w-full h-full object-cover"
                     />

@@ -1,4 +1,5 @@
 import sqlite3 from 'sqlite3';
+import mysql from 'mysql2/promise';
 import { promisify } from 'util';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -15,7 +16,70 @@ const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../database/sm_volu
 let db;
 
 export const getDatabase = () => {
-  if (!db) {
+  if (db) return db;
+
+  if (process.env.DB_TYPE === 'mysql') {
+    db = mysql.createPool({
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0
+    });
+
+    // Attach SQLite-compatible wrappers to the MySQL pool
+    db.run = async function (query, params, callback) {
+      const actualParams = typeof params === 'function' ? [] : (params || []);
+      const actualCallback = typeof params === 'function' ? params : callback;
+      try {
+        const result = await run(this, query, actualParams);
+        if (actualCallback) actualCallback.call({ lastID: result.lastID, changes: result.changes }, null);
+        return result;
+      } catch (err) {
+        if (actualCallback) actualCallback(err);
+        else throw err;
+      }
+    };
+
+    db.get = async function (query, params, callback) {
+      const actualParams = typeof params === 'function' ? [] : (params || []);
+      const actualCallback = typeof params === 'function' ? params : callback;
+      try {
+        const result = await get(this, query, actualParams);
+        if (actualCallback) actualCallback(null, result);
+        return result;
+      } catch (err) {
+        if (actualCallback) actualCallback(err);
+        else throw err;
+      }
+    };
+
+    db.all = async function (query, params, callback) {
+      const actualParams = typeof params === 'function' ? [] : (params || []);
+      const actualCallback = typeof params === 'function' ? params : callback;
+      try {
+        const result = await all(this, query, actualParams);
+        if (actualCallback) actualCallback(null, result);
+        return result;
+      } catch (err) {
+        if (actualCallback) actualCallback(err);
+        else throw err;
+      }
+    };
+
+    // Test connection
+    db.getConnection()
+      .then(conn => {
+        console.log('✅ Connected to MySQL database');
+        conn.release();
+      })
+      .catch(err => {
+        console.error('❌ Error connecting to MySQL database:', err);
+      });
+  } else {
+    // SQLite Fallback
     db = new sqlite3.Database(DB_PATH, (err) => {
       if (err) {
         console.error('Error opening database:', err);
@@ -34,34 +98,193 @@ export const getDatabase = () => {
   return db;
 };
 
-const run = (db, query, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.run(query, params, function (err) {
-      if (err) reject(err);
-      else resolve({ lastID: this.lastID, changes: this.changes });
-    });
+const translateQueryToMySQL = (query) => {
+  let mysqlQuery = query.replace(/AUTOINCREMENT/g, 'AUTO_INCREMENT');
+  mysqlQuery = mysqlQuery.replace(/INSERT OR IGNORE/ig, 'INSERT IGNORE');
+  mysqlQuery = mysqlQuery.replace(/COLLATE NOCASE/ig, '');
+
+  // Handle common reserved keywords in SQLite queries that clash with MySQL identifiers
+  // Only include strictly reserved words that are likely to be used as identifiers
+  const keywords = ['order', 'group', 'user'];
+  keywords.forEach(keyword => {
+    // Escape keywords with backticks, but only if:
+    // 1. Not followed by ' BY' (to avoid breaking ORDER BY / GROUP BY)
+    // 2. Not followed by a bracket (function call)
+    // 3. Not already quoted with backticks, single quotes or double quotes.
+    const regex = new RegExp(`\\b${keyword}\\b(?!(\\s+by|\\s*\\(|\\s*[\\x60'"]|[\\x60'"]))`, 'ig');
+    mysqlQuery = mysqlQuery.replace(regex, `\`${keyword}\``);
   });
+
+  // Handle strftime to MySQL
+  mysqlQuery = mysqlQuery.replace(/strftime\('%Y',\s*(.*?)\)/ig, 'YEAR($1)');
+  mysqlQuery = mysqlQuery.replace(/strftime\("%Y",\s*(.*?)\)/ig, 'YEAR($1)');
+  mysqlQuery = mysqlQuery.replace(/strftime\('%m',\s*(.*?)\)/ig, 'DATE_FORMAT($1, "%m")');
+  mysqlQuery = mysqlQuery.replace(/strftime\("%m",\s*(.*?)\)/ig, 'DATE_FORMAT($1, "%m")');
+  mysqlQuery = mysqlQuery.replace(/strftime\('%d',\s*(.*?)\)/ig, 'DATE_FORMAT($1, "%d")');
+  mysqlQuery = mysqlQuery.replace(/strftime\("%d",\s*(.*?)\)/ig, 'DATE_FORMAT($1, "%d")');
+
+  // Handle other SQLite functions
+  mysqlQuery = mysqlQuery.replace(/date\('now'\)/ig, 'CURDATE()');
+  mysqlQuery = mysqlQuery.replace(/datetime\('now'\)/ig, 'NOW()');
+
+  // Handle types
+  mysqlQuery = mysqlQuery.replace(/INTEGER PRIMARY KEY AUTO_INCREMENT/g, 'INT PRIMARY KEY AUTO_INCREMENT');
+  mysqlQuery = mysqlQuery.replace(/INTEGER PRIMARY KEY/g, 'INT PRIMARY KEY');
+  mysqlQuery = mysqlQuery.replace(/INTEGER DEFAULT/g, 'INT DEFAULT');
+  mysqlQuery = mysqlQuery.replace(/INTEGER NOT NULL/g, 'INT NOT NULL');
+  mysqlQuery = mysqlQuery.replace(/INTEGER\s+REFERENCES/ig, 'INT REFERENCES');
+  mysqlQuery = mysqlQuery.replace(/INTEGER,/g, 'INT,');
+  mysqlQuery = mysqlQuery.replace(/INTEGER\)/g, 'INT)');
+
+  // Handle TEXT columns - convert to VARCHAR(255) for constrained fields
+  mysqlQuery = mysqlQuery.replace(/TEXT PRIMARY KEY/g, 'VARCHAR(255) PRIMARY KEY');
+  mysqlQuery = mysqlQuery.replace(/TEXT UNIQUE/g, 'VARCHAR(255) UNIQUE');
+  mysqlQuery = mysqlQuery.replace(/TEXT NOT NULL DEFAULT/g, 'VARCHAR(255) NOT NULL DEFAULT');
+  mysqlQuery = mysqlQuery.replace(/TEXT DEFAULT/g, 'VARCHAR(255) DEFAULT');
+  mysqlQuery = mysqlQuery.replace(/TEXT NOT NULL CHECK/g, 'VARCHAR(255) NOT NULL CHECK');
+  mysqlQuery = mysqlQuery.replace(/TEXT CHECK/g, 'VARCHAR(255) CHECK');
+  // Only replace TEXT NOT NULL if it looks like a column definition (preceded by column name and space)
+  // This is a bit risky but usually okay in schema definitions
+  mysqlQuery = mysqlQuery.replace(/(\w+)\s+TEXT NOT NULL/g, '$1 VARCHAR(255) NOT NULL');
+
+  // Handle DATETIME defaults
+  mysqlQuery = mysqlQuery.replace(/DATETIME DEFAULT CURRENT_TIMESTAMP/g, 'DATETIME DEFAULT CURRENT_TIMESTAMP');
+  return mysqlQuery;
 };
 
-const get = (db, query, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.get(query, params, (err, row) => {
-      if (err) reject(err);
-      else resolve(row);
+const run = async (db, query, params = []) => {
+  if (process.env.DB_TYPE === 'mysql') {
+    try {
+      let mysqlQuery = translateQueryToMySQL(query);
+
+      // Format date parameters for MySQL
+      const mysqlParams = params.map(p => {
+        if (p instanceof Date) return p.toISOString().slice(0, 19).replace('T', ' ');
+        if (typeof p === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(p)) return p.slice(0, 19).replace('T', ' ');
+        return p;
+      });
+
+      const [result] = await db.execute(mysqlQuery, mysqlParams);
+      return { lastID: result.insertId, changes: result.affectedRows };
+    } catch (err) {
+      if (err.errno === 1060 || err.errno === 1061 || err.errno === 1062) return { lastID: null, changes: 0 };
+      console.error('MySQL Run Error:', err.message, query);
+      throw err;
+    }
+  } else {
+    return new Promise((resolve, reject) => {
+      db.run(query, params, function (err) {
+        if (err) reject(err);
+        else resolve({ lastID: this.lastID, changes: this.changes });
+      });
     });
-  });
+  }
 };
 
-const all = (db, query, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.all(query, params, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
+const get = async (db, query, params = []) => {
+  if (process.env.DB_TYPE === 'mysql') {
+    try {
+      let mysqlQuery = translateQueryToMySQL(query);
+
+      // Handle SQLite table existence check
+      const tableCheckMatch = mysqlQuery.match(/SELECT name FROM sqlite_master WHERE type='table' AND name='(.*?)'/i);
+      if (tableCheckMatch) {
+        mysqlQuery = `SELECT table_name as name FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = '${tableCheckMatch[1]}'`;
+      }
+
+      const [rows] = await db.execute(mysqlQuery, params);
+      return rows[0];
+    } catch (err) {
+      console.error('MySQL Get Error:', err.message, query);
+      throw err;
+    }
+  } else {
+    return new Promise((resolve, reject) => {
+      db.get(query, params, (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
     });
-  });
+  }
 };
+
+const all = async (db, query, params = []) => {
+  if (process.env.DB_TYPE === 'mysql') {
+    try {
+      let mysqlQuery = translateQueryToMySQL(query);
+      let isTableInfo = false;
+      let isShowCreate = false;
+
+      const tableInfoMatch = mysqlQuery.match(/PRAGMA table_info\((.*?)\)/i);
+      if (tableInfoMatch) {
+        const tableName = tableInfoMatch[1].replace(/['"]/g, '');
+        mysqlQuery = `SHOW COLUMNS FROM ${tableName}`;
+        isTableInfo = true;
+      }
+
+      const schemaMatch = mysqlQuery.match(/SELECT sql FROM sqlite_master WHERE type='table' AND name='(.*?)'/i);
+      if (schemaMatch) {
+        mysqlQuery = `SHOW CREATE TABLE ${schemaMatch[1]}`;
+        isShowCreate = true;
+      }
+
+      const [rows] = await db.execute(mysqlQuery, params);
+
+      if (isTableInfo) return rows.map(r => ({ ...r, name: r.Field }));
+      if (isShowCreate) return rows.map(r => ({ sql: r['Create Table'] }));
+      return rows;
+    } catch (err) {
+      console.error('MySQL All Error:', err.message, query);
+      throw err;
+    }
+  } else {
+    return new Promise((resolve, reject) => {
+      db.all(query, params, (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+  }
+};
+
+const columnExists = async (db, tableName, columnName) => {
+  if (process.env.DB_TYPE === 'mysql') {
+    const query = `
+      SELECT COUNT(*) as count 
+      FROM information_schema.columns 
+      WHERE table_schema = DATABASE() 
+      AND table_name = ? 
+      AND column_name = ?
+    `;
+    const result = await get(db, query, [tableName, columnName]);
+    return result && result.count > 0;
+  } else {
+    // SQLite
+    const cols = await all(db, `PRAGMA table_info(${tableName})`);
+    return cols.some(col => col.name === columnName);
+  }
+};
+
+const addColumnSafe = async (db, tableName, columnName, columnDef) => {
+  try {
+    const exists = await columnExists(db, tableName, columnName);
+    if (!exists) {
+      // In MySQL 8.0+, ADD COLUMN IF NOT EXISTS is supported, but simple ADD COLUMN is safer across versions if we check first
+      await run(db, `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDef}`);
+      // console.log(`   ✅ Added column: ${tableName}.${columnName}`); // Keep logs clean as requested
+    }
+  } catch (err) {
+    // Silent fail if table doesn't exist or other non-critical error
+    // console.warn(`   ⚠️ Warning adding column ${tableName}.${columnName}: ${err.message}`);
+  }
+};
+
+let isInitialized = false;
 
 export const initDatabase = async () => {
+  if (isInitialized) return;
+  isInitialized = true;
+
   const database = getDatabase();
 
   try {
@@ -76,6 +299,7 @@ export const initDatabase = async () => {
       }
     }
 
+    // console.log('Creating: users');
     // Users table
     await run(database, `
       CREATE TABLE IF NOT EXISTS users (
@@ -167,37 +391,12 @@ export const initDatabase = async () => {
     `);
 
     // Add missing columns if they don't exist (migration for existing databases)
-    try {
-      const profileColumns = await all(database, "PRAGMA table_info(profiles)");
-      const columnNames = profileColumns.map((col) => col.name);
-
-      if (!columnNames.includes('photo_url')) {
-        await run(database, `ALTER TABLE profiles ADD COLUMN photo_url TEXT`);
-        console.log('✅ Added photo_url column to profiles table');
-      }
-      if (!columnNames.includes('register_no')) {
-        await run(database, `ALTER TABLE profiles ADD COLUMN register_no TEXT`);
-        console.log('✅ Added register_no column to profiles table');
-      }
-      if (!columnNames.includes('academic_year')) {
-        await run(database, `ALTER TABLE profiles ADD COLUMN academic_year TEXT`);
-        console.log('✅ Added academic_year column to profiles table');
-      }
-      if (!columnNames.includes('father_number')) {
-        await run(database, `ALTER TABLE profiles ADD COLUMN father_number TEXT`);
-        console.log('✅ Added father_number column to profiles table');
-      }
-      if (!columnNames.includes('hosteller_dayscholar')) {
-        await run(database, `ALTER TABLE profiles ADD COLUMN hosteller_dayscholar TEXT`);
-        console.log('✅ Added hosteller_dayscholar column to profiles table');
-      }
-      if (!columnNames.includes('position')) {
-        await run(database, `ALTER TABLE profiles ADD COLUMN position TEXT`);
-        console.log('✅ Added position column to profiles table');
-      }
-    } catch (e) {
-      console.warn('⚠️  Could not check/add columns:', e.message);
-    }
+    await addColumnSafe(database, 'profiles', 'photo_url', 'TEXT');
+    await addColumnSafe(database, 'profiles', 'register_no', 'TEXT');
+    await addColumnSafe(database, 'profiles', 'academic_year', 'TEXT');
+    await addColumnSafe(database, 'profiles', 'father_number', 'TEXT');
+    await addColumnSafe(database, 'profiles', 'hosteller_dayscholar', 'TEXT');
+    await addColumnSafe(database, 'profiles', 'position', 'TEXT');
 
     // Migrate existing role-specific profile data into unified profiles table if profiles is empty
     try {
@@ -227,6 +426,7 @@ export const initDatabase = async () => {
       // ignore migration errors
     }
 
+    // console.log('Creating: meetings');
     // Meetings table
     await run(database, `
       CREATE TABLE IF NOT EXISTS meetings (
@@ -276,16 +476,8 @@ export const initDatabase = async () => {
     `);
 
     // Add image_url and required_calls columns if they don't exist (for existing databases)
-    try {
-      await run(database, `ALTER TABLE projects ADD COLUMN image_url TEXT`);
-    } catch (e) {
-      // Column might already exist, that's okay
-    }
-    try {
-      await run(database, `ALTER TABLE projects ADD COLUMN required_calls INTEGER DEFAULT 0`);
-    } catch (e) {
-      // Column might already exist, that's okay
-    }
+    await addColumnSafe(database, 'projects', 'image_url', 'TEXT');
+    await addColumnSafe(database, 'projects', 'required_calls', 'INTEGER DEFAULT 0');
 
     // Project members table (students assigned to projects)
     await run(database, `
@@ -319,6 +511,24 @@ export const initDatabase = async () => {
       )
     `);
 
+    // Bill folders table
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS bill_folders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        description TEXT,
+        created_by INTEGER,
+        parent_folder_id INTEGER DEFAULT NULL,
+        is_file BOOLEAN DEFAULT 0,
+        file_path TEXT DEFAULT NULL,
+        file_size INTEGER DEFAULT NULL,
+        file_type TEXT DEFAULT NULL,
+        file_name TEXT DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (created_by) REFERENCES users(id)
+      )
+    `);
+
     // Bills table
     await run(database, `
       CREATE TABLE IF NOT EXISTS bills (
@@ -333,10 +543,13 @@ export const initDatabase = async () => {
         status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected')),
         submitted_by INTEGER,
         approved_by INTEGER,
+        folder_id INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (project_id) REFERENCES projects(id),
         FOREIGN KEY (submitted_by) REFERENCES users(id),
-        FOREIGN KEY (approved_by) REFERENCES users(id)
+        FOREIGN KEY (approved_by) REFERENCES users(id),
+        FOREIGN KEY (folder_id) REFERENCES bill_folders(id)
       )
     `);
 
@@ -345,23 +558,32 @@ export const initDatabase = async () => {
       CREATE TABLE IF NOT EXISTS bill_items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         bill_id INTEGER NOT NULL,
-        category TEXT NOT NULL CHECK(category IN ('transport','food','stationary','refreshment','fuel','other')),
+        category TEXT NOT NULL,
         description TEXT,
         amount REAL NOT NULL DEFAULT 0,
+        from_loc TEXT,
+        to_loc TEXT,
         FOREIGN KEY (bill_id) REFERENCES bills(id) ON DELETE CASCADE
       )
     `);
-    // Ensure we have from/to columns for transport items (added later to support transport item details)
-    try {
-      await run(database, `ALTER TABLE bill_items ADD COLUMN from_loc TEXT`);
-    } catch (e) {
-      // ignore if column already exists
-    }
-    try {
-      await run(database, `ALTER TABLE bill_items ADD COLUMN to_loc TEXT`);
-    } catch (e) {
-      // ignore if column already exists
-    }
+
+    // Bill images table
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS bill_images (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        bill_id INTEGER NOT NULL,
+        folder_name TEXT NOT NULL,
+        image_path TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (bill_id) REFERENCES bills(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Ensure we have all necessary columns (Migrations)
+    await addColumnSafe(database, 'bills', 'folder_id', 'INTEGER');
+    await addColumnSafe(database, 'bills', 'updated_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP');
+    await addColumnSafe(database, 'bill_items', 'from_loc', 'TEXT');
+    await addColumnSafe(database, 'bill_items', 'to_loc', 'TEXT');
 
     // Permissions table
     await run(database, `
@@ -420,19 +642,9 @@ export const initDatabase = async () => {
     ];
 
     for (const key of moduleKeys) {
-      try {
-        // add base column if missing (idempotent)
-        await run(database, `ALTER TABLE permissions ADD COLUMN ${key} INTEGER DEFAULT 0`);
-      } catch (err) {
-        // ignore if exists
-      }
-      // add view/edit variants
-      try {
-        await run(database, `ALTER TABLE permissions ADD COLUMN ${key}_view INTEGER DEFAULT 0`);
-      } catch (err) { }
-      try {
-        await run(database, `ALTER TABLE permissions ADD COLUMN ${key}_edit INTEGER DEFAULT 0`);
-      } catch (err) { }
+      await addColumnSafe(database, 'permissions', key, 'INTEGER DEFAULT 0');
+      await addColumnSafe(database, 'permissions', `${key}_view`, 'INTEGER DEFAULT 0');
+      await addColumnSafe(database, 'permissions', `${key}_edit`, 'INTEGER DEFAULT 0');
     }
 
     // Profile field settings - controls whether students can edit specific profile fields
@@ -543,19 +755,22 @@ export const initDatabase = async () => {
     `);
 
     // Add deadline column if it doesn't exist (migration for existing databases)
-    try {
-      await run(database, `ALTER TABLE time_requests ADD COLUMN deadline DATE`);
-    } catch (e) {
-      // Column already exists, ignore
-    }
+    // Add deadline column if it doesn't exist (migration for existing databases)
+    await addColumnSafe(database, 'time_requests', 'deadline', 'DATE');
 
     // Activity logs table
     await run(database, `
       CREATE TABLE IF NOT EXISTS activity_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
+        actor_id INTEGER,
+        actor_role TEXT,
+        action_type TEXT,
+        module_name TEXT,
         action TEXT NOT NULL,
+        action_description TEXT,
         details TEXT,
+        reference_id TEXT,
         ip_address TEXT,
         user_agent TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -563,6 +778,15 @@ export const initDatabase = async () => {
       )
     `);
 
+    // Migration for missing columns
+    await addColumnSafe(database, 'activity_logs', 'actor_id', 'INTEGER');
+    await addColumnSafe(database, 'activity_logs', 'actor_role', 'TEXT');
+    await addColumnSafe(database, 'activity_logs', 'action_type', 'TEXT');
+    await addColumnSafe(database, 'activity_logs', 'module_name', 'TEXT');
+    await addColumnSafe(database, 'activity_logs', 'action_description', 'TEXT');
+    await addColumnSafe(database, 'activity_logs', 'reference_id', 'TEXT');
+
+    // console.log('Creating: feedback_questions');
     // Feedback questions table
     await run(database, `
       CREATE TABLE IF NOT EXISTS feedback_questions (
@@ -646,6 +870,22 @@ export const initDatabase = async () => {
       )
     `);
 
+    // Chat messages table for internal messaging (WhatsApp-style)
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sender_id INTEGER NOT NULL,
+        recipient_id INTEGER NOT NULL,
+        message TEXT NOT NULL,
+        is_read INTEGER DEFAULT 0,
+        reply_to_id INTEGER DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (reply_to_id) REFERENCES chat_messages(id) ON DELETE SET NULL
+      )
+    `);
+
     // Permission requests table - stores requests from office bearers to gain edit/view permissions
     await run(database, `
         CREATE TABLE IF NOT EXISTS permission_requests (
@@ -684,27 +924,14 @@ export const initDatabase = async () => {
       )
     `);
     // Ensure legacy databases get the new columns if they don't exist
-    try {
-      await run(database, `ALTER TABLE resources ADD COLUMN title TEXT`);
-    } catch (e) { }
-    try {
-      await run(database, `ALTER TABLE resources ADD COLUMN resource_type TEXT`);
-    } catch (e) { }
-    try {
-      await run(database, `ALTER TABLE resources ADD COLUMN category TEXT`);
-    } catch (e) { }
-    try {
-      await run(database, `ALTER TABLE resources ADD COLUMN folder_id INTEGER`);
-    } catch (e) { }
-    try {
-      await run(database, `ALTER TABLE resources ADD COLUMN description TEXT`);
-    } catch (e) { }
-    try {
-      await run(database, `ALTER TABLE resources ADD COLUMN upload_date DATE`);
-    } catch (e) { }
-    try {
-      await run(database, `ALTER TABLE resources ADD COLUMN upload_time TIME`);
-    } catch (e) { }
+    // Ensure legacy databases get the new columns if they don't exist
+    await addColumnSafe(database, 'resources', 'title', 'TEXT');
+    await addColumnSafe(database, 'resources', 'resource_type', 'TEXT');
+    await addColumnSafe(database, 'resources', 'category', 'TEXT');
+    await addColumnSafe(database, 'resources', 'folder_id', 'INTEGER');
+    await addColumnSafe(database, 'resources', 'description', 'TEXT');
+    await addColumnSafe(database, 'resources', 'upload_date', 'DATE');
+    await addColumnSafe(database, 'resources', 'upload_time', 'TIME');
 
     // Resource folders table
     await run(database, `
@@ -722,16 +949,10 @@ export const initDatabase = async () => {
       )
     `);
 
+    // console.log('Finished main tables');
     // Migration: Add resource_type column if it doesn't exist
-    try {
-      await run(database, `ALTER TABLE resource_folders ADD COLUMN resource_type TEXT`);
-      console.log('✅ Added resource_type column to resource_folders');
-    } catch (e) {
-      // Column might already exist, that's okay
-      if (!e.message.includes('duplicate column')) {
-        console.log('ℹ️ resource_type column may already exist in resource_folders');
-      }
-    }
+    // Migration: Add resource_type column if it doesn't exist
+    await addColumnSafe(database, 'resource_folders', 'resource_type', 'TEXT');
 
     // Teams table
     await run(database, `
@@ -783,11 +1004,8 @@ export const initDatabase = async () => {
     `);
 
     // Add proof_file_path column if it doesn't exist
-    try {
-      await run(database, `ALTER TABLE team_assignments ADD COLUMN proof_file_path TEXT`);
-    } catch (e) {
-      // Column might already exist, that's okay
-    }
+    // Add proof_file_path column if it doesn't exist
+    await addColumnSafe(database, 'team_assignments', 'proof_file_path', 'TEXT');
 
     // Team assignment tracking table
     await run(database, `
@@ -830,6 +1048,8 @@ export const initDatabase = async () => {
         year TEXT NOT NULL,
         is_special_day INTEGER DEFAULT 0,
         image_url TEXT,
+        max_volunteers INTEGER,
+        volunteer_registration_deadline DATETIME,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
@@ -873,24 +1093,10 @@ export const initDatabase = async () => {
       )
     `);
 
-    // Add image_url column if it doesn't exist (migration for existing databases)
-    try {
-      await run(database, `ALTER TABLE events ADD COLUMN image_url TEXT`);
-    } catch (e) {
-      // Column might already exist, that's okay
-    }
-
-    // Add volunteer registration limit and deadline columns (migration for existing databases)
-    try {
-      await run(database, `ALTER TABLE events ADD COLUMN max_volunteers INTEGER`);
-    } catch (e) {
-      // Column might already exist, that's okay
-    }
-    try {
-      await run(database, `ALTER TABLE events ADD COLUMN volunteer_registration_deadline DATETIME`);
-    } catch (e) {
-      // Column might already exist, that's okay
-    }
+    // Ensure image_url column exists (migration for existing databases)
+    await addColumnSafe(database, 'events', 'image_url', 'TEXT');
+    await addColumnSafe(database, 'events', 'max_volunteers', 'INTEGER');
+    await addColumnSafe(database, 'events', 'volunteer_registration_deadline', 'DATETIME');
 
     // Optional mapping of volunteers to their assigned mentees (used to auto-fill mentee name)
     await run(database, `
@@ -922,34 +1128,21 @@ export const initDatabase = async () => {
     `);
 
     // Ensure existing databases have the new assignment columns
-    try {
-      const mentoringAssignmentCols = await all(database, "PRAGMA table_info(phone_mentoring_assignments)");
-      const assignmentColNames = mentoringAssignmentCols.map((col) => col.name);
-      const columnMap = [
-        ['project_id', `ALTER TABLE phone_mentoring_assignments ADD COLUMN project_id INTEGER REFERENCES projects(id)`],
-        ['mentee_register_no', `ALTER TABLE phone_mentoring_assignments ADD COLUMN mentee_register_no TEXT`],
-        ['mentee_department', `ALTER TABLE phone_mentoring_assignments ADD COLUMN mentee_department TEXT`],
-        ['mentee_year', `ALTER TABLE phone_mentoring_assignments ADD COLUMN mentee_year TEXT`],
-        ['mentee_gender', `ALTER TABLE phone_mentoring_assignments ADD COLUMN mentee_gender TEXT`],
-        ['mentee_school', `ALTER TABLE phone_mentoring_assignments ADD COLUMN mentee_school TEXT`],
-        ['mentee_address', `ALTER TABLE phone_mentoring_assignments ADD COLUMN mentee_address TEXT`],
-        ['mentee_district', `ALTER TABLE phone_mentoring_assignments ADD COLUMN mentee_district TEXT`],
-        ['mentee_parent_contact', `ALTER TABLE phone_mentoring_assignments ADD COLUMN mentee_parent_contact TEXT`],
-        ['mentee_status', `ALTER TABLE phone_mentoring_assignments ADD COLUMN mentee_status TEXT DEFAULT 'active'`],
-        ['mentee_notes', `ALTER TABLE phone_mentoring_assignments ADD COLUMN mentee_notes TEXT`],
-        ['created_by', `ALTER TABLE phone_mentoring_assignments ADD COLUMN created_by INTEGER REFERENCES users(id)`],
-        ['mentee_user_id', `ALTER TABLE phone_mentoring_assignments ADD COLUMN mentee_user_id INTEGER REFERENCES users(id)`],
-        ['expected_classes', `ALTER TABLE phone_mentoring_assignments ADD COLUMN expected_classes INTEGER`]
-      ];
-
-      for (const [colName, statement] of columnMap) {
-        if (!assignmentColNames.includes(colName)) {
-          await run(database, statement);
-        }
-      }
-    } catch (mentoringAssignmentErr) {
-      console.warn('⚠️  Could not ensure columns on phone_mentoring_assignments:', mentoringAssignmentErr.message);
-    }
+    // Ensure existing databases have the new assignment columns
+    await addColumnSafe(database, 'phone_mentoring_assignments', 'project_id', 'INTEGER REFERENCES projects(id)');
+    await addColumnSafe(database, 'phone_mentoring_assignments', 'mentee_register_no', 'TEXT');
+    await addColumnSafe(database, 'phone_mentoring_assignments', 'mentee_department', 'TEXT');
+    await addColumnSafe(database, 'phone_mentoring_assignments', 'mentee_year', 'TEXT');
+    await addColumnSafe(database, 'phone_mentoring_assignments', 'mentee_gender', 'TEXT');
+    await addColumnSafe(database, 'phone_mentoring_assignments', 'mentee_school', 'TEXT');
+    await addColumnSafe(database, 'phone_mentoring_assignments', 'mentee_address', 'TEXT');
+    await addColumnSafe(database, 'phone_mentoring_assignments', 'mentee_district', 'TEXT');
+    await addColumnSafe(database, 'phone_mentoring_assignments', 'mentee_parent_contact', 'TEXT');
+    await addColumnSafe(database, 'phone_mentoring_assignments', 'mentee_status', "TEXT DEFAULT 'active'");
+    await addColumnSafe(database, 'phone_mentoring_assignments', 'mentee_notes', 'TEXT');
+    await addColumnSafe(database, 'phone_mentoring_assignments', 'created_by', 'INTEGER REFERENCES users(id)');
+    await addColumnSafe(database, 'phone_mentoring_assignments', 'mentee_user_id', 'INTEGER REFERENCES users(id)');
+    await addColumnSafe(database, 'phone_mentoring_assignments', 'expected_classes', 'INTEGER');
 
     // Migration: Remove UNIQUE constraint on volunteer_id to allow multiple mentees per mentor
     // SQLite doesn't support DROP CONSTRAINT, so we need to recreate the table
@@ -1032,18 +1225,9 @@ export const initDatabase = async () => {
     `);
 
     // Ensure existing databases have the new mentoring update columns
-    try {
-      const mentoringUpdateCols = await all(database, "PRAGMA table_info(phone_mentoring_updates)");
-      const updateColNames = mentoringUpdateCols.map((col) => col.name);
-      if (!updateColNames.includes('assignment_id')) {
-        await run(database, `ALTER TABLE phone_mentoring_updates ADD COLUMN assignment_id INTEGER REFERENCES phone_mentoring_assignments(id)`);
-      }
-      if (!updateColNames.includes('project_id')) {
-        await run(database, `ALTER TABLE phone_mentoring_updates ADD COLUMN project_id INTEGER REFERENCES projects(id)`);
-      }
-    } catch (mentoringUpdateErr) {
-      console.warn('⚠️  Could not ensure columns on phone_mentoring_updates:', mentoringUpdateErr.message);
-    }
+    // Ensure existing databases have the new mentoring update columns
+    await addColumnSafe(database, 'phone_mentoring_updates', 'assignment_id', 'INTEGER REFERENCES phone_mentoring_assignments(id)');
+    await addColumnSafe(database, 'phone_mentoring_updates', 'project_id', 'INTEGER REFERENCES projects(id)');
 
     // Phone mentoring attendance table - tracks mentee attendance per assignment
     await run(database, `
@@ -1067,15 +1251,8 @@ export const initDatabase = async () => {
     `);
 
     // Ensure existing databases have call_recording_path column
-    try {
-      const attendanceCols = await all(database, "PRAGMA table_info(phone_mentoring_attendance)");
-      const attendanceColNames = attendanceCols.map((col) => col.name);
-      if (!attendanceColNames.includes('call_recording_path')) {
-        await run(database, `ALTER TABLE phone_mentoring_attendance ADD COLUMN call_recording_path TEXT`);
-      }
-    } catch (attendanceErr) {
-      console.warn('⚠️  Could not ensure call_recording_path column on phone_mentoring_attendance:', attendanceErr.message);
-    }
+    // Ensure existing databases have call_recording_path column
+    await addColumnSafe(database, 'phone_mentoring_attendance', 'call_recording_path', 'TEXT');
 
     // Event OD (On Duty) marking table - ensure support for 'permission' status and migrate if needed
     // If an existing table exists with an older CHECK, attempt a safe migration preserving data.
@@ -1177,9 +1354,7 @@ export const initDatabase = async () => {
         FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
       )
     `);
-  } catch (e) { }
 
-  try {
     await run(database, `
       CREATE TABLE IF NOT EXISTS event_attendance (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1234,12 +1409,7 @@ export const initDatabase = async () => {
     const adminEmail = 'smvolunteers@ksrct.ac.in'.toLowerCase().trim();
 
     // Check if admin exists (case-insensitive)
-    const allUsers = await new Promise((resolve, reject) => {
-      database.all('SELECT id, email FROM users', [], (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows);
-      });
-    });
+    const allUsers = await all(database, 'SELECT id, email FROM users', []);
 
     const adminExists = allUsers.find(u => u.email.toLowerCase().trim() === adminEmail);
 
@@ -1279,39 +1449,31 @@ export const initDatabase = async () => {
 
     // Announcements table
     await run(database, `
-      CREATE TABLE IF NOT EXISTS announcements (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        content TEXT NOT NULL,
-        priority TEXT DEFAULT 'normal' CHECK(priority IN ('normal', 'important')),
-        link_url TEXT,
-        image_url TEXT,
-        send_email INTEGER DEFAULT 0,
-        target TEXT DEFAULT 'all',
-        created_by INTEGER,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        deleted_at DATETIME,
-        FOREIGN KEY (created_by) REFERENCES users(id)
-      )
-    `);
+      CREATE TABLE IF NOT EXISTS announcements(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    priority TEXT DEFAULT 'normal' CHECK(priority IN('normal', 'important')),
+    link_url TEXT,
+    image_url TEXT,
+    send_email INTEGER DEFAULT 0,
+    target TEXT DEFAULT 'all',
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
+    FOREIGN KEY(created_by) REFERENCES users(id)
+  )
+  `);
 
     // Ensure link_url and image_url columns exist (Migration)
-    try {
-      await run(database, `ALTER TABLE announcements ADD COLUMN link_url TEXT`);
-    } catch (e) { /* Column might already exist */ }
-    try {
-      await run(database, `ALTER TABLE announcements ADD COLUMN image_url TEXT`);
-    } catch (e) { /* Column might already exist */ }
-    try {
-      await run(database, `ALTER TABLE announcements ADD COLUMN deadline TEXT`);
-    } catch (e) { /* Column might already exist */ }
+    await addColumnSafe(database, 'announcements', 'link_url', 'TEXT');
+    await addColumnSafe(database, 'announcements', 'image_url', 'TEXT');
+    await addColumnSafe(database, 'announcements', 'deadline', 'DATETIME');
 
     // Add can_manage_announcements to permissions if missing
-    try {
-      await run(database, `ALTER TABLE permissions ADD COLUMN can_manage_announcements INTEGER DEFAULT 0`);
-      await run(database, `ALTER TABLE permissions ADD COLUMN can_manage_announcements_view INTEGER DEFAULT 0`);
-      await run(database, `ALTER TABLE permissions ADD COLUMN can_manage_announcements_edit INTEGER DEFAULT 0`);
-    } catch (e) { }
+    await addColumnSafe(database, 'permissions', 'can_manage_announcements', 'INTEGER DEFAULT 0');
+    await addColumnSafe(database, 'permissions', 'can_manage_announcements_view', 'INTEGER DEFAULT 0');
+    await addColumnSafe(database, 'permissions', 'can_manage_announcements_edit', 'INTEGER DEFAULT 0');
 
     console.log('✅ Database tables initialized successfully');
   } catch (error) {

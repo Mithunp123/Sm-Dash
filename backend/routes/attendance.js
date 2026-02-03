@@ -188,16 +188,28 @@ router.post('/project/:projectId/mark', authenticateToken, requirePermission('ca
       return res.status(403).json({ success: false, message: 'User is not a member of this project' });
     }
 
-    // Insert or update attendance record
-    const result = await run(db, `
-      INSERT INTO attendance_records (project_id, user_id, attendance_date, status, notes, marked_by)
-      VALUES (?, ?, ?, ?, ?, ?)
-      ON CONFLICT(project_id, user_id, attendance_date) DO UPDATE SET
-      status = excluded.status,
-      notes = excluded.notes,
-      marked_by = excluded.marked_by,
-      marked_at = CURRENT_TIMESTAMP
-    `, [projectId, userId, attendance_date, status, notes || null, req.user.id]);
+    // Check for existing record
+    const existing = await get(db, `
+      SELECT id FROM attendance_records 
+      WHERE project_id = ? AND user_id = ? AND attendance_date = ?
+    `, [projectId, userId, attendance_date]);
+
+    let result;
+    if (existing) {
+      result = await run(db, `
+        UPDATE attendance_records SET
+        status = ?,
+        notes = ?,
+        marked_by = ?,
+        marked_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `, [status, notes || null, req.user.id, existing.id]);
+    } else {
+      result = await run(db, `
+        INSERT INTO attendance_records (project_id, user_id, attendance_date, status, notes, marked_by)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, [projectId, userId, attendance_date, status, notes || null, req.user.id]);
+    }
 
     res.json({ success: true, message: 'Attendance marked successfully', id: result.lastID });
   } catch (error) {
@@ -345,14 +357,27 @@ router.post('/', authenticateToken, requirePermission('can_manage_attendance', {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    const result = await run(db, `
-      INSERT INTO attendance (meeting_id, user_id, status, notes, marked_at)
-      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-      ON CONFLICT(meeting_id, user_id) DO UPDATE SET
-        status = excluded.status,
-        notes = excluded.notes,
+    // Check for existing record
+    const existing = await get(db, `
+      SELECT id FROM attendance 
+      WHERE meeting_id = ? AND user_id = ?
+    `, [meetingId, userId]);
+
+    let result;
+    if (existing) {
+      result = await run(db, `
+        UPDATE attendance SET
+        status = ?,
+        notes = ?,
         marked_at = CURRENT_TIMESTAMP
-    `, [meetingId, userId, status, notes || null]);
+        WHERE id = ?
+      `, [status, notes || null, existing.id]);
+    } else {
+      result = await run(db, `
+        INSERT INTO attendance (meeting_id, user_id, status, notes, marked_at)
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `, [meetingId, userId, status, notes || null]);
+    }
 
     res.json({ success: true, message: 'Attendance marked successfully', id: result.lastID || meetingId });
   } catch (error) {

@@ -2,6 +2,8 @@ import express from 'express';
 import { getDatabase } from '../database/init.js';
 import { authenticateToken, requirePermission } from '../middleware/auth.js';
 import { body, validationResult } from 'express-validator';
+import { logActivity } from '../utils/logger.js';
+
 
 const router = express.Router();
 
@@ -91,6 +93,13 @@ router.post('/', authenticateToken, requirePermission('can_manage_meetings', { r
       [title, description || null, date, location || null, req.user.id]
     );
 
+    await logActivity(req.user.id, 'CREATE_MEETING', { title, date }, req, {
+      action_type: 'CREATE',
+      module_name: 'meetings',
+      action_description: `Created meeting: ${title}`,
+      reference_id: result.lastID
+    });
+
     res.json({ success: true, message: 'Meeting created successfully', id: result.lastID });
   } catch (error) {
     console.error('Create meeting error:', error);
@@ -148,6 +157,13 @@ router.put('/:id', authenticateToken, requirePermission('can_manage_meetings', {
 
     await run(db, `UPDATE meetings SET ${updates.join(', ')} WHERE id = ?`, params);
 
+    await logActivity(req.user.id, 'UPDATE_MEETING', { id: req.params.id, updates: req.body }, req, {
+      action_type: 'UPDATE',
+      module_name: 'meetings',
+      action_description: `Updated meeting: ${meeting.title}`,
+      reference_id: req.params.id
+    });
+
     res.json({ success: true, message: 'Meeting updated successfully' });
   } catch (error) {
     console.error('Update meeting error:', error);
@@ -166,6 +182,13 @@ router.delete('/:id', authenticateToken, requirePermission('can_manage_meetings'
     }
 
     await run(db, 'DELETE FROM meetings WHERE id = ?', [req.params.id]);
+
+    await logActivity(req.user.id, 'DELETE_MEETING', { id: req.params.id, title: meeting.title }, req, {
+      action_type: 'DELETE',
+      module_name: 'meetings',
+      action_description: `Deleted meeting: ${meeting.title}`,
+      reference_id: req.params.id
+    });
 
     res.json({ success: true, message: 'Meeting deleted successfully' });
   } catch (error) {

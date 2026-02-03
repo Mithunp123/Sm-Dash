@@ -314,7 +314,7 @@ const ManageOfficeBearers = () => {
 
   return (
     <main className="flex-1 p-4 md:p-8 bg-background">
-      <div className="max-w-7xl mx-auto">
+      <div className="w-full px-4 md:px-6 lg:px-8">
         <div className="mb-4">
           <BackButton to="/admin" />
         </div>

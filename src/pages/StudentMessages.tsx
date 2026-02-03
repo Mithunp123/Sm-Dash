@@ -20,7 +20,7 @@ const StudentMessages = () => {
         <div className="flex-1 flex flex-col bg-transparent">
             <DeveloperCredit />
             <main className="flex-1 p-4 md:p-6 overflow-hidden flex flex-col">
-                <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col">
+                <div className="w-full px-4 md:px-6 lg:px-8 w-full flex-1 flex flex-col">
                     {/* Header */}
                     <div className="mb-6 flex items-end justify-between border-b pb-4">
                         <div>

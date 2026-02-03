@@ -114,7 +114,11 @@ router.post('/login', [
         console.log('   Available users in database:', allUsers);
       }
 
-      await logActivity(null, 'LOGIN_FAILED', { email, reason: 'User not found' }, req);
+      await logActivity(null, 'LOGIN_FAILED', { email, reason: 'User not found' }, req, {
+        action_type: 'LOGIN',
+        module_name: 'auth',
+        action_description: `Failed login attempt for email: ${email} (User not found)`
+      });
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
@@ -126,7 +130,11 @@ router.post('/login', [
 
     if (!isValidPassword) {
       console.log(`❌ Login failed: Invalid password for email: ${email}`);
-      await logActivity(user.id, 'LOGIN_FAILED', { email, reason: 'Invalid password' }, req);
+      await logActivity(user.id, 'LOGIN_FAILED', { email, reason: 'Invalid password' }, req, {
+        action_type: 'LOGIN',
+        module_name: 'auth',
+        action_description: `Failed login attempt for user: ${email} (Invalid password)`
+      });
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
@@ -150,7 +158,11 @@ router.post('/login', [
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
 
-    await logActivity(user.id, 'LOGIN_SUCCESS', { email: user.email, role: user.role }, req);
+    await logActivity(user.id, 'LOGIN_SUCCESS', { email: user.email, role: user.role }, req, {
+      action_type: 'LOGIN',
+      module_name: 'auth',
+      action_description: `Successfully logged in as ${user.role}`
+    });
 
     res.json({
       success: true,
@@ -399,7 +411,11 @@ router.post('/change-password', authenticateToken, [
       return res.status(500).json({ success: false, message: 'Password update verification failed' });
     }
 
-    await logActivity(req.user.id, 'PASSWORD_CHANGED', { email: user.email }, req);
+    await logActivity(req.user.id, 'PASSWORD_CHANGED', { email: user.email }, req, {
+      action_type: 'UPDATE',
+      module_name: 'users',
+      action_description: 'User changed their own password'
+    });
 
     res.json({ success: true, message: 'Password changed successfully' });
   } catch (error) {

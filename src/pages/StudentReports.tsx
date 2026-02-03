@@ -97,7 +97,7 @@ const StudentReports = () => {
     return (
         <div className="min-h-screen bg-background p-4 md:p-8">
             <DeveloperCredit />
-            <div className="max-w-7xl mx-auto space-y-8">
+            <div className="w-full px-4 md:px-6 lg:px-8 space-y-8">
                 <div className="flex flex-col gap-4">
                     <BackButton to="/student" />
                     <div className="flex justify-between items-center bg-white dark:bg-slate-950 p-6 rounded-3xl border border-border shadow-sm">

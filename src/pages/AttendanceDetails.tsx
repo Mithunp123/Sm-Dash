@@ -173,9 +173,20 @@ const AttendanceDetails = () => {
             }
 
             if (response.success && response.dates) {
-                setSavedDates(response.dates);
-                if (response.dates.length > 0 && !selectedDate) {
-                    setSelectedDate(response.dates[0].date);
+                // Filter and normalize dates to YYYY-MM-DD
+                const validDates = response.dates.map((d: any) => {
+                    if (!d.date) return null;
+                    const dt = d.date.includes('T') ? new Date(d.date) : new Date(d.date + "T00:00:00");
+                    if (isNaN(dt.getTime())) return null;
+
+                    // Normalize to YYYY-MM-DD
+                    const normalized = dt.toISOString().split('T')[0];
+                    return { ...d, date: normalized };
+                }).filter(Boolean);
+
+                setSavedDates(validDates);
+                if (validDates.length > 0 && !selectedDate) {
+                    setSelectedDate(validDates[0].date);
                 }
             }
         } catch (error: any) {
@@ -304,12 +315,19 @@ const AttendanceDetails = () => {
     };
 
     const formatDate = (dateStr: string) => {
-        return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", {
-            weekday: "short",
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-        });
+        if (!dateStr || dateStr === "Invalid Date") return "Invalid Date";
+        try {
+            const date = dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr + "T00:00:00");
+            if (isNaN(date.getTime())) return "Invalid Date";
+            return date.toLocaleDateString("en-US", {
+                weekday: "short",
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+            });
+        } catch (e) {
+            return "Invalid Date";
+        }
     };
 
     const getIcon = () => {
@@ -399,7 +417,7 @@ const AttendanceDetails = () => {
                             ) : savedDates.length === 0 ? (
                                 <div className="text-center text-sm text-muted-foreground py-8">No records found</div>
                             ) : (
-                                savedDates.map((dateInfo) => (
+                                savedDates.filter(d => d.date && d.date !== 'Invalid Date').map((dateInfo) => (
                                     <button
                                         key={dateInfo.date}
                                         onClick={() => setSelectedDate(dateInfo.date)}
@@ -422,7 +440,7 @@ const AttendanceDetails = () => {
                     <Card className="flex-1 h-full flex flex-col border-border/50 bg-card overflow-hidden">
                         <div className="p-4 border-b border-border/50 bg-muted/30 flex flex-col md:flex-row justify-between items-center gap-4">
                             <h3 className="font-semibold text-foreground whitespace-nowrap">
-                                Records for {selectedDate ? formatDate(selectedDate) : '...'}
+                                {selectedDate ? `Records for ${formatDate(selectedDate)}` : 'Select a date from sidebar'}
                             </h3>
                             <div className="flex items-center gap-4 w-full md:w-auto">
                                 <div className="relative w-full md:w-64">

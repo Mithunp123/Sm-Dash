@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { getDatabase } from '../database/init.js';
+import { logActivity } from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -56,11 +57,17 @@ router.post('/', authenticateToken, requireRole('admin', 'office_bearer'), uploa
         `INSERT INTO office_bearers (name, position, contact, email, photo_url, academic_year)
      VALUES (?, ?, ?, ?, ?, ?)`,
         [name, position, contact || null, email || null, photoUrl, academic_year || null],
-        function (err) {
+        async function (err) {
             if (err) {
                 if (req.file) fs.unlink(req.file.path, () => { });
                 return res.status(500).json({ success: false, message: 'Error creating office bearer', error: err.message });
             }
+            await logActivity(req.user.id, 'CREATE_OFFICE_BEARER', { name, position }, req, {
+                action_type: 'CREATE',
+                module_name: 'office_bearers',
+                action_description: `Created office bearer: ${name} (${position})`,
+                reference_id: this.lastID
+            });
             res.json({ success: true, message: 'Office bearer created', id: this.lastID });
         }
     );
@@ -107,11 +114,17 @@ router.put('/:id', authenticateToken, requireRole('admin', 'office_bearer'), upl
                 academic_year || existing.academic_year,
                 req.params.id
             ],
-            (err) => {
+            async (err) => {
                 if (err) {
                     if (req.file) fs.unlink(req.file.path, () => { });
                     return res.status(500).json({ success: false, message: 'Error updating office bearer', error: err.message });
                 }
+                await logActivity(req.user.id, 'UPDATE_OFFICE_BEARER', { id: req.params.id, name, position }, req, {
+                    action_type: 'UPDATE',
+                    module_name: 'office_bearers',
+                    action_description: `Updated office bearer: ${name || existing.name}`,
+                    reference_id: req.params.id
+                });
                 res.json({ success: true, message: 'Office bearer updated' });
             }
         );
@@ -132,8 +145,14 @@ router.delete('/:id', authenticateToken, requireRole('admin', 'office_bearer'), 
             }
         }
 
-        db.run('DELETE FROM office_bearers WHERE id = ?', [req.params.id], (err) => {
+        db.run('DELETE FROM office_bearers WHERE id = ?', [req.params.id], async (err) => {
             if (err) return res.status(500).json({ success: false, message: 'Error deleting office bearer', error: err.message });
+            await logActivity(req.user.id, 'DELETE_OFFICE_BEARER', { id: req.params.id, name: existing.name }, req, {
+                action_type: 'DELETE',
+                module_name: 'office_bearers',
+                action_description: `Deleted office bearer: ${existing.name}`,
+                reference_id: req.params.id
+            });
             res.json({ success: true, message: 'Office bearer deleted' });
         });
     });

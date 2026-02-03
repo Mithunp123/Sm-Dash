@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
+    "predev": "node scripts/free-port.js",
     "dev": "nodemon server.js",
     "init-db": "node scripts/init-db.js"
   },
@@ -19,8 +20,10 @@
     "google-auth-library": "^10.5.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
+    "mysql2": "^3.16.2",
     "nodemailer": "^6.10.1",
-    "sqlite3": "^5.1.6"
+    "sqlite3": "^5.1.6",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

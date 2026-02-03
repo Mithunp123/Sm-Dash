@@ -298,7 +298,7 @@ const AdminResources = () => {
       <DeveloperCredit />
 
       <main className="flex-1 p-4 md:p-8 bg-transparent overflow-y-auto">
-        <div className="max-w-7xl mx-auto">
+        <div className="w-full px-4 md:px-6 lg:px-8">
 
           <BackButton to="/admin" className="mb-6" />
 

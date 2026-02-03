@@ -19,6 +19,7 @@ import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
 import { ProfileFieldDefinition, buildProfilePayload, mergeProfileWithCustom } from "@/utils/profileFields";
+import { buildImageUrl } from "@/utils/imageUtils";
 
 const renderCustomFieldInput = (
   field: ProfileFieldDefinition,
@@ -413,7 +414,7 @@ const ManageStudents = () => {
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-3">
                                 <Avatar>
-                                  <AvatarImage src={student.profile?.photo || student.photo || student.photoUrl || '/Images/Brand_logo.png'} alt={student.name} />
+                                  <AvatarImage src={buildImageUrl(student.profile?.photo || student.photo || student.photoUrl) || '/Images/Brand_logo.png'} alt={student.name} />
                                   <AvatarFallback>
                                     {((student.name || "").split(" ").map(s => s[0]).slice(0, 2).join("") || "?")}
                                   </AvatarFallback>

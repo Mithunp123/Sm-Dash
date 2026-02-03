@@ -91,7 +91,7 @@ const Resources = () => {
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto">
-          <div className="p-6 md:p-8 max-w-7xl mx-auto w-full">
+          <div className="p-6 md:p-8 w-full px-4 md:px-6 lg:px-8">
 
             {/* Page Header */}
             <div className="mb-6 flex items-center justify-between">

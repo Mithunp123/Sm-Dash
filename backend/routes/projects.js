@@ -4,6 +4,8 @@ import xlsx from 'xlsx';
 import { getDatabase } from '../database/init.js';
 import { authenticateToken, requirePermission } from '../middleware/auth.js';
 import { body, validationResult } from 'express-validator';
+import { logActivity } from '../utils/logger.js';
+
 
 const router = express.Router();
 
@@ -305,6 +307,14 @@ router.post('/:projectId/mentees', authenticateToken, requirePermission('can_man
     ]);
 
     const inserted = await get(db, 'SELECT * FROM phone_mentoring_assignments WHERE id = ?', [result.lastID]);
+
+    await logActivity(req.user.id, 'CREATE_MENTEE_ASSIGNMENT', { projectId, mentee_name, volunteer_id }, req, {
+      action_type: 'CREATE',
+      module_name: 'projects',
+      action_description: `Assigned mentee ${mentee_name} to volunteer ${volunteer_id || 'unassigned'}`,
+      reference_id: result.lastID
+    });
+
     res.json({ success: true, mentee: inserted });
   } catch (error) {
     console.error('Create project mentee error:', error);
@@ -665,6 +675,13 @@ router.put('/:projectId/mentees/:assignmentId', authenticateToken, async (req, r
     } else {
       console.log('⚠️ mentee_user_id not linked - student will need to be auto-linked on login');
     }
+
+    await logActivity(req.user.id, 'UPDATE_MENTEE_ASSIGNMENT', { assignmentId, projectId, updates: req.body }, req, {
+      action_type: 'UPDATE',
+      module_name: 'projects',
+      action_description: `Updated mentee assignment for ${updated.mentee_name}`,
+      reference_id: assignmentId
+    });
 
     res.json({ success: true, mentee: updated });
   } catch (error) {

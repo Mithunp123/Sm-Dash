@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import NotificationBell from "./NotificationBell";
 import { motion } from "framer-motion";
+import { buildImageUrl } from "@/utils/imageUtils";
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -266,7 +267,7 @@ const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
                       >
                         <Avatar className="h-8 w-8 border border-border">
                           <AvatarImage
-                            src={user.photo_url || (user as any).photo}
+                            src={buildImageUrl(user.photo_url || (user as any).photo) || undefined}
                             alt={user.name}
                           />
                           <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">

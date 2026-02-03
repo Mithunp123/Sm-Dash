@@ -164,7 +164,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
 
   return (
     <>
-      <div className="max-w-7xl mx-auto px-4 md:px-0">
+      <div className="w-full px-4 md:px-6 lg:px-8">
         {/* Compact Header */}
         <div className="mb-4 flex items-end justify-between pb-4">
           <div>

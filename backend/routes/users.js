@@ -254,7 +254,12 @@ router.delete('/:id', authenticateToken, requireRole('admin'), async (req, res) 
     }
 
     await run(db, 'DELETE FROM users WHERE id = ?', [id]);
-    await logActivity(req.user.id, 'DELETE_USER', { targetId: id, role: user.role }, req);
+    await logActivity(req.user.id, 'DELETE_USER', { targetId: id, role: user.role }, req, {
+      action_type: 'DELETE',
+      module_name: 'users',
+      action_description: `Deleted user: ${user.name} (${user.role})`,
+      reference_id: id
+    });
 
     res.json({ success: true, message: 'User deleted successfully' });
   } catch (error) {
@@ -324,7 +329,12 @@ router.post('/', authenticateToken, requireRole('admin'), [
           try { await run(db, 'INSERT OR IGNORE INTO profiles (user_id, role) VALUES (?, ?)', [existingUser.id, role]); } catch (e) { }
         }
 
-        await logActivity(req.user.id, 'UPDATE_USER', { targetId: existingUser.id, name, role }, req);
+        await logActivity(req.user.id, 'UPDATE_USER', { targetId: existingUser.id, name, role }, req, {
+          action_type: 'UPDATE',
+          module_name: 'users',
+          action_description: `Updated user info: ${name} (${role})`,
+          reference_id: existingUser.id
+        });
         return res.json({ success: true, message: 'User updated', user: { id: existingUser.id, name, email, role } });
       } catch (e) {
         console.error('Failed to update existing user during upsert:', e);
@@ -374,7 +384,12 @@ router.post('/', authenticateToken, requireRole('admin'), [
       }
     }
 
-    await logActivity(req.user.id, 'CREATE_USER', { userId, name, email, role }, req);
+    await logActivity(req.user.id, 'CREATE_USER', { userId, name, email, role }, req, {
+      action_type: 'CREATE',
+      module_name: 'users',
+      action_description: `Created new user: ${name} (${role})`,
+      reference_id: userId
+    });
 
     res.json({
       success: true,
@@ -442,7 +457,12 @@ router.post('/reset-password', authenticateToken, requireRole('admin'), [
       [hashedPassword, userId]
     );
 
-    await logActivity(req.user.id, 'RESET_USER_PASSWORD', { targetUserId: userId }, req);
+    await logActivity(req.user.id, 'RESET_USER_PASSWORD', { targetUserId: userId }, req, {
+      action_type: 'UPDATE',
+      module_name: 'users',
+      action_description: `Reset password for user: ${userId}`,
+      reference_id: userId
+    });
 
     res.json({
       success: true,
@@ -584,24 +604,53 @@ router.put('/:userId/profile', authenticateToken, [
     // Check if profile exists in unified table
     let existing = await get(db, 'SELECT id, role FROM profiles WHERE user_id = ?', [userId]);
 
+    // Build dynamic update query
     if (existing) {
-      // Update existing profile in unified table
-      await run(db,
-        `UPDATE profiles SET 
-         dept = ?, year = ?, phone = ?, blood_group = ?, gender = ?, dob = ?, address = ?, photo_url = ?, register_no = ?, academic_year = ?, father_number = ?, hosteller_dayscholar = ?, position = ?, custom_fields = ?, updated_at = CURRENT_TIMESTAMP
-         WHERE user_id = ?`,
-        [dept || null, year || null, phone || null, blood_group || null, gender || null, dob || null, address || null, photoUrl || null, register_no || null, academic_year || null, father_number || null, hosteller_dayscholar || null, position || null, custom_fields || null, userId]
-      );
-      await logActivity(req.user.id, 'UPDATE_PROFILE', { targetUserId: userId }, req);
+      const updates = [];
+      const params = [];
+
+      const fields = {
+        dept, year, phone, blood_group, gender, dob, address,
+        photo_url: photoUrl, register_no, academic_year,
+        father_number, hosteller_dayscholar, position, custom_fields
+      };
+
+      Object.entries(fields).forEach(([key, value]) => {
+        if (value !== undefined) {
+          updates.push(`${key} = ?`);
+          params.push(value);
+        }
+      });
+
+      if (updates.length > 0) {
+        params.push(userId);
+        await run(db,
+          `UPDATE profiles SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?`,
+          params
+        );
+
+        await logActivity(req.user.id, 'UPDATE_PROFILE', { targetUserId: userId, fields: Object.keys(fields).filter(k => fields[k] !== undefined) }, req, {
+          action_type: 'UPDATE',
+          module_name: 'profiles',
+          action_description: `Updated profile fields for user: ${userId}`,
+          reference_id: userId
+        });
+      }
       res.json({ success: true, message: 'Profile updated successfully' });
-    } else {
+    }
+    else {
       // Create new profile in unified table
       await run(db,
         `INSERT INTO profiles (user_id, role, dept, year, phone, blood_group, gender, dob, address, photo_url, register_no, academic_year, father_number, hosteller_dayscholar, position, custom_fields)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [userId, user.role, dept || null, year || null, phone || null, blood_group || null, gender || null, dob || null, address || null, photoUrl || null, register_no || null, academic_year || null, father_number || null, hosteller_dayscholar || null, position || null, custom_fields || null]
       );
-      await logActivity(req.user.id, 'CREATE_PROFILE', { targetUserId: userId }, req);
+      await logActivity(req.user.id, 'CREATE_PROFILE', { targetUserId: userId }, req, {
+        action_type: 'CREATE',
+        module_name: 'profiles',
+        action_description: `Created profile for user: ${userId}`,
+        reference_id: userId
+      });
       res.json({ success: true, message: 'Profile created successfully' });
     }
   } catch (error) {

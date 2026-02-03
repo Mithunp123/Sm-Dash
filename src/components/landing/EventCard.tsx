@@ -92,9 +92,9 @@ const EventCard: React.FC<EventCardProps> = ({ event, eventDate, isToday, isThis
                     </div>
                 </div>
                 <CardDescription className="flex items-center gap-2 mt-2">
-                    <div className="p-1 bg-primary/10 rounded-md">
+                    <span className="p-1 bg-primary/10 rounded-md">
                         <Calendar className="w-3.5 h-3.5 text-primary" />
-                    </div>
+                    </span>
                     <span className="font-bold text-primary text-sm">
                         {format(eventDate, "MMM dd, yyyy")}
                     </span>
