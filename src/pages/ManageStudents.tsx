@@ -328,8 +328,8 @@ const ManageStudents = () => {
 
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter">Student <span className="text-primary italic">Profiles</span></h1>
-              <p className="text-[10px] sm:text-xs md:text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Manage core community database</p>
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">Student Profiles</h1>
+              <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Manage core community database</p>
             </div>
           </div>
 

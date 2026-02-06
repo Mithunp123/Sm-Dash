@@ -709,7 +709,7 @@ const ManageEvents = () => {
     <div className="min-h-screen flex flex-col">
       <DeveloperCredit />
       <main className="flex-1 w-full bg-background overflow-x-hidden">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 w-full">
+        <div className="w-full px-4 md:px-6 lg:px-8 py-8">
           {/* Back Button */}
           <div className="mb-6">
             <BackButton to="/admin" />
@@ -718,7 +718,7 @@ const ManageEvents = () => {
           {/* Page Header */}
           <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-1">
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter">
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">
                 Events
               </h1>
               <p className="text-muted-foreground font-medium text-sm md:text-base border-l-4 border-primary/30 pl-3">

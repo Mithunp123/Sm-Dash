@@ -344,7 +344,7 @@ const ManageBills = () => {
 
       <DeveloperCredit />
       <main className="flex-1 p-2 md:p-4 bg-background">
-        <div className="max-w-6xl mx-auto">
+        <div className="w-full">
           {/* Back Button */}
           <div className="mb-4">
             {currentView === 'bills' ? (
@@ -359,8 +359,14 @@ const ManageBills = () => {
           {/* Page Header */}
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight uppercase">{viewTitle}</h1>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{currentView === 'folders' ? 'Manage folders to organize bills' : 'Manage bills in this folder'}</p>
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">
+                {viewTitle.includes('Bill Folders') ? (
+                  <>Bill Folders</>
+                ) : (
+                  viewTitle
+                )}
+              </h1>
+              <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">{currentView === 'folders' ? 'Manage folders to organize bills' : 'Manage bills in this folder'}</p>
             </div>
             {currentView === 'folders' ? (
               <Button onClick={() => {

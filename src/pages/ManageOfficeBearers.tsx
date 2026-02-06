@@ -314,15 +314,15 @@ const ManageOfficeBearers = () => {
 
   return (
     <main className="flex-1 w-full bg-background overflow-x-hidden min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 w-full">
+      <div className="w-full px-4 md:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <BackButton to="/admin" />
         </div>
 
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-6">
           <div className="space-y-2">
-            <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter">
-              Office <span className="text-primary italic">Bearers</span>
+            <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">
+              Office Bearers
             </h1>
             <p className="text-muted-foreground font-medium text-sm md:text-base border-l-4 border-primary/30 pl-3">
               Manage student coordinators and leadership directory
@@ -331,13 +331,7 @@ const ManageOfficeBearers = () => {
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
             <div className="grid grid-cols-3 sm:flex items-center gap-3">
-              <Button
-                onClick={downloadMasterExcel}
-                className="w-full sm:w-11 h-11 rounded-xl sm:rounded-full p-0 flex items-center justify-center shadow-lg shadow-green-500/20 bg-green-600 hover:bg-green-700 text-white transition-all transform hover:scale-105"
-                title="Download Master Excel"
-              >
-                <FileSpreadsheet className="w-5 h-5" />
-              </Button>
+
 
               <Button
                 onClick={downloadSampleExcel}

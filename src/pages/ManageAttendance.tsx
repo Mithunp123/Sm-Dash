@@ -525,20 +525,18 @@ const ManageAttendance = () => {
     <div className="min-h-screen flex flex-col">
       <DeveloperCredit />
       <main className="flex-1 w-full bg-background overflow-x-hidden">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 w-full">
+        <div className="w-full px-4 md:px-6 lg:px-8 py-8">
           <div className="mb-6">
             <BackButton to="/admin" />
           </div>
 
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10">
             <div className="space-y-1">
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter flex items-center gap-3">
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white flex items-center gap-3">
                 <div className="bg-primary/10 rounded-2xl p-2 md:p-2.5 shadow-inner shrink-0">
                   <Activity className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-primary" />
                 </div>
-                <div className="flex flex-wrap items-center gap-x-2">
-                  Master <span className="text-primary italic">Attendance</span>
-                </div>
+                Master Attendance
               </h1>
               <p className="text-muted-foreground font-medium text-xs md:text-base border-l-4 border-primary/30 pl-3">
                 Track and manage participation across all activities

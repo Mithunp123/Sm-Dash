@@ -204,8 +204,8 @@ export default function ViewFeedbackReports() {
           <div className="w-full">
             <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
               <div>
-                <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter">Feedback <span className="text-primary italic">Reports</span></h1>
-                <p className="text-[10px] sm:text-xs md:text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Audit student satisfaction and event quality</p>
+                <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">Feedback Reports</h1>
+                <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Audit student satisfaction and event quality</p>
               </div>
             </div>
             <div className="text-center py-12">
@@ -228,8 +228,8 @@ export default function ViewFeedbackReports() {
           </div>
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div>
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter">Feedback <span className="text-primary italic">Reports</span></h1>
-              <p className="text-[10px] sm:text-xs md:text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Audit student satisfaction and event quality</p>
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">Feedback Reports</h1>
+              <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Audit student satisfaction and event quality</p>
             </div>
             <Button
               onClick={downloadAsExcel}
@@ -257,7 +257,7 @@ export default function ViewFeedbackReports() {
                       <div className="flex flex-col md:flex-row gap-6 items-start">
                         <div className="flex-1 space-y-4">
                           <div className="flex items-start justify-between gap-4">
-                            <h3 className="text-xl font-black text-foreground uppercase tracking-tight leading-tight line-clamp-2">
+                            <h3 className="text-xl font-bold text-foreground">
                               {question.question_text}
                             </h3>
                             <Badge className="shrink-0 font-bold text-[9px] uppercase tracking-widest px-2 py-0.5 border-none bg-primary/10 text-primary">
@@ -282,12 +282,12 @@ export default function ViewFeedbackReports() {
                         <div className="w-full md:w-auto flex flex-col items-end gap-3 min-w-[200px]">
                           {hasResponses ? (
                             <div className="text-right">
-                              <div className="text-3xl font-black text-foreground uppercase tracking-tighter">
+                              <div className="text-3xl font-bold text-foreground">
                                 {questionStats?.totalResponses}
-                                <span className="text-[10px] font-bold text-muted-foreground ml-1">voters</span>
+                                <span className="text-[10px] font-medium text-muted-foreground ml-1">voters</span>
                               </div>
                               {question.question_type === 'rating' && (
-                                <div className="text-xs font-black text-amber-500 uppercase tracking-widest flex items-center justify-end gap-1">
+                                <div className="text-xs font-bold text-amber-500 flex items-center justify-end gap-1">
                                   {questionStats?.averageRating.toFixed(1)} <span className="text-amber-400">★</span> Avg Score
                                 </div>
                               )}

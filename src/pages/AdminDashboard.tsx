@@ -113,10 +113,10 @@ const AdminDashboard = () => {
   return (
     <>
       <DeveloperCredit />
-      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 w-full overflow-x-hidden">
+      <div className="w-full px-4 md:px-6 lg:px-8 py-8 overflow-x-hidden">
         <div className="w-full space-y-6">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl md:text-3xl font-bold text-primary tracking-tight">Admin Dashboard</h1>
+            <h1 className="text-2xl md:text-5xl font-bold text-white">Admin Dashboard</h1>
             {/* Add date or other top-level actions here if needed */}
           </div>
 

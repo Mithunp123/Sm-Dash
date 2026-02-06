@@ -185,7 +185,7 @@ const LandingPage = () => {
       }
     };
     loadUpcomingEvents();
-    const t = setTimeout(() => setPageReady(true), 250);
+    const t = setTimeout(() => setPageReady(true), 200);
     return () => clearTimeout(t);
   }, []);
 
@@ -354,31 +354,129 @@ const LandingPage = () => {
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.8, ease: "easeInOut" }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-md"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#020617]"
           >
-            <div className="flex flex-col items-center gap-4">
-              <div className="relative">
+            <div className="relative flex flex-col items-center">
+              {/* Animated decorative background elements */}
+              <div className="absolute -inset-40 bg-primary/5 blur-[120px] rounded-full animate-pulse" />
+              <div className="absolute -inset-20 bg-blue-500/5 blur-[80px] rounded-full animate-pulse delay-700" />
+
+              <div className="relative w-32 h-32 md:w-40 md:h-40 flex items-center justify-center">
+                {/* SVG Loading Ring */}
+                <svg className="absolute inset-0 w-full h-full -rotate-90">
+                  <circle
+                    cx="50%"
+                    cy="50%"
+                    r="48%"
+                    className="fill-none stroke-white/[0.03] stroke-[2]"
+                  />
+                  <motion.circle
+                    cx="50%"
+                    cy="50%"
+                    r="48%"
+                    className="fill-none stroke-primary stroke-[3]"
+                    strokeDasharray="10 100"
+                    initial={{ strokeDashoffset: 100 }}
+                    animate={{
+                      strokeDashoffset: [100, -100],
+                      strokeDasharray: ["10 100", "80 100", "10 100"]
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    strokeLinecap="round"
+                  />
+                </svg>
+
+                {/* Pulsing Logo Container */}
                 <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary"
-                ></motion.div>
-                <div className="absolute inset-0 flex items-center justify-center">
+                  animate={{
+                    scale: [0.95, 1.05, 0.95],
+                    opacity: [0.8, 1, 0.8]
+                  }}
+                  transition={{
+                    duration: 2.5,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                  className="relative z-10 w-20 h-20 md:w-24 md:h-24"
+                >
+                  <img
+                    src="/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
+                    alt="SM Volunteers Logo"
+                    className="w-full h-full object-contain filter drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]"
+                    onError={(e) => {
+                      // Fallback if logo fails to load
+                      const target = e.target as HTMLImageElement;
+                      target.src = "/placeholder.svg";
+                    }}
+                  />
+                </motion.div>
+
+                {/* Orbital dots */}
+                {[0, 1, 2].map((i) => (
                   <motion.div
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
+                    key={i}
+                    className="absolute w-full h-0 top-1/2 left-0"
+                    animate={{
+                      rotate: [0, 360]
+                    }}
+                    transition={{
+                      duration: 4,
+                      repeat: Infinity,
+                      ease: "linear",
+                      delay: i * 1.3
+                    }}
                   >
-                    <Heart className="w-6 h-6 text-primary" />
+                    <motion.div
+                      className="absolute right-0 w-1.5 h-1.5 bg-primary rounded-full shadow-[0_0_10px_rgba(59,130,246,0.8)]"
+                      animate={{
+                        scale: [1, 1.5, 1]
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: i * 0.5
+                      }}
+                    />
                   </motion.div>
-                </div>
+                ))}
               </div>
-              <motion.span
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-lg font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent"
-              >
-                Preparing Experience…
-              </motion.span>
+
+              {/* Text Elements */}
+              <div className="mt-12 text-center">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="space-y-3"
+                >
+                  <h2 className="text-2xl md:text-3xl font-black tracking-[0.25em] uppercase text-white flex items-center justify-center gap-3">
+                    <span className="text-primary">SM</span>
+                    <span className="text-white/90">Volunteers</span>
+                  </h2>
+
+                  <div className="flex flex-col items-center">
+                    <div className="h-[2px] w-48 bg-white/5 relative overflow-hidden rounded-full">
+                      <motion.div
+                        animate={{ x: ["-100%", "100%"] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-primary to-transparent"
+                      />
+                    </div>
+                    <motion.p
+                      animate={{ opacity: [0.4, 0.7, 0.4] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="text-[10px] md:text-xs font-bold tracking-[0.4em] uppercase text-white/40 mt-3"
+                    >
+                      Building the Ministry of Service
+                    </motion.p>
+                  </div>
+                </motion.div>
+              </div>
             </div>
           </motion.div>
         )}
@@ -411,7 +509,7 @@ const LandingPage = () => {
             <motion.h1
               variants={fadeInUp}
               className="text-4xl sm:text-5xl md:text-7xl font-black drop-shadow-2xl tracking-tighter leading-tight"
-            >
+            > <br></br> <br></br> <br></br>
               <span className="text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">SM</span>{" "}
               <br className="sm:hidden" />
               <span className="bg-gradient-to-r from-[#ff6d00] to-[#ffab40] bg-clip-text text-transparent">
@@ -425,9 +523,6 @@ const LandingPage = () => {
             >
               <span className="block text-xl md:text-3xl font-black italic tracking-wide md:tracking-[0.1em] bg-gradient-to-r from-white via-blue-200 to-white bg-clip-text text-transparent drop-shadow-2xl uppercase leading-tight">
                 To build the ministry of <br className="hidden sm:block" /> socially responsible volunteers
-              </span>
-              <span className="block text-base md:text-xl text-orange-400 font-black mt-3 drop-shadow-[0_2px_10px_rgba(251,146,60,0.5)] tracking-widest uppercase">
-                who can serve society with a passion
               </span>
               <motion.div
                 initial={{ width: 0, opacity: 0 }}
@@ -714,12 +809,12 @@ const LandingPage = () => {
               ))}
             </div>
           ) : awards.length > 0 ? (
-            <div className="relative overflow-hidden">
+            <div className="relative overflow-hidden py-4">
               <motion.div
-                className="flex gap-6"
-                animate={{
+                className={`flex gap-6 ${awards.length <= 3 ? 'justify-center flex-wrap' : ''}`}
+                animate={awards.length > 3 ? {
                   x: [0, -(awards.length * 350)]
-                }}
+                } : {}}
                 transition={{
                   x: {
                     repeat: Infinity,
@@ -973,10 +1068,10 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-4 relative z-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-16">
             <div>
-              <h2 className="text-4xl md:text-6xl font-black tracking-tighter uppercase">
-                Student Office <span className="text-primary/70">Bearers</span>
+              <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-4">
+                Student Office <span className="text-primary">Bearers</span>
               </h2>
-              <p className="text-slate-400 max-w-2xl text-lg font-medium mt-4">
+              <p className="text-slate-400 max-w-2xl text-lg mt-4">
                 The dedicated leadership team guiding our volunteer missions and community impact.
               </p>
             </div>
@@ -1021,42 +1116,42 @@ const LandingPage = () => {
                     <div className="absolute bottom-0 inset-x-0 p-5 md:p-6 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent pt-8 md:pt-12">
                       <div className="flex items-end justify-between gap-3">
                         <div className="flex-1 space-y-1">
-                          <div className="flex items-center gap-2 mb-1 md:mb-2">
-                            <div className="w-6 md:w-8 h-0.5 bg-cyan-500 rounded-full"></div>
-                            <p className="text-[9px] md:text-[10px] font-black text-cyan-400 uppercase tracking-widest">{ob.position}</p>
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="w-6 h-0.5 bg-primary rounded-full"></div>
+                            <p className="text-[10px] font-bold text-primary uppercase tracking-wider">{ob.position}</p>
                           </div>
-                          <h4 className="text-xl md:text-2xl font-black text-white leading-none tracking-tight">{ob.name}</h4>
+                          <h4 className="text-xl md:text-2xl font-bold text-white tracking-tight">{ob.name}</h4>
                         </div>
-                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-800/80 backdrop-blur-sm border border-slate-700 flex items-center justify-center group-hover:bg-cyan-500 transition-all shadow-lg">
-                          <ArrowRight className="w-3 md:w-4 h-3 md:h-4 text-cyan-400 group-hover:text-white" />
+                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-800/80 backdrop-blur-sm border border-slate-700 flex items-center justify-center group-hover:bg-primary transition-all shadow-lg">
+                          <ArrowRight className="w-3 md:w-4 h-3 md:h-4 text-primary group-hover:text-white" />
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Back Side */}
-                  <div className="absolute inset-0 rotate-y-180 backface-hidden rounded-[2rem] bg-slate-900 border border-primary/20 p-6 md:p-8 flex flex-col justify-center text-center shadow-2xl shadow-primary/10">
-                    <div className="space-y-4 md:space-y-6">
-                      <div>
-                        <h4 className="text-xl md:text-2xl font-black text-white leading-tight mb-1">{ob.name}</h4>
-                        <p className="text-primary font-bold uppercase tracking-widest text-[10px] md:text-xs">{ob.position}</p>
-                      </div>
+                    {/* Back Side */}
+                    <div className="absolute inset-0 rotate-y-180 backface-hidden rounded-[2rem] bg-slate-900 border border-primary/20 p-6 md:p-8 flex flex-col justify-center text-center shadow-2xl shadow-primary/10">
+                      <div className="space-y-4 md:space-y-6">
+                        <div>
+                          <h4 className="text-xl md:text-2xl font-bold text-white mb-1">{ob.name}</h4>
+                          <p className="text-primary font-bold uppercase tracking-wider text-[10px] md:text-xs">{ob.position}</p>
+                        </div>
 
-                      <div className="space-y-2 md:space-y-3">
-                        {ob.email && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); openInGmail(ob.email); }}
-                            className="flex items-center gap-3 p-2 md:p-3 rounded-xl bg-white/5 border border-white/10 hover:border-primary/50 transition-all w-full"
-                          >
-                            <Mail className="w-3 md:w-4 h-3 md:h-4 text-primary" />
-                            <div className="text-left overflow-hidden">
-                              <p className="text-[7px] md:text-[8px] font-black text-slate-500 uppercase tracking-widest">Send Mail</p>
-                              <p className="text-[10px] md:text-xs font-bold text-slate-200 truncate">{ob.email}</p>
-                            </div>
-                          </button>
-                        )}
+                        <div className="space-y-2 md:space-y-3">
+                          {ob.email && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); openInGmail(ob.email); }}
+                              className="flex items-center gap-3 p-2 md:p-3 rounded-xl bg-white/5 border border-white/10 hover:border-primary/50 transition-all w-full"
+                            >
+                              <Mail className="w-3 md:w-4 h-3 md:h-4 text-primary" />
+                              <div className="text-left overflow-hidden">
+                                <p className="text-[7px] md:text-[8px] font-black text-slate-500 uppercase tracking-widest">Send Mail</p>
+                                <p className="text-[10px] md:text-xs font-bold text-slate-200 truncate">{ob.email}</p>
+                              </div>
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">SM Volunteer Leadership</p>
                       </div>
-                      <p className="text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">SM Volunteer Leadership</p>
                     </div>
                   </div>
                 </div>

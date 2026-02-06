@@ -168,9 +168,8 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
         {/* Compact Header */}
         <div className="mb-4 flex items-end justify-between pb-4">
           <div>
-            <h1 className="text-2xl font-black text-foreground tracking-tight uppercase">
-              {activeTab === 'calendar' ? 'Mission' : 'Dashboard'}{' '}
-              <span className="text-primary/40">{activeTab === 'calendar' ? 'Timeline' : 'Overview'}</span>
+            <h1 className="text-2xl font-bold text-white tracking-tight">
+              {activeTab === 'calendar' ? 'Mission Timeline' : 'Dashboard Overview'}
             </h1>
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
               {activeTab === 'calendar' ? 'Stay updated with your schedule' : `Welcome back, ${auth.getUser()?.name || 'Volunteer'}`}
@@ -202,8 +201,8 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
                       <stat.icon className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">{stat.label}</p>
-                      <p className="text-xl font-black">{stat.value}</p>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{stat.label}</p>
+                      <p className="text-xl font-bold">{stat.value}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -221,7 +220,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
                       <Star className="w-3 h-3 fill-white" />
                       <span>Volunteer Status: Active</span>
                     </div>
-                    <h2 className="text-3xl font-black mb-2 tracking-tight">
+                    <h2 className="text-3xl font-bold mb-2 tracking-tight">
                       Ready for the next mission?
                     </h2>
                     <p className="text-indigo-100 font-medium">
@@ -235,7 +234,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
                 {/* Next Highlight Card */}
                 <Card className="rounded-[2rem] shadow-sm border-none bg-card/80 backdrop-blur-sm overflow-hidden">
                   <CardHeader className="pb-4 border-b border-border/10">
-                    <CardTitle className="text-base font-black uppercase tracking-widest flex items-center gap-2">
+                    <CardTitle className="text-base font-bold uppercase tracking-widest flex items-center gap-2">
                       <Clock className="w-4 h-4 text-indigo-500" />
                       Immediate Schedule
                     </CardTitle>
@@ -246,7 +245,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
                         {meetings.slice(0, 1).map(m => m && (
                           <div key={m.id} className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-2xl bg-muted/30 border border-border/5">
                             <div className="space-y-1">
-                              <h4 className="font-black text-lg text-foreground">{m.title}</h4>
+                              <h4 className="font-bold text-lg text-foreground">{m.title}</h4>
                               <div className="flex items-center gap-4 text-sm text-muted-foreground font-medium">
                                 <span className="flex items-center gap-1.5">
                                   <CalendarIcon className="w-4 h-4 text-indigo-400" />
@@ -286,7 +285,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
                       <StarIcon className="w-4 h-4 fill-amber-400" />
                       <span className="font-black uppercase tracking-widest text-[10px]">Daily Wisdom</span>
                     </div>
-                    <p className="text-xl font-black italic leading-tight text-white/90">
+                    <p className="text-xl font-bold italic leading-tight text-white/90">
                       "Real change, enduring change, happens one step at a time."
                     </p>
                     <div className="flex items-center gap-2 pt-2">

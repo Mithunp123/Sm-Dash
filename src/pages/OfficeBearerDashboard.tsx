@@ -124,12 +124,12 @@ const OfficeBearerDashboard = () => {
   return (
     <>
       <DeveloperCredit />
-      <div className="max-w-[1400px] mx-auto space-y-12 pb-20 px-4 md:px-8">
+      <div className="w-full space-y-12 pb-20 px-4 md:px-8">
         {/* Premium Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pt-4">
           <div className="space-y-2">
-            <h1 className="text-4xl font-black text-foreground tracking-tight uppercase">
-              OB <span className="text-primary/60 italic font-medium">Control Center</span>
+            <h1 className="text-4xl font-bold text-white tracking-tight">
+              OB Control Center
             </h1>
             <p className="text-sm font-bold text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2">
               <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
@@ -137,7 +137,7 @@ const OfficeBearerDashboard = () => {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="outline" className="rounded-full h-11 px-6 font-black uppercase text-[10px] tracking-widest border-primary/20 hover:bg-primary/5 hover:border-primary/40 shadow-sm transition-all" onClick={() => navigate("/office-bearer/profile")}>
+            <Button variant="outline" className="rounded-full h-11 px-6 font-bold uppercase text-[10px] tracking-widest border-primary/20 hover:bg-primary/5 hover:border-primary/40 shadow-sm transition-all" onClick={() => navigate("/office-bearer/profile")}>
               <UserCircle className="w-4 h-4 mr-2" />
               View Profile
             </Button>
@@ -152,7 +152,7 @@ const OfficeBearerDashboard = () => {
                 <XCircle className="w-12 h-12 text-muted-foreground" />
               </div>
               <div className="space-y-3">
-                <h3 className="text-3xl font-black uppercase tracking-tight">Access Restricted</h3>
+                <h3 className="text-3xl font-bold uppercase tracking-tight">Access Restricted</h3>
                 <p className="text-muted-foreground max-w-lg mx-auto text-lg font-medium leading-relaxed">
                   Your account currently has no elective permissions. Please coordinate with the Head Administrator to activate your role dashboard modules.
                 </p>
@@ -175,8 +175,8 @@ const OfficeBearerDashboard = () => {
                       <stat.icon className="w-7 h-7" />
                     </div>
                     <div>
-                      <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.15em] mb-1">{stat.label}</p>
-                      <p className="text-3xl font-black tracking-tighter text-foreground">{stat.value}</p>
+                      <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-[0.15em] mb-1">{stat.label}</p>
+                      <p className="text-3xl font-bold tracking-tighter text-foreground">{stat.value}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -194,7 +194,7 @@ const OfficeBearerDashboard = () => {
                       <Badge className="bg-white/20 backdrop-blur-md border-white/10 text-white font-bold mb-4 px-4 py-1 rounded-full text-[10px] uppercase tracking-widest">
                         <TrendingUp className="w-3 h-3 mr-2" /> Role: Office Bearer
                       </Badge>
-                      <h2 className="text-4xl font-black mb-4 tracking-tighter leading-none">
+                      <h2 className="text-4xl font-bold mb-4 tracking-tighter leading-none">
                         Ready to lead the <br /> next mission?
                       </h2>
                       <p className="text-indigo-100/80 font-medium text-lg max-w-sm">
@@ -202,10 +202,10 @@ const OfficeBearerDashboard = () => {
                       </p>
                     </div>
                     <div className="flex gap-4">
-                      <Button variant="secondary" className="bg-white text-primary hover:bg-white/90 font-black uppercase tracking-widest text-xs rounded-2xl h-12 px-8" onClick={() => navigate("/admin/projects")}>
+                      <Button variant="secondary" className="bg-white text-primary hover:bg-white/90 font-bold uppercase tracking-widest text-xs rounded-2xl h-12 px-8" onClick={() => navigate("/admin/projects")}>
                         Manage Projects
                       </Button>
-                      <Button variant="outline" className="bg-transparent border-white/20 text-white hover:bg-white/10 font-black uppercase tracking-widest text-xs rounded-2xl h-12 px-8" onClick={() => navigate("/admin/meetings")}>
+                      <Button variant="outline" className="bg-transparent border-white/20 text-white hover:bg-white/10 font-bold uppercase tracking-widest text-xs rounded-2xl h-12 px-8" onClick={() => navigate("/admin/meetings")}>
                         Schedule Meet
                       </Button>
                     </div>
@@ -224,7 +224,7 @@ const OfficeBearerDashboard = () => {
                           <UserCircle className="w-8 h-8" />
                         </div>
                         <div className="space-y-1">
-                          <h4 className="font-black text-xl tracking-tight uppercase">Students</h4>
+                          <h4 className="font-bold text-xl tracking-tight uppercase">Students</h4>
                           <p className="text-sm text-muted-foreground font-medium">Manage volunteer profiles and assignments.</p>
                         </div>
                         <ChevronRight className="w-6 h-6 ml-auto text-muted-foreground/30 group-hover:text-primary transition-colors" />
@@ -296,8 +296,8 @@ const OfficeBearerDashboard = () => {
                 <div className="grid grid-cols-1 gap-4">
                   <Card className="rounded-[2rem] border-none bg-card/40 p-4 flex flex-col items-center gap-2 group hover:bg-card/60 transition-colors">
                     <UsersRound className="w-5 h-5 text-indigo-500" />
-                    <span className="text-[10px] font-black uppercase text-muted-foreground">Teams</span>
-                    <span className="text-lg font-black">{stats.teams}</span>
+                    <span className="text-[10px] font-bold uppercase text-muted-foreground">Teams</span>
+                    <span className="text-lg font-bold">{stats.teams}</span>
                   </Card>
                 </div>
 
@@ -357,7 +357,7 @@ const OfficeBearerDashboard = () => {
                     <Trophy className="w-5 h-5" />
                     <span className="font-black uppercase tracking-widest text-[10px]">Leader's Wisdom</span>
                   </div>
-                  <p className="text-xl font-black italic tracking-tight leading-7 text-indigo-900 dark:text-indigo-100">
+                  <p className="text-xl font-bold italic tracking-tight leading-7 text-indigo-900 dark:text-indigo-100">
                     "Leadership is not about being in charge. It's about taking care of those in your charge."
                   </p>
                   <div className="flex items-center gap-2 pt-2">

@@ -431,40 +431,40 @@ const ManageTeams = () => {
     <div className="min-h-screen flex flex-col">
       <DeveloperCredit />
       <main className="flex-1 w-full bg-background overflow-x-hidden">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 w-full">
+        <div className="w-full px-4 md:px-6 lg:px-8 py-8">
           <div className="mb-2">
             <Button variant="ghost" className="gap-2 font-bold text-muted-foreground hover:text-primary transition-colors" onClick={() => window.history.back()}>
               <RefreshCw className="w-4 h-4" /> Back to Dashboard
             </Button>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
             <div>
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter">Manage <span className="text-primary italic">Teams</span></h1>
-              <p className="text-[10px] sm:text-xs md:text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Coordinate volunteers and project workflows</p>
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">Manage Teams</h1>
+              <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Coordinate volunteers and project workflows</p>
             </div>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-            <Button
-              onClick={() => {
-                setShowRequests(!showRequests);
-                if (!showRequests) loadTeamRequests();
-              }}
-              variant={showRequests ? "default" : "outline"}
-              className="gap-2 h-10 px-4 text-sm w-full sm:w-auto shadow-sm"
-            >
-              <Bell className="w-4 h-4" />
-              Requests
-              {teamRequests.filter(r => r.status === 'pending').length > 0 && (
-                <Badge className="ml-1 bg-red-500 hover:bg-red-600">
-                  {teamRequests.filter(r => r.status === 'pending').length}
-                </Badge>
-              )}
-            </Button>
-            <Button onClick={() => setShowCreateTeam(true)} className="gap-2 h-10 px-4 text-sm w-full sm:w-auto shadow-sm">
-              <Plus className="w-4 h-4" />
-              Create Team
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto shrink-0">
+              <Button
+                onClick={() => {
+                  setShowRequests(!showRequests);
+                  if (!showRequests) loadTeamRequests();
+                }}
+                variant={showRequests ? "default" : "outline"}
+                className="gap-2 h-10 px-4 text-sm w-full sm:w-auto shadow-sm"
+              >
+                <Bell className="w-4 h-4" />
+                Requests
+                {teamRequests.filter(r => r.status === 'pending').length > 0 && (
+                  <Badge className="ml-1 bg-red-500 hover:bg-red-600">
+                    {teamRequests.filter(r => r.status === 'pending').length}
+                  </Badge>
+                )}
+              </Button>
+              <Button onClick={() => setShowCreateTeam(true)} className="gap-2 h-10 px-4 text-sm w-full sm:w-auto shadow-sm">
+                <Plus className="w-4 h-4" />
+                Create Team
+              </Button>
+            </div>
           </div>
         </div>
 

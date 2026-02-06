@@ -97,7 +97,49 @@ const MentorManagement = () => {
     }
   });
 
-  // Mentee form state
+  // Date-wise Attendance Report State
+  const [dailyAttendance, setDailyAttendance] = useState<any[]>([]);
+  const [reportDate, setReportDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [reportLoading, setReportLoading] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === "reports") {
+      loadDailyAttendance();
+    }
+  }, [activeTab, reportDate]);
+
+  const loadDailyAttendance = async () => {
+    try {
+      setReportLoading(true);
+      const res = await api.getPhoneMentoringAttendance({ date: reportDate });
+      if (res.success && res.attendance) {
+        setDailyAttendance(res.attendance);
+      } else {
+        setDailyAttendance([]);
+      }
+    } catch (error) {
+      console.error("Failed to load daily attendance", error);
+      toast.error("Failed to load attendance report");
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  const handleExportDailyReport = () => {
+    const data = dailyAttendance.map(record => ({
+      Date: record.attendance_date,
+      Volunteer: record.volunteer_name || 'N/A',
+      Mentee: record.mentee_name || 'N/A',
+      Status: record.status,
+      Notes: record.notes || ''
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Attendance Report");
+    XLSX.writeFile(wb, `Mentoring_Attendance_${reportDate}.xlsx`);
+  };
+
   const [showMenteeDialog, setShowMenteeDialog] = useState(false);
   const [editingMentee, setEditingMentee] = useState<Mentee | null>(null);
   const [menteeForm, setMenteeForm] = useState({
@@ -895,7 +937,7 @@ const MentorManagement = () => {
     <div className="min-h-screen flex flex-col">
       <DeveloperCredit />
       <main className="flex-1 p-4 md:p-6 bg-background w-full">
-        <div className="w-full max-w-7xl mx-auto">
+        <div className="w-full">
           {/* Back Button */}
           <div className="mb-6">
             <BackButton to="/admin" />

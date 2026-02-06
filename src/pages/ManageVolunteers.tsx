@@ -424,7 +424,7 @@ const ManageVolunteers = () => {
     <div className="min-h-screen flex flex-col">
       <DeveloperCredit />
       <main className="flex-1 w-full bg-background overflow-x-hidden">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 w-full">
+        <div className="w-full px-4 md:px-6 lg:px-8 py-8">
           {/* dev bypass banner ... preserved ... */}
           {(typeof window !== 'undefined' && window.location && window.location.hostname && window.location.hostname.includes('localhost')) && !(auth.isAuthenticated() && (auth.hasRole('admin') || permissions?.can_manage_volunteers)) && !devBypass && (
             <div className="mb-6">
@@ -447,8 +447,8 @@ const ManageVolunteers = () => {
           {/* Page Header */}
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div>
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter">Volunteer <span className="text-primary italic">Submissions</span></h1>
-              <p className="text-[10px] sm:text-xs md:text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Manage core community registrations</p>
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">Volunteer Submissions</h1>
+              <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Manage core community registrations</p>
             </div>
             <div className="flex flex-col items-stretch sm:items-end gap-3 w-full sm:w-auto">
               <div className="inline-flex rounded-2xl bg-muted/30 p-1 border-2 border-border/40 backdrop-blur-sm self-center sm:self-auto">

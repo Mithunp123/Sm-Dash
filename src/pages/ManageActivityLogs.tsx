@@ -127,15 +127,15 @@ const ManageActivityLogs = () => {
         <div className="min-h-screen flex flex-col">
             <DeveloperCredit />
             <main className="flex-1 w-full bg-background overflow-x-hidden">
-                <div className="max-w-7xl mx-auto py-8 px-4 space-y-8">
+                <div className="w-full py-8 px-4 space-y-8">
                     <div className="mb-4">
                         <BackButton to="/admin" />
                     </div>
 
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-10 px-2">
                         <div className="space-y-2">
-                            <h1 className="text-3xl sm:text-4xl md:text-6xl font-black text-foreground uppercase tracking-tighter leading-tight">System <span className="text-primary italic">Activity</span> Logs</h1>
-                            <p className="text-[10px] sm:text-xs md:text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-70 border-l-4 border-primary/30 pl-4 mt-2">
+                            <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold text-white leading-tight">System Activity Logs</h1>
+                            <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-4 mt-2">
                                 Real-time audit trail and security monitoring
                             </p>
                         </div>

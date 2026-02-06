@@ -365,7 +365,7 @@ const ManageUsers = () => {
       <DeveloperCredit />
       <div className="flex flex-1">
         <main className="flex-1 w-full bg-background overflow-x-hidden">
-          <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 w-full">
+          <div className="w-full px-4 md:px-6 lg:px-8 py-8">
             {/* Back Button */}
             <div className="mb-6">
               <BackButton to="/admin" />
@@ -373,11 +373,11 @@ const ManageUsers = () => {
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
               <div>
-                <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter">User <span className="text-primary italic">Control</span></h1>
-                <p className="text-[10px] sm:text-xs md:text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Manage platform access and permissions</p>
+                <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">User Control</h1>
+                <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Manage platform access and permissions</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                <Button onClick={() => setShowAddDialog(true)} className="gap-2 h-11 px-6 rounded-2xl shadow-lg shadow-primary/20 font-bold bg-primary uppercase tracking-widest text-[10px]">
+                <Button onClick={() => setShowAddDialog(true)} className="gap-2 h-11 px-6 rounded-2xl shadow-lg shadow-primary/20 font-bold bg-primary text-xs">
                   <Plus className="w-4 h-4" />
                   Add User
                 </Button>

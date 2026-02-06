@@ -177,8 +177,8 @@ const ManageAwards = () => {
         {/* Page Header */}
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div>
-            <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter">Awards <span className="text-primary italic">& Honors</span></h1>
-            <p className="text-[10px] sm:text-xs md:text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Recognizing excellence in the community</p>
+            <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">Awards & Honors</h1>
+            <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Recognizing excellence in the community</p>
           </div>
           <Button onClick={() => setShowForm(true)} className="gap-2 h-11 px-6 rounded-2xl shadow-lg shadow-primary/20 font-bold w-full sm:w-auto">
             <Plus className="w-4 h-4" />

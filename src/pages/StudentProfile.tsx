@@ -351,7 +351,7 @@ const StudentProfile = () => {
       <DeveloperCredit />
 
       <main className="flex-1 p-2 md:p-4 bg-transparent overflow-y-auto">
-        <div className="max-w-4xl mx-auto">
+        <div className="w-full">
 
           {/* Hero Header Section with Profile Picture */}
           <div className="mb-6 bg-white dark:bg-slate-900 border border-border rounded-lg p-6 shadow-sm relative overflow-hidden">

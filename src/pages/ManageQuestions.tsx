@@ -194,7 +194,7 @@ export default function ManageQuestions() {
       <DeveloperCredit />
 
       <main className="flex-1 p-2 md:p-4 bg-transparent">
-        <div className="max-w-6xl mx-auto">
+        <div className="w-full">
 
           {/* Page Header */}
           <div className="mb-6">
@@ -202,8 +202,8 @@ export default function ManageQuestions() {
           </div>
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-foreground uppercase tracking-tight">Feedback <span className="text-primary italic">Questions</span></h1>
-              <p className="text-[10px] sm:text-xs md:text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-70">Manage questions and responses</p>
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">Feedback Questions</h1>
+              <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70">Manage questions and responses</p>
             </div>
             <Button
               onClick={() => handleOpen()}

@@ -365,8 +365,8 @@ const ManageStudentDatabase = () => {
               {/* Page Header */}
               <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                 <div>
-                  <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-foreground uppercase tracking-tighter">Student <span className="text-primary italic">Database</span></h1>
-                  <p className="text-[10px] sm:text-xs md:text-sm font-bold text-muted-foreground uppercase tracking-widest opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Unified records for the entire community</p>
+                  <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">Student Database</h1>
+                  <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Unified records for the entire community</p>
                 </div>
                 {!canEdit && (
                   <div className="flex items-center gap-3 bg-muted/50 p-2 rounded-lg border border-border/50">
