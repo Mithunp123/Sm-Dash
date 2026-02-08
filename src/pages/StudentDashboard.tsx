@@ -201,7 +201,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
                       <stat.icon className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{stat.label}</p>
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{stat.label}</p>
                       <p className="text-xl font-bold">{stat.value}</p>
                     </div>
                   </CardContent>
@@ -216,7 +216,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
                 {/* Refined Welcome Banner */}
                 <div className="relative overflow-hidden rounded-[2rem] bg-indigo-600 p-8 text-white shadow-xl">
                   <div className="relative z-10">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md mb-4 text-[10px] font-bold uppercase tracking-widest border border-white/10">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md mb-4 text-xs font-bold uppercase tracking-widest border border-white/10">
                       <Star className="w-3 h-3 fill-white" />
                       <span>Volunteer Status: Active</span>
                     </div>
@@ -283,7 +283,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
                   <div className="space-y-4 relative z-10">
                     <div className="flex items-center gap-2 text-amber-400">
                       <StarIcon className="w-4 h-4 fill-amber-400" />
-                      <span className="font-black uppercase tracking-widest text-[10px]">Daily Wisdom</span>
+                      <span className="font-black uppercase tracking-widest text-xs">Daily Wisdom</span>
                     </div>
                     <p className="text-xl font-bold italic leading-tight text-white/90">
                       "Real change, enduring change, happens one step at a time."
@@ -314,10 +314,10 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
                         .map((e, idx) => (
                           <div key={idx} className="flex flex-col gap-1 p-3 rounded-xl bg-white/50 dark:bg-black/20 border border-amber-100/50 dark:border-amber-900/30">
                             <span className="text-xs font-black text-foreground">{e.title}</span>
-                            <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase">
+                            <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase">
                               <CalendarIcon className="w-3 h-3 text-amber-500" />
                               {new Date(e.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                              {e.is_special_day && <Badge className="ml-auto bg-amber-100 text-amber-700 hover:bg-amber-100 border-none text-[8px] h-4">Holiday</Badge>}
+                              {e.is_special_day && <Badge className="ml-auto bg-amber-100 text-amber-700 hover:bg-amber-100 border-none text-xs h-4">Holiday</Badge>}
                             </div>
                           </div>
                         ))}
@@ -332,7 +332,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
                     <div className="space-y-3">
                       <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20">
                         <span className="text-xs font-bold text-muted-foreground uppercase">Role</span>
-                        <Badge variant="secondary" className="bg-primary/10 text-primary font-black text-[10px] uppercase">Student</Badge>
+                        <Badge variant="secondary" className="bg-primary/10 text-primary font-black text-xs uppercase">Student</Badge>
                       </div>
                       <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20">
                         <span className="text-xs font-bold text-muted-foreground uppercase">Dept</span>
@@ -404,15 +404,15 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
                   <div className="flex flex-wrap gap-4 bg-muted/20 p-3 rounded-2xl border border-border/5">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-primary" />
-                      <span className="text-[10px] font-bold uppercase tracking-wider">Meetings</span>
+                      <span className="text-xs font-bold uppercase tracking-wider">Meetings</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-amber-500" />
-                      <span className="text-[10px] font-bold uppercase tracking-wider">Special Events</span>
+                      <span className="text-xs font-bold uppercase tracking-wider">Special Events</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-red-500" />
-                      <span className="text-[10px] font-bold uppercase tracking-wider">Holidays</span>
+                      <span className="text-xs font-bold uppercase tracking-wider">Holidays</span>
                     </div>
                   </div>
                 </div>

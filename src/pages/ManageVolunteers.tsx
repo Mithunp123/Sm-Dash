@@ -447,8 +447,8 @@ const ManageVolunteers = () => {
           {/* Page Header */}
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div>
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">Volunteer Submissions</h1>
-              <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Manage core community registrations</p>
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground">Volunteer Submissions</h1>
+              <p className="text-xs sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Manage core community registrations</p>
             </div>
             <div className="flex flex-col items-stretch sm:items-end gap-3 w-full sm:w-auto">
               <div className="inline-flex rounded-2xl bg-muted/30 p-1 border-2 border-border/40 backdrop-blur-sm self-center sm:self-auto">
@@ -456,7 +456,7 @@ const ManageVolunteers = () => {
                   type="button"
                   size="sm"
                   variant={!showApproved ? "secondary" : "ghost"}
-                  className={`rounded-xl px-4 font-bold text-[10px] uppercase tracking-widest transition-all ${!showApproved ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground"}`}
+                  className={`rounded-xl px-4 font-bold text-xs uppercase tracking-widest transition-all ${!showApproved ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground"}`}
                   onClick={() => setShowApproved(false)}
                 >
                   Pending ({subs.length})
@@ -465,7 +465,7 @@ const ManageVolunteers = () => {
                   type="button"
                   size="sm"
                   variant={showApproved ? "secondary" : "ghost"}
-                  className={`rounded-xl px-4 font-bold text-[10px] uppercase tracking-widest transition-all ${showApproved ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground"}`}
+                  className={`rounded-xl px-4 font-bold text-xs uppercase tracking-widest transition-all ${showApproved ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground"}`}
                   onClick={() => {
                     setShowApproved(true);
                     loadApproved();

@@ -121,7 +121,7 @@ const StudentReports = () => {
                                 </DialogHeader>
                                 <div className="grid gap-6 py-4">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="title" className="font-black uppercase tracking-widest text-[10px] text-muted-foreground">Report Title</Label>
+                                        <Label htmlFor="title" className="font-black uppercase tracking-widest text-xs text-muted-foreground">Report Title</Label>
                                         <Input
                                             id="title"
                                             placeholder="Progress update - [Mission Name]"
@@ -131,7 +131,7 @@ const StudentReports = () => {
                                         />
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label htmlFor="project" className="font-black uppercase tracking-widest text-[10px] text-muted-foreground">Project Selection</Label>
+                                        <Label htmlFor="project" className="font-black uppercase tracking-widest text-xs text-muted-foreground">Project Selection</Label>
                                         <Select
                                             value={formData.project_id}
                                             onValueChange={(v) => setFormData({ ...formData, project_id: v })}
@@ -147,7 +147,7 @@ const StudentReports = () => {
                                         </Select>
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label htmlFor="date" className="font-black uppercase tracking-widest text-[10px] text-muted-foreground">Report Date</Label>
+                                        <Label htmlFor="date" className="font-black uppercase tracking-widest text-xs text-muted-foreground">Report Date</Label>
                                         <Input
                                             id="date"
                                             type="date"
@@ -157,7 +157,7 @@ const StudentReports = () => {
                                         />
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label htmlFor="content" className="font-black uppercase tracking-widest text-[10px] text-muted-foreground">Report Content/Summary</Label>
+                                        <Label htmlFor="content" className="font-black uppercase tracking-widest text-xs text-muted-foreground">Report Content/Summary</Label>
                                         <Textarea
                                             id="content"
                                             placeholder="What was achieved during this period?"
@@ -207,10 +207,10 @@ const StudentReports = () => {
                                 <Table>
                                     <TableHeader className="bg-muted/50 border-b border-border">
                                         <TableRow className="hover:bg-transparent border-none">
-                                            <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground py-4 px-8">Date</TableHead>
-                                            <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground py-4 px-8">Report Title</TableHead>
-                                            <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground py-4 px-8">Project</TableHead>
-                                            <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground py-4 px-8 text-right">Actions</TableHead>
+                                            <TableHead className="font-black uppercase tracking-widest text-xs text-muted-foreground py-4 px-8">Date</TableHead>
+                                            <TableHead className="font-black uppercase tracking-widest text-xs text-muted-foreground py-4 px-8">Report Title</TableHead>
+                                            <TableHead className="font-black uppercase tracking-widest text-xs text-muted-foreground py-4 px-8">Project</TableHead>
+                                            <TableHead className="font-black uppercase tracking-widest text-xs text-muted-foreground py-4 px-8 text-right">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>

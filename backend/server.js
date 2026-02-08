@@ -43,6 +43,13 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Debug middleware - log all requests
+app.use((req, res, next) => {
+  if (req.method === 'DELETE') {
+    console.log(`[SERVER DEBUG] Incoming DELETE request - ${req.method} ${req.path}`);
+  }
+  next();
+});
 
 // Serve uploaded files (photos, resources, etc.) from public/uploads
 app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));

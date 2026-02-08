@@ -109,11 +109,11 @@ const StudentBills = () => {
         const s = status?.toLowerCase() || 'pending';
         switch (s) {
             case 'approved':
-                return <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 font-black uppercase tracking-widest text-[10px]"><CheckCircle2 className="w-3 h-3 mr-1" /> Approved</Badge>;
+                return <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 font-black uppercase tracking-widest text-xs"><CheckCircle2 className="w-3 h-3 mr-1" /> Approved</Badge>;
             case 'rejected':
-                return <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 font-black uppercase tracking-widest text-[10px]"><XCircle className="w-3 h-3 mr-1" /> Rejected</Badge>;
+                return <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 font-black uppercase tracking-widest text-xs"><XCircle className="w-3 h-3 mr-1" /> Rejected</Badge>;
             default:
-                return <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 font-black uppercase tracking-widest text-[10px]"><Clock className="w-3 h-3 mr-1" /> Pending</Badge>;
+                return <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 font-black uppercase tracking-widest text-xs"><Clock className="w-3 h-3 mr-1" /> Pending</Badge>;
         }
     };
 
@@ -144,7 +144,7 @@ const StudentBills = () => {
                                 </DialogHeader>
                                 <div className="grid gap-6 py-4">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="project" className="font-black uppercase tracking-widest text-[10px] text-muted-foreground">Project Selection</Label>
+                                        <Label htmlFor="project" className="font-black uppercase tracking-widest text-xs text-muted-foreground">Project Selection</Label>
                                         <Select
                                             value={formData.project_id}
                                             onValueChange={(v) => setFormData({ ...formData, project_id: v })}
@@ -160,7 +160,7 @@ const StudentBills = () => {
                                         </Select>
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label htmlFor="amount" className="font-black uppercase tracking-widest text-[10px] text-muted-foreground">Amount (INR)</Label>
+                                        <Label htmlFor="amount" className="font-black uppercase tracking-widest text-xs text-muted-foreground">Amount (INR)</Label>
                                         <Input
                                             id="amount"
                                             type="number"
@@ -171,7 +171,7 @@ const StudentBills = () => {
                                         />
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label htmlFor="date" className="font-black uppercase tracking-widest text-[10px] text-muted-foreground">Expense Date</Label>
+                                        <Label htmlFor="date" className="font-black uppercase tracking-widest text-xs text-muted-foreground">Expense Date</Label>
                                         <Input
                                             id="date"
                                             type="date"
@@ -181,7 +181,7 @@ const StudentBills = () => {
                                         />
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label htmlFor="desc" className="font-black uppercase tracking-widest text-[10px] text-muted-foreground">Description/Reason</Label>
+                                        <Label htmlFor="desc" className="font-black uppercase tracking-widest text-xs text-muted-foreground">Description/Reason</Label>
                                         <Textarea
                                             id="desc"
                                             placeholder="What was this expense for?"
@@ -231,11 +231,11 @@ const StudentBills = () => {
                                 <Table>
                                     <TableHeader className="bg-muted/50 border-b border-border">
                                         <TableRow className="hover:bg-transparent border-none">
-                                            <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground py-4 px-8">Date</TableHead>
-                                            <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground py-4 px-8">Mission/Project</TableHead>
-                                            <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground py-4 px-8">Amount</TableHead>
-                                            <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground py-4 px-8">Status</TableHead>
-                                            <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground py-4 px-8 text-right">Actions</TableHead>
+                                            <TableHead className="font-black uppercase tracking-widest text-xs text-muted-foreground py-4 px-8">Date</TableHead>
+                                            <TableHead className="font-black uppercase tracking-widest text-xs text-muted-foreground py-4 px-8">Mission/Project</TableHead>
+                                            <TableHead className="font-black uppercase tracking-widest text-xs text-muted-foreground py-4 px-8">Amount</TableHead>
+                                            <TableHead className="font-black uppercase tracking-widest text-xs text-muted-foreground py-4 px-8">Status</TableHead>
+                                            <TableHead className="font-black uppercase tracking-widest text-xs text-muted-foreground py-4 px-8 text-right">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -247,7 +247,7 @@ const StudentBills = () => {
                                                 <TableCell className="py-4 px-8">
                                                     <div className="flex flex-col">
                                                         <span className="font-bold text-foreground group-hover:text-primary transition-colors">{bill.project_title || "General"}</span>
-                                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground truncate max-w-[200px]">{bill.description || "No description"}</span>
+                                                        <span className="text-xs font-black uppercase tracking-widest text-muted-foreground truncate max-w-[200px]">{bill.description || "No description"}</span>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="py-4 px-8 font-black text-lg text-foreground tabular-nums">

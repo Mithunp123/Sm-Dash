@@ -337,7 +337,7 @@ export default function ManageQuestions() {
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Question Text *
                   </label>
                   <Textarea
@@ -391,7 +391,7 @@ export default function ManageQuestions() {
                       </option>
                     ))}
                   </select>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     If you select an event, only students who attended will see this question
                   </p>
                 </div>
@@ -405,7 +405,7 @@ export default function ManageQuestions() {
                     />
                     <span className="text-sm font-medium text-foreground">Enabled</span>
                   </label>
-                  <p className="text-xs text-gray-500 mt-1">If disabled, students will still be able to view previously submitted responses (admins only) but won't be able to submit new responses for this question.</p>
+                  <p className="text-xs text-muted-foreground mt-1">If disabled, students will still be able to view previously submitted responses (admins only) but won't be able to submit new responses for this question.</p>
                 </div>
                 <div className="flex gap-3 pt-4">
                   <Button

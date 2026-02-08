@@ -267,10 +267,10 @@ const OfficeBearerProfile = () => {
     <div className="flex-1 flex flex-col bg-transparent">
       <DeveloperCredit />
 
-      <main className="flex-1 p-2 md:p-4 bg-transparent overflow-y-auto">
-        <div className="max-w-4xl mx-auto">
+      <main className="flex-1 p-4 md:p-6 lg:p-8 bg-transparent overflow-y-auto">
+        <div className="w-full">
           {/* Back Button */}
-          <div className="mb-4">
+          <div className="mb-6">
             <BackButton to="/office-bearer" />
           </div>
 

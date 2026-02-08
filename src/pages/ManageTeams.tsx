@@ -719,7 +719,7 @@ const ManageTeams = () => {
                                     </span>
                                   )}
                                   {assignment.assigned_by_name && (
-                                    <span className="text-gray-500">by {assignment.assigned_by_name}</span>
+                                    <span className="text-muted-foreground">by {assignment.assigned_by_name}</span>
                                   )}
                                 </div>
                                 {assignment.due_date && (

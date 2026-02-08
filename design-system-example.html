@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design System Example - SM Dashboard</title>
+    <link rel="stylesheet" href="./src/styles/design-system.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Hero Section -->
+    <section class="section bg-primary text-white">
+        <div class="container">
+            <h1 class="text-display-lg" style="color: white;">SM Dashboard Design System</h1>
+            <p class="body-text-lg" style="color: rgba(255,255,255,0.9); margin-bottom: 32px;">
+                A modern, clean, and professional design system for consistent UI/UX across all pages.
+            </p>
+            <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                <button class="btn btn-lg" style="background: white; color: #3B82F6;">Get Started</button>
+                <button class="btn btn-outline btn-lg" style="border-color: white; color: white;">Learn More</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Typography Section -->
+    <section class="section">
+        <div class="container">
+            <h2 class="heading-2">Typography Examples</h2>
+            <p class="body-text text-muted mb-8">Consistent font sizes and styles across all pages</p>
+
+            <div class="grid grid-cols-2" style="gap: 48px;">
+                <div>
+                    <h1 class="heading-1">Heading 1 - Page Title</h1>
+                    <h2 class="heading-2">Heading 2 - Section Header</h2>
+                    <h3 class="heading-3">Heading 3 - Subsection</h3>
+                    <h4 class="heading-4">Heading 4 - Card Title</h4>
+                    <h5 class="heading-5">Heading 5 - Small Header</h5>
+                    <h6 class="heading-6">Heading 6 - Tiny Header</h6>
+                </div>
+                <div>
+                    <p class="body-text-lg">Large body text - Used for introductions and important content.</p>
+                    <p class="body-text">Default body text - Used for standard paragraph content and descriptions.</p>
+                    <p class="body-text-sm">Small body text - Used for metadata, captions, and secondary information.
+                    </p>
+                    <p class="body-text-xs">Extra small text - Used for fine print and tertiary information.</p>
+                    <p class="caption">Caption Text - Used for labels and tags</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Buttons Section -->
+    <section class="section bg-gray">
+        <div class="container">
+            <h2 class="heading-2">Button Styles</h2>
+            <p class="body-text text-muted mb-6">Consistent button designs for all actions</p>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 24px;">
+                <button class="btn btn-primary">Primary Button</button>
+                <button class="btn btn-secondary">Secondary Button</button>
+                <button class="btn btn-outline">Outline Button</button>
+                <button class="btn btn-ghost">Ghost Button</button>
+            </div>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center;">
+                <button class="btn btn-primary btn-sm">Small</button>
+                <button class="btn btn-primary">Default</button>
+                <button class="btn btn-primary btn-lg">Large</button>
+                <button class="btn btn-primary" disabled>Disabled</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Cards Section -->
+    <section class="section">
+        <div class="container">
+            <h2 class="heading-2">Card Components</h2>
+            <p class="body-text text-muted mb-6">Standardized card layouts for content</p>
+
+            <div class="grid grid-cols-3">
+                <!-- Basic Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">Basic Card</h4>
+                        <p class="card-description">Simple card with header and content</p>
+                    </div>
+                    <div class="card-content">
+                        <p class="body-text">This is a standard card component with consistent padding, borders, and
+                            shadows.</p>
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn btn-primary btn-sm">Action</button>
+                    </div>
+                </div>
+
+                <!-- Stats Card -->
+                <div class="card">
+                    <p class="caption text-muted">TOTAL USERS</p>
+                    <h2 class="heading-2" style="margin: 8px 0;">1,234</h2>
+                    <p class="body-text-sm" style="color: #10B981; margin: 0;">↑ 12% from last month</p>
+                </div>
+
+                <!-- Interactive Card -->
+                <div class="card card-interactive">
+                    <div class="card-header">
+                        <h4 class="card-title">Interactive Card</h4>
+                    </div>
+                    <div class="card-content">
+                        <p class="body-text">Hover over this card to see the interactive effect.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Form Section -->
+    <section class="section bg-gray">
+        <div class="container container-narrow">
+            <h2 class="heading-2">Form Elements</h2>
+            <p class="body-text text-muted mb-6">Consistent form styling</p>
+
+            <form class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Contact Form</h3>
+                    <p class="card-description">Fill out the form below</p>
+                </div>
+                <div class="card-content">
+                    <div class="mb-4">
+                        <label class="label">Full Name</label>
+                        <input type="text" class="input" placeholder="Enter your name">
+                    </div>
+                    <div class="mb-4">
+                        <label class="label">Email Address</label>
+                        <input type="email" class="input" placeholder="your@email.com">
+                    </div>
+                    <div class="mb-4">
+                        <label class="label">Message</label>
+                        <textarea class="input" rows="4" placeholder="Enter your message"></textarea>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                    <button type="button" class="btn btn-secondary">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- Colors Section -->
+    <section class="section">
+        <div class="container">
+            <h2 class="heading-2">Color Palette</h2>
+            <p class="body-text text-muted mb-6">Two main colors for consistency</p>
+
+            <div class="grid grid-cols-2">
+                <!-- Primary Colors -->
+                <div class="card">
+                    <h4 class="card-title">Primary Blue</h4>
+                    <p class="body-text-sm text-muted mb-4">Used for headings and primary actions</p>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <div
+                            style="width: 80px; height: 80px; background: #3B82F6; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 600;">
+                            Primary</div>
+                        <div
+                            style="width: 80px; height: 80px; background: #2563EB; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 600;">
+                            Hover</div>
+                        <div
+                            style="width: 80px; height: 80px; background: #60A5FA; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 600;">
+                            Light</div>
+                    </div>
+                </div>
+
+                <!-- Secondary Colors -->
+                <div class="card">
+                    <h4 class="card-title">Secondary Gray</h4>
+                    <p class="body-text-sm text-muted mb-4">Used for body text and secondary content</p>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <div
+                            style="width: 80px; height: 80px; background: #475569; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 600;">
+                            Secondary</div>
+                        <div
+                            style="width: 80px; height: 80px; background: #64748B; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 600;">
+                            Light</div>
+                        <div
+                            style="width: 80px; height: 80px; background: #334155; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 600;">
+                            Dark</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Spacing Section -->
+    <section class="section bg-gray">
+        <div class="container">
+            <h2 class="heading-2">Spacing System</h2>
+            <p class="body-text text-muted mb-6">Consistent spacing based on 4px grid</p>
+
+            <div class="card">
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 100px; font-size: 14px; color: #64748B;">4px (space-1)</div>
+                        <div style="height: 40px; width: 4px; background: #3B82F6;"></div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 100px; font-size: 14px; color: #64748B;">8px (space-2)</div>
+                        <div style="height: 40px; width: 8px; background: #3B82F6;"></div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 100px; font-size: 14px; color: #64748B;">16px (space-4)</div>
+                        <div style="height: 40px; width: 16px; background: #3B82F6;"></div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 100px; font-size: 14px; color: #64748B;">24px (space-6)</div>
+                        <div style="height: 40px; width: 24px; background: #3B82F6;"></div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 100px; font-size: 14px; color: #64748B;">32px (space-8)</div>
+                        <div style="height: 40px; width: 32px; background: #3B82F6;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="section" style="background: #0F172A; color: white; text-align: center;">
+        <div class="container">
+            <h3 class="heading-3" style="color: white;">SM Dashboard Design System</h3>
+            <p class="body-text" style="color: rgba(255,255,255,0.7);">
+                A professional, modern, and consistent design system
+            </p>
+            <p class="body-text-sm" style="color: rgba(255,255,255,0.5); margin-top: 24px;">
+                Version 1.0.0 | Made with ❤️ for consistency
+            </p>
+        </div>
+    </footer>
+
+</body>
+
+</html>

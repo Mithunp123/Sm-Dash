@@ -44,6 +44,20 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
+// Debug middleware for all requests
+router.use((req, res, next) => {
+  if (req.method === 'DELETE') {
+    console.log(`[ROUTER DEBUG] Incoming DELETE request - Path: ${req.path}, Full URL: ${req.originalUrl}`);
+  }
+  next();
+});
+
+// Handle OPTIONS for CORS preflight
+router.options('/mentees/:assignmentId/attendance/:attendanceId', (req, res) => {
+  console.log(`[OPTIONS] Preflight request for DELETE`);
+  res.sendStatus(200);
+});
+
 // Configure multer for optional attachment (voice note or screenshot)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -120,7 +134,7 @@ router.get('/my-assignment', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Get mentoring assignment error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error: ' + error.message });
   }
 });
 
@@ -183,7 +197,7 @@ router.get('/my-mentees', authenticateToken, async (req, res) => {
     res.json({ success: true, mentees });
   } catch (error) {
     console.error('Get volunteer mentees error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error: ' + error.message });
   }
 });
 
@@ -279,7 +293,7 @@ router.post(
       res.json({ success: true, message: 'Phone mentoring update saved successfully' });
     } catch (error) {
       console.error('Create mentoring update error:', error);
-      res.status(500).json({ success: false, message: 'Server error' });
+      res.status(500).json({ success: false, message: 'Server error: ' + error.message });
     }
   }
 );
@@ -289,58 +303,86 @@ router.post('/mentees/:assignmentId/attendance', authenticateToken, upload.singl
   try {
     const { assignmentId } = req.params;
     const { status, notes, date } = req.body;
-    const allowed = new Set(['PRESENT', 'ABSENT', 'FOLLOW_UP', 'NOT_REACHABLE']);
 
-    if (!status || !allowed.has(status)) {
-      return res.status(400).json({ success: false, message: 'Invalid attendance status' });
+    if (!status) {
+      return res.status(400).json({ success: false, message: 'Status is required' });
     }
 
     const db = getDatabase();
-    const assignment = await getVolunteerAssignment(db, assignmentId, req.user.id);
+    const assignment = await get(
+      db,
+      `
+        SELECT a.*, pr.title as project_title
+        FROM phone_mentoring_assignments a
+        LEFT JOIN projects pr ON a.project_id = pr.id
+        WHERE a.id = ?
+      `,
+      [assignmentId]
+    );
+
     if (!assignment) {
       return res.status(404).json({ success: false, message: 'Mentee assignment not found' });
+    }
+
+    // Check authorization: Allow if user is the volunteer OR is admin/has permission
+    if (assignment.volunteer_id !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'You do not have permission to record attendance for this mentee' });
     }
 
     const attendanceDate = date || new Date().toISOString().slice(0, 10);
     const callRecordingPath = req.file ? `/uploads/mentoring/${req.file.filename}` : null;
 
-    await run(
+    // Check if record already exists
+    const existing = await get(
       db,
-      `
-        INSERT INTO phone_mentoring_attendance (
-          assignment_id,
-          project_id,
-          mentee_name,
-          attendance_date,
-          status,
-          notes,
-          call_recording_path,
-          recorded_by
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(assignment_id, attendance_date)
-        DO UPDATE SET
-          status = excluded.status,
-          notes = excluded.notes,
-          call_recording_path = excluded.call_recording_path,
-          recorded_by = excluded.recorded_by,
-          updated_at = CURRENT_TIMESTAMP
-      `,
-      [
-        assignment.id,
-        assignment.project_id || null,
-        assignment.mentee_name,
-        attendanceDate,
-        status,
-        notes || null,
-        callRecordingPath,
-        req.user.id
-      ]
+      `SELECT id FROM phone_mentoring_attendance WHERE assignment_id = ? AND attendance_date = ?`,
+      [assignment.id, attendanceDate]
     );
+
+    if (existing) {
+      // Update existing record
+      await run(
+        db,
+        `
+          UPDATE phone_mentoring_attendance
+          SET status = ?, notes = ?, call_recording_path = ?, recorded_by = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `,
+        [status, notes || null, callRecordingPath, req.user.id, existing.id]
+      );
+    } else {
+      // Insert new record
+      await run(
+        db,
+        `
+          INSERT INTO phone_mentoring_attendance (
+            assignment_id,
+            project_id,
+            mentee_name,
+            attendance_date,
+            status,
+            notes,
+            call_recording_path,
+            recorded_by
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+        [
+          assignment.id,
+          assignment.project_id || null,
+          assignment.mentee_name,
+          attendanceDate,
+          status,
+          notes || null,
+          callRecordingPath,
+          req.user.id
+        ]
+      );
+    }
 
     res.json({ success: true, message: 'Attendance saved' });
   } catch (error) {
     console.error('Save mentee attendance error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error: ' + error.message });
   }
 });
 
@@ -349,16 +391,30 @@ router.put('/mentees/:assignmentId/attendance/:attendanceId', authenticateToken,
   try {
     const { assignmentId, attendanceId } = req.params;
     const { status, notes, date } = req.body;
-    const allowed = new Set(['PRESENT', 'ABSENT', 'FOLLOW_UP', 'NOT_REACHABLE']);
 
-    if (!status || !allowed.has(status)) {
-      return res.status(400).json({ success: false, message: 'Invalid attendance status' });
+    if (!status) {
+      return res.status(400).json({ success: false, message: 'Status is required' });
     }
 
     const db = getDatabase();
-    const assignment = await getVolunteerAssignment(db, assignmentId, req.user.id);
+    const assignment = await get(
+      db,
+      `
+        SELECT a.*, pr.title as project_title
+        FROM phone_mentoring_assignments a
+        LEFT JOIN projects pr ON a.project_id = pr.id
+        WHERE a.id = ?
+      `,
+      [assignmentId]
+    );
+
     if (!assignment) {
       return res.status(404).json({ success: false, message: 'Mentee assignment not found' });
+    }
+
+    // Check authorization
+    if (assignment.volunteer_id !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'You do not have permission to update attendance for this mentee' });
     }
 
     // Verify attendance belongs to this assignment
@@ -387,33 +443,28 @@ router.put('/mentees/:assignmentId/attendance/:attendanceId', authenticateToken,
     res.json({ success: true, message: 'Attendance updated' });
   } catch (error) {
     console.error('Update mentee attendance error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error: ' + error.message });
   }
 });
 
-// Mentor deletes attendance for their mentee
-router.delete('/mentees/:assignmentId/attendance/:attendanceId', authenticateToken, async (req, res) => {
-  try {
-    const { assignmentId, attendanceId } = req.params;
-    const db = getDatabase();
-    const assignment = await getVolunteerAssignment(db, assignmentId, req.user.id);
-    if (!assignment) {
-      return res.status(404).json({ success: false, message: 'Mentee assignment not found' });
+// DELETE attendance record
+router.delete('/mentees/:assignmentId/attendance/:attendanceId', (req, res) => {
+  const { assignmentId, attendanceId } = req.params;
+  const attendId = parseInt(attendanceId);
+  const db = getDatabase();
+
+  db.run('DELETE FROM phone_mentoring_attendance WHERE id = ?', [attendId], function(err) {
+    if (err) {
+      console.error('Delete error:', err);
+      return res.status(500).json({ success: false, message: 'Delete failed: ' + err.message });
     }
-
-    // Verify attendance belongs to this assignment
-    const existing = await get(db, 'SELECT * FROM phone_mentoring_attendance WHERE id = ? AND assignment_id = ?', [attendanceId, assignmentId]);
-    if (!existing) {
-      return res.status(404).json({ success: false, message: 'Attendance record not found' });
+    
+    if (this.changes === 0) {
+      return res.status(404).json({ success: false, message: 'Record not found' });
     }
-
-    await run(db, 'DELETE FROM phone_mentoring_attendance WHERE id = ? AND assignment_id = ?', [attendanceId, assignmentId]);
-
+    
     res.json({ success: true, message: 'Attendance deleted' });
-  } catch (error) {
-    console.error('Delete mentee attendance error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
+  });
 });
 
 // Mentor views attendance history for their mentee
@@ -422,9 +473,26 @@ router.get('/mentees/:assignmentId/attendance', authenticateToken, async (req, r
     const { assignmentId } = req.params;
     const { date } = req.query;
     const db = getDatabase();
-    const assignment = await getVolunteerAssignment(db, assignmentId, req.user.id);
+    
+    // First verify the assignment exists and belongs to this volunteer
+    const assignment = await get(
+      db,
+      `
+        SELECT a.*, pr.title as project_title
+        FROM phone_mentoring_assignments a
+        LEFT JOIN projects pr ON a.project_id = pr.id
+        WHERE a.id = ?
+      `,
+      [assignmentId]
+    );
+    
     if (!assignment) {
       return res.status(404).json({ success: false, message: 'Mentee assignment not found' });
+    }
+
+    // Check authorization: Allow if user is the volunteer OR is admin/has permission
+    if (assignment.volunteer_id !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'You do not have permission to view this attendance' });
     }
 
     const params = [assignmentId];
@@ -448,7 +516,42 @@ router.get('/mentees/:assignmentId/attendance', authenticateToken, async (req, r
     res.json({ success: true, attendance: rows });
   } catch (error) {
     console.error('Get mentee attendance history error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error: ' + error.message });
+  }
+});
+
+// Admin/Manager views all attendance records
+router.get('/attendance', authenticateToken, async (req, res) => {
+  try {
+    const db = getDatabase();
+    
+    const rows = await all(
+      db,
+      `
+        SELECT 
+          pma.id,
+          pma.assignment_id,
+          pma.project_id,
+          pma.mentee_name,
+          pma.attendance_date,
+          pma.status,
+          pma.notes,
+          pma.call_recording_path,
+          pa.volunteer_id,
+          u.name as volunteer_name,
+          pr.title as project_title
+        FROM phone_mentoring_attendance pma
+        LEFT JOIN phone_mentoring_assignments pa ON pma.assignment_id = pa.id
+        LEFT JOIN users u ON pa.volunteer_id = u.id
+        LEFT JOIN projects pr ON pma.project_id = pr.id
+        ORDER BY pma.attendance_date DESC
+      `
+    );
+
+    res.json({ success: true, attendance: rows });
+  } catch (error) {
+    console.error('Get all attendance error:', error);
+    res.status(500).json({ success: false, message: 'Server error: ' + error.message });
   }
 });
 
@@ -457,9 +560,24 @@ router.get('/mentees/:assignmentId/updates', authenticateToken, async (req, res)
   try {
     const { assignmentId } = req.params;
     const db = getDatabase();
-    const assignment = await getVolunteerAssignment(db, assignmentId, req.user.id);
+    const assignment = await get(
+      db,
+      `
+        SELECT a.*, pr.title as project_title
+        FROM phone_mentoring_assignments a
+        LEFT JOIN projects pr ON a.project_id = pr.id
+        WHERE a.id = ?
+      `,
+      [assignmentId]
+    );
+
     if (!assignment) {
       return res.status(404).json({ success: false, message: 'Mentee assignment not found' });
+    }
+
+    // Check authorization
+    if (assignment.volunteer_id !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'You do not have permission to view updates for this mentee' });
     }
 
     const rows = await all(
@@ -476,7 +594,7 @@ router.get('/mentees/:assignmentId/updates', authenticateToken, async (req, res)
     res.json({ success: true, updates: rows });
   } catch (error) {
     console.error('Get mentee updates error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error: ' + error.message });
   }
 });
 
@@ -546,7 +664,7 @@ router.get(
       res.json({ success: true, attendance: rows });
     } catch (error) {
       console.error('List attendance records error:', error);
-      res.status(500).json({ success: false, message: 'Server error' });
+      res.status(500).json({ success: false, message: 'Server error: ' + error.message });
     }
   }
 );
@@ -618,7 +736,7 @@ router.get(
       res.json({ success: true, updates: rows });
     } catch (error) {
       console.error('List mentoring updates error:', error);
-      res.status(500).json({ success: false, message: 'Server error' });
+      res.status(500).json({ success: false, message: 'Server error: ' + error.message });
     }
   }
 );

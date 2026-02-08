@@ -81,7 +81,7 @@ const StudentProjects = () => {
                                         <div className="p-3 rounded-2xl bg-primary/10 border border-primary/20 text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300">
                                             <Briefcase className="w-6 h-6" />
                                         </div>
-                                        <Badge className="font-black uppercase tracking-widest text-[10px] bg-primary/20 text-primary border-none">
+                                        <Badge className="font-black uppercase tracking-widest text-xs bg-primary/20 text-primary border-none">
                                             {project.status || 'Active'}
                                         </Badge>
                                     </div>
@@ -99,7 +99,7 @@ const StudentProjects = () => {
                                                 <Building className="w-4 h-4" />
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Organization</span>
+                                                <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Organization</span>
                                                 <span className="font-bold text-foreground">{project.ngo_name || "N/A"}</span>
                                             </div>
                                         </div>
@@ -108,7 +108,7 @@ const StudentProjects = () => {
                                                 <Calendar className="w-4 h-4" />
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Start Date</span>
+                                                <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Start Date</span>
                                                 <span className="font-bold text-foreground">
                                                     {project.start_date ? new Date(project.start_date).toLocaleDateString() : "N/A"}
                                                 </span>

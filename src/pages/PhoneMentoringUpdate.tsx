@@ -57,8 +57,6 @@ type MentorMenteeSummary = MentoringAssignment & {
 const MENTEE_ATTENDANCE_OPTIONS = [
   { value: "PRESENT", label: "Class Taken" },
   { value: "ABSENT", label: "Not Taken" },
-  { value: "FOLLOW_UP", label: "Follow Up" },
-  { value: "NOT_REACHABLE", label: "Student Not Reachable" },
 ];
 
 const PhoneMentoringUpdate = () => {
@@ -353,6 +351,13 @@ const PhoneMentoringUpdate = () => {
 
   const handleSaveAttendance = async () => {
     if (!attendanceDialog.mentee) return;
+    
+    // Validate: reason is mandatory for non-PRESENT status
+    if (attendanceStatusValue !== 'PRESENT' && !attendanceNotesValue.trim()) {
+      toast.error("Reason is required for absence");
+      return;
+    }
+    
     try {
       if (editingAttendance) {
         await api.updateMentorAttendance(attendanceDialog.mentee.id, editingAttendance.id, {
@@ -716,7 +721,7 @@ const PhoneMentoringUpdate = () => {
                                   <PhoneCall className="w-3 h-3 text-primary" />
                                   <a
                                     href={`tel:${mentee.mentee_phone}`}
-                                    className="text-[11px] text-foreground font-black tracking-tight hover:underline"
+                                    className="text-sm text-foreground font-black tracking-tight hover:underline"
                                   >
                                     {mentee.mentee_phone.toString().endsWith('.0') ? mentee.mentee_phone.toString().slice(0, -2) : mentee.mentee_phone}
                                   </a>
@@ -731,8 +736,8 @@ const PhoneMentoringUpdate = () => {
                           {/* Stats Section */}
                           <div className="relative bg-muted/30 rounded-2xl p-4 mb-6 border border-border/50 group-hover:border-primary/20 transition-colors">
                             <div className="flex items-center justify-between mb-3">
-                              <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Attendance Status</span>
-                              <Badge variant="outline" className="bg-background text-[10px] font-bold h-5 px-2 border-primary/20 text-primary">
+                              <span className="text-xs text-muted-foreground font-black uppercase tracking-widest">Attendance Status</span>
+                              <Badge variant="outline" className="bg-background text-xs font-bold h-5 px-2 border-primary/20 text-primary">
                                 {Math.round(((mentee.total_classes || 0) / (mentee.expected_classes || 30)) * 100)}%
                               </Badge>
                             </div>
@@ -753,15 +758,15 @@ const PhoneMentoringUpdate = () => {
                           {/* Academic Info */}
                           <div className="grid grid-cols-2 gap-4 mb-8">
                             <div className="p-3 rounded-xl bg-muted/20 border border-border/30">
-                              <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest mb-1">Standard</p>
+                              <p className="text-xs text-muted-foreground font-black uppercase tracking-widest mb-1">Standard</p>
                               <p className="text-sm font-bold text-foreground">{mentee.mentee_year || "N/A"}</p>
                             </div>
                             <div className="p-3 rounded-xl bg-muted/20 border border-border/30">
-                              <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest mb-1">Region</p>
+                              <p className="text-xs text-muted-foreground font-black uppercase tracking-widest mb-1">Region</p>
                               <p className="text-sm font-bold text-foreground truncate">{mentee.mentee_district || "N/A"}</p>
                             </div>
                             <div className="col-span-2 p-3 rounded-xl bg-muted/20 border border-border/30">
-                              <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest mb-1">Institution</p>
+                              <p className="text-xs text-muted-foreground font-black uppercase tracking-widest mb-1">Institution</p>
                               <p className="text-sm font-bold text-foreground line-clamp-1">{mentee.mentee_school || "Information Missing"}</p>
                             </div>
                           </div>
@@ -770,7 +775,7 @@ const PhoneMentoringUpdate = () => {
                           <div className="mt-auto space-y-3">
                             {mentee.last_attendance_date && (
                               <div className="flex items-center justify-between px-1 mb-2">
-                                <span className="text-[10px] font-bold text-muted-foreground italic">Last update: {mentee.last_attendance_date}</span>
+                                <span className="text-xs font-bold text-muted-foreground italic">Last update: {mentee.last_attendance_date}</span>
                                 <div className={`w-2 h-2 rounded-full animate-pulse ${mentee.last_attendance_status === "PRESENT" ? "bg-primary" : "bg-muted-foreground/30"}`}></div>
                               </div>
                             )}
@@ -856,19 +861,21 @@ const PhoneMentoringUpdate = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-primary" />
-                    Remarks / Notes
-                  </Label>
-                  <Textarea
-                    rows={4}
-                    value={attendanceNotesValue}
-                    onChange={(e) => setAttendanceNotesValue(e.target.value)}
-                    placeholder="Add detailed remarks about the session..."
-                    className="resize-none"
-                  />
-                </div>
+                {attendanceStatusValue !== 'PRESENT' && (
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4 text-primary" />
+                      Reason *
+                    </Label>
+                    <Textarea
+                      rows={4}
+                      value={attendanceNotesValue}
+                      onChange={(e) => setAttendanceNotesValue(e.target.value)}
+                      placeholder="Reason for absence is required..."
+                      className="resize-none"
+                    />
+                  </div>
+                )}
 
                 <div className="flex justify-end gap-2">
                   <Button
@@ -927,42 +934,25 @@ const PhoneMentoringUpdate = () => {
               </div>
             </DialogHeader>
             {historyLoading ? (
-              <div className="py-8 text-center text-gray-500">Loading...</div>
+              <div className="py-8 text-center text-muted-foreground">Loading...</div>
             ) : historyData.length === 0 ? (
-              <div className="py-8 text-center text-gray-500">No attendance records found.</div>
+              <div className="py-8 text-center text-muted-foreground">No attendance records found.</div>
             ) : (
               <div className="space-y-2">
-                <div className="mb-4 p-3 bg-primary/5 border border-primary/10 rounded-lg">
-                  <p className="text-sm font-semibold text-primary mb-1">Attendance Summary</p>
-                  <p className="text-xs text-muted-foreground">
-                    Total: {historyData.length} |
-                    Classes Taken: {historyData.filter((r: any) => r.status === "PRESENT").length} |
-                    Not Taken: {historyData.filter((r: any) => r.status === "ABSENT").length}
-                  </p>
-                </div>
                 <div className="grid gap-2 max-h-[60vh] overflow-y-auto">
                   {historyData.map((row: any) => (
                     <div key={row.id} className="border border-gray-200 rounded-lg p-4 bg-white hover:bg-gray-50 transition-colors shadow-sm">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2">
-                            <span className="text-sm font-semibold text-gray-900">{row.attendance_date}</span>
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${row.status === "PRESENT" ? "bg-primary/10 text-primary" :
-                              row.status === "ABSENT" ? "bg-red-100 text-red-700" :
-                                row.status === "FOLLOW_UP" ? "bg-yellow-100 text-yellow-700" :
-                                  "bg-muted text-muted-foreground"
-                              }`}>
-                              {row.status === "PRESENT" ? "✓ Class Taken" :
-                                row.status === "ABSENT" ? "✗ Not Taken" :
-                                  row.status === "FOLLOW_UP" ? "↻ Follow Up" :
-                                    "⊘ Not Reachable"}
-                            </span>
+                            <span className="text-sm font-semibold text-foreground">{row.attendance_date}</span>
+                            <span className="px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground">{row.status}</span>
                           </div>
                           {row.notes && (
                             <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
                               <div className="flex items-start gap-2">
                                 <MessageSquare className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
-                                <p className="text-sm text-gray-700 font-medium">{row.notes}</p>
+                                <p className="text-sm text-foreground font-medium">{row.notes}</p>
                               </div>
                             </div>
                           )}
@@ -982,30 +972,6 @@ const PhoneMentoringUpdate = () => {
                               </a>
                             </div>
                           )}
-                        </div>
-                        <div className="flex gap-2 shrink-0">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              if (historyDialog.mentee) {
-                                openAttendanceModal(historyDialog.mentee, row);
-                              }
-                            }}
-                            className="h-8"
-                            title="Edit attendance"
-                          >
-                            <Edit className="w-3 h-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDeleteAttendance(row.id)}
-                            className="h-8"
-                            title="Delete attendance"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
                         </div>
                       </div>
                     </div>
@@ -1148,16 +1114,16 @@ const PhoneMentoringUpdate = () => {
               </DialogDescription>
             </DialogHeader>
             {infoDialog.mentee && (
-              <div className="space-y-2 text-sm text-gray-700">
-                <p><span className="text-gray-500 font-medium">Project:</span> <span className="text-gray-900">{infoDialog.mentee.project_title || "—"}</span></p>
-                <p><span className="text-gray-500 font-medium">Phone:</span> <span className="text-gray-900">{infoDialog.mentee.mentee_phone || "—"}</span></p>
-                <p><span className="text-gray-500 font-medium">Standard:</span> <span className="text-gray-900">{infoDialog.mentee.mentee_year || "—"}</span></p>
-                <p><span className="text-gray-500 font-medium">School:</span> <span className="text-gray-900">{infoDialog.mentee.mentee_school || "—"}</span></p>
-                <p><span className="text-gray-500 font-medium">Parent:</span> <span className="text-gray-900">{infoDialog.mentee.mentee_parent_contact || "—"}</span></p>
-                <p><span className="text-gray-500 font-medium">Panchayat:</span> <span className="text-gray-900">{infoDialog.mentee.mentee_address || "—"}</span></p>
-                <p><span className="text-gray-500 font-medium">District:</span> <span className="text-gray-900">{(infoDialog.mentee as any).mentee_district || "—"}</span></p>
-                <p><span className="text-gray-500 font-medium">Classes Taken:</span> <span className="text-gray-900">{infoDialog.mentee.total_classes || 0}</span></p>
-                <p><span className="text-gray-500 font-medium">Calls Done:</span> <span className="text-gray-900">{infoDialog.mentee.total_calls || 0}</span></p>
+              <div className="space-y-2 text-sm text-foreground">
+                <p><span className="text-muted-foreground font-medium">Project:</span> <span className="text-foreground">{infoDialog.mentee.project_title || "—"}</span></p>
+                <p><span className="text-muted-foreground font-medium">Phone:</span> <span className="text-foreground">{infoDialog.mentee.mentee_phone || "—"}</span></p>
+                <p><span className="text-muted-foreground font-medium">Standard:</span> <span className="text-foreground">{infoDialog.mentee.mentee_year || "—"}</span></p>
+                <p><span className="text-muted-foreground font-medium">School:</span> <span className="text-foreground">{infoDialog.mentee.mentee_school || "—"}</span></p>
+                <p><span className="text-muted-foreground font-medium">Parent:</span> <span className="text-foreground">{infoDialog.mentee.mentee_parent_contact || "—"}</span></p>
+                <p><span className="text-muted-foreground font-medium">Panchayat:</span> <span className="text-foreground">{infoDialog.mentee.mentee_address || "—"}</span></p>
+                <p><span className="text-muted-foreground font-medium">District:</span> <span className="text-foreground">{(infoDialog.mentee as any).mentee_district || "—"}</span></p>
+                <p><span className="text-muted-foreground font-medium">Classes Taken:</span> <span className="text-foreground">{infoDialog.mentee.total_classes || 0}</span></p>
+                <p><span className="text-muted-foreground font-medium">Calls Done:</span> <span className="text-foreground">{infoDialog.mentee.total_calls || 0}</span></p>
               </div>
             )}
           </DialogContent>

@@ -430,7 +430,7 @@ const StudentMessagesTab = () => {
                                         <div className={`flex items-center gap-1 text-[10px] h-4 ml-auto text-[#8696a0]`}>
                                             <span className="shrink-0">{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
                                             {msg.sender_id === user?.id && (
-                                                <CheckCheck className={`w-3.5 h-3.5 shrink-0 ${msg.is_read ? 'text-[#53bdeb]' : 'text-[#8696a0]'}`} />
+                                                <CheckCheck className={`w-3.5 h-3.5 shrink-0 ${msg.is_read ? 'text-[#e9edef]' : 'text-[#8696a0]'}`} />
                                             )}
                                         </div>
 

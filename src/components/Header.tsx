@@ -339,25 +339,25 @@ const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
-                        className="flex items-center gap-2 hover:bg-accent px-3 py-2 h-auto"
+                        className="flex items-center gap-3 hover:bg-accent px-3 py-2 h-auto"
                       >
-                        <Avatar className="h-8 w-8 border border-border">
+                        <div className="flex flex-col items-start">
+                          <span className="text-sm font-semibold leading-none text-foreground">
+                            {getFirstName(user.name)}
+                          </span>
+                          <span className="text-xs text-muted-foreground capitalize font-medium">
+                            {user.role?.replace('_', ' ')}
+                          </span>
+                        </div>
+                        <Avatar className="h-9 w-9 border-2 border-primary/20">
                           <AvatarImage
                             src={buildImageUrl(user.photo_url || (user as any).photo) || undefined}
                             alt={user.name}
                           />
-                          <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
+                          <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
                             {getInitials(user.name)}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="flex flex-col items-start">
-                          <span className="text-sm font-medium leading-none">
-                            Hi, {getFirstName(user.name)}
-                          </span>
-                          <span className="text-xs text-muted-foreground capitalize">
-                            {user.role?.replace('_', ' ')}
-                          </span>
-                        </div>
                         <ChevronDown className="h-4 w-4 text-muted-foreground" />
                       </Button>
                     </DropdownMenuTrigger>

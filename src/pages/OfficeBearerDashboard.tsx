@@ -128,7 +128,7 @@ const OfficeBearerDashboard = () => {
         {/* Premium Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pt-4">
           <div className="space-y-2">
-            <h1 className="text-4xl font-bold text-white tracking-tight">
+            <h1 className="text-4xl font-bold text-foreground tracking-tight">
               OB Control Center
             </h1>
             <p className="text-sm font-bold text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2">
@@ -137,7 +137,7 @@ const OfficeBearerDashboard = () => {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="outline" className="rounded-full h-11 px-6 font-bold uppercase text-[10px] tracking-widest border-primary/20 hover:bg-primary/5 hover:border-primary/40 shadow-sm transition-all" onClick={() => navigate("/office-bearer/profile")}>
+            <Button variant="outline" className="rounded-full h-11 px-6 font-bold uppercase text-xs tracking-widest border-primary/20 hover:bg-primary/5 hover:border-primary/40 shadow-sm transition-all" onClick={() => navigate("/office-bearer/profile")}>
               <UserCircle className="w-4 h-4 mr-2" />
               View Profile
             </Button>
@@ -175,7 +175,7 @@ const OfficeBearerDashboard = () => {
                       <stat.icon className="w-7 h-7" />
                     </div>
                     <div>
-                      <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-[0.15em] mb-1">{stat.label}</p>
+                      <p className="text-sm font-bold text-muted-foreground uppercase tracking-[0.15em] mb-1">{stat.label}</p>
                       <p className="text-3xl font-bold tracking-tighter text-foreground">{stat.value}</p>
                     </div>
                   </CardContent>
@@ -191,7 +191,7 @@ const OfficeBearerDashboard = () => {
                 <div className="relative overflow-hidden rounded-[3rem] bg-gradient-to-br from-indigo-600 to-primary p-10 text-white shadow-2xl">
                   <div className="relative z-10 flex flex-col h-full justify-between gap-8">
                     <div>
-                      <Badge className="bg-white/20 backdrop-blur-md border-white/10 text-white font-bold mb-4 px-4 py-1 rounded-full text-[10px] uppercase tracking-widest">
+                      <Badge className="bg-white/20 backdrop-blur-md border-white/10 text-white font-bold mb-4 px-4 py-1 rounded-full text-xs uppercase tracking-widest">
                         <TrendingUp className="w-3 h-3 mr-2" /> Role: Office Bearer
                       </Badge>
                       <h2 className="text-4xl font-bold mb-4 tracking-tighter leading-none">
@@ -296,7 +296,7 @@ const OfficeBearerDashboard = () => {
                 <div className="grid grid-cols-1 gap-4">
                   <Card className="rounded-[2rem] border-none bg-card/40 p-4 flex flex-col items-center gap-2 group hover:bg-card/60 transition-colors">
                     <UsersRound className="w-5 h-5 text-indigo-500" />
-                    <span className="text-[10px] font-bold uppercase text-muted-foreground">Teams</span>
+                    <span className="text-xs font-bold uppercase text-muted-foreground">Teams</span>
                     <span className="text-lg font-bold">{stats.teams}</span>
                   </Card>
                 </div>
@@ -343,9 +343,9 @@ const OfficeBearerDashboard = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                          <span className="text-[10px] font-black uppercase text-white/40 tracking-widest">Server Logic Active</span>
+                          <span className="text-xs font-black uppercase text-white/40 tracking-widest">Server Logic Active</span>
                         </div>
-                        <Badge className="bg-emerald-500/20 text-emerald-400 border-none font-bold text-[8px] uppercase">Secure</Badge>
+                        <Badge className="bg-emerald-500/20 text-emerald-400 border-none font-bold text-xs uppercase">Secure</Badge>
                       </div>
                     </div>
                   </div>
@@ -355,7 +355,7 @@ const OfficeBearerDashboard = () => {
                 <Card className="rounded-[2.5rem] border-none bg-indigo-50/50 dark:bg-indigo-900/10 p-8 space-y-4 relative overflow-hidden group">
                   <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
                     <Trophy className="w-5 h-5" />
-                    <span className="font-black uppercase tracking-widest text-[10px]">Leader's Wisdom</span>
+                    <span className="font-black uppercase tracking-widest text-xs">Leader's Wisdom</span>
                   </div>
                   <p className="text-xl font-bold italic tracking-tight leading-7 text-indigo-900 dark:text-indigo-100">
                     "Leadership is not about being in charge. It's about taking care of those in your charge."

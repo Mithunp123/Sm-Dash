@@ -101,17 +101,27 @@ const MentorManagement = () => {
   const [dailyAttendance, setDailyAttendance] = useState<any[]>([]);
   const [reportDate, setReportDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [reportLoading, setReportLoading] = useState(false);
+  const [reportMentorFilter, setReportMentorFilter] = useState<string>("all");
+  const [reportProjectFilter, setReportProjectFilter] = useState<string>("all");
 
   useEffect(() => {
     if (activeTab === "reports") {
       loadDailyAttendance();
     }
-  }, [activeTab, reportDate]);
+  }, [activeTab, reportDate, reportMentorFilter, reportProjectFilter]);
 
   const loadDailyAttendance = async () => {
     try {
       setReportLoading(true);
-      const res = await api.getPhoneMentoringAttendance({ date: reportDate });
+      const params: any = {};
+      if (reportDate) params.date = reportDate;
+      if (reportMentorFilter && reportMentorFilter !== "all") {
+        params.volunteerId = Number(reportMentorFilter);
+      }
+      if (reportProjectFilter && reportProjectFilter !== "all") {
+        params.projectId = Number(reportProjectFilter);
+      }
+      const res = await api.getPhoneMentoringAttendance(params);
       if (res.success && res.attendance) {
         setDailyAttendance(res.attendance);
       } else {
@@ -126,18 +136,26 @@ const MentorManagement = () => {
   };
 
   const handleExportDailyReport = () => {
+    if (dailyAttendance.length === 0) {
+      toast.error("No attendance records to export");
+      return;
+    }
     const data = dailyAttendance.map(record => ({
       Date: record.attendance_date,
-      Volunteer: record.volunteer_name || 'N/A',
+      Project: record.project_title || 'N/A',
+      Mentor: record.volunteer_name || 'N/A',
       Mentee: record.mentee_name || 'N/A',
       Status: record.status,
-      Notes: record.notes || ''
+      Notes: record.notes || '',
+      'Call Recording': record.call_recording_path ? 'Yes' : 'No'
     }));
 
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Attendance Report");
-    XLSX.writeFile(wb, `Mentoring_Attendance_${reportDate}.xlsx`);
+    const filename = `Mentoring_Attendance_${reportDate || 'all'}.xlsx`;
+    XLSX.writeFile(wb, filename);
+    toast.success(`Exported ${data.length} records to ${filename}`);
   };
 
   const [showMenteeDialog, setShowMenteeDialog] = useState(false);
@@ -672,51 +690,43 @@ const MentorManagement = () => {
   const loadViewAttendance = async () => {
     try {
       setViewAttendanceLoading(true);
-      if (mentees.length === 0) {
+
+      // Use admin phone mentoring attendance endpoint for comprehensive data
+      const params: any = {};
+      if (viewAttendanceStartDate) params.date = undefined; // Let date range filtering happen in loop
+      
+      const res = await api.getPhoneMentoringAttendance(params);
+
+      if (!res?.success || !res.attendance) {
         setViewAttendanceData([]);
         return;
       }
 
-      const attendanceData: any[] = [];
+      const attendanceData: any[] = res.attendance.map((record: any) => {
+        const recordDate = record.attendance_date || record.date;
 
-      for (const mentee of mentees) {
-        if (!mentee.id || !mentee.project_id) continue;
-
-        try {
-          // Use projects endpoint for admin/office bearer view (allows viewing all mentees)
-          const res = await api.getMenteeAttendance(mentee.project_id, mentee.id);
-
-          if (res?.success && res.attendance) {
-            res.attendance.forEach((record: any) => {
-              const recordDate = record.attendance_date || record.date;
-
-              // Filter by date range if provided
-              if (viewAttendanceStartDate || viewAttendanceEndDate) {
-                if (viewAttendanceStartDate && recordDate < viewAttendanceStartDate) return;
-                if (viewAttendanceEndDate && recordDate > viewAttendanceEndDate) return;
-              }
-
-              attendanceData.push({
-                id: record.id,
-                assignmentId: mentee.id,
-                menteeId: mentee.id,
-                menteeName: mentee.mentee_name,
-                phone: mentee.mentee_phone || '',
-                date: recordDate,
-                status: record.status === 'PRESENT' ? 'Class Taken' :
-                  record.status === 'ABSENT' ? 'Not Taken' :
-                    record.status === 'FOLLOW_UP' ? 'Follow Up' :
-                      record.status === 'NOT_REACHABLE' ? 'Not Reachable' : record.status,
-                notes: record.notes || '',
-                callRecording: record.call_recording_path ? 'Yes' : 'No',
-                rawStatus: record.status
-              });
-            });
-          }
-        } catch (error) {
-          console.error(`Failed to fetch attendance for ${mentee.mentee_name}`, error);
+        // Filter by date range if provided
+        if (viewAttendanceStartDate || viewAttendanceEndDate) {
+          if (viewAttendanceStartDate && recordDate < viewAttendanceStartDate) return null;
+          if (viewAttendanceEndDate && recordDate > viewAttendanceEndDate) return null;
         }
-      }
+
+        return {
+          id: record.id,
+          assignmentId: record.assignment_id,
+          menteeId: record.assignment_id,
+          menteeName: record.mentee_name,
+          mentorName: record.volunteer_name || 'Unknown',
+          mentorDept: record.volunteer_dept || '',
+          projectTitle: record.project_title || '',
+          phone: record.mentee_parent_contact || '',
+          date: recordDate,
+          status: record.status,
+          notes: record.notes || '',
+          callRecording: record.call_recording_path ? 'Yes' : 'No',
+          rawStatus: record.status
+        };
+      }).filter(Boolean);
 
       // Sort by date descending
       attendanceData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -726,6 +736,32 @@ const MentorManagement = () => {
       toast.error("Failed to load attendance: " + (error.message || "Unknown"));
     } finally {
       setViewAttendanceLoading(false);
+    }
+  };
+
+  const handleDeleteAttendance = async (assignmentId: number, recordId: number) => {
+    try {
+      if (!assignmentId || !recordId) {
+        toast.error("Cannot delete: missing record information");
+        return;
+      }
+
+      console.log(`[Frontend] Deleting attendance - RecordID: ${recordId}, AssignmentID: ${assignmentId}`);
+
+      const res = await api.deleteMentorAttendance(assignmentId, recordId);
+
+      if (!res?.success) {
+        throw new Error(res?.message || 'Delete failed');
+      }
+
+      toast.success("Attendance record deleted successfully");
+      
+      // Reload both attendance data and mentees to update progress
+      await loadViewAttendance();
+      await loadAllMentees();
+    } catch (error: any) {
+      console.error("Delete attendance error:", error);
+      toast.error("Failed to delete attendance: " + (error.message || "Unknown"));
     }
   };
 
@@ -739,6 +775,7 @@ const MentorManagement = () => {
 
     try {
       const excelData = filteredData.map((record: any) => ({
+        'Mentor Name': record.mentorName || '-',
         'Mentee Name': record.menteeName,
         'Phone': record.phone,
         'Date': record.date,
@@ -753,6 +790,7 @@ const MentorManagement = () => {
 
       // Set column widths
       ws['!cols'] = [
+        { wch: 18 }, // Mentor Name
         { wch: 20 }, // Mentee Name
         { wch: 15 }, // Phone
         { wch: 12 }, // Date
@@ -1072,7 +1110,7 @@ const MentorManagement = () => {
                   <div className="grid grid-cols-1 gap-4 px-4 sm:hidden">
                     {filteredMentees.map((mentee, idx) => (
                       <div key={mentee.id} className="group relative bg-card border border-border/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
-                        <div className="absolute top-4 right-4 h-7 w-7 rounded-full bg-primary/5 flex items-center justify-center text-[10px] font-bold text-primary/40 group-hover:text-primary transition-colors">
+                        <div className="absolute top-4 right-4 h-7 w-7 rounded-full bg-primary/5 flex items-center justify-center text-xs font-bold text-primary/40 group-hover:text-primary transition-colors">
                           {idx + 1}
                         </div>
 
@@ -1093,11 +1131,11 @@ const MentorManagement = () => {
                         </div>
 
                         <div className="flex flex-wrap gap-2 mb-4">
-                          <Badge variant={mentee.mentee_status === "active" ? "default" : "secondary"} className="text-[10px] px-2 py-0">
+                          <Badge variant={mentee.mentee_status === "active" ? "default" : "secondary"} className="text-xs px-2 py-0">
                             {mentee.mentee_status || "active"}
                           </Badge>
                           {mentee.mentee_year && (
-                            <Badge variant="outline" className="text-[10px] px-2 py-0 border-primary/20 text-primary">
+                            <Badge variant="outline" className="text-xs px-2 py-0 border-primary/20 text-primary">
                               Std: {mentee.mentee_year}
                             </Badge>
                           )}
@@ -1105,7 +1143,7 @@ const MentorManagement = () => {
 
                         {mentee.volunteer_name && (
                           <div className="mb-4 p-2 bg-muted/30 rounded-lg border border-border/40">
-                            <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Assigned Mentor</p>
+                            <p className="text-xs uppercase font-bold text-muted-foreground mb-1">Assigned Mentor</p>
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-semibold">{mentee.volunteer_name}</span>
                               {mentee.volunteer_phone ? (
@@ -1119,19 +1157,19 @@ const MentorManagement = () => {
 
                         <div className="grid grid-cols-2 gap-y-4 gap-x-2 pt-4 border-t border-border/40">
                           <div>
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">School</span>
+                            <span className="text-xs uppercase tracking-wider text-muted-foreground font-bold">School</span>
                             <p className="text-xs font-medium truncate">{mentee.mentee_school || '-'}</p>
                           </div>
                           <div>
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">District</span>
+                            <span className="text-xs uppercase tracking-wider text-muted-foreground font-bold">District</span>
                             <p className="text-xs font-medium truncate">{mentee.mentee_district || '-'}</p>
                           </div>
                           <div>
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Scheduled Classes</span>
+                            <span className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Scheduled Classes</span>
                             <p className="text-xs font-medium">{(mentee as any).expected_classes || '-'}</p>
                           </div>
                           <div>
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Classes Taken</span>
+                            <span className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Classes Taken</span>
                             <p className="text-xs font-medium">{mentee.total_classes || 0}</p>
                           </div>
                         </div>
@@ -1178,7 +1216,7 @@ const MentorManagement = () => {
                                 </div>
                                 <div className="flex flex-col">
                                   <span className="font-semibold text-foreground leading-tight">{mentee.mentee_name}</span>
-                                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Std: {mentee.mentee_year || '—'}</span>
+                                  <span className="text-xs text-muted-foreground uppercase font-bold tracking-tight">Std: {mentee.mentee_year || '—'}</span>
                                 </div>
                               </div>
                             </TableCell>
@@ -1191,25 +1229,25 @@ const MentorManagement = () => {
                                 )}
                                 {mentee.volunteer_name ? (
                                   <div className="flex items-center gap-1 px-1.5 py-0.5 bg-primary/5 border border-primary/10 rounded-md w-fit">
-                                    <span className="text-[9px] font-bold text-muted-foreground uppercase mr-1">Mentor:</span>
-                                    <span className="text-[10px] font-bold text-primary">{mentee.volunteer_name}</span>
+                                    <span className="text-xs font-bold text-muted-foreground uppercase mr-1">Mentor:</span>
+                                    <span className="text-xs font-bold text-primary">{mentee.volunteer_name}</span>
                                   </div>
                                 ) : (
-                                  <span className="text-[10px] italic text-muted-foreground">No mentor assigned</span>
+                                  <span className="text-xs italic text-muted-foreground">No mentor assigned</span>
                                 )}
                               </div>
                             </TableCell>
                             <TableCell>
                               <div className="flex flex-col">
                                 <span className="text-xs font-medium text-foreground max-w-[150px] truncate">{mentee.mentee_school || "—"}</span>
-                                <span className="text-[10px] text-muted-foreground">{mentee.mentee_district || "—"}</span>
+                                <span className="text-xs text-muted-foreground">{mentee.mentee_district || "—"}</span>
                               </div>
                             </TableCell>
                             <TableCell>
                               <div className="flex flex-col items-center">
                                 <div className="flex items-baseline gap-1">
                                   <span className="text-xs font-bold text-foreground">{mentee.total_classes || 0}</span>
-                                  <span className="text-[10px] text-muted-foreground">/ {(mentee as any).expected_classes || "—"}</span>
+                                  <span className="text-xs text-muted-foreground">/ {(mentee as any).expected_classes || "—"}</span>
                                 </div>
                                 <div className="w-16 h-1.5 bg-muted rounded-full mt-1 overflow-hidden">
                                   <div
@@ -1222,7 +1260,7 @@ const MentorManagement = () => {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Badge variant={mentee.mentee_status === "active" ? "default" : "secondary"} className="text-[10px] py-0">
+                              <Badge variant={mentee.mentee_status === "active" ? "default" : "secondary"} className="text-xs py-0">
                                 {mentee.mentee_status || "active"}
                               </Badge>
                             </TableCell>
@@ -1380,7 +1418,7 @@ const MentorManagement = () => {
                       onChange={(e) => setMenteeForm({ ...menteeForm, expected_classes: e.target.value })}
                       placeholder="e.g., 30"
                     />
-                    <p className="text-xs text-gray-500">Total classes planned for this mentee</p>
+                    <p className="text-xs text-muted-foreground">Total classes planned for this mentee</p>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -1436,9 +1474,9 @@ const MentorManagement = () => {
               </DialogHeader>
               <div className="mt-4">
                 {historyLoading ? (
-                  <div className="text-center py-8 text-gray-500">Loading...</div>
+                  <div className="text-center py-8 text-muted-foreground">Loading...</div>
                 ) : historyData.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">No records found</div>
+                  <div className="text-center py-8 text-muted-foreground">No records found</div>
                 ) : (
                   <div className="space-y-3">
                     {historyData.map((row: any) => (
@@ -1455,7 +1493,7 @@ const MentorManagement = () => {
                                   <p className="text-sm text-gray-700 mt-1">{row.explanation}</p>
                                 )}
                                 {row.attempts && (
-                                  <p className="text-xs text-gray-500">Attempts: {row.attempts}</p>
+                                  <p className="text-xs text-muted-foreground">Attempts: {row.attempts}</p>
                                 )}
                                 {row.attachment_path && (
                                   <a
@@ -1620,7 +1658,7 @@ const MentorManagement = () => {
                 />
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {filteredMentees.length === 0 ? (
-                    <p className="text-center text-gray-500 py-4">No mentees found</p>
+                    <p className="text-center text-muted-foreground py-4">No mentees found</p>
                   ) : (
                     filteredMentees.map((mentee) => (
                       <div
@@ -1794,7 +1832,7 @@ const MentorManagement = () => {
                     onChange={(e) => setRequiredCalls(e.target.value)}
                     placeholder="e.g., 30"
                   />
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     Set the total number of calls required for mentors in this project
                   </p>
                 </div>
@@ -1921,7 +1959,9 @@ const MentorManagement = () => {
                           <div key={`${record.menteeId}-${record.date}-${index}`} className="p-4 border rounded-xl bg-card shadow-sm">
                             <div className="flex justify-between items-start mb-3">
                               <div>
-                                <h4 className="font-bold text-foreground">{record.menteeName}</h4>
+                                <p className="text-xs text-muted-foreground font-medium">Mentor</p>
+                                <h4 className="font-bold text-foreground text-sm">{record.mentorName || '-'}</h4>
+                                <p className="text-xs text-muted-foreground mt-1">Mentee: {record.menteeName}</p>
                                 <p className="text-xs text-muted-foreground">
                                   {new Date(record.date).toLocaleDateString('en-IN', {
                                     year: 'numeric',
@@ -1959,32 +1999,6 @@ const MentorManagement = () => {
                                 "{record.notes}"
                               </div>
                             )}
-
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="w-full h-8 text-xs gap-2"
-                              onClick={() => {
-                                if (!record.id || !record.assignmentId) {
-                                  toast.error("Cannot edit: missing record information");
-                                  return;
-                                }
-                                setEditingAttendanceRecord({
-                                  id: record.id,
-                                  assignmentId: record.assignmentId,
-                                  menteeId: record.menteeId,
-                                  menteeName: record.menteeName,
-                                  date: record.date,
-                                  status: record.rawStatus || 'PRESENT',
-                                  notes: record.notes || ''
-                                });
-                                setAttendanceStatus(record.rawStatus || 'PRESENT');
-                                setAttendanceNotes(record.notes || '');
-                                setShowEditAttendanceDialog(true);
-                              }}
-                            >
-                              <Edit className="w-3.5 h-3.5" /> Edit Record
-                            </Button>
                           </div>
                         ))}
                       </div>
@@ -1994,18 +2008,19 @@ const MentorManagement = () => {
                         <Table>
                           <TableHeader className="bg-muted/50">
                             <TableRow>
+                              <TableHead className="font-bold">Mentor</TableHead>
                               <TableHead className="font-bold">Mentee Name</TableHead>
                               <TableHead className="font-bold">Phone</TableHead>
                               <TableHead className="font-bold">Date</TableHead>
                               <TableHead className="font-bold">Status</TableHead>
                               <TableHead className="font-bold">Notes</TableHead>
-                              <TableHead className="font-bold">Call Recording</TableHead>
                               <TableHead className="text-right font-bold">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {viewAttendanceData.map((record: any, index: number) => (
                               <TableRow key={`${record.menteeId}-${record.date}-${index}`}>
+                                <TableCell className="font-medium text-sm">{record.mentorName || '-'}</TableCell>
                                 <TableCell className="font-medium">{record.menteeName}</TableCell>
                                 <TableCell>{record.phone || '-'}</TableCell>
                                 <TableCell>
@@ -2028,33 +2043,46 @@ const MentorManagement = () => {
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="max-w-xs truncate">{record.notes || '-'}</TableCell>
-                                <TableCell>{record.callRecording}</TableCell>
                                 <TableCell className="text-right">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 px-2 text-xs"
-                                    onClick={() => {
-                                      if (!record.id || !record.assignmentId) {
-                                        toast.error("Cannot edit: missing record information");
-                                        return;
-                                      }
-                                      setEditingAttendanceRecord({
-                                        id: record.id,
-                                        assignmentId: record.assignmentId,
-                                        menteeId: record.menteeId,
-                                        menteeName: record.menteeName,
-                                        date: record.date,
-                                        status: record.rawStatus || 'PRESENT',
-                                        notes: record.notes || ''
-                                      });
-                                      setAttendanceStatus(record.rawStatus || 'PRESENT');
-                                      setAttendanceNotes(record.notes || '');
-                                      setShowEditAttendanceDialog(true);
-                                    }}
-                                  >
-                                    Edit
-                                  </Button>
+                                  <div className="flex gap-2 justify-end">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 px-2 text-xs"
+                                      onClick={() => {
+                                        if (!record.id || !record.assignmentId) {
+                                          toast.error("Cannot edit: missing record information");
+                                          return;
+                                        }
+                                        setEditingAttendanceRecord({
+                                          id: record.id,
+                                          assignmentId: record.assignmentId,
+                                          menteeId: record.menteeId,
+                                          menteeName: record.menteeName,
+                                          date: record.date,
+                                          status: record.rawStatus || 'PRESENT',
+                                          notes: record.notes || ''
+                                        });
+                                        setAttendanceStatus(record.rawStatus || 'PRESENT');
+                                        setAttendanceNotes(record.notes || '');
+                                        setShowEditAttendanceDialog(true);
+                                      }}
+                                    >
+                                      Edit
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      className="h-8 px-2 text-xs"
+                                      onClick={() => {
+                                        if (record.id && record.assignmentId) {
+                                          handleDeleteAttendance(record.assignmentId, record.id);
+                                        }
+                                      }}
+                                    >
+                                      Delete
+                                    </Button>
+                                  </div>
                                 </TableCell>
                               </TableRow>
                             ))}
@@ -2120,15 +2148,17 @@ const MentorManagement = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Notes</Label>
-                      <Textarea
-                        value={attendanceNotes}
-                        onChange={(e) => setAttendanceNotes(e.target.value)}
-                        rows={3}
-                        placeholder="Add any notes about this attendance..."
-                      />
-                    </div>
+                    {attendanceStatus === 'ABSENT' && (
+                      <div className="space-y-2">
+                        <Label>Reason *</Label>
+                        <Textarea
+                          value={attendanceNotes}
+                          onChange={(e) => setAttendanceNotes(e.target.value)}
+                          rows={3}
+                          placeholder="Reason for absence is required..."
+                        />
+                      </div>
+                    )}
                     <div className="flex justify-end gap-2 pt-2">
                       <Button
                         variant="outline"
@@ -2147,28 +2177,30 @@ const MentorManagement = () => {
                             toast.error("Please select a status");
                             return;
                           }
+                          
+                          // For ABSENT status, notes are mandatory
+                          if (attendanceStatus === 'ABSENT' && !attendanceNotes.trim()) {
+                            toast.error("Reason is required for 'Not Taken' status");
+                            return;
+                          }
+                          
                           try {
-                            const formData = new FormData();
-                            formData.append('status', attendanceStatus);
-                            formData.append('notes', attendanceNotes || '');
                             // Normalize date format - ensure it's YYYY-MM-DD
                             const dateValue = editingAttendanceRecord.date.includes('T')
                               ? editingAttendanceRecord.date.split('T')[0]
                               : editingAttendanceRecord.date;
-                            formData.append('date', dateValue);
 
-                            const response = await fetch(
-                              `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/phone-mentoring/mentees/${editingAttendanceRecord.assignmentId}/attendance/${editingAttendanceRecord.id}`,
+                            // Use API client for consistency and proper error handling
+                            const result = await api.updateMentorAttendance(
+                              editingAttendanceRecord.assignmentId,
+                              editingAttendanceRecord.id,
                               {
-                                method: 'PUT',
-                                headers: {
-                                  'Authorization': `Bearer ${sessionStorage.getItem('auth_token')}`
-                                },
-                                body: formData
+                                date: dateValue,
+                                status: attendanceStatus,
+                                notes: attendanceNotes || undefined
                               }
                             );
 
-                            const result = await response.json();
                             if (result.success) {
                               toast.success("Attendance updated successfully");
                               setShowEditAttendanceDialog(false);
@@ -2233,7 +2265,7 @@ const MentorManagement = () => {
                     placeholder="e.g., 30"
                     required
                   />
-                  <p className="text-xs text-gray-500">Enter the total number of scheduled classes for all mentees in this project</p>
+                  <p className="text-xs text-muted-foreground">Enter the total number of scheduled classes for all mentees in this project</p>
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
                   <Button

@@ -204,12 +204,12 @@ export default function ViewFeedbackReports() {
           <div className="w-full">
             <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
               <div>
-                <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">Feedback Reports</h1>
-                <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Audit student satisfaction and event quality</p>
+                <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground">Feedback Reports</h1>
+                <p className="text-xs sm:text-sm md:text-base font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Audit student satisfaction and event quality</p>
               </div>
             </div>
             <div className="text-center py-12">
-              <p className="text-gray-600">Loading feedback data...</p>
+              <p className="text-muted-foreground">Loading feedback data...</p>
             </div>
           </div>
         </main>
@@ -228,8 +228,8 @@ export default function ViewFeedbackReports() {
           </div>
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div>
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">Feedback Reports</h1>
-              <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Audit student satisfaction and event quality</p>
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground">Feedback Reports</h1>
+              <p className="text-xs sm:text-sm md:text-base font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Audit student satisfaction and event quality</p>
             </div>
             <Button
               onClick={downloadAsExcel}
@@ -243,7 +243,7 @@ export default function ViewFeedbackReports() {
 
           {questions.length === 0 ? (
             <Card className="p-12 text-center gradient-card">
-              <p className="text-gray-600">No feedback questions created yet</p>
+              <p className="text-muted-foreground">No feedback questions created yet</p>
             </Card>
           ) : (
             <div className="space-y-4">
@@ -260,20 +260,20 @@ export default function ViewFeedbackReports() {
                             <h3 className="text-xl font-bold text-foreground">
                               {question.question_text}
                             </h3>
-                            <Badge className="shrink-0 font-bold text-[9px] uppercase tracking-widest px-2 py-0.5 border-none bg-primary/10 text-primary">
+                            <Badge className="shrink-0 font-bold text-xs uppercase tracking-widest px-2 py-0.5 border-none bg-primary/10 text-primary">
                               {question.question_type === 'rating' ? 'Rating' : 'Text'}
                             </Badge>
                           </div>
 
                           {question.event_title ? (
                             <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="font-bold text-[9px] uppercase tracking-widest border-primary/30 text-primary/70">
+                              <Badge variant="outline" className="font-bold text-xs uppercase tracking-widest border-primary/30 text-primary/70">
                                 📅 {question.event_title}
                               </Badge>
-                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-50">{new Date(question.event_date!).toLocaleDateString()}</span>
+                              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-50">{new Date(question.event_date!).toLocaleDateString()}</span>
                             </div>
                           ) : (
-                            <Badge variant="outline" className="font-bold text-[9px] uppercase tracking-widest border-muted-foreground/30 text-muted-foreground/70">
+                            <Badge variant="outline" className="font-bold text-xs uppercase tracking-widest border-muted-foreground/30 text-muted-foreground/70">
                               📋 General Feedback
                             </Badge>
                           )}
@@ -284,7 +284,7 @@ export default function ViewFeedbackReports() {
                             <div className="text-right">
                               <div className="text-3xl font-bold text-foreground">
                                 {questionStats?.totalResponses}
-                                <span className="text-[10px] font-medium text-muted-foreground ml-1">voters</span>
+                                <span className="text-xs font-medium text-muted-foreground ml-1">voters</span>
                               </div>
                               {question.question_type === 'rating' && (
                                 <div className="text-xs font-bold text-amber-500 flex items-center justify-end gap-1">
@@ -293,7 +293,7 @@ export default function ViewFeedbackReports() {
                               )}
                             </div>
                           ) : (
-                            <div className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest italic py-2">No data recorded</div>
+                            <div className="text-muted-foreground text-xs font-bold uppercase tracking-widest italic py-2">No data recorded</div>
                           )}
 
                           <Button
@@ -301,7 +301,7 @@ export default function ViewFeedbackReports() {
                             size="sm"
                             onClick={() => handleViewDetails(question.id)}
                             disabled={!hasResponses}
-                            className="w-full md:w-auto h-9 rounded-xl font-bold text-[10px] uppercase tracking-widest border-2"
+                            className="w-full md:w-auto h-9 rounded-xl font-bold text-xs uppercase tracking-widest border-2"
                           >
                             <BarChart3 className="w-4 h-4 mr-2" />
                             Analyze
@@ -334,10 +334,10 @@ export default function ViewFeedbackReports() {
                                     />
                                   </div>
                                   <div className="text-center">
-                                    <div className="text-[10px] text-muted-foreground font-medium">{rating}★</div>
+                                    <div className="text-xs text-muted-foreground font-medium">{rating}★</div>
                                   </div>
                                   {/* Tooltip-ish */}
-                                  <div className="hidden group-hover/bar:block absolute -mt-8 bg-popover text-popover-foreground text-[10px] px-2 py-1 rounded shadow-sm z-10 whitespace-nowrap">
+                                  <div className="hidden group-hover/bar:block absolute -mt-8 bg-popover text-popover-foreground text-xs px-2 py-1 rounded shadow-sm z-10 whitespace-nowrap">
                                     {count} votes ({percentage.toFixed(0)}%)
                                   </div>
                                 </div>
@@ -367,24 +367,24 @@ export default function ViewFeedbackReports() {
                 <div className="space-y-6">
                   {/* Summary */}
                   <div className="bg-blue-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-blue-900 mb-3">Question Summary</h3>
-                    <p className="text-blue-800 mb-4">{stats.question.question_text}</p>
+                    <h3 className="font-semibold text-foreground mb-3">Question Summary</h3>
+                    <p className="text-foreground mb-4">{stats.question.question_text}</p>
                     <div className="grid grid-cols-3 gap-4">
                       <div>
-                        <p className="text-sm text-blue-600">Total Responses</p>
-                        <p className="text-2xl font-bold text-blue-900">
+                        <p className="text-sm text-muted-foreground">Total Responses</p>
+                        <p className="text-2xl font-bold text-foreground">
                           {stats.totalResponses}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-blue-600">Average Rating</p>
-                        <p className="text-2xl font-bold text-blue-900">
+                        <p className="text-sm text-muted-foreground">Average Rating</p>
+                        <p className="text-2xl font-bold text-foreground">
                           {stats.averageRating.toFixed(2)}/5
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-blue-600">Question Type</p>
-                        <p className="text-lg font-semibold text-blue-900">
+                        <p className="text-sm text-muted-foreground">Question Type</p>
+                        <p className="text-lg font-semibold text-foreground">
                           {stats.question.question_type === 'rating' ? '⭐ Rating' : '📝 Text'}
                         </p>
                       </div>
@@ -394,7 +394,7 @@ export default function ViewFeedbackReports() {
                   {/* Rating Distribution */}
                   {stats.question.question_type === 'rating' && (
                     <div>
-                      <h3 className="font-semibold text-gray-800 mb-4">Rating Distribution</h3>
+                      <h3 className="font-semibold text-foreground mb-4">Rating Distribution</h3>
                       <div className="space-y-3">
                         {[5, 4, 3, 2, 1].map(rating => {
                           const count = stats.ratingDistribution[rating] || 0;
@@ -408,9 +408,9 @@ export default function ViewFeedbackReports() {
                               <span className="w-20 text-sm font-medium">
                                 {labels[rating - 1]} ({rating}⭐)
                               </span>
-                              <div className="flex-1 bg-gray-200 h-6 rounded overflow-hidden">
+                              <div className="flex-1 bg-muted h-6 rounded overflow-hidden">
                                 <div
-                                  className={`h-full flex items-center justify-end pr-2 text-white text-xs font-semibold transition-all ${rating >= 4
+                                  className={`h-full flex items-center justify-end pr-2 text-foreground text-xs font-semibold transition-all ${rating >= 4
                                     ? 'bg-green-500'
                                     : rating === 3
                                       ? 'bg-yellow-500'
@@ -421,7 +421,7 @@ export default function ViewFeedbackReports() {
                                   {percentage > 5 && `${percentage.toFixed(0)}%`}
                                 </div>
                               </div>
-                              <span className="w-12 text-right text-sm text-gray-600">
+                              <span className="w-12 text-right text-sm text-muted-foreground">
                                 {count}
                               </span>
                             </div>
@@ -433,10 +433,10 @@ export default function ViewFeedbackReports() {
 
                   {/* Individual Responses */}
                   <div>
-                    <h3 className="font-semibold text-gray-800 mb-4">Student Responses</h3>
+                    <h3 className="font-semibold text-foreground mb-4">Student Responses</h3>
                     <div className="space-y-3 max-h-96 overflow-y-auto">
                       {stats.responses.length === 0 ? (
-                        <p className="text-gray-600 text-center py-4">No responses yet</p>
+                        <p className="text-muted-foreground text-center py-4">No responses yet</p>
                       ) : (
                         stats.responses.map(response => (
                           <div
@@ -445,10 +445,10 @@ export default function ViewFeedbackReports() {
                           >
                             <div className="flex items-start justify-between">
                               <div>
-                                <p className="font-medium text-gray-900">
+                                <p className="font-medium text-foreground">
                                   {response.student_name}
                                 </p>
-                                <p className="text-sm text-gray-600">{response.student_email}</p>
+                                <p className="text-sm text-muted-foreground">{response.student_email}</p>
                               </div>
                               {response.rating && (
                                 <span className="text-lg font-semibold text-yellow-500">
@@ -457,11 +457,11 @@ export default function ViewFeedbackReports() {
                               )}
                             </div>
                             {response.feedback_text && (
-                              <p className="text-sm text-gray-700 mt-2 italic">
+                              <p className="text-sm text-foreground mt-2 italic">
                                 "{response.feedback_text}"
                               </p>
                             )}
-                            <p className="text-xs text-gray-500 mt-2">
+                            <p className="text-xs text-muted-foreground mt-2">
                               {new Date(response.created_at).toLocaleString()}
                             </p>
                           </div>

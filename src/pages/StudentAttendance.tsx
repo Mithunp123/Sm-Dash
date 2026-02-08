@@ -309,15 +309,15 @@ const StudentAttendance = () => {
         {/* Tabs Section */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
           <TabsList className="bg-muted/40 p-1.5 rounded-2xl h-14 border border-border w-full flex">
-            <TabsTrigger value="meetings" className="flex-1 rounded-xl h-full font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-primary data-[state=active]:text-white shadow-none border-none transition-all duration-300">
+            <TabsTrigger value="meetings" className="flex-1 rounded-xl h-full font-black uppercase tracking-widest text-xs data-[state=active]:bg-primary data-[state=active]:text-white shadow-none border-none transition-all duration-300">
               <Clock className="w-3.5 h-3.5 mr-2" />
               Meetings
             </TabsTrigger>
-            <TabsTrigger value="projects" className="flex-1 rounded-xl h-full font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-primary data-[state=active]:text-white shadow-none border-none transition-all duration-300">
+            <TabsTrigger value="projects" className="flex-1 rounded-xl h-full font-black uppercase tracking-widest text-xs data-[state=active]:bg-primary data-[state=active]:text-white shadow-none border-none transition-all duration-300">
               <Calendar className="w-3.5 h-3.5 mr-2" />
               Projects
             </TabsTrigger>
-            <TabsTrigger value="events" className="flex-1 rounded-xl h-full font-black uppercase tracking-widest text-[10px] data-[state=active]:bg-primary data-[state=active]:text-white shadow-none border-none transition-all duration-300">
+            <TabsTrigger value="events" className="flex-1 rounded-xl h-full font-black uppercase tracking-widest text-xs data-[state=active]:bg-primary data-[state=active]:text-white shadow-none border-none transition-all duration-300">
               <CheckCircle2 className="w-3.5 h-3.5 mr-2" />
               Events
             </TabsTrigger>
@@ -352,19 +352,19 @@ const StudentAttendance = () => {
                       <div className="text-4xl font-black text-primary mb-2 tabular-nums">
                         {meetingRecords.filter(r => r.status === 'present').length}
                       </div>
-                      <div className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Present Missions</div>
+                      <div className="text-sm font-black text-muted-foreground uppercase tracking-widest">Present Missions</div>
                     </div>
                     <div className="p-6 rounded-2xl bg-destructive/5 border border-destructive/10 flex flex-col items-center justify-center">
                       <div className="text-4xl font-black text-destructive mb-2 tabular-nums">
                         {meetingRecords.filter(r => r.status === 'absent').length}
                       </div>
-                      <div className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Absent Missions</div>
+                      <div className="text-sm font-black text-muted-foreground uppercase tracking-widest">Absent Missions</div>
                     </div>
                     <div className="p-6 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex flex-col items-center justify-center">
                       <div className="text-4xl font-black text-amber-600 mb-2 tabular-nums">
                         {meetingRecords.filter(r => r.status === 'late' || r.status === 'permission').length}
                       </div>
-                      <div className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Approved Perms</div>
+                      <div className="text-sm font-black text-muted-foreground uppercase tracking-widest">Approved Perms</div>
                     </div>
                   </div>
 
@@ -372,10 +372,10 @@ const StudentAttendance = () => {
                     <Table>
                       <TableHeader className="bg-muted/50">
                         <TableRow className="border-border">
-                          <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground py-4 px-6">Date</TableHead>
-                          <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground py-4 px-6">Day</TableHead>
-                          <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground py-4 px-6">Status</TableHead>
-                          <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground py-4 px-6">Mission Log</TableHead>
+                          <TableHead className="font-black uppercase tracking-widest text-xs text-muted-foreground py-4 px-6">Date</TableHead>
+                          <TableHead className="font-black uppercase tracking-widest text-xs text-muted-foreground py-4 px-6">Day</TableHead>
+                          <TableHead className="font-black uppercase tracking-widest text-xs text-muted-foreground py-4 px-6">Status</TableHead>
+                          <TableHead className="font-black uppercase tracking-widest text-xs text-muted-foreground py-4 px-6">Mission Log</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -396,7 +396,7 @@ const StudentAttendance = () => {
                                     {record.meeting_title || 'Regular Meet'}
                                   </span>
                                   {record.meeting_location && (
-                                    <span className="text-[11px] text-muted-foreground font-medium italic mt-0.5">
+                                    <span className="text-sm text-muted-foreground font-medium italic mt-0.5">
                                       at {record.meeting_location}
                                     </span>
                                   )}
@@ -461,15 +461,15 @@ const StudentAttendance = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                     <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 flex flex-col items-center justify-center">
                       <div className="text-4xl font-black text-primary mb-2 tabular-nums">{dateWiseRecords.filter(r => r.status === 'present').length}</div>
-                      <div className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Days Present</div>
+                      <div className="text-sm font-black text-muted-foreground uppercase tracking-widest">Days Present</div>
                     </div>
                     <div className="p-6 rounded-2xl bg-destructive/5 border border-destructive/10 flex flex-col items-center justify-center">
                       <div className="text-4xl font-black text-destructive mb-2 tabular-nums">{dateWiseRecords.filter(r => r.status === 'absent').length}</div>
-                      <div className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Days Absent</div>
+                      <div className="text-sm font-black text-muted-foreground uppercase tracking-widest">Days Absent</div>
                     </div>
                     <div className="p-6 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex flex-col items-center justify-center">
                       <div className="text-4xl font-black text-amber-600 mb-2 tabular-nums">{dateWiseRecords.filter(r => r.status === 'late' || r.status === 'permission').length}</div>
-                      <div className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Permissions</div>
+                      <div className="text-sm font-black text-muted-foreground uppercase tracking-widest">Permissions</div>
                     </div>
                   </div>
 
@@ -477,10 +477,10 @@ const StudentAttendance = () => {
                     <Table>
                       <TableHeader className="bg-muted/50">
                         <TableRow className="border-border">
-                          <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground py-4 px-6">Date</TableHead>
-                          <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground py-4 px-6">Day</TableHead>
-                          <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground py-4 px-6">Status</TableHead>
-                          <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground py-4 px-6">Mission Notes</TableHead>
+                          <TableHead className="font-black uppercase tracking-widest text-xs text-muted-foreground py-4 px-6">Date</TableHead>
+                          <TableHead className="font-black uppercase tracking-widest text-xs text-muted-foreground py-4 px-6">Day</TableHead>
+                          <TableHead className="font-black uppercase tracking-widest text-xs text-muted-foreground py-4 px-6">Status</TableHead>
+                          <TableHead className="font-black uppercase tracking-widest text-xs text-muted-foreground py-4 px-6">Mission Notes</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -533,15 +533,15 @@ const StudentAttendance = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                     <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 flex flex-col items-center justify-center">
                       <div className="text-4xl font-black text-primary mb-2 tabular-nums">{eventRecords.filter(r => r.status === 'present').length}</div>
-                      <div className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Present</div>
+                      <div className="text-sm font-black text-muted-foreground uppercase tracking-widest">Present</div>
                     </div>
                     <div className="p-6 rounded-2xl bg-destructive/5 border border-destructive/10 flex flex-col items-center justify-center">
                       <div className="text-4xl font-black text-destructive mb-2 tabular-nums">{eventRecords.filter(r => r.status === 'absent').length}</div>
-                      <div className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Absent</div>
+                      <div className="text-sm font-black text-muted-foreground uppercase tracking-widest">Absent</div>
                     </div>
                     <div className="p-6 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex flex-col items-center justify-center">
                       <div className="text-4xl font-black text-amber-600 mb-2 tabular-nums">{eventRecords.filter(r => r.status === 'late' || r.status === 'permission').length}</div>
-                      <div className="text-[11px] font-black text-muted-foreground uppercase tracking-widest">Perm/Late</div>
+                      <div className="text-sm font-black text-muted-foreground uppercase tracking-widest">Perm/Late</div>
                     </div>
                   </div>
 
