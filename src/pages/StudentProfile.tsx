@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import DeveloperCredit from "@/components/DeveloperCredit";
 import { ArrowLeft, Save, UserCircle, Camera, Settings, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { BackButton } from "@/components/BackButton";
 import { auth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
@@ -350,8 +351,14 @@ const StudentProfile = () => {
     <div className="flex-1 flex flex-col bg-transparent">
       <DeveloperCredit />
 
+
+
       <main className="flex-1 p-4 md:p-6 lg:p-8 bg-transparent overflow-y-auto">
         <div className="w-full">
+          {/* Back Button */}
+          <div className="mb-4">
+            <BackButton />
+          </div>
 
           {/* Hero Header Section with Profile Picture */}
           <div className="mb-6 bg-white dark:bg-slate-900 border border-border rounded-lg p-6 shadow-sm relative overflow-hidden">
@@ -709,7 +716,7 @@ const StudentProfile = () => {
                         type="button"
                         onClick={handleSaveProfile}
                         disabled={saving}
-                        className="gap-2 px-8 h-11 bg-primary text-white font-semibold shadow-lg hover:shadow-2xl transition-all duration-300  relative overflow-hidden group"
+                        className="gap-2 px-8 h-11 bg-primary text-foreground font-semibold shadow-lg hover:shadow-2xl transition-all duration-300  relative overflow-hidden group"
                       >
                         <Save className="w-4 h-4 relative z-10  transition-transform duration-300" />
                         <span className="relative z-10">{saving ? 'Saving...' : 'Save Profile'}</span>

@@ -272,7 +272,7 @@ const StudentEvents = () => {
                           />
                           {canRegister && (
                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <span className="text-white font-bold px-4 py-2 border-2 border-white rounded-full">Register Now</span>
+                              <span className="text-foreground font-bold px-4 py-2 border-2 border-white rounded-full">Register Now</span>
                             </div>
                           )}
                         </div>

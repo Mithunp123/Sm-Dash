@@ -473,13 +473,17 @@ const Login = () => {
         >
           <div className="relative">
             <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse"></div>
-            <motion.div>
+            <motion.div
+              animate={{ rotateY: 360 }}
+              transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+              style={{ transformStyle: "preserve-3d" }}
+            >
               <img
-                src="/Images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
+                src="/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
                 alt="SM Volunteers Logo"
                 className="w-64 h-64 object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)] relative z-10 group-hover:scale-110 transition-transform duration-500"
                 onError={(e) => {
-                  const fallback = '/Images/Brand_logo.png';
+                  const fallback = '/images/Brand_logo.png';
                   if (!e.currentTarget.src.includes(fallback)) {
                     e.currentTarget.src = fallback;
                   }

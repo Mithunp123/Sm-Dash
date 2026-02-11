@@ -176,7 +176,7 @@ const ManageProjects = () => {
           {/* Page Header */}
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 px-2">
             <div>
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">Projects</h1>
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground">Projects</h1>
               <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Design and manage community initiatives</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Outlet, useLocation } from "react-router-dom";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import Header from "@/components/Header";
@@ -16,21 +17,9 @@ const MainLayout = ({ showSidebar = true }: MainLayoutProps) => {
 
     return (
         <div className="flex min-h-screen w-full flex-col bg-background text-foreground relative selection:bg-primary/20 overflow-x-hidden">
-            {/* Premium Multi-layered Background (Global) */}
-            <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-slate-50 dark:bg-slate-950">
-                {/* Layer 1: Blueprint Grid */}
-                <div className="absolute inset-0 blueprint-grid opacity-[0.1] dark:opacity-[0.05]"></div>
-
-                {/* Layer 2: Dot Grid */}
-                <div className="absolute inset-0 dot-grid opacity-[0.15] dark:opacity-[0.1]"></div>
-
-                {/* Layer 3: Soft Pulsing Accents */}
-                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-500/10 blur-[120px] animate-pulse-soft"></div>
-                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-rose-500/10 blur-[120px] animate-pulse-soft [animation-delay:2s]"></div>
-                <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] rounded-full bg-amber-500/5 blur-[100px] animate-pulse-soft [animation-delay:4s]"></div>
-
-                {/* Layer 4: Radial Mask */}
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_40%,rgba(255,255,255,0.2)_100%)] dark:bg-[radial-gradient(circle_at_50%_50%,transparent_40%,rgba(2,6,23,0.2)_100%)]"></div>
+            {/* Clean Professional Background */}
+            <div className="fixed inset-0 z-0 pointer-events-none bg-slate-50 dark:bg-slate-950">
+                <div className="absolute inset-0 blueprint-grid opacity-[0.05]"></div>
             </div>
             {/* Desktop Sidebar - Only if showSidebar is true */}
             {showSidebar && (
@@ -59,7 +48,18 @@ const MainLayout = ({ showSidebar = true }: MainLayoutProps) => {
                 />
 
                 <main className="flex-1 w-full max-w-full overflow-x-hidden overflow-y-auto pb-12">
-                    <Outlet />
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={location.pathname}
+                            initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -20, scale: 0.98 }}
+                            transition={{ duration: 0.3, ease: "easeOut" }}
+                            className="w-full h-full"
+                        >
+                            <Outlet />
+                        </motion.div>
+                    </AnimatePresence>
                 </main>
 
                 {location.pathname === '/' && <Footer />}

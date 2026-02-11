@@ -57,7 +57,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, eventDate, isToday, isThis
                     <div className="absolute inset-0 bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-8 overflow-hidden [perspective:1000px]">
                         <div className="relative transform-gpu transition-all duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(15deg)_rotateX(5deg)] shadow-2xl rounded-full">
                             <img
-                                src="/Images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
+                                src="/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
                                 alt="SM Volunteers"
                                 className="w-32 h-32 object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)] opacity-90"
                             />

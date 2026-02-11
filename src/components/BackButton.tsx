@@ -32,10 +32,10 @@ export const BackButton = ({ to, label = "Back", className = "" }: BackButtonPro
 
   return (
     <Button
-      variant="ghost"
+      variant="outline"
       size="sm"
       onClick={handleBack}
-      className={`gap-2 text-muted-foreground hover:text-foreground ${className}`}
+      className={`h-9 px-4 gap-2 rounded-lg border-border/60 bg-background hover:bg-accent text-muted-foreground hover:text-foreground font-medium transition-all ${className}`}
     >
       <ArrowLeft className="w-4 h-4" />
       {label}

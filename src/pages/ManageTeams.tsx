@@ -440,7 +440,7 @@ const ManageTeams = () => {
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
             <div>
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">Manage Teams</h1>
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground">Manage Teams</h1>
               <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Coordinate volunteers and project workflows</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto shrink-0">

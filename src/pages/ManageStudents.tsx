@@ -328,7 +328,7 @@ const ManageStudents = () => {
 
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">Student Profiles</h1>
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground">Student Profiles</h1>
               <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Manage core community database</p>
             </div>
           </div>
@@ -466,12 +466,12 @@ const ManageStudents = () => {
                     <Table>
                       <TableHeader>
                         <TableRow className="border-border/30">
-                          <TableHead className="font-black uppercase text-[10px] tracking-widest">Name</TableHead>
-                          <TableHead className="font-black uppercase text-[10px] tracking-widest">Email</TableHead>
-                          <TableHead className="font-black uppercase text-[10px] tracking-widest">Department</TableHead>
-                          <TableHead className="font-black uppercase text-[10px] tracking-widest">Year</TableHead>
-                          <TableHead className="font-black uppercase text-[10px] tracking-widest">Phone</TableHead>
-                          <TableHead className="font-black uppercase text-[10px] tracking-widest">Actions</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Department</TableHead>
+                          <TableHead>Year</TableHead>
+                          <TableHead>Phone</TableHead>
+                          <TableHead>Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>

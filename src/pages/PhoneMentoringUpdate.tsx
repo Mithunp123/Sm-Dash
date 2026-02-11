@@ -728,7 +728,7 @@ const PhoneMentoringUpdate = () => {
                                 </div>
                               )}
                             </div>
-                            <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center shrink-0 shadow-sm group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                            <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center shrink-0 shadow-sm group-hover:bg-primary group-hover:text-foreground transition-all duration-300">
                               <User className="w-6 h-6" />
                             </div>
                           </div>
@@ -802,7 +802,7 @@ const PhoneMentoringUpdate = () => {
                             <Button
                               size="sm"
                               onClick={() => openAttendanceModal(mentee)}
-                              className="w-full h-12 rounded-xl font-black uppercase tracking-widest bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                              className="w-full h-12 rounded-xl font-black uppercase tracking-widest bg-primary hover:bg-primary/90 text-foreground shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
                             >
                               <CheckCircle2 className="w-5 h-5 mr-3" />
                               Update Attendance

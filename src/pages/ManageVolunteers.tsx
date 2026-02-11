@@ -768,7 +768,7 @@ const ManageVolunteers = () => {
                                   >
                                     Details
                                   </Button>
-                                  <Button onClick={() => updateStatus(s.id, 2)} className="bg-green-500 hover:bg-green-600 text-white h-8 text-[9px] font-bold uppercase tracking-widest px-3 rounded-lg" size="sm">
+                                  <Button onClick={() => updateStatus(s.id, 2)} className="bg-green-500 hover:bg-green-600 text-foreground h-8 text-[9px] font-bold uppercase tracking-widest px-3 rounded-lg" size="sm">
                                     Approve
                                   </Button>
                                   <Button onClick={() => updateStatus(s.id, 3)} variant="ghost" className="text-destructive hover:bg-destructive/10 h-8 font-bold text-[9px] uppercase tracking-widest rounded-lg" size="sm">

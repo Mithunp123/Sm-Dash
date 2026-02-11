@@ -346,7 +346,7 @@ const AttendanceMeetings = () => {
 
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                         <div className="space-y-1">
-                            <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white flex items-center gap-3">
+                            <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground flex items-center gap-3">
                                 <div className="bg-primary/10 rounded-2xl p-2 md:p-2.5 shadow-inner shrink-0">
                                     <Calendar className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-primary" />
                                 </div>
@@ -559,7 +559,7 @@ const AttendanceMeetings = () => {
                                                                             <button
                                                                                 onClick={() => handleMarkAttendanceClick(id, btn.id)}
                                                                                 className={`h-11 w-11 rounded-full border-[2.5px] transition-all duration-300 flex items-center justify-center ${status === btn.id
-                                                                                    ? `bg-${btn.color}-500 border-${btn.color}-600 shadow-lg shadow-${btn.color}-500/40 scale-110 text-white`
+                                                                                    ? `bg-${btn.color}-500 border-${btn.color}-600 shadow-lg shadow-${btn.color}-500/40 scale-110 text-foreground`
                                                                                     : 'border-slate-700/60 hover:border-slate-500 bg-transparent text-slate-600'
                                                                                     }`}
                                                                             >
@@ -601,7 +601,7 @@ const AttendanceMeetings = () => {
                                                         <button
                                                             onClick={() => handleMarkAttendanceClick(id, 'present')}
                                                             className={`flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all duration-300 ${status === 'present'
-                                                                ? 'bg-green-500 border-green-600 shadow-lg shadow-green-500/30 text-white scale-105'
+                                                                ? 'bg-green-500 border-green-600 shadow-lg shadow-green-500/30 text-foreground scale-105'
                                                                 : 'bg-background border-border/40 text-slate-400 hover:border-green-400'}`}
                                                         >
                                                             <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6" />
@@ -611,7 +611,7 @@ const AttendanceMeetings = () => {
                                                         <button
                                                             onClick={() => handleMarkAttendanceClick(id, 'absent')}
                                                             className={`flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all duration-300 ${status === 'absent'
-                                                                ? 'bg-red-500 border-red-600 shadow-lg shadow-red-500/30 text-white scale-105'
+                                                                ? 'bg-red-500 border-red-600 shadow-lg shadow-red-500/30 text-foreground scale-105'
                                                                 : 'bg-background border-border/40 text-slate-400 hover:border-red-400'}`}
                                                         >
                                                             <XCircle className="w-5 h-5 md:w-6 md:h-6" />
@@ -621,7 +621,7 @@ const AttendanceMeetings = () => {
                                                         <button
                                                             onClick={() => handleMarkAttendanceClick(id, 'late')}
                                                             className={`flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all duration-300 ${status === 'late'
-                                                                ? 'bg-blue-500 border-blue-600 shadow-lg shadow-blue-500/30 text-white scale-105'
+                                                                ? 'bg-blue-500 border-blue-600 shadow-lg shadow-blue-500/30 text-foreground scale-105'
                                                                 : 'bg-background border-border/40 text-slate-400 hover:border-red-400'}`}
                                                         >
                                                             <Clock className="w-5 h-5 md:w-6 md:h-6" />

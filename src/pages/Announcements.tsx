@@ -212,7 +212,7 @@ const Announcements = () => {
 
                                 <Button
                                     disabled={sending}
-                                    className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] bg-primary hover:bg-primary/90 text-white"
+                                    className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] bg-primary hover:bg-primary/90 text-foreground"
                                 >
                                     {sending ? (
                                         <span className="flex items-center gap-2 animate-pulse">
@@ -316,7 +316,7 @@ const Announcements = () => {
                                                                 <div className="flex items-center gap-2">
                                                                     <p className="font-black text-foreground group-hover:text-primary transition-colors">{a.title}</p>
                                                                     {new Date().getTime() - new Date(a.created_at).getTime() < 24 * 60 * 60 * 1000 && (
-                                                                        <Badge className="bg-emerald-500 text-white font-black text-[8px] px-2 py-0 animate-pulse">NEW</Badge>
+                                                                        <Badge className="bg-emerald-500 text-foreground font-black text-[8px] px-2 py-0 animate-pulse">NEW</Badge>
                                                                     )}
                                                                 </div>
                                                                 <p className="text-sm text-muted-foreground line-clamp-1">{a.content}</p>

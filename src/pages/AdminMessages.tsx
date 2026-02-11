@@ -137,7 +137,7 @@ const ConversationItem = ({ convo, isSelected, onSelect, onDelete, currentUserId
             onDelete();
             setSwipeOffset(0);
           }}
-          className="text-white"
+          className="text-foreground"
         >
           <Trash2 className="w-5 h-5" />
         </button>
@@ -765,7 +765,7 @@ const AdminMessages = () => {
                         {selectionMode && (
                           <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2">
                             <div className={`w-5 h-5 border-2 rounded-md flex items-center justify-center cursor-pointer ${selectedMessageIds.includes(msg.id) ? 'bg-primary border-primary' : 'border-muted-foreground'}`} onClick={() => toggleMessageSelection(msg.id)}>
-                              {selectedMessageIds.includes(msg.id) && <CheckCheck className="w-3 h-3 text-white" />}
+                              {selectedMessageIds.includes(msg.id) && <CheckCheck className="w-3 h-3 text-foreground" />}
                             </div>
                           </div>
                         )}
@@ -850,7 +850,7 @@ const AdminMessages = () => {
                         <button
                           key={cat}
                           onClick={() => setActiveEmojiCategory(cat)}
-                          className={`px-3 py-1 text-xs rounded-full capitalize ${activeEmojiCategory === cat ? 'bg-[#00a884] text-white' : 'text-[#8696a0] hover:bg-[#2a3942]'}`}
+                          className={`px-3 py-1 text-xs rounded-full capitalize ${activeEmojiCategory === cat ? 'bg-[#00a884] text-foreground' : 'text-[#8696a0] hover:bg-[#2a3942]'}`}
                         >
                           {cat}
                         </button>
@@ -867,13 +867,13 @@ const AdminMessages = () => {
                   <div className="absolute bottom-16 left-16 bg-[#1f2c34] p-4 rounded-xl shadow-2xl border border-[#2a3942] flex flex-col gap-4 animate-in slide-in-from-bottom-5 z-50">
                     <div className="flex gap-4">
                       <div className="flex flex-col items-center gap-1 group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                        <div className="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center text-white shadow-lg group-hover:bg-purple-500 transition-colors">
+                        <div className="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center text-foreground shadow-lg group-hover:bg-purple-500 transition-colors">
                           <FileText className="w-6 h-6" />
                         </div>
                         <span className="text-[#e9edef] text-xs">Document</span>
                       </div>
                       <div className="flex flex-col items-center gap-1 group cursor-pointer" onClick={() => imageInputRef.current?.click()}>
-                        <div className="w-12 h-12 rounded-full bg-pink-600 flex items-center justify-center text-white shadow-lg group-hover:bg-pink-500 transition-colors">
+                        <div className="w-12 h-12 rounded-full bg-pink-600 flex items-center justify-center text-foreground shadow-lg group-hover:bg-pink-500 transition-colors">
                           <ImageIcon className="w-6 h-6" />
                         </div>
                         <span className="text-[#e9edef] text-xs">Gallery</span>
@@ -919,12 +919,12 @@ const AdminMessages = () => {
                     <Button variant="ghost" onClick={cancelEdit} className="text-red-400 hover:text-red-300">
                       <X className="w-5 h-5" />
                     </Button>
-                    <Button onClick={sendReply} className="h-10 w-10 rounded-full bg-[#00a884] hover:bg-[#008f6f] text-white p-0 flex items-center justify-center shadow-sm">
+                    <Button onClick={sendReply} className="h-10 w-10 rounded-full bg-[#00a884] hover:bg-[#008f6f] text-foreground p-0 flex items-center justify-center shadow-sm">
                       <CheckCheck className="w-5 h-5 ml-0.5" />
                     </Button>
                   </div>
                 ) : replyText.trim() ? (
-                  <Button onClick={sendReply} className="h-10 w-10 rounded-full bg-[#00a884] hover:bg-[#008f6f] text-white p-0 flex items-center justify-center shadow-sm">
+                  <Button onClick={sendReply} className="h-10 w-10 rounded-full bg-[#00a884] hover:bg-[#008f6f] text-foreground p-0 flex items-center justify-center shadow-sm">
                     <Send className="w-5 h-5 ml-0.5" />
                   </Button>
                 ) : isRecording ? (
@@ -1030,7 +1030,7 @@ const AdminMessages = () => {
                     }}
                   >
                     <div className={`w-4 h-4 border rounded flex items-center justify-center ${selectedGroupMembers.includes(u.id) ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
-                      {selectedGroupMembers.includes(u.id) && <CheckCheck className="w-3 h-3 text-white" />}
+                      {selectedGroupMembers.includes(u.id) && <CheckCheck className="w-3 h-3 text-foreground" />}
                     </div>
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={u.photo_url ? buildImageUrl(u.photo_url) : undefined} />

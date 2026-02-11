@@ -417,7 +417,7 @@ const AdminResources = () => {
                         <CardContent className="p-5">
                           <div className="flex flex-col gap-3">
                             <div className="flex items-start justify-between">
-                              <div className="p-2.5 bg-primary/10 rounded-lg text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                              <div className="p-2.5 bg-primary/10 rounded-lg text-primary group-hover:bg-primary group-hover:text-foreground transition-colors">
                                 <Folder className="w-6 h-6" />
                               </div>
                               {(auth.hasRole('admin') || permissions.can_manage_resources) && (
@@ -494,7 +494,7 @@ const AdminResources = () => {
                           className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors group"
                         >
                           <div className="flex items-center gap-4 flex-1 min-w-0">
-                            <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                            <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-foreground transition-colors">
                               <FileText className="w-5 h-5" />
                             </div>
                             <div className="min-w-0 flex-1">

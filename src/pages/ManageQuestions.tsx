@@ -202,7 +202,7 @@ export default function ManageQuestions() {
           </div>
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">Feedback Questions</h1>
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground">Feedback Questions</h1>
               <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70">Manage questions and responses</p>
             </div>
             <Button

@@ -188,10 +188,10 @@ const OfficeBearerDashboard = () => {
               {/* Feature Highlights */}
               <div className="lg:col-span-2 space-y-8">
                 {/* Hero Banner Part II */}
-                <div className="relative overflow-hidden rounded-[3rem] bg-gradient-to-br from-indigo-600 to-primary p-10 text-white shadow-2xl">
+                <div className="relative overflow-hidden rounded-[3rem] bg-gradient-to-br from-indigo-600 to-primary p-10 text-foreground shadow-2xl">
                   <div className="relative z-10 flex flex-col h-full justify-between gap-8">
                     <div>
-                      <Badge className="bg-white/20 backdrop-blur-md border-white/10 text-white font-bold mb-4 px-4 py-1 rounded-full text-xs uppercase tracking-widest">
+                      <Badge className="bg-white/20 backdrop-blur-md border-white/10 text-foreground font-bold mb-4 px-4 py-1 rounded-full text-xs uppercase tracking-widest">
                         <TrendingUp className="w-3 h-3 mr-2" /> Role: Office Bearer
                       </Badge>
                       <h2 className="text-4xl font-bold mb-4 tracking-tighter leading-none">
@@ -205,7 +205,7 @@ const OfficeBearerDashboard = () => {
                       <Button variant="secondary" className="bg-white text-primary hover:bg-white/90 font-bold uppercase tracking-widest text-xs rounded-2xl h-12 px-8" onClick={() => navigate("/admin/projects")}>
                         Manage Projects
                       </Button>
-                      <Button variant="outline" className="bg-transparent border-white/20 text-white hover:bg-white/10 font-bold uppercase tracking-widest text-xs rounded-2xl h-12 px-8" onClick={() => navigate("/admin/meetings")}>
+                      <Button variant="outline" className="bg-transparent border-white/20 text-foreground hover:bg-white/10 font-bold uppercase tracking-widest text-xs rounded-2xl h-12 px-8" onClick={() => navigate("/admin/meetings")}>
                         Schedule Meet
                       </Button>
                     </div>
@@ -302,7 +302,7 @@ const OfficeBearerDashboard = () => {
                 </div>
 
                 {/* Quick Action Summary Card */}
-                <Card className="rounded-[2.5rem] bg-slate-900 text-white border-none shadow-2xl relative overflow-hidden group">
+                <Card className="rounded-[2.5rem] bg-slate-900 text-foreground border-none shadow-2xl relative overflow-hidden group">
                   <div className="p-8 space-y-6 relative z-10">
                     <div className="flex items-center gap-3 text-primary">
                       <Layers className="w-6 h-6" />
@@ -314,28 +314,28 @@ const OfficeBearerDashboard = () => {
                           <BarChart3 className="w-4 h-4 text-primary" />
                           <span className="text-xs font-bold uppercase tracking-widest">Generate Reports</span>
                         </div>
-                        <ChevronRight className="w-4 h-4 text-white/20" />
+                        <ChevronRight className="w-4 h-4 text-foreground/20" />
                       </div>
                       <div className="flex items-center justify-between p-4 rounded-[1.5rem] bg-white/5 hover:bg-white/10 transition-colors cursor-pointer" onClick={() => navigate("/admin/teams")}>
                         <div className="flex items-center gap-3">
                           <Users className="w-4 h-4 text-primary" />
                           <span className="text-xs font-bold uppercase tracking-widest">Team Management</span>
                         </div>
-                        <ChevronRight className="w-4 h-4 text-white/20" />
+                        <ChevronRight className="w-4 h-4 text-foreground/20" />
                       </div>
                       <div className="flex items-center justify-between p-4 rounded-[1.5rem] bg-white/5 hover:bg-white/10 transition-colors cursor-pointer" onClick={() => navigate("/admin/resources")}>
                         <div className="flex items-center gap-3">
                           <BookOpen className="w-4 h-4 text-primary" />
                           <span className="text-xs font-bold uppercase tracking-widest">Update Resources</span>
                         </div>
-                        <ChevronRight className="w-4 h-4 text-white/20" />
+                        <ChevronRight className="w-4 h-4 text-foreground/20" />
                       </div>
                       <div className="flex items-center justify-between p-4 rounded-[1.5rem] bg-white/5 hover:bg-white/10 transition-colors cursor-pointer" onClick={() => navigate("/admin/announcements")}>
                         <div className="flex items-center gap-3">
                           <Megaphone className="w-4 h-4 text-primary" />
                           <span className="text-xs font-bold uppercase tracking-widest">Publish Alerts</span>
                         </div>
-                        <ChevronRight className="w-4 h-4 text-white/20" />
+                        <ChevronRight className="w-4 h-4 text-foreground/20" />
                       </div>
                     </div>
 
@@ -343,7 +343,7 @@ const OfficeBearerDashboard = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                          <span className="text-xs font-black uppercase text-white/40 tracking-widest">Server Logic Active</span>
+                          <span className="text-xs font-black uppercase text-foreground/40 tracking-widest">Server Logic Active</span>
                         </div>
                         <Badge className="bg-emerald-500/20 text-emerald-400 border-none font-bold text-xs uppercase">Secure</Badge>
                       </div>

@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import principalImg from "../../Images/Dr.R. Gopalakrishnan.jpg";
-import palaniappanImg from "../../Images/Dr.A.Palaniappan.jpg";
-import mythiliImg from "../../Images/MYTHILI MAM.png";
-import rajkumarImg from "../../Images/Rajkumar.png";
+import principalImg from "../../images/Dr.R. Gopalakrishnan.jpg";
+import palaniappanImg from "../../images/Dr.A.Palaniappan.jpg";
+import mythiliImg from "../../images/MYTHILI MAM.png";
+import rajkumarImg from "../../images/Rajkumar.png";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Heart, Award, ChevronRight, MapPin, Mail, Phone, Calendar, Sparkles, X, Activity, Users, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -99,6 +100,7 @@ const LandingPage = () => {
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [contactMessage, setContactMessage] = useState("");
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [awards, setAwards] = useState<any[]>([]);
@@ -616,7 +618,7 @@ const LandingPage = () => {
                     initial={{ opacity: 0, scale: 0.8 }}
                     whileInView={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 1, ease: "easeOut" }}
-                    src="/Images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
+                    src="/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
                     alt="SM Volunteers Logo"
                     className="h-48 sm:h-64 md:h-80 w-auto object-contain drop-shadow-[0_0_30px_rgba(37,99,235,0.2)]"
                   />
@@ -1088,18 +1090,21 @@ const LandingPage = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="h-[350px] md:h-[400px] perspective-1000 group w-full"
+                className="h-[380px] md:h-[420px] perspective-1000 group w-full"
               >
-                <div className="relative w-full h-full transition-transform duration-700 preserve-3d group-hover:rotate-y-180 cursor-pointer active:rotate-y-180">
+                <div className="relative w-full h-full transition-transform duration-700 preserve-3d group-hover:rotate-y-180 cursor-pointer">
                   {/* Front Side */}
-                  <div className="absolute inset-0 backface-hidden rounded-[2rem] overflow-hidden border border-slate-800 bg-slate-900 shadow-2xl flex flex-col h-full">
+                  <div className="absolute inset-0 backface-hidden rounded-[24px] overflow-hidden border border-white/5 bg-slate-900 shadow-2xl flex flex-col h-full relative group/card">
+                    {/* Glowing border effect */}
+                    <div className="absolute inset-0 rounded-[24px] ring-1 ring-white/10 z-20 pointer-events-none"></div>
+
                     {/* Photo Section */}
-                    <div className="h-[75%] relative overflow-hidden bg-slate-900">
+                    <div className="h-full relative overflow-hidden bg-slate-900">
                       {ob.photo_url ? (
                         <img
                           src={buildImageUrl(ob.photo_url) || '/Images/Brand_logo.png'}
                           alt={ob.name}
-                          className="w-full h-full object-cover object-top"
+                          className="w-full h-full object-cover object-top transition-transform duration-700 scale-100 group-hover/card:scale-105"
                           onError={(e) => {
                             (e.target as any).src = '/Images/Brand_logo.png';
                           }}
@@ -1109,48 +1114,92 @@ const LandingPage = () => {
                           <Users className="w-16 md:w-20 h-16 md:h-20 text-slate-700" />
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-90"></div>
+
+                      {/* Premium Gradient Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent opacity-90"></div>
+                      <div className="absolute inset-0 bg-gradient-to-b from-slate-900/20 to-transparent opacity-40"></div>
                     </div>
 
-                    {/* Text Section relative to the bottom of the card */}
-                    <div className="absolute bottom-0 inset-x-0 p-5 md:p-6 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent pt-8 md:pt-12">
-                      <div className="flex items-end justify-between gap-3">
-                        <div className="flex-1 space-y-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <div className="w-6 h-0.5 bg-primary rounded-full"></div>
-                            <p className="text-[10px] font-bold text-primary uppercase tracking-wider">{ob.position}</p>
+                    {/* Text Section floating at bottom */}
+                    <div className="absolute bottom-0 inset-x-0 p-5 z-30 flex flex-col justify-end">
+                      <div className="backdrop-blur-md bg-black/30 p-4 rounded-xl border border-white/10 space-y-2 transform transition-transform duration-300 shadow-lg">
+                        <div className="flex items-end justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="inline-flex items-center gap-1.5 mb-2 px-2.5 py-1 rounded-md bg-primary/90 shadow-md shadow-primary/20">
+                              <span className="text-[10px] font-bold text-primary-foreground uppercase tracking-widest leading-none">{ob.position}</span>
+                            </div>
+                            <h4 className="text-xl md:text-2xl font-black text-white tracking-tight leading-none drop-shadow-lg truncate">
+                              {ob.name}
+                            </h4>
                           </div>
-                          <h4 className="text-xl md:text-2xl font-bold text-white tracking-tight">{ob.name}</h4>
+                          <div className="w-10 h-10 rounded-full bg-white/5 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shrink-0 group-hover:bg-primary group-hover:border-primary transition-all duration-300 shadow-xl">
+                            <ArrowRight className="w-5 h-5" />
+                          </div>
                         </div>
-                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-800/80 backdrop-blur-sm border border-slate-700 flex items-center justify-center group-hover:bg-primary transition-all shadow-lg">
-                          <ArrowRight className="w-3 md:w-4 h-3 md:h-4 text-primary group-hover:text-white" />
-                        </div>
+                        {/* Decorative line */}
+                        <div className="w-12 h-0.5 bg-gradient-to-r from-primary to-transparent rounded-full mt-2"></div>
                       </div>
                     </div>
+                  </div>
 
-                    {/* Back Side */}
-                    <div className="absolute inset-0 rotate-y-180 backface-hidden rounded-[2rem] bg-slate-900 border border-primary/20 p-6 md:p-8 flex flex-col justify-center text-center shadow-2xl shadow-primary/10">
-                      <div className="space-y-4 md:space-y-6">
-                        <div>
-                          <h4 className="text-xl md:text-2xl font-bold text-white mb-1">{ob.name}</h4>
-                          <p className="text-primary font-bold uppercase tracking-wider text-[10px] md:text-xs">{ob.position}</p>
+                  {/* Back Side */}
+                  <div className="absolute inset-0 rotate-y-180 backface-hidden rounded-[24px] bg-slate-900 border border-white/10 overflow-hidden shadow-2xl flex flex-col justify-center text-center relative group/back">
+                    {/* Full Background Image for Back Side */}
+                    <div className="absolute inset-0 z-0">
+                      {ob.photo_url ? (
+                        <div className="w-full h-full relative">
+                          <img
+                            src={buildImageUrl(ob.photo_url)}
+                            alt={ob.name}
+                            className="w-full h-full object-cover opacity-40 blur-sm scale-110 transform"
+                          />
+                          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]"></div>
                         </div>
+                      ) : (
+                        <div className="w-full h-full bg-slate-900 relative overflow-hidden">
+                          <div className="absolute top-0 right-0 w-40 h-40 bg-primary/20 blur-[60px] rounded-full -mr-10 -mt-10"></div>
+                          <div className="absolute bottom-0 left-0 w-40 h-40 bg-blue-600/20 blur-[60px] rounded-full -ml-10 -mb-10"></div>
+                        </div>
+                      )}
+                      {/* Gradient Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-slate-950/80"></div>
+                    </div>
 
-                        <div className="space-y-2 md:space-y-3">
-                          {ob.email && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); openInGmail(ob.email); }}
-                              className="flex items-center gap-3 p-2 md:p-3 rounded-xl bg-white/5 border border-white/10 hover:border-primary/50 transition-all w-full"
-                            >
-                              <Mail className="w-3 md:w-4 h-3 md:h-4 text-primary" />
-                              <div className="text-left overflow-hidden">
-                                <p className="text-[7px] md:text-[8px] font-black text-slate-500 uppercase tracking-widest">Send Mail</p>
-                                <p className="text-[10px] md:text-xs font-bold text-slate-200 truncate">{ob.email}</p>
-                              </div>
-                            </button>
+                    <div className="relative z-10 p-8 space-y-6 flex flex-col items-center justify-center h-full">
+                      <div className="w-24 h-24 mx-auto rounded-full p-1 bg-gradient-to-br from-primary/50 to-blue-600/50 shadow-2xl shadow-primary/20 mb-2">
+                        <div className="w-full h-full rounded-full overflow-hidden border-2 border-slate-900 bg-slate-800 relative z-10">
+                          {ob.photo_url ? (
+                            <img
+                              src={buildImageUrl(ob.photo_url)}
+                              className="w-full h-full object-cover"
+                              alt="profile"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Users className="w-10 h-10 text-slate-500" />
+                            </div>
                           )}
                         </div>
-                        <p className="text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">SM Volunteer Leadership</p>
+                      </div>
+
+                      <div className="space-y-1">
+                        <h4 className="text-3xl font-black text-white tracking-tight drop-shadow-md">{ob.name}</h4>
+                        <div className="inline-block px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
+                          <p className="text-primary font-bold uppercase tracking-widest text-[10px]">{ob.position}</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3 pt-6 w-full max-w-[200px]">
+                        {ob.email && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); openInGmail(ob.email); }}
+                            className="group/btn w-full py-3 px-4 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all transform hover:scale-105 active:scale-95"
+                          >
+                            <Mail className="w-4 h-4" />
+                            <span className="text-xs uppercase tracking-wider">Contact Now</span>
+                          </button>
+                        )}
+                        <p className="text-[10px] text-slate-400 font-medium truncate px-2">{ob.email}</p>
                       </div>
                     </div>
                   </div>
@@ -1301,21 +1350,38 @@ const LandingPage = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground">Name</label>
-              <input value={contactName} onChange={(e) => setContactName(e.target.value)} className="w-full mt-2 p-2 rounded-md border border-input bg-background text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none" />
+            <div className="flex items-center space-x-2 py-2">
+              <Switch id="anonymous-mode" checked={isAnonymous} onCheckedChange={setIsAnonymous} />
+              <Label htmlFor="anonymous-mode" className="text-sm font-medium cursor-pointer">Send Feedback Anonymously</Label>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground">Email</label>
-              <input value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} className="w-full mt-2 p-2 rounded-md border border-input bg-background text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground">Contact No</label>
-              <input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} className="w-full mt-2 p-2 rounded-md border border-input bg-background text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none" placeholder="+91-" />
-            </div>
+
+            <AnimatePresence>
+              {!isAnonymous && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-4 overflow-hidden"
+                >
+                  <div>
+                    <label className="block text-sm font-medium text-foreground">Name</label>
+                    <input value={contactName} onChange={(e) => setContactName(e.target.value)} className="w-full mt-2 p-2 rounded-md border border-input bg-background text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground">Email</label>
+                    <input value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} className="w-full mt-2 p-2 rounded-md border border-input bg-background text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground">Contact No</label>
+                    <input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} className="w-full mt-2 p-2 rounded-md border border-input bg-background text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none" placeholder="+91-" />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <div>
               <label className="block text-sm font-medium text-foreground">Message</label>
-              <textarea value={contactMessage} onChange={(e) => setContactMessage(e.target.value)} className="w-full mt-2 p-2 rounded-md border border-input bg-background text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none" rows={5} />
+              <textarea value={contactMessage} onChange={(e) => setContactMessage(e.target.value)} className="w-full mt-2 p-2 rounded-md border border-input bg-background text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none" rows={5} placeholder={isAnonymous ? "Share your anonymous feedback or suggestion..." : "How can we help you?"} />
             </div>
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setContactOpen(false)}>Cancel</Button>
@@ -1324,18 +1390,19 @@ const LandingPage = () => {
                 const arr = store ? JSON.parse(store) : [];
                 const msg = {
                   id: Date.now(),
-                  name: contactName,
-                  email: contactEmail,
-                  phone: contactPhone,
+                  name: isAnonymous ? "Anonymous User" : contactName,
+                  email: isAnonymous ? "N/A" : contactEmail,
+                  phone: isAnonymous ? "N/A" : contactPhone,
                   message: contactMessage,
                   created_at: new Date().toISOString(),
-                  read: false
+                  read: false,
+                  type: isAnonymous ? 'feedback' : 'contact'
                 };
                 arr.unshift(msg);
                 localStorage.setItem('admin_messages', JSON.stringify(arr));
                 window.dispatchEvent(new Event('adminMessage'));
-                toast.success('Message sent to admin');
-                setContactName(''); setContactEmail(''); setContactPhone(''); setContactMessage(''); setContactOpen(false);
+                toast.success(isAnonymous ? 'Feedback sent anonymously' : 'Message sent to admin');
+                setContactName(''); setContactEmail(''); setContactPhone(''); setContactMessage(''); setIsAnonymous(false); setContactOpen(false);
               }}>Send</Button>
             </div>
           </div>

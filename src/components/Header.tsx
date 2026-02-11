@@ -17,6 +17,8 @@ import NotificationBell from "./NotificationBell";
 import { motion } from "framer-motion";
 import { buildImageUrl } from "@/utils/imageUtils";
 
+import { api } from "@/lib/api";
+
 interface HeaderProps {
   onMenuClick?: () => void;
   showMenuTrigger?: boolean;
@@ -40,6 +42,31 @@ const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
     window.addEventListener('profileUpdated', handleProfileUpdate);
     return () => window.removeEventListener('profileUpdated', handleProfileUpdate);
   }, []);
+
+  // Fetch latest user data on mount to ensure photo is up to date
+  useEffect(() => {
+    const refreshUserKey = async () => {
+      if (isAuthenticated && user?.id) {
+        try {
+          const res = await api.getUser(user.id);
+          if (res.success && res.user) {
+            // Check if photo info is missing in current session but present in API response
+            const currentPhoto = user.photo_url || (user as any).photo;
+            const newPhoto = res.user.photo_url || res.user.photo;
+
+            if (newPhoto && newPhoto !== currentPhoto) {
+              const updatedUser = { ...user, ...res.user };
+              auth.setUser(updatedUser);
+              setUser(updatedUser);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to refresh user data", error);
+        }
+      }
+    };
+    refreshUserKey();
+  }, [isAuthenticated]);
 
   if (isLoginPage) return null;
 
@@ -334,14 +361,14 @@ const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
             <div className="flex items-center gap-3">
               <NotificationBell />
               {user && (
-                <div className="hidden md:flex items-center gap-3 pl-3 border-l border-border/50">
+                <div className="flex items-center gap-3 pl-3 border-l border-border/50">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
                         className="flex items-center gap-3 hover:bg-accent px-3 py-2 h-auto"
                       >
-                        <div className="flex flex-col items-start">
+                        <div className="hidden lg:flex flex-col items-start">
                           <span className="text-sm font-semibold leading-none text-foreground">
                             {getFirstName(user.name)}
                           </span>
@@ -349,6 +376,20 @@ const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
                             {user.role?.replace('_', ' ')}
                           </span>
                         </div>
+                        {/* Mobile view: Show only avatar initially, or maybe small text? User asked for name/role/photo. 
+                           Let's show avatar and name on mobile if space permits, or stick to the design. 
+                           Actually, standard pattern is Avatar on mobile. 
+                           BUT user explicitly said "name and role and photo". 
+                           Let's try to show them. */}
+                        <div className="flex lg:hidden flex-col items-end mr-2 text-right">
+                          <span className="text-sm font-semibold leading-none text-foreground max-w-[100px] truncate">
+                            {getFirstName(user.name)}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground capitalize font-medium max-w-[100px] truncate">
+                            {user.role?.replace('_', ' ')}
+                          </span>
+                        </div>
+
                         <Avatar className="h-9 w-9 border-2 border-primary/20">
                           <AvatarImage
                             src={buildImageUrl(user.photo_url || (user as any).photo) || undefined}
@@ -358,13 +399,16 @@ const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
                             {getInitials(user.name)}
                           </AvatarFallback>
                         </Avatar>
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56">
                       <DropdownMenuLabel>
                         <div className="flex flex-col space-y-1">
                           <p className="text-sm font-medium leading-none">{user.name}</p>
+                          <p className="text-xs leading-none text-muted-foreground">
+                            {user.role?.replace('_', ' ')}
+                          </p>
                           <p className="text-xs leading-none text-muted-foreground">
                             {user.email}
                           </p>
@@ -396,15 +440,6 @@ const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
                   </DropdownMenu>
                 </div>
               )}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleLogout}
-                className="md:hidden text-muted-foreground hover:text-destructive"
-                title="Logout"
-              >
-                <LogOut className="h-5 w-5" />
-              </Button>
             </div>
           </div>
         )}

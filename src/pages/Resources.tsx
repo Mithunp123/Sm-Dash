@@ -105,7 +105,7 @@ const Resources = () => {
             {/* Resources List */}
             <div>
               <div className="mb-6">
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">All Resources</h2>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-foreground">All Resources</h2>
                 <p className="text-sm text-muted-foreground mt-1">{filteredFiles.length} {filteredFiles.length === 1 ? 'resource' : 'resources'} available</p>
               </div>
 

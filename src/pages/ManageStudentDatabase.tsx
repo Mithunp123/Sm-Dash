@@ -365,7 +365,7 @@ const ManageStudentDatabase = () => {
               {/* Page Header */}
               <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                 <div>
-                  <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">Student Database</h1>
+                  <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground">Student Database</h1>
                   <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Unified records for the entire community</p>
                 </div>
                 {!canEdit && (
@@ -468,7 +468,7 @@ const ManageStudentDatabase = () => {
                     <div className="space-y-4">
                       {!canEdit && (
                         <div className="mx-4 sm:mx-0 mb-6 p-4 bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 rounded-xl text-sm flex items-start gap-3">
-                          <div className="mt-0.5 shrink-0 px-2 py-0.5 bg-amber-500 text-white rounded text-[10px] font-bold uppercase">Note</div>
+                          <div className="mt-0.5 shrink-0 px-2 py-0.5 bg-amber-500 text-foreground rounded text-[10px] font-bold uppercase">Note</div>
                           <p>You have view-only access. Actions like Edit or Delete are restricted.</p>
                         </div>
                       )}

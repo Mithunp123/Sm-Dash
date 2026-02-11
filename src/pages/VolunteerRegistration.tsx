@@ -158,7 +158,7 @@ const VolunteerRegistration = () => {
           </Button>
 
           <Card className="shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-t-lg">
+            <CardHeader className="bg-gradient-to-r from-orange-500 to-orange-600 text-foreground rounded-t-lg">
               <CardTitle className="text-2xl">Join SM Volunteers</CardTitle>
               <CardDescription className="text-orange-100">
                 Register to become an active member of SM Volunteers

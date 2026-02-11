@@ -395,10 +395,10 @@ const AttendanceDetails = () => {
                 {selectedDate && (
                     <div className="mb-8 flex flex-wrap gap-2 items-center bg-card/40 p-2 rounded-2xl border border-border/40 backdrop-blur-sm">
                         <StatusFilterButton status="all" label="All" count={counts.total} colorClass="bg-primary text-primary-foreground font-bold shadow-lg shadow-primary/20" />
-                        <StatusFilterButton status="present" label="Present" count={counts.present} colorClass="bg-green-500 text-white font-bold shadow-lg shadow-green-500/20" />
-                        <StatusFilterButton status="absent" label="Absent" count={counts.absent} colorClass="bg-red-500 text-white font-bold shadow-lg shadow-red-500/20" />
-                        <StatusFilterButton status="late" label="Late" count={counts.late} colorClass="bg-amber-500 text-white font-bold shadow-lg shadow-amber-500/20" />
-                        <StatusFilterButton status="excused" label="Excused" count={counts.excused} colorClass="bg-blue-500 text-white font-bold shadow-lg shadow-blue-500/20" />
+                        <StatusFilterButton status="present" label="Present" count={counts.present} colorClass="bg-green-500 text-foreground font-bold shadow-lg shadow-green-500/20" />
+                        <StatusFilterButton status="absent" label="Absent" count={counts.absent} colorClass="bg-red-500 text-foreground font-bold shadow-lg shadow-red-500/20" />
+                        <StatusFilterButton status="late" label="Late" count={counts.late} colorClass="bg-amber-500 text-foreground font-bold shadow-lg shadow-amber-500/20" />
+                        <StatusFilterButton status="excused" label="Excused" count={counts.excused} colorClass="bg-blue-500 text-foreground font-bold shadow-lg shadow-blue-500/20" />
                     </div>
                 )}
 

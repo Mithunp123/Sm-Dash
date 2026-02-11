@@ -532,7 +532,7 @@ const ManageAttendance = () => {
 
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10">
             <div className="space-y-1">
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white flex items-center gap-3">
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground flex items-center gap-3">
                 <div className="bg-primary/10 rounded-2xl p-2 md:p-2.5 shadow-inner shrink-0">
                   <Activity className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-primary" />
                 </div>
@@ -592,7 +592,7 @@ const ManageAttendance = () => {
                 <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary/5 rounded-full group-hover:scale-150 transition-transform duration-500" />
 
                 <div className="flex items-start justify-between mb-8 relative z-10">
-                  <div className="p-4 rounded-3xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300 shadow-inner">
+                  <div className="p-4 rounded-3xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-foreground transition-all duration-300 shadow-inner">
                     <Icon className="w-8 h-8" />
                   </div>
                   <div className="text-right">
@@ -880,7 +880,7 @@ const ManageAttendance = () => {
                                         title="OD"
                                       >
                                         {currentStatus === 'od' && (
-                                          <CheckCircle2 className="w-6 h-6 text-white" />
+                                          <CheckCircle2 className="w-6 h-6 text-foreground" />
                                         )}
                                       </button>
                                       <span className="text-xs text-muted-foreground">OD</span>
@@ -896,7 +896,7 @@ const ManageAttendance = () => {
                                         title="Absent"
                                       >
                                         {currentStatus === 'absent' && (
-                                          <XCircle className="w-6 h-6 text-white" />
+                                          <XCircle className="w-6 h-6 text-foreground" />
                                         )}
                                       </button>
                                       <span className="text-xs text-muted-foreground">Absent</span>
@@ -912,7 +912,7 @@ const ManageAttendance = () => {
                                         title="Permission"
                                       >
                                         {currentStatus === 'permission' && (
-                                          <Clock className="w-6 h-6 text-white" />
+                                          <Clock className="w-6 h-6 text-foreground" />
                                         )}
                                       </button>
                                       <span className="text-xs text-muted-foreground">Permission</span>
@@ -931,7 +931,7 @@ const ManageAttendance = () => {
                                         title="Present"
                                       >
                                         {currentStatus === 'present' && (
-                                          <CheckCircle2 className="w-6 h-6 text-white" />
+                                          <CheckCircle2 className="w-6 h-6 text-foreground" />
                                         )}
                                       </button>
                                       <span className="text-xs text-muted-foreground">Present</span>
@@ -947,7 +947,7 @@ const ManageAttendance = () => {
                                         title="Absent"
                                       >
                                         {currentStatus === 'absent' && (
-                                          <XCircle className="w-6 h-6 text-white" />
+                                          <XCircle className="w-6 h-6 text-foreground" />
                                         )}
                                       </button>
                                       <span className="text-xs text-muted-foreground">Absent</span>
@@ -963,7 +963,7 @@ const ManageAttendance = () => {
                                         title="Permission"
                                       >
                                         {currentStatus === 'late' && (
-                                          <Clock className="w-6 h-6 text-white" />
+                                          <Clock className="w-6 h-6 text-foreground" />
                                         )}
                                       </button>
                                       <span className="text-xs text-muted-foreground">Permission</span>
@@ -1035,7 +1035,7 @@ const ManageAttendance = () => {
                     }`}
                 >
                   {selectedAttendance?.status === 'present' && (
-                    <CheckCircle2 className="w-8 h-8 text-white" />
+                    <CheckCircle2 className="w-8 h-8 text-foreground" />
                   )}
                 </button>
                 <button
@@ -1050,7 +1050,7 @@ const ManageAttendance = () => {
                     }`}
                 >
                   {selectedAttendance?.status === 'absent' && (
-                    <XCircle className="w-8 h-8 text-white" />
+                    <XCircle className="w-8 h-8 text-foreground" />
                   )}
                 </button>
                 <button
@@ -1065,7 +1065,7 @@ const ManageAttendance = () => {
                     }`}
                 >
                   {selectedAttendance?.status === 'late' && (
-                    <Clock className="w-8 h-8 text-white" />
+                    <Clock className="w-8 h-8 text-foreground" />
                   )}
                 </button>
               </div>

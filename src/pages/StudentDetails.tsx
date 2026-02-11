@@ -305,7 +305,7 @@ const StudentDetails = () => {
                             <AvatarFallback className="text-4xl bg-muted">{student.name?.slice(0, 2).toUpperCase()}</AvatarFallback>
                         </Avatar>
                         {isEditing && (
-                            <label className="absolute bottom-0 right-0 p-2 bg-primary text-white rounded-full cursor-pointer hover:bg-primary/90 shadow-lg" htmlFor="photo-upload">
+                            <label className="absolute bottom-0 right-0 p-2 bg-primary text-foreground rounded-full cursor-pointer hover:bg-primary/90 shadow-lg" htmlFor="photo-upload">
                                 <UserIcon className="w-5 h-5" />
                                 <input id="photo-upload" type="file" className="hidden" onChange={handlePhotoChange} accept="image/*" />
                             </label>

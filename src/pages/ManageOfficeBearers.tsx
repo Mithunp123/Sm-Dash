@@ -321,7 +321,7 @@ const ManageOfficeBearers = () => {
 
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-6">
           <div className="space-y-2">
-            <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">
+            <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground">
               Office Bearers
             </h1>
             <p className="text-muted-foreground font-medium text-sm md:text-base border-l-4 border-primary/30 pl-3">

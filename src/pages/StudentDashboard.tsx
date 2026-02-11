@@ -168,7 +168,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
         {/* Compact Header */}
         <div className="mb-4 flex items-end justify-between pb-4">
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">
               {activeTab === 'calendar' ? 'Mission Timeline' : 'Dashboard Overview'}
             </h1>
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
@@ -214,7 +214,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
               {/* Left Side: Welcome & Meetings */}
               <div className="lg:col-span-2 space-y-6">
                 {/* Refined Welcome Banner */}
-                <div className="relative overflow-hidden rounded-[2rem] bg-indigo-600 p-8 text-white shadow-xl">
+                <div className="relative overflow-hidden rounded-[2rem] bg-indigo-600 p-8 text-foreground shadow-xl">
                   <div className="relative z-10">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md mb-4 text-xs font-bold uppercase tracking-widest border border-white/10">
                       <Star className="w-3 h-3 fill-white" />
@@ -278,19 +278,19 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
               {/* Right Side: Sidebar info */}
               <div className="space-y-6">
                 {/* Motivation Card */}
-                <Card className="rounded-[2rem] shadow-sm border-none p-8 bg-gradient-to-br from-slate-900 to-slate-800 text-white relative overflow-hidden group">
+                <Card className="rounded-[2rem] shadow-sm border-none p-8 bg-gradient-to-br from-slate-900 to-slate-800 text-foreground relative overflow-hidden group">
                   <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/5 rounded-full blur-2xl group-hover:bg-white/10 transition-colors" />
                   <div className="space-y-4 relative z-10">
                     <div className="flex items-center gap-2 text-amber-400">
                       <StarIcon className="w-4 h-4 fill-amber-400" />
                       <span className="font-black uppercase tracking-widest text-xs">Daily Wisdom</span>
                     </div>
-                    <p className="text-xl font-bold italic leading-tight text-white/90">
+                    <p className="text-xl font-bold italic leading-tight text-foreground/90">
                       "Real change, enduring change, happens one step at a time."
                     </p>
                     <div className="flex items-center gap-2 pt-2">
                       <div className="w-6 h-0.5 bg-amber-400/50" />
-                      <p className="text-white/60 font-bold text-xs uppercase tracking-widest">— RBG</p>
+                      <p className="text-foreground/60 font-bold text-xs uppercase tracking-widest">— RBG</p>
                     </div>
                   </div>
                 </Card>
@@ -351,7 +351,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
             {/* New Section to fill empty space: Quick Connections */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
               <Card className="rounded-[2rem] border-none bg-indigo-50/30 dark:bg-indigo-900/10 p-6 flex items-center gap-4 group cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all" onClick={() => setActiveTab('messages')}>
-                <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200 dark:shadow-none group-hover:scale-110 transition-transform">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-foreground flex items-center justify-center shadow-lg shadow-indigo-200 dark:shadow-none group-hover:scale-110 transition-transform">
                   <MessageSquare className="w-6 h-6" />
                 </div>
                 <div>
@@ -361,7 +361,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
               </Card>
 
               <Card className="rounded-[2rem] border-none bg-emerald-50/30 dark:bg-emerald-900/10 p-6 flex items-center gap-4 group cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all" onClick={() => setActiveTab('attendance')}>
-                <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-200 dark:shadow-none group-hover:scale-110 transition-transform">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-foreground flex items-center justify-center shadow-lg shadow-emerald-200 dark:shadow-none group-hover:scale-110 transition-transform">
                   <Trophy className="w-6 h-6" />
                 </div>
                 <div>
@@ -371,7 +371,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
               </Card>
 
               <Card className="rounded-[2rem] border-none bg-amber-50/30 dark:bg-amber-900/10 p-6 flex items-center gap-4 group cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all" onClick={() => setActiveTab('resources')}>
-                <div className="w-12 h-12 rounded-2xl bg-amber-600 text-white flex items-center justify-center shadow-lg shadow-amber-200 dark:shadow-none group-hover:scale-110 transition-transform">
+                <div className="w-12 h-12 rounded-2xl bg-amber-600 text-foreground flex items-center justify-center shadow-lg shadow-amber-200 dark:shadow-none group-hover:scale-110 transition-transform">
                   <BookOpen className="w-6 h-6" />
                 </div>
                 <div>

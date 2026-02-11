@@ -78,7 +78,7 @@ const StudentProjects = () => {
                             <Card key={project.id} className="group border border-border shadow-sm bg-white dark:bg-slate-950 overflow-hidden rounded-3xl hover:shadow-xl hover:shadow-primary/5 transition-all duration-300">
                                 <CardHeader className="bg-muted/40 border-b border-border py-6 px-6">
                                     <div className="flex justify-between items-start mb-2">
-                                        <div className="p-3 rounded-2xl bg-primary/10 border border-primary/20 text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                                        <div className="p-3 rounded-2xl bg-primary/10 border border-primary/20 text-primary group-hover:bg-primary group-hover:text-foreground transition-all duration-300">
                                             <Briefcase className="w-6 h-6" />
                                         </div>
                                         <Badge className="font-black uppercase tracking-widest text-xs bg-primary/20 text-primary border-none">

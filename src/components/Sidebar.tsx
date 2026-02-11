@@ -52,7 +52,6 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
     { icon: UsersRound, label: "Teams", path: "/admin/teams" },
     { icon: Users, label: "Volunteer Submissions", path: "/admin/volunteers" },
     { icon: MessageSquare, label: "Messages", path: "/admin/messages" },
-    { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
     { icon: Megaphone, label: "Announcements", path: "/admin/announcements" },
     { icon: UserCircle, label: "My Profile", path: "/office-bearer/profile" },
     { icon: MessageSquare, label: "Feedback Questions", path: "/admin/feedback/questions" },
@@ -148,9 +147,9 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
                 key={item.path}
                 variant={active ? "default" : "ghost"}
                 className={cn(
-                  "w-full justify-start gap-3 h-11 mb-1 transition-all duration-200",
+                  "w-full justify-start gap-3 h-10 mb-1 transition-all duration-200",
                   active
-                    ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 font-semibold"
+                    ? "bg-primary text-primary-foreground shadow-sm font-semibold"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/50 font-medium"
                 )}
                 onClick={() => {
@@ -172,11 +171,11 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
           className="w-full flex items-center gap-3 px-2 py-2 rounded-lg bg-card border border-border/50 shadow-sm hover:bg-destructive/10 hover:border-destructive/50 transition-all cursor-pointer group"
         >
           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs group-hover:bg-destructive/20 group-hover:text-destructive transition-colors">
-            {user.email?.slice(0, 2).toUpperCase()}
+            {(user.name || user.email || "U").slice(0, 2).toUpperCase()}
           </div>
           <div className="flex flex-col overflow-hidden flex-1">
-            <span className="text-sm font-semibold truncate text-foreground group-hover:text-destructive transition-colors">{user.email}</span>
-            <span className="text-xs text-muted-foreground truncate capitalize">Click to logout</span>
+            <span className="text-sm font-semibold truncate text-foreground group-hover:text-destructive transition-colors">{user.name || "User"}</span>
+            <span className="text-xs text-muted-foreground truncate capitalize">{user.role?.replace('_', ' ')}</span>
           </div>
           <LogOut className="w-4 h-4 text-muted-foreground group-hover:text-destructive transition-colors" />
         </button>

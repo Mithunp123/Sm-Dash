@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -359,7 +359,7 @@ const ManageBills = () => {
           {/* Page Header */}
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground">
                 {viewTitle.includes('Bill Folders') ? (
                   <>Bill Folders</>
                 ) : (
@@ -479,7 +479,7 @@ const ManageBills = () => {
 
                 {filteredBills.length === 0 ? (
                   <div className="py-12 text-center">
-                    <div className="text-4xl mb-3">📄</div>
+                    <div className="text-4xl mb-3">??</div>
                     <h3 className="text-lg font-medium">No bills in this folder</h3>
                     <p className="text-muted-foreground mb-4">Add a new bill to get started</p>
                   </div>
@@ -500,9 +500,9 @@ const ManageBills = () => {
                         {filteredBills.map((bill) => (
                           <TableRow key={bill.id}>
                             <TableCell className="font-medium">{bill.title || bill.name}</TableCell>
-                            <TableCell>₹{(bill.amount || 0).toLocaleString()}</TableCell>
+                            <TableCell>?{(bill.amount || 0).toLocaleString()}</TableCell>
                             <TableCell><Badge variant="secondary" className="capitalize">{(bill.bill_type || bill.type) || 'N/A'}</Badge></TableCell>
-                            <TableCell>{(bill.bill_date || bill.date) ? new Date(bill.bill_date || bill.date).toLocaleDateString() : '—'}</TableCell>
+                            <TableCell>{(bill.bill_date || bill.date) ? new Date(bill.bill_date || bill.date).toLocaleDateString() : '�'}</TableCell>
                             <TableCell>{getStatusBadge(bill.status)}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex gap-2 justify-end">
@@ -755,7 +755,7 @@ const ManageBills = () => {
                       </div>
                     )}
                     <div className="space-y-2">
-                      <Label>Amount (₹)</Label>
+                      <Label>Amount (?)</Label>
                       <Input type="number" step="0.01" min="0" placeholder="0.00" value={currentItem.amount} onChange={(e) => setCurrentItem({ ...currentItem, amount: e.target.value })} />
                     </div>
                   </div>
@@ -793,8 +793,8 @@ const ManageBills = () => {
                       {formData.items.map((it, idx) => (
                         <div key={idx} className="p-3 grid grid-cols-5 gap-2 border-t text-sm items-center">
                           <div className="capitalize">{it.category}</div>
-                          <div>{it.category === 'transport' ? `${it.from || '—'} → ${it.to || '—'}` : (it.description || '—')}</div>
-                          <div>₹{(it.amount || 0).toFixed(2)}</div>
+                          <div>{it.category === 'transport' ? `${it.from || '�'} ? ${it.to || '�'}` : (it.description || '�')}</div>
+                          <div>?{(it.amount || 0).toFixed(2)}</div>
                           <div className="col-span-2 text-right">
                             <Button type="button" size="sm" variant="destructive" onClick={() => {
                               setFormData({ ...formData, items: formData.items.filter((_, i) => i !== idx) });
@@ -806,7 +806,7 @@ const ManageBills = () => {
                       ))}
                     </div>
                     <div className="text-right font-semibold">
-                      Total: ₹{(formData.items.reduce((s, it) => s + (it.amount || 0), 0)).toFixed(2)}
+                      Total: ?{(formData.items.reduce((s, it) => s + (it.amount || 0), 0)).toFixed(2)}
                     </div>
                   </div>
                 )}
@@ -830,7 +830,7 @@ const ManageBills = () => {
                       <Input placeholder="Destination" value={currentTrip.to} onChange={(e) => setCurrentTrip({ ...currentTrip, to: e.target.value })} />
                     </div>
                     <div className="space-y-2">
-                      <Label>Amount (₹)</Label>
+                      <Label>Amount (?)</Label>
                       <Input type="number" step="0.01" min="0" placeholder="0.00" value={currentTrip.amount} onChange={(e) => setCurrentTrip({ ...currentTrip, amount: e.target.value })} />
                     </div>
                   </div>
@@ -862,7 +862,7 @@ const ManageBills = () => {
                         <div key={idx} className="p-3 grid grid-cols-4 gap-2 border-t text-sm items-center">
                           <div>{trip.from}</div>
                           <div>{trip.to}</div>
-                          <div>₹{trip.amount}</div>
+                          <div>?{trip.amount}</div>
                           <div className="text-right">
                             <Button type="button" size="sm" variant="destructive" onClick={() => {
                               setFormData({ ...formData, transport_trips: formData.transport_trips.filter((_, i) => i !== idx) });
@@ -874,7 +874,7 @@ const ManageBills = () => {
                       ))}
                     </div>
                     <div className="text-right font-semibold">
-                      Total: ₹{formData.transport_trips.reduce((sum, trip) => sum + trip.amount, 0).toFixed(2)}
+                      Total: ?{formData.transport_trips.reduce((sum, trip) => sum + trip.amount, 0).toFixed(2)}
                     </div>
                   </div>
                 )}
@@ -886,21 +886,21 @@ const ManageBills = () => {
                 <Label className="text-base font-semibold">Food Expenses</Label>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-2">
-                    <Label>Breakfast (₹)</Label>
+                    <Label>Breakfast (?)</Label>
                     <Input type="number" step="0.01" min="0" placeholder="0.00" value={formData.food_breakfast} onChange={(e) => setFormData({ ...formData, food_breakfast: e.target.value })} />
                   </div>
                   <div className="space-y-2">
-                    <Label>Lunch (₹)</Label>
+                    <Label>Lunch (?)</Label>
                     <Input type="number" step="0.01" min="0" placeholder="0.00" value={formData.food_lunch} onChange={(e) => setFormData({ ...formData, food_lunch: e.target.value })} />
                   </div>
                   <div className="space-y-2">
-                    <Label>Dinner (₹)</Label>
+                    <Label>Dinner (?)</Label>
                     <Input type="number" step="0.01" min="0" placeholder="0.00" value={formData.food_dinner} onChange={(e) => setFormData({ ...formData, food_dinner: e.target.value })} />
                   </div>
                 </div>
                 {(formData.food_breakfast || formData.food_lunch || formData.food_dinner) && (
                   <div className="bg-muted p-3 rounded text-sm">
-                    Total: ₹{((parseFloat(formData.food_breakfast) || 0) + (parseFloat(formData.food_lunch) || 0) + (parseFloat(formData.food_dinner) || 0)).toFixed(2)}
+                    Total: ?{((parseFloat(formData.food_breakfast) || 0) + (parseFloat(formData.food_lunch) || 0) + (parseFloat(formData.food_dinner) || 0)).toFixed(2)}
                   </div>
                 )}
               </div>
@@ -923,7 +923,7 @@ const ManageBills = () => {
                         <div key={idx} className="p-3 grid grid-cols-12 gap-2 border-t text-sm items-center">
                           <div className="col-span-4 font-medium">{item.title || item.description}</div>
                           <div className="col-span-4 text-muted-foreground truncate">{item.notes || '-'}</div>
-                          <div className="col-span-2">₹{(item.amount || 0).toFixed(2)}</div>
+                          <div className="col-span-2">?{(item.amount || 0).toFixed(2)}</div>
                           <div className="col-span-2 text-right">
                             <Button type="button" size="sm" variant="ghost" className="text-destructive h-8 w-8 p-0" onClick={() => {
                               setFormData({ ...formData, items: formData.items.filter((_, i) => i !== idx) });
@@ -935,7 +935,7 @@ const ManageBills = () => {
                       ))}
                     </div>
                     <div className="text-right font-semibold text-lg">
-                      Total: ₹{(formData.items.reduce((s, it) => s + (it.amount || 0), 0)).toFixed(2)}
+                      Total: ?{(formData.items.reduce((s, it) => s + (it.amount || 0), 0)).toFixed(2)}
                     </div>
                   </div>
                 ) : (
@@ -951,7 +951,7 @@ const ManageBills = () => {
                       <Input placeholder="e.g. Printing charges" value={currentOther.title} onChange={(e) => setCurrentOther({ ...currentOther, title: e.target.value })} />
                     </div>
                     <div className="space-y-2">
-                      <Label>Amount (₹) <span className="text-destructive">*</span></Label>
+                      <Label>Amount (?) <span className="text-destructive">*</span></Label>
                       <Input type="number" step="0.01" min="0" placeholder="0.00" value={currentOther.amount} onChange={(e) => setCurrentOther({ ...currentOther, amount: e.target.value })} />
                     </div>
                     <div className="space-y-2">
@@ -983,7 +983,7 @@ const ManageBills = () => {
               </div>
             )}
             {formData.bill_type !== 'transport' && formData.bill_type !== 'other' && !(Array.isArray(formData.items) && formData.items.length > 0) && (
-              <div className="space-y-2"><Label>Amount (₹) *</Label><Input type="number" step="0.01" min="0" placeholder="0.00" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} required /></div>
+              <div className="space-y-2"><Label>Amount (?) *</Label><Input type="number" step="0.01" min="0" placeholder="0.00" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} required /></div>
             )}
 
             <div className="space-y-2 border-t pt-4">

@@ -309,15 +309,15 @@ const StudentAttendance = () => {
         {/* Tabs Section */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
           <TabsList className="bg-muted/40 p-1.5 rounded-2xl h-14 border border-border w-full flex">
-            <TabsTrigger value="meetings" className="flex-1 rounded-xl h-full font-black uppercase tracking-widest text-xs data-[state=active]:bg-primary data-[state=active]:text-white shadow-none border-none transition-all duration-300">
+            <TabsTrigger value="meetings" className="flex-1 rounded-xl h-full font-black uppercase tracking-widest text-xs data-[state=active]:bg-primary data-[state=active]:text-foreground shadow-none border-none transition-all duration-300">
               <Clock className="w-3.5 h-3.5 mr-2" />
               Meetings
             </TabsTrigger>
-            <TabsTrigger value="projects" className="flex-1 rounded-xl h-full font-black uppercase tracking-widest text-xs data-[state=active]:bg-primary data-[state=active]:text-white shadow-none border-none transition-all duration-300">
+            <TabsTrigger value="projects" className="flex-1 rounded-xl h-full font-black uppercase tracking-widest text-xs data-[state=active]:bg-primary data-[state=active]:text-foreground shadow-none border-none transition-all duration-300">
               <Calendar className="w-3.5 h-3.5 mr-2" />
               Projects
             </TabsTrigger>
-            <TabsTrigger value="events" className="flex-1 rounded-xl h-full font-black uppercase tracking-widest text-xs data-[state=active]:bg-primary data-[state=active]:text-white shadow-none border-none transition-all duration-300">
+            <TabsTrigger value="events" className="flex-1 rounded-xl h-full font-black uppercase tracking-widest text-xs data-[state=active]:bg-primary data-[state=active]:text-foreground shadow-none border-none transition-all duration-300">
               <CheckCircle2 className="w-3.5 h-3.5 mr-2" />
               Events
             </TabsTrigger>

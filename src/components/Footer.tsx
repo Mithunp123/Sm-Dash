@@ -12,7 +12,7 @@ const Footer = ({ className }: { className?: string }) => {
           <div className="space-y-4">
             <div className="flex items-start gap-3">
               <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center overflow-hidden p-1">
-                <img src="Images/Brand_logo.png" alt="KSRCT" className="w-full h-full object-contain" onError={(e) => (e.target as any).style.display = 'none'} />
+                <img src="/images/Brand_logo.png" alt="KSRCT" className="w-full h-full object-contain" onError={(e) => (e.target as any).style.display = 'none'} />
                 <span className="text-black font-bold text-[10px] absolute" style={{ display: 'none' }}>KSRCT</span>
               </div>
               <div>
@@ -60,7 +60,7 @@ const Footer = ({ className }: { className?: string }) => {
           {/* Col 4: Connect */}
           <div className="flex flex-col items-center md:items-end gap-6">
             <div className="flex flex-col items-center md:items-end">
-              <img src="/Images/picsart_23-05-18_16-47-20-287-removebg-preview.png" alt="SM Volunteers" className="h-20 w-auto mb-4 object-contain" />
+              <img src="/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png" alt="SM Volunteers" className="h-20 w-auto mb-4 object-contain" />
               <div className="text-center md:text-right space-y-2 mb-4">
                 <h3 className="font-black text-xl tracking-wider text-white">SM VOLUNTEERS</h3>
                 <p className="text-[10px] text-slate-400 max-w-[200px] leading-relaxed italic">
