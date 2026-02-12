@@ -17,10 +17,8 @@ const MainLayout = ({ showSidebar = true }: MainLayoutProps) => {
 
     return (
         <div className="flex min-h-screen w-full flex-col bg-background text-foreground relative selection:bg-primary/20 overflow-x-hidden">
-            {/* Clean Professional Background */}
-            <div className="fixed inset-0 z-0 pointer-events-none bg-slate-50 dark:bg-slate-950">
-                <div className="absolute inset-0 blueprint-grid opacity-[0.05]"></div>
-            </div>
+            {/* Clean Professional Background - simplified as requested */}
+            <div className="fixed inset-0 z-0 pointer-events-none bg-background transition-colors duration-300"></div>
             {/* Desktop Sidebar - Only if showSidebar is true */}
             {showSidebar && (
                 <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 border-r border-border/40 bg-[hsl(var(--sidebar))] backdrop-blur-xl md:block">

@@ -1,12 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import DeveloperCredit from "@/components/DeveloperCredit";
-import { Users, Calendar, FileText, BarChart3, Settings, LogOut, UsersRound, MessageSquare, ClipboardCheck, Briefcase, Trophy } from "lucide-react";
+import { Users, Calendar, FileText, BarChart3, Settings, LogOut, UsersRound, MessageSquare, ClipboardCheck, Briefcase, Trophy, Sparkles, TrendingUp, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { motion } from "framer-motion";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ const AdminDashboard = () => {
     resources: 0,
     teams: 0,
   });
-
+  const [user, setUser] = useState<{ name: string, role: string } | null>(null);
 
   useEffect(() => {
     // Check authentication and admin role
@@ -33,6 +34,14 @@ const AdminDashboard = () => {
     // Check if user has management access (Admin or Office Bearer)
     const role = auth.getRole();
     const isManagement = ['admin', 'office_bearer'].includes(role || '');
+
+    const currentUser = auth.getUser();
+    if (currentUser) {
+      setUser({
+        name: currentUser.name || currentUser.email.split('@')[0],
+        role: currentUser.role
+      });
+    }
 
     if (!isManagement) {
       toast.error("Access denied. Management access required.");
@@ -104,163 +113,98 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleLogout = () => {
-    auth.logout();
-    toast.success("Logged out successfully");
-    navigate("/login");
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
   };
+
+  const item = {
+    hidden: { y: 20, opacity: 0 },
+    show: { y: 0, opacity: 1 }
+  };
+
+  const statCards = [
+    { title: "Total Volunteers", value: stats.volunteers, icon: Users, desc: "Active members", color: "text-blue-500", bg: "bg-blue-500/10", border: "border-blue-500/20" },
+    { title: "Events Organized", value: stats.events, icon: Calendar, desc: "Total meetings", color: "text-purple-500", bg: "bg-purple-500/10", border: "border-purple-500/20" },
+    { title: "Reports Submitted", value: stats.reports, icon: FileText, desc: "Total bills", color: "text-green-500", bg: "bg-green-500/10", border: "border-green-500/20" },
+    { title: "Awards Given", value: stats.awards, icon: Trophy, desc: "Total awards", color: "text-yellow-500", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
+    { title: "Hours Logged", value: stats.hours, icon: BarChart3, desc: "Total contribution", color: "text-orange-500", bg: "bg-orange-500/10", border: "border-orange-500/20" },
+    { title: "Students", value: stats.students, icon: UsersRound, desc: "Database records", color: "text-pink-500", bg: "bg-pink-500/10", border: "border-pink-500/20" },
+    { title: "Projects", value: stats.projects, icon: Briefcase, desc: "Active projects", color: "text-indigo-500", bg: "bg-indigo-500/10", border: "border-indigo-500/20" },
+    { title: "Resources", value: stats.resources, icon: ClipboardCheck, desc: "Shared materials", color: "text-cyan-500", bg: "bg-cyan-500/10", border: "border-cyan-500/20" },
+    { title: "Teams", value: stats.teams, icon: Shield, desc: "Active teams", color: "text-rose-500", bg: "bg-rose-500/10", border: "border-rose-500/20" },
+  ];
 
   return (
     <>
       <DeveloperCredit />
-      <div className="w-full px-4 md:px-6 lg:px-8 py-8 overflow-x-hidden">
-        <div className="w-full space-y-6">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl md:text-5xl font-bold text-foreground">Admin Dashboard</h1>
-            {/* Add date or other top-level actions here if needed */}
+      <div className="w-full min-h-screen bg-background/50 p-4 md:p-8 space-y-8">
+
+        {/* Welcome Section */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 p-8 md:p-12 shadow-2xl border border-white/10"
+        >
+          <div className="relative z-10 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-white/80 text-xs font-medium backdrop-blur-md mb-4 border border-white/10">
+              <Sparkles className="w-3 h-3 text-yellow-400" />
+              <span>Admin Dashboard</span>
+            </div>
+            <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight mb-2">
+              Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">{user?.name}</span>
+            </h1>
+            <p className="text-slate-300 text-lg">
+              Here's what's happening with your volunteers today.
+            </p>
           </div>
 
-          {/* Statistics Cards - high level */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-            {/* ... Cards content preserved ... */}
-            <Card className="hover:shadow-md transition-all border-border/60">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <Users className="w-4 h-4 text-primary" />
-                  Total Volunteers
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-foreground">
-                  {stats.volunteers.toLocaleString()}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Active members</p>
-              </CardContent>
-            </Card>
+          {/* Background Decorations */}
+          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/20 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/2"></div>
+        </motion.div>
 
-            <Card className="hover:shadow-md transition-all border-border/60">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <Calendar className="w-4 h-4 text-primary" />
-                  Events
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-foreground">
-                  {stats.events.toLocaleString()}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Total meetings</p>
-              </CardContent>
-            </Card>
+        {/* Overview Stats */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-primary" />
+            Overview
+          </h2>
+          <motion.div
+            variants={container}
+            initial="hidden"
+            animate="show"
+            className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          >
+            {statCards.map((stat, i) => (
+              <motion.div key={i} variants={item}>
+                <Card className={`group relative overflow-hidden border ${stat.border} bg-card/50 hover:bg-card/80 transition-all duration-300 hover:shadow-lg hover:shadow-${stat.color.split('-')[1]}-500/10 hover:-translate-y-1`}>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      {stat.title}
+                    </CardTitle>
+                    <div className={`p-2 rounded-xl ${stat.bg} ${stat.color} group-hover:scale-110 transition-transform duration-300`}>
+                      <stat.icon className="h-4 w-4" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold tracking-tight">{stat.value.toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground mt-1 font-medium flex items-center gap-1">
+                      {stat.desc}
+                    </p>
 
-            <Card className="hover:shadow-md transition-all border-border/60">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <FileText className="w-4 h-4 text-primary" />
-                  Reports
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-foreground">
-                  {stats.reports.toLocaleString()}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Total bills</p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-md transition-all border-border/60">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <Trophy className="w-4 h-4 text-primary" />
-                  Awards
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-foreground">
-                  {stats.awards.toLocaleString()}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Total awards</p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-md transition-all border-border/60">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <BarChart3 className="w-4 h-4 text-primary" />
-                  Hours Logged
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-foreground">
-                  {stats.hours.toLocaleString()}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Total hours</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Detailed entity counts */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <Card className="hover:shadow-md transition-all border-border/60">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <UsersRound className="w-4 h-4 text-primary" />
-                  Students
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-foreground">
-                  {stats.students.toLocaleString()}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">In database</p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-md transition-all border-border/60">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <Briefcase className="w-4 h-4 text-primary" />
-                  Projects
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-foreground">
-                  {stats.projects.toLocaleString()}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Active projects</p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-md transition-all border-border/60">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <FileText className="w-4 h-4 text-primary" />
-                  Resources
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-foreground">
-                  {stats.resources.toLocaleString()}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Shared items</p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-md transition-all border-border/60">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <UsersRound className="w-4 h-4 text-primary" />
-                  Teams
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-foreground">
-                  {stats.teams.toLocaleString()}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Active teams</p>
-              </CardContent>
-            </Card>
-          </div>
+                    {/* Decorative gradient line at bottom */}
+                    <div className={`absolute bottom-0 left-0 w-full h-1 ${stat.bg} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </motion.div>
         </div>
       </div>
     </>

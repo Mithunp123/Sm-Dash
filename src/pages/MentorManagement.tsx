@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Plus, Edit, Trash2, ArrowLeft, PhoneCall, UserCheck, ClipboardList, Calendar, Upload, FileSpreadsheet, Download, Mic, Image as ImageIcon, Settings, Loader2, Eye } from "lucide-react";
+import { Users, Plus, Edit, Trash2, ArrowLeft, PhoneCall, UserCheck, ClipboardList, Calendar, Upload, FileSpreadsheet, Download, Mic, Image as ImageIcon, Settings, Loader2, Eye, Briefcase, UserPlus } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
@@ -34,6 +34,8 @@ type Project = {
   required_calls?: number;
   start_date?: string;
   end_date?: string;
+  leader_id?: number | null;
+  leader_name?: string | null;
 };
 
 type Mentee = {
@@ -221,6 +223,7 @@ const MentorManagement = () => {
   const [showProjectSettingsDialog, setShowProjectSettingsDialog] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [requiredCalls, setRequiredCalls] = useState<string>("");
+  const [leaderId, setLeaderId] = useState<string>("");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
@@ -694,7 +697,7 @@ const MentorManagement = () => {
       // Use admin phone mentoring attendance endpoint for comprehensive data
       const params: any = {};
       if (viewAttendanceStartDate) params.date = undefined; // Let date range filtering happen in loop
-      
+
       const res = await api.getPhoneMentoringAttendance(params);
 
       if (!res?.success || !res.attendance) {
@@ -755,7 +758,7 @@ const MentorManagement = () => {
       }
 
       toast.success("Attendance record deleted successfully");
-      
+
       // Reload both attendance data and mentees to update progress
       await loadViewAttendance();
       await loadAllMentees();
@@ -850,13 +853,15 @@ const MentorManagement = () => {
       const res = await api.updateProject(editingProject.id, {
         required_calls: calls,
         start_date: startDate || null,
-        end_date: endDate || null
+        end_date: endDate || null,
+        leader_id: leaderId ? Number(leaderId) : null
       });
       if (res.success) {
         toast.success("Project settings updated");
         setShowProjectSettingsDialog(false);
         setEditingProject(null);
         setRequiredCalls("");
+        setLeaderId("");
         setStartDate("");
         setEndDate("");
         await loadProjects();
@@ -871,6 +876,7 @@ const MentorManagement = () => {
   const openProjectSettings = (project: Project) => {
     setEditingProject(project);
     setRequiredCalls(project.required_calls?.toString() || "0");
+    setLeaderId(project.leader_id?.toString() || "");
     // Format dates for input fields (YYYY-MM-DD)
     if (project.start_date) {
       const start = new Date(project.start_date);
@@ -987,323 +993,381 @@ const MentorManagement = () => {
               <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">Mentor Management</h1>
               <p className="text-sm text-muted-foreground mt-1">Manage mentors, mentees, assignments, and attendance</p>
             </div>
-            <Button onClick={() => openMenteeForm()} className="gap-2 shadow-lg shadow-primary/20">
-              <Plus className="w-4 h-4" />
-              Add Mentee
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => openMenteeForm()} className="gap-2 shadow-lg shadow-primary/20">
+                <Plus className="w-4 h-4" />
+                Add Mentee
+              </Button>
+            </div>
           </div>
 
-          {/* Search and Filter Section */}
-          <Card className="border-border/50 mb-8 shadow-xl bg-white/50 dark:bg-slate-900/50 backdrop-blur-md overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none"></div>
-            <CardContent className="pt-6 relative z-10">
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="md:col-span-1">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">Filter by Project</Label>
-                    <Select
-                      value={selectedProjectFilter}
-                      onValueChange={(val) => setSelectedProjectFilter(val)}
-                    >
-                      <SelectTrigger className="bg-background/50 border-border/50">
-                        <SelectValue placeholder="All Projects" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Projects</SelectItem>
-                        {projects.map((project) => (
-                          <SelectItem key={project.id} value={project.id.toString()}>
-                            {project.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">Search Mentees</Label>
-                    <Input
-                      placeholder="Search by name, phone, school, or district..."
-                      value={menteeSearchQuery}
-                      onChange={(e) => setMenteeSearchQuery(e.target.value)}
-                      className="bg-background/50 border-border/50 focus:ring-primary/20 transition-all"
-                    />
-                  </div>
-                </div>
+          <Tabs defaultValue="mentees" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="mentees">Mentees</TabsTrigger>
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+            </TabsList>
 
-                <div className="flex flex-wrap gap-2 pt-4 border-t border-border/40">
-                  <Button
-                    onClick={() => setShowExcelUploadDialog(true)}
-                    variant="outline"
-                    size="sm"
-                    className="gap-2 h-9 border-border/50 hover:bg-muted transition-colors"
-                  >
-                    <FileSpreadsheet className="w-3.5 h-3.5" />
-                    Upload Excel
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setBulkExpectedClasses("");
-                      setBulkExpectedClassesProjectId("all");
-                      setShowBulkExpectedClassesDialog(true);
-                    }}
-                    variant="outline"
-                    size="sm"
-                    className="gap-2 h-9 border-border/50 hover:bg-muted transition-colors"
-                  >
-                    <Settings className="w-3.5 h-3.5" />
-                    Set Expected Classes (All)
-                  </Button>
-                  <Button
-                    onClick={async () => {
-                      setViewAttendanceStartDate("");
-                      setViewAttendanceEndDate("");
-                      setViewAttendanceData([]);
-                      setShowViewAttendanceDialog(true);
-                      await loadViewAttendance();
-                    }}
-                    variant="outline"
-                    size="sm"
-                    className="gap-2 h-9 border-border/50 hover:bg-muted transition-colors"
-                  >
-                    <ClipboardList className="w-3.5 h-3.5" />
-                    View Attendance
-                  </Button>
-                </div>
+            <TabsContent value="overview" className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
+                    <Briefcase className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{projects.length}</div>
+                    <p className="text-xs text-muted-foreground">Active mentoring projects</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Mentors</CardTitle>
+                    <UserCheck className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{mentors.length}</div>
+                    <p className="text-xs text-muted-foreground">Student volunteers</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Mentees</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{mentees.length}</div>
+                    <p className="text-xs text-muted-foreground">
+                      {mentees.filter(m => m.mentee_status === 'active').length} active
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Unassigned Mentees</CardTitle>
+                    <UserPlus className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{mentees.filter(m => !m.volunteer_id).length}</div>
+                    <p className="text-xs text-muted-foreground">Need mentor assignment</p>
+                  </CardContent>
+                </Card>
               </div>
-            </CardContent>
-          </Card>
+            </TabsContent>
 
-          {/* Mentees Content List */}
-          <Card className="border-border/50 shadow-xl bg-white/50 dark:bg-slate-900/50 backdrop-blur-md overflow-hidden">
-            <CardHeader className="border-b border-border/40 pb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-xl">Mentees</CardTitle>
-                  <CardDescription>Found {filteredMentees.length} matching records</CardDescription>
-                </div>
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                  {filteredMentees.length}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="px-0 sm:px-6 py-6">
-              {loading ? (
-                <div className="text-center py-20">
-                  <div className="relative inline-block">
-                    <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto"></div>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Users className="w-5 h-5 text-primary animate-pulse" />
+            <TabsContent value="mentees" className="space-y-4">
+              {/* Search and Filter Section */}
+              <Card className="border-border/50 mb-8 shadow-xl bg-white/50 dark:bg-slate-900/50 backdrop-blur-md overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none"></div>
+                <CardContent className="pt-6 relative z-10">
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="md:col-span-1">
+                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">Filter by Project</Label>
+                        <Select
+                          value={selectedProjectFilter}
+                          onValueChange={(val) => setSelectedProjectFilter(val)}
+                        >
+                          <SelectTrigger className="bg-background/50 border-border/50">
+                            <SelectValue placeholder="All Projects" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Projects</SelectItem>
+                            {projects.map((project) => (
+                              <SelectItem key={project.id} value={project.id.toString()}>
+                                {project.title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="md:col-span-2">
+                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">Search Mentees</Label>
+                        <Input
+                          placeholder="Search by name, phone, school, or district..."
+                          value={menteeSearchQuery}
+                          onChange={(e) => setMenteeSearchQuery(e.target.value)}
+                          className="bg-background/50 border-border/50 focus:ring-primary/20 transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 pt-4 border-t border-border/40">
+                      <Button
+                        onClick={() => setShowExcelUploadDialog(true)}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2 h-9 border-border/50 hover:bg-muted transition-colors"
+                      >
+                        <FileSpreadsheet className="w-3.5 h-3.5" />
+                        Upload Excel
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setBulkExpectedClasses("");
+                          setBulkExpectedClassesProjectId("all");
+                          setShowBulkExpectedClassesDialog(true);
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2 h-9 border-border/50 hover:bg-muted transition-colors"
+                      >
+                        <Settings className="w-3.5 h-3.5" />
+                        Set Expected Classes (All)
+                      </Button>
+                      <Button
+                        onClick={async () => {
+                          setViewAttendanceStartDate("");
+                          setViewAttendanceEndDate("");
+                          setViewAttendanceData([]);
+                          setShowViewAttendanceDialog(true);
+                          await loadViewAttendance();
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2 h-9 border-border/50 hover:bg-muted transition-colors"
+                      >
+                        <ClipboardList className="w-3.5 h-3.5" />
+                        View Attendance
+                      </Button>
                     </div>
                   </div>
-                  <p className="mt-4 text-muted-foreground animate-pulse font-medium">Fetching mentors and mentees...</p>
-                </div>
-              ) : filteredMentees.length === 0 ? (
-                <div className="text-center py-20 text-muted-foreground">
-                  <div className="bg-muted w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Users className="w-8 h-8 opacity-20" />
+                </CardContent>
+              </Card>
+
+              {/* Mentees Content List */}
+              <Card className="border-border/50 shadow-xl bg-white/50 dark:bg-slate-900/50 backdrop-blur-md overflow-hidden">
+                <CardHeader className="border-b border-border/40 pb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-xl">Mentees</CardTitle>
+                      <CardDescription>Found {filteredMentees.length} matching records</CardDescription>
+                    </div>
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                      {filteredMentees.length}
+                    </div>
                   </div>
-                  <p className="text-lg font-medium">No mentees found</p>
-                  <p className="text-sm">Try adjusting your filters or add a new mentee</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* Mobile Card View */}
-                  <div className="grid grid-cols-1 gap-4 px-4 sm:hidden">
-                    {filteredMentees.map((mentee, idx) => (
-                      <div key={mentee.id} className="group relative bg-card border border-border/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
-                        <div className="absolute top-4 right-4 h-7 w-7 rounded-full bg-primary/5 flex items-center justify-center text-xs font-bold text-primary/40 group-hover:text-primary transition-colors">
-                          {idx + 1}
-                        </div>
-
-                        <div className="flex items-center gap-4 mb-4">
-                          <div className="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-primary">
-                            <span className="text-lg font-bold">{mentee.mentee_name.charAt(0)}</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-foreground leading-tight truncate">{mentee.mentee_name}</h3>
-                            <div className="flex flex-col gap-1 mt-1">
-                              {mentee.mentee_phone ? (
-                                <a href={`tel:${mentee.mentee_phone}`} className="inline-flex items-center gap-1.5 text-xs text-primary font-medium">
-                                  <PhoneCall className="w-3 h-3" /> {mentee.mentee_phone}
-                                </a>
-                              ) : <span className="text-xs text-muted-foreground">No phone</span>}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          <Badge variant={mentee.mentee_status === "active" ? "default" : "secondary"} className="text-xs px-2 py-0">
-                            {mentee.mentee_status || "active"}
-                          </Badge>
-                          {mentee.mentee_year && (
-                            <Badge variant="outline" className="text-xs px-2 py-0 border-primary/20 text-primary">
-                              Std: {mentee.mentee_year}
-                            </Badge>
-                          )}
-                        </div>
-
-                        {mentee.volunteer_name && (
-                          <div className="mb-4 p-2 bg-muted/30 rounded-lg border border-border/40">
-                            <p className="text-xs uppercase font-bold text-muted-foreground mb-1">Assigned Mentor</p>
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-semibold">{mentee.volunteer_name}</span>
-                              {mentee.volunteer_phone ? (
-                                <a href={`tel:${mentee.volunteer_phone}`} className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                                  <PhoneCall className="w-3.5 h-3.5" />
-                                </a>
-                              ) : null}
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="grid grid-cols-2 gap-y-4 gap-x-2 pt-4 border-t border-border/40">
-                          <div>
-                            <span className="text-xs uppercase tracking-wider text-muted-foreground font-bold">School</span>
-                            <p className="text-xs font-medium truncate">{mentee.mentee_school || '-'}</p>
-                          </div>
-                          <div>
-                            <span className="text-xs uppercase tracking-wider text-muted-foreground font-bold">District</span>
-                            <p className="text-xs font-medium truncate">{mentee.mentee_district || '-'}</p>
-                          </div>
-                          <div>
-                            <span className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Scheduled Classes</span>
-                            <p className="text-xs font-medium">{(mentee as any).expected_classes || '-'}</p>
-                          </div>
-                          <div>
-                            <span className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Classes Taken</span>
-                            <p className="text-xs font-medium">{mentee.total_classes || 0}</p>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row gap-2 mt-6 pt-4 border-t border-border/40">
-                          <Button size="sm" onClick={() => openAssignMentorDialog(mentee)} className="h-9 gap-2 rounded-xl">
-                            <UserCheck className="w-3.5 h-3.5" /> Assign Mentor
-                          </Button>
-                          <div className="flex gap-2 w-full">
-                            <Button size="sm" variant="outline" onClick={() => navigate(`/admin/mentees/${mentee.project_id || 0}/${mentee.id}`)} className="flex-1 h-9 gap-2 rounded-xl">
-                              <Eye className="w-3.5 h-3.5" /> View
-                            </Button>
-                            <Button size="sm" variant="ghost" onClick={() => handleDeleteMentee(mentee)} className="h-9 w-9 px-0 rounded-xl text-rose-500 hover:bg-rose-50">
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
+                </CardHeader>
+                <CardContent className="px-0 sm:px-6 py-6">
+                  {loading ? (
+                    <div className="text-center py-20">
+                      <div className="relative inline-block">
+                        <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto"></div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Users className="w-5 h-5 text-primary animate-pulse" />
                         </div>
                       </div>
-                    ))}
-                  </div>
-
-                  {/* Desktop Table View */}
-                  <div className="hidden sm:block overflow-x-auto border rounded-xl mx-4 sm:mx-0">
-                    <Table>
-                      <TableHeader className="bg-muted/50">
-                        <TableRow className="hover:bg-transparent">
-                          <TableHead className="w-[60px] text-center font-bold">S.No</TableHead>
-                          <TableHead className="font-bold">Mentee Information</TableHead>
-                          <TableHead className="font-bold">Contact & Mentor</TableHead>
-                          <TableHead className="font-bold">School Info</TableHead>
-                          <TableHead className="font-bold text-center">Progress</TableHead>
-                          <TableHead className="font-bold">Status</TableHead>
-                          <TableHead className="font-bold text-right pt-2 px-10">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
+                      <p className="mt-4 text-muted-foreground animate-pulse font-medium">Fetching mentors and mentees...</p>
+                    </div>
+                  ) : filteredMentees.length === 0 ? (
+                    <div className="text-center py-20 text-muted-foreground">
+                      <div className="bg-muted w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Users className="w-8 h-8 opacity-20" />
+                      </div>
+                      <p className="text-lg font-medium">No mentees found</p>
+                      <p className="text-sm">Try adjusting your filters or add a new mentee</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Mobile Card View */}
+                      <div className="grid grid-cols-1 gap-4 px-4 sm:hidden">
                         {filteredMentees.map((mentee, idx) => (
-                          <TableRow key={mentee.id} className="hover:bg-muted/30 transition-colors group">
-                            <TableCell className="text-center font-medium text-muted-foreground">{idx + 1}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-3">
-                                <div className="h-9 w-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-primary group-hover:scale-110 transition-transform font-bold">
-                                  {mentee.mentee_name.charAt(0)}
-                                </div>
-                                <div className="flex flex-col">
-                                  <span className="font-semibold text-foreground leading-tight">{mentee.mentee_name}</span>
-                                  <span className="text-xs text-muted-foreground uppercase font-bold tracking-tight">Std: {mentee.mentee_year || '—'}</span>
-                                </div>
+                          <div key={mentee.id} className="group relative bg-card border border-border/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
+                            <div className="absolute top-4 right-4 h-7 w-7 rounded-full bg-primary/5 flex items-center justify-center text-xs font-bold text-primary/40 group-hover:text-primary transition-colors">
+                              {idx + 1}
+                            </div>
+
+                            <div className="flex items-center gap-4 mb-4">
+                              <div className="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-primary">
+                                <span className="text-lg font-bold">{mentee.mentee_name.charAt(0)}</span>
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex flex-col gap-1.5">
-                                {mentee.mentee_phone && (
-                                  <a href={`tel:${mentee.mentee_phone}`} className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-medium">
-                                    <PhoneCall className="w-3 h-3" /> {mentee.mentee_phone}
-                                  </a>
-                                )}
-                                {mentee.volunteer_name ? (
-                                  <div className="flex items-center gap-1 px-1.5 py-0.5 bg-primary/5 border border-primary/10 rounded-md w-fit">
-                                    <span className="text-xs font-bold text-muted-foreground uppercase mr-1">Mentor:</span>
-                                    <span className="text-xs font-bold text-primary">{mentee.volunteer_name}</span>
-                                  </div>
-                                ) : (
-                                  <span className="text-xs italic text-muted-foreground">No mentor assigned</span>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex flex-col">
-                                <span className="text-xs font-medium text-foreground max-w-[150px] truncate">{mentee.mentee_school || "—"}</span>
-                                <span className="text-xs text-muted-foreground">{mentee.mentee_district || "—"}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex flex-col items-center">
-                                <div className="flex items-baseline gap-1">
-                                  <span className="text-xs font-bold text-foreground">{mentee.total_classes || 0}</span>
-                                  <span className="text-xs text-muted-foreground">/ {(mentee as any).expected_classes || "—"}</span>
-                                </div>
-                                <div className="w-16 h-1.5 bg-muted rounded-full mt-1 overflow-hidden">
-                                  <div
-                                    className="h-full bg-primary"
-                                    style={{
-                                      width: `${Math.min(100, (mentee.total_classes || 0) / (Number((mentee as any).expected_classes) || 1) * 100)}%`
-                                    }}
-                                  ></div>
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-bold text-foreground leading-tight truncate">{mentee.mentee_name}</h3>
+                                <div className="flex flex-col gap-1 mt-1">
+                                  {mentee.mentee_phone ? (
+                                    <a href={`tel:${mentee.mentee_phone}`} className="inline-flex items-center gap-1.5 text-xs text-primary font-medium">
+                                      <PhoneCall className="w-3 h-3" /> {mentee.mentee_phone}
+                                    </a>
+                                  ) : <span className="text-xs text-muted-foreground">No phone</span>}
                                 </div>
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={mentee.mentee_status === "active" ? "default" : "secondary"} className="text-xs py-0">
+                            </div>
+
+                            <div className="flex flex-wrap gap-2 mb-4">
+                              <Badge variant={mentee.mentee_status === "active" ? "default" : "secondary"} className="text-xs px-2 py-0">
                                 {mentee.mentee_status || "active"}
                               </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex gap-1 justify-end">
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => openAssignMentorDialog(mentee)}
-                                  className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
-                                  title="Assign Mentor"
-                                >
-                                  <UserCheck className="w-4 h-4" />
+                              {mentee.mentee_year && (
+                                <Badge variant="outline" className="text-xs px-2 py-0 border-primary/20 text-primary">
+                                  Std: {mentee.mentee_year}
+                                </Badge>
+                              )}
+                            </div>
+
+                            {mentee.volunteer_name && (
+                              <div className="mb-4 p-2 bg-muted/30 rounded-lg border border-border/40">
+                                <p className="text-xs uppercase font-bold text-muted-foreground mb-1">Assigned Mentor</p>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs font-semibold">{mentee.volunteer_name}</span>
+                                  {mentee.volunteer_phone ? (
+                                    <a href={`tel:${mentee.volunteer_phone}`} className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                      <PhoneCall className="w-3.5 h-3.5" />
+                                    </a>
+                                  ) : null}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-y-4 gap-x-2 pt-4 border-t border-border/40">
+                              <div>
+                                <span className="text-xs uppercase tracking-wider text-muted-foreground font-bold">School</span>
+                                <p className="text-xs font-medium truncate">{mentee.mentee_school || '-'}</p>
+                              </div>
+                              <div>
+                                <span className="text-xs uppercase tracking-wider text-muted-foreground font-bold">District</span>
+                                <p className="text-xs font-medium truncate">{mentee.mentee_district || '-'}</p>
+                              </div>
+                              <div>
+                                <span className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Scheduled Classes</span>
+                                <p className="text-xs font-medium">{(mentee as any).expected_classes || '-'}</p>
+                              </div>
+                              <div>
+                                <span className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Classes Taken</span>
+                                <p className="text-xs font-medium">{mentee.total_classes || 0}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row gap-2 mt-6 pt-4 border-t border-border/40">
+                              <Button size="sm" onClick={() => openAssignMentorDialog(mentee)} className="h-9 gap-2 rounded-xl">
+                                <UserCheck className="w-3.5 h-3.5" /> Assign Mentor
+                              </Button>
+                              <div className="flex gap-2 w-full">
+                                <Button size="sm" variant="outline" onClick={() => navigate(`/admin/mentees/${mentee.project_id || 0}/${mentee.id}`)} className="flex-1 h-9 gap-2 rounded-xl">
+                                  <Eye className="w-3.5 h-3.5" /> View
                                 </Button>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => navigate(`/admin/mentees/${mentee.project_id || 0}/${mentee.id}`)}
-                                  className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
-                                  title="View Details"
-                                >
-                                  <Eye className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => handleDeleteMentee(mentee)}
-                                  className="h-8 w-8 text-muted-foreground hover:text-rose-500 hover:bg-rose-50"
-                                  title="Delete Mentee"
-                                >
+                                <Button size="sm" variant="ghost" onClick={() => handleDeleteMentee(mentee)} className="h-9 w-9 px-0 rounded-xl text-rose-500 hover:bg-rose-50">
                                   <Trash2 className="w-4 h-4" />
                                 </Button>
                               </div>
-                            </TableCell>
-                          </TableRow>
+                            </div>
+                          </div>
                         ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                      </div>
+
+                      {/* Desktop Table View */}
+                      <div className="hidden sm:block overflow-x-auto border rounded-xl mx-4 sm:mx-0">
+                        <Table>
+                          <TableHeader className="bg-muted/50">
+                            <TableRow className="hover:bg-transparent">
+                              <TableHead className="w-[60px] text-center font-bold">S.No</TableHead>
+                              <TableHead className="font-bold">Mentee Information</TableHead>
+                              <TableHead className="font-bold">Contact & Mentor</TableHead>
+                              <TableHead className="font-bold">School Info</TableHead>
+                              <TableHead className="font-bold text-center">Progress</TableHead>
+                              <TableHead className="font-bold">Status</TableHead>
+                              <TableHead className="font-bold text-right pt-2 px-10">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredMentees.map((mentee, idx) => (
+                              <TableRow key={mentee.id} className="hover:bg-muted/30 transition-colors group">
+                                <TableCell className="text-center font-medium text-muted-foreground">{idx + 1}</TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-3">
+                                    <div className="h-9 w-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-primary group-hover:scale-110 transition-transform font-bold">
+                                      {mentee.mentee_name.charAt(0)}
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <span className="font-semibold text-foreground leading-tight">{mentee.mentee_name}</span>
+                                      <span className="text-xs text-muted-foreground uppercase font-bold tracking-tight">Std: {mentee.mentee_year || '—'}</span>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex flex-col gap-1.5">
+                                    {mentee.mentee_phone && (
+                                      <a href={`tel:${mentee.mentee_phone}`} className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-medium">
+                                        <PhoneCall className="w-3 h-3" /> {mentee.mentee_phone}
+                                      </a>
+                                    )}
+                                    {mentee.volunteer_name ? (
+                                      <div className="flex items-center gap-1 px-1.5 py-0.5 bg-primary/5 border border-primary/10 rounded-md w-fit">
+                                        <span className="text-xs font-bold text-muted-foreground uppercase mr-1">Mentor:</span>
+                                        <span className="text-xs font-bold text-primary">{mentee.volunteer_name}</span>
+                                      </div>
+                                    ) : (
+                                      <span className="text-xs italic text-muted-foreground">No mentor assigned</span>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex flex-col">
+                                    <span className="text-xs font-medium text-foreground max-w-[150px] truncate">{mentee.mentee_school || "—"}</span>
+                                    <span className="text-xs text-muted-foreground">{mentee.mentee_district || "—"}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex flex-col items-center">
+                                    <div className="flex items-baseline gap-1">
+                                      <span className="text-xs font-bold text-foreground">{mentee.total_classes || 0}</span>
+                                      <span className="text-xs text-muted-foreground">/ {(mentee as any).expected_classes || "—"}</span>
+                                    </div>
+                                    <div className="w-16 h-1.5 bg-muted rounded-full mt-1 overflow-hidden">
+                                      <div
+                                        className="h-full bg-primary"
+                                        style={{
+                                          width: `${Math.min(100, (mentee.total_classes || 0) / (Number((mentee as any).expected_classes) || 1) * 100)}%`
+                                        }}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={mentee.mentee_status === "active" ? "default" : "secondary"} className="text-xs py-0">
+                                    {mentee.mentee_status || "active"}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex gap-1 justify-end">
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={() => openAssignMentorDialog(mentee)}
+                                      className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                      title="Assign Mentor"
+                                    >
+                                      <UserCheck className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={() => navigate(`/admin/mentees/${mentee.project_id || 0}/${mentee.id}`)}
+                                      className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                      title="View Details"
+                                    >
+                                      <Eye className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={() => handleDeleteMentee(mentee)}
+                                      className="h-8 w-8 text-muted-foreground hover:text-rose-500 hover:bg-rose-50"
+                                      title="Delete Mentee"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
 
 
           {/* Add/Edit Mentee Dialog */}
@@ -1836,6 +1900,28 @@ const MentorManagement = () => {
                     Set the total number of calls required for mentors in this project
                   </p>
                 </div>
+                <div className="space-y-2">
+                  <Label>Project Leader / Coordinator</Label>
+                  <Select
+                    value={leaderId}
+                    onValueChange={setLeaderId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a leader" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      {mentors.map((mentor) => (
+                        <SelectItem key={mentor.id} value={mentor.id.toString()}>
+                          {mentor.name} {mentor.role === 'office_bearer' ? '(OB)' : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Assign a leader responsible for this project
+                  </p>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Start Date</Label>
@@ -1859,6 +1945,7 @@ const MentorManagement = () => {
                     setShowProjectSettingsDialog(false);
                     setStartDate("");
                     setEndDate("");
+                    setLeaderId("");
                   }}>
                     Cancel
                   </Button>
@@ -1872,7 +1959,7 @@ const MentorManagement = () => {
 
           {/* View Attendance Dialog */}
           <Dialog open={showViewAttendanceDialog} onOpenChange={setShowViewAttendanceDialog}>
-            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-grey dark:bg-slate-900">
+            <DialogContent className="max-w-6xl h-[85vh] flex flex-col bg-card dark:bg-slate-900 border-border">
               <DialogHeader>
                 <DialogTitle>View Attendance</DialogTitle>
                 <DialogDescription>
@@ -1880,47 +1967,20 @@ const MentorManagement = () => {
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-4 mt-4">
-                {/* Date Filter */}
-                <div className="grid grid-cols-3 gap-4 items-end">
-                  <div className="space-y-2">
-                    <Label>Start Date (Optional)</Label>
-                    <Input
-                      type="date"
-                      value={viewAttendanceStartDate}
-                      onChange={(e) => {
-                        setViewAttendanceStartDate(e.target.value);
-                      }}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>End Date (Optional)</Label>
-                    <Input
-                      type="date"
-                      value={viewAttendanceEndDate}
-                      onChange={(e) => {
-                        setViewAttendanceEndDate(e.target.value);
-                      }}
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={loadViewAttendance}
-                      className="flex-1"
-                    >
-                      Apply Filter
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setViewAttendanceStartDate("");
-                        setViewAttendanceEndDate("");
-                        loadViewAttendance();
-                      }}
-                    >
-                      Clear
-                    </Button>
+              <div className="flex-1 flex flex-col min-h-0 space-y-4 mt-4">
+                {/* Search Filter */}
+                <div className="flex flex-col sm:flex-row gap-4 items-end justify-between px-1">
+                  <div className="w-full sm:w-1/3 space-y-2">
+                    <Label>Search Mentee</Label>
+                    <div className="relative">
+                      <Users className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search by mentee/mentor..."
+                        value={menteeSearchQuery}
+                        onChange={(e) => setMenteeSearchQuery(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -1954,59 +2014,65 @@ const MentorManagement = () => {
                     </div>
                     <div className="space-y-3">
                       {/* Mobile Cards for Attendance */}
-                      <div className="grid grid-cols-1 gap-4 sm:hidden">
-                        {viewAttendanceData.map((record: any, index: number) => (
-                          <div key={`${record.menteeId}-${record.date}-${index}`} className="p-4 border rounded-xl bg-card shadow-sm">
-                            <div className="flex justify-between items-start mb-3">
-                              <div>
-                                <p className="text-xs text-muted-foreground font-medium">Mentor</p>
-                                <h4 className="font-bold text-foreground text-sm">{record.mentorName || '-'}</h4>
-                                <p className="text-xs text-muted-foreground mt-1">Mentee: {record.menteeName}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {new Date(record.date).toLocaleDateString('en-IN', {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric'
-                                  })}
-                                </p>
+                      <div className="space-y-4 sm:hidden p-4 overflow-y-auto min-h-0 flex-1">
+                        {viewAttendanceData
+                          .filter(record =>
+                            !menteeSearchQuery ||
+                            record.menteeName.toLowerCase().includes(menteeSearchQuery.toLowerCase()) ||
+                            record.mentorName.toLowerCase().includes(menteeSearchQuery.toLowerCase())
+                          )
+                          .map((record: any, index: number) => (
+                            <div key={`${record.menteeId}-${record.date}-${index}`} className="p-4 border rounded-xl bg-card shadow-sm">
+                              <div className="flex justify-between items-start mb-3">
+                                <div>
+                                  <p className="text-xs text-muted-foreground font-medium">Mentor</p>
+                                  <h4 className="font-bold text-foreground text-sm">{record.mentorName || '-'}</h4>
+                                  <p className="text-xs text-muted-foreground mt-1">Mentee: {record.menteeName}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {new Date(record.date).toLocaleDateString('en-IN', {
+                                      year: 'numeric',
+                                      month: 'short',
+                                      day: 'numeric'
+                                    })}
+                                  </p>
+                                </div>
+                                <Badge
+                                  variant={
+                                    record.rawStatus === 'PRESENT' ? 'default' :
+                                      record.rawStatus === 'ABSENT' ? 'destructive' :
+                                        record.rawStatus === 'FOLLOW_UP' ? 'secondary' :
+                                          'outline'
+                                  }
+                                  className="text-[10px]"
+                                >
+                                  {record.status}
+                                </Badge>
                               </div>
-                              <Badge
-                                variant={
-                                  record.rawStatus === 'PRESENT' ? 'default' :
-                                    record.rawStatus === 'ABSENT' ? 'destructive' :
-                                      record.rawStatus === 'FOLLOW_UP' ? 'secondary' :
-                                        'outline'
-                                }
-                                className="text-[10px]"
-                              >
-                                {record.status}
-                              </Badge>
-                            </div>
 
-                            <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                              <div>
-                                <span className="text-muted-foreground block font-medium">Phone</span>
-                                <span>{record.phone || '-'}</span>
+                              <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                                <div>
+                                  <span className="text-muted-foreground block font-medium">Phone</span>
+                                  <span>{record.phone || '-'}</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground block font-medium">Call Recording</span>
+                                  <span className="truncate block">{record.callRecording || '-'}</span>
+                                </div>
                               </div>
-                              <div>
-                                <span className="text-muted-foreground block font-medium">Call Recording</span>
-                                <span className="truncate block">{record.callRecording || '-'}</span>
-                              </div>
-                            </div>
 
-                            {record.notes && (
-                              <div className="p-2 bg-muted/50 rounded-lg text-xs mb-3 italic">
-                                "{record.notes}"
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                              {record.rawStatus !== 'PRESENT' && record.notes && (
+                                <div className="p-2 bg-muted/50 rounded-lg text-xs mb-3 italic">
+                                  "{record.notes}"
+                                </div>
+                              )}
+                            </div>
+                          ))}
                       </div>
 
                       {/* Desktop Table for Attendance */}
-                      <div className="hidden sm:block overflow-x-auto border rounded-xl">
+                      <div className="hidden sm:block flex-1 overflow-auto border rounded-xl min-h-0">
                         <Table>
-                          <TableHeader className="bg-muted/50">
+                          <TableHeader className="bg-muted/50 sticky top-0 z-10 shadow-sm">
                             <TableRow>
                               <TableHead className="font-bold">Mentor</TableHead>
                               <TableHead className="font-bold">Mentee Name</TableHead>
@@ -2018,74 +2084,82 @@ const MentorManagement = () => {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {viewAttendanceData.map((record: any, index: number) => (
-                              <TableRow key={`${record.menteeId}-${record.date}-${index}`}>
-                                <TableCell className="font-medium text-sm">{record.mentorName || '-'}</TableCell>
-                                <TableCell className="font-medium">{record.menteeName}</TableCell>
-                                <TableCell>{record.phone || '-'}</TableCell>
-                                <TableCell>
-                                  {new Date(record.date).toLocaleDateString('en-IN', {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric'
-                                  })}
-                                </TableCell>
-                                <TableCell>
-                                  <Badge
-                                    variant={
-                                      record.rawStatus === 'PRESENT' ? 'default' :
-                                        record.rawStatus === 'ABSENT' ? 'destructive' :
-                                          record.rawStatus === 'FOLLOW_UP' ? 'secondary' :
-                                            'outline'
-                                    }
-                                  >
-                                    {record.status}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="max-w-xs truncate">{record.notes || '-'}</TableCell>
-                                <TableCell className="text-right">
-                                  <div className="flex gap-2 justify-end">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-8 px-2 text-xs"
-                                      onClick={() => {
-                                        if (!record.id || !record.assignmentId) {
-                                          toast.error("Cannot edit: missing record information");
-                                          return;
-                                        }
-                                        setEditingAttendanceRecord({
-                                          id: record.id,
-                                          assignmentId: record.assignmentId,
-                                          menteeId: record.menteeId,
-                                          menteeName: record.menteeName,
-                                          date: record.date,
-                                          status: record.rawStatus || 'PRESENT',
-                                          notes: record.notes || ''
-                                        });
-                                        setAttendanceStatus(record.rawStatus || 'PRESENT');
-                                        setAttendanceNotes(record.notes || '');
-                                        setShowEditAttendanceDialog(true);
-                                      }}
+                            {viewAttendanceData
+                              .filter(record =>
+                                !menteeSearchQuery ||
+                                record.menteeName.toLowerCase().includes(menteeSearchQuery.toLowerCase()) ||
+                                record.mentorName.toLowerCase().includes(menteeSearchQuery.toLowerCase())
+                              )
+                              .map((record: any, index: number) => (
+                                <TableRow key={`${record.menteeId}-${record.date}-${index}`}>
+                                  <TableCell className="font-medium text-sm">{record.mentorName || '-'}</TableCell>
+                                  <TableCell className="font-medium">{record.menteeName}</TableCell>
+                                  <TableCell>{record.phone || '-'}</TableCell>
+                                  <TableCell>
+                                    {new Date(record.date).toLocaleDateString('en-IN', {
+                                      year: 'numeric',
+                                      month: 'short',
+                                      day: 'numeric'
+                                    })}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge
+                                      variant={
+                                        record.rawStatus === 'PRESENT' ? 'default' :
+                                          record.rawStatus === 'ABSENT' ? 'destructive' :
+                                            record.rawStatus === 'FOLLOW_UP' ? 'secondary' :
+                                              'outline'
+                                      }
                                     >
-                                      Edit
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="destructive"
-                                      className="h-8 px-2 text-xs"
-                                      onClick={() => {
-                                        if (record.id && record.assignmentId) {
-                                          handleDeleteAttendance(record.assignmentId, record.id);
-                                        }
-                                      }}
-                                    >
-                                      Delete
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))}
+                                      {record.status}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="max-w-xs truncate">
+                                    {record.rawStatus === 'PRESENT' ? '-' : (record.notes || '-')}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <div className="flex gap-2 justify-end">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-8 px-2 text-xs"
+                                        onClick={() => {
+                                          if (!record.id || !record.assignmentId) {
+                                            toast.error("Cannot edit: missing record information");
+                                            return;
+                                          }
+                                          setEditingAttendanceRecord({
+                                            id: record.id,
+                                            assignmentId: record.assignmentId,
+                                            menteeId: record.menteeId,
+                                            menteeName: record.menteeName,
+                                            date: record.date,
+                                            status: record.rawStatus || 'PRESENT',
+                                            notes: record.notes || ''
+                                          });
+                                          setAttendanceStatus(record.rawStatus || 'PRESENT');
+                                          setAttendanceNotes(record.notes || '');
+                                          setShowEditAttendanceDialog(true);
+                                        }}
+                                      >
+                                        Edit
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        className="h-8 px-2 text-xs"
+                                        onClick={() => {
+                                          if (record.id && record.assignmentId) {
+                                            handleDeleteAttendance(record.assignmentId, record.id);
+                                          }
+                                        }}
+                                      >
+                                        Delete
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
                           </TableBody>
                         </Table>
                       </div>
@@ -2099,8 +2173,7 @@ const MentorManagement = () => {
                   variant="outline"
                   onClick={() => {
                     setShowViewAttendanceDialog(false);
-                    setViewAttendanceStartDate("");
-                    setViewAttendanceEndDate("");
+                    setMenteeSearchQuery("");
                   }}
                 >
                   Close
@@ -2177,13 +2250,13 @@ const MentorManagement = () => {
                             toast.error("Please select a status");
                             return;
                           }
-                          
+
                           // For ABSENT status, notes are mandatory
                           if (attendanceStatus === 'ABSENT' && !attendanceNotes.trim()) {
                             toast.error("Reason is required for 'Not Taken' status");
                             return;
                           }
-                          
+
                           try {
                             // Normalize date format - ensure it's YYYY-MM-DD
                             const dateValue = editingAttendanceRecord.date.includes('T')

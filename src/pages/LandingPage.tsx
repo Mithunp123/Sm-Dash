@@ -72,6 +72,70 @@ const openInGmail = (email: string) => {
   window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${email}`, '_blank');
 };
 
+const facultyCoordinators = [
+  {
+    name: "Dr. B. Mythili Gnanamangai",
+    role: "Faculty Coordinator",
+    email: "mythilignanamangai@ksrct.ac.in",
+    phone: "+91 9487088678",
+    image: mythiliImg,
+    description: "Dr. B. Mythili Gnanamangai has been a pillar of strength for SM Volunteers, guiding students with her expertise in community service and social impact."
+  },
+  {
+    name: "Mr. S. Rajkumar",
+    role: "Faculty Coordinator",
+    email: "rajkumars@ksrct.ac.in",
+    phone: "+91 9003718103",
+    image: rajkumarImg,
+    description: "Mr. S. Rajkumar actively coordinates various social initiatives and ensures the smooth functioning of volunteer activities across the campus."
+  },
+  {
+    name: "Dr. A. Palaniappan",
+    role: "Faculty Coordinator",
+    email: "palaniappan@ksrct.ac.in",
+    phone: "+91 9894366121",
+    image: palaniappanImg,
+    description: "Dr. A. Palaniappan provides strategic guidance and academic leadership for SM Volunteers, fostering an environment of service excellence and student development."
+  }
+];
+
+const otherActiveVolunteers = [
+  { name: "Naveen Raj", dept: "BE EEE", year: "3rd Year" },
+  { name: "Shalini K", dept: "B.Tech BioTech", year: "2nd Year" },
+  { name: "Rahul S", dept: "BE Mechanical", year: "4th Year" },
+  { name: "Divya P", dept: "BE ECE", year: "3rd Year" },
+  { name: "Vignesh A", dept: "B.Tech IT", year: "2nd Year" },
+  { name: "Akshaya G", dept: "BE Civil", year: "4th Year" }
+];
+
+// NGO Partners Data
+const ngoPartners = [
+  {
+    name: "Atchayam Trust",
+    focus: "Begger Free India",
+    description: "Providing a Beggar Free India.",
+    location: "Erode",
+    logoUrl: "/images/ATCHAYAM TRUST.png",
+    areas: ["Beggar Rehabilitation", "Rescuing", "Reintegration"]
+  },
+  {
+    name: "Bhumi",
+    focus: "Educational",
+    description: "Working towards providing quality education for all.",
+    location: "India",
+    logoUrl: "/images/Bhumi logo.png",
+    areas: ["Education", "Awareness", "Career Guidance"]
+  },
+  {
+    name: "Talent Quest India",
+    focus: "Educational",
+    description: "Working towards environmental conservation and sustainable development practices.",
+    location: "Tamil Nadu",
+    logoUrl: "/images/TQI_logo-removebg-preview.png",
+    areas: ["Education", "Growth", "Skill Development"]
+  },
+];
+
 const LandingPage = () => {
   const navigate = useNavigate();
   // Fallback departments list (full forms to match profile values)
@@ -120,6 +184,8 @@ const LandingPage = () => {
   const [pageReady, setPageReady] = useState(false);
 
   const [officeBearers, setOfficeBearers] = useState<any[]>([]);
+  const [selectedOB, setSelectedOB] = useState<any>(null);
+  const [showViewDialog, setShowViewDialog] = useState(false);
 
   useEffect(() => {
     const fetchOfficeBearers = async () => {
@@ -170,14 +236,25 @@ const LandingPage = () => {
         // Don't filter by year - show all upcoming events regardless of year
         const response = await api.getPublicEvents();
         if (response && response.success && response.events) {
-          const allEvents = [...response.events].sort((a: any, b: any) => {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          const validEvents = response.events.filter((event: any) => {
             try {
-              return new Date(b.date).getTime() - new Date(a.date).getTime();
+              const eventDate = new Date(event.date);
+              eventDate.setHours(0, 0, 0, 0);
+              return eventDate.getTime() >= today.getTime();
             } catch {
-              return 0;
+              return false;
             }
           });
-          setUpcomingEvents(allEvents);
+
+          // Sort by date: Earliest upcoming event first
+          const sortedEvents = validEvents.sort((a: any, b: any) => {
+            return new Date(a.date).getTime() - new Date(b.date).getTime();
+          });
+
+          setUpcomingEvents(sortedEvents);
         }
       } catch (error) {
         // Silently fail - landing page should work even without auth
@@ -765,6 +842,10 @@ const LandingPage = () => {
                       isThisWeek={new Date(event.date).getTime() - new Date().getTime() <= 7 * 24 * 60 * 60 * 1000}
                       isPast={new Date(event.date).getTime() < new Date().getTime()}
                       onImageClick={setSelectedEventImage}
+                      onRegisterClick={(event) => {
+                        setSelectedEventForVolunteer(event);
+                        setShowVolunteerForm(true);
+                      }}
                     />
                   </div>
                 ))}
@@ -1082,127 +1163,52 @@ const LandingPage = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 px-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 px-2">
             {officeBearers.map((ob, i) => (
               <motion.div
                 key={ob.id || i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                layout
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="h-[380px] md:h-[420px] perspective-1000 group w-full"
+                transition={{ delay: i * 0.05 }}
+                onClick={() => { setSelectedOB(ob); setShowViewDialog(true); }}
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50 backdrop-blur-md shadow-lg hover:shadow-primary/20 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col h-full"
               >
-                <div className="relative w-full h-full transition-transform duration-700 preserve-3d group-hover:rotate-y-180 cursor-pointer">
-                  {/* Front Side */}
-                  <div className="absolute inset-0 backface-hidden rounded-[24px] overflow-hidden border border-white/5 bg-slate-900 shadow-2xl flex flex-col h-full relative group/card">
-                    {/* Glowing border effect */}
-                    <div className="absolute inset-0 rounded-[24px] ring-1 ring-white/10 z-20 pointer-events-none"></div>
-
-                    {/* Photo Section */}
-                    <div className="h-full relative overflow-hidden bg-slate-900">
-                      {ob.photo_url ? (
-                        <img
-                          src={buildImageUrl(ob.photo_url) || '/Images/Brand_logo.png'}
-                          alt={ob.name}
-                          className="w-full h-full object-cover object-top transition-transform duration-700 scale-100 group-hover/card:scale-105"
-                          onError={(e) => {
-                            (e.target as any).src = '/Images/Brand_logo.png';
-                          }}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-slate-800">
-                          <Users className="w-16 md:w-20 h-16 md:h-20 text-slate-700" />
-                        </div>
-                      )}
-
-                      {/* Premium Gradient Overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent opacity-90"></div>
-                      <div className="absolute inset-0 bg-gradient-to-b from-slate-900/20 to-transparent opacity-40"></div>
+                {/* Photo Section - Standard Aspect Ratio */}
+                <div className="relative w-full aspect-[4/5] overflow-hidden bg-slate-800">
+                  {ob.photo_url ? (
+                    <img
+                      src={buildImageUrl(ob.photo_url)}
+                      alt={ob.name}
+                      className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
+                      onError={(e) => {
+                        (e.target as any).src = '/Images/Brand_logo.png';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-600">
+                      <Users className="w-12 h-12" />
                     </div>
+                  )}
 
-                    {/* Text Section floating at bottom */}
-                    <div className="absolute bottom-0 inset-x-0 p-5 z-30 flex flex-col justify-end">
-                      <div className="backdrop-blur-md bg-black/30 p-4 rounded-xl border border-white/10 space-y-2 transform transition-transform duration-300 shadow-lg">
-                        <div className="flex items-end justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="inline-flex items-center gap-1.5 mb-2 px-2.5 py-1 rounded-md bg-primary/90 shadow-md shadow-primary/20">
-                              <span className="text-[10px] font-bold text-primary-foreground uppercase tracking-widest leading-none">{ob.position}</span>
-                            </div>
-                            <h4 className="text-xl md:text-2xl font-black text-white tracking-tight leading-none drop-shadow-lg truncate">
-                              {ob.name}
-                            </h4>
-                          </div>
-                          <div className="w-10 h-10 rounded-full bg-white/5 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shrink-0 group-hover:bg-primary group-hover:border-primary transition-all duration-300 shadow-xl">
-                            <ArrowRight className="w-5 h-5" />
-                          </div>
-                        </div>
-                        {/* Decorative line */}
-                        <div className="w-12 h-0.5 bg-gradient-to-r from-primary to-transparent rounded-full mt-2"></div>
-                      </div>
-                    </div>
+                  {/* Hover Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-40 group-hover:opacity-60 transition-opacity duration-300"></div>
+                </div>
+
+                {/* Content Section */}
+                <div className="p-4 flex flex-col flex-1 relative bg-gradient-to-b from-slate-900/90 to-slate-950">
+                  <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent opacity-50"></div>
+
+                  <div className="mb-2">
+                    <span className="inline-block px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[8px] font-black uppercase tracking-widest text-primary truncate max-w-full">
+                      {ob.position}
+                    </span>
                   </div>
 
-                  {/* Back Side */}
-                  <div className="absolute inset-0 rotate-y-180 backface-hidden rounded-[24px] bg-slate-900 border border-white/10 overflow-hidden shadow-2xl flex flex-col justify-center text-center relative group/back">
-                    {/* Full Background Image for Back Side */}
-                    <div className="absolute inset-0 z-0">
-                      {ob.photo_url ? (
-                        <div className="w-full h-full relative">
-                          <img
-                            src={buildImageUrl(ob.photo_url)}
-                            alt={ob.name}
-                            className="w-full h-full object-cover opacity-40 blur-sm scale-110 transform"
-                          />
-                          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]"></div>
-                        </div>
-                      ) : (
-                        <div className="w-full h-full bg-slate-900 relative overflow-hidden">
-                          <div className="absolute top-0 right-0 w-40 h-40 bg-primary/20 blur-[60px] rounded-full -mr-10 -mt-10"></div>
-                          <div className="absolute bottom-0 left-0 w-40 h-40 bg-blue-600/20 blur-[60px] rounded-full -ml-10 -mb-10"></div>
-                        </div>
-                      )}
-                      {/* Gradient Overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-slate-950/80"></div>
-                    </div>
-
-                    <div className="relative z-10 p-8 space-y-6 flex flex-col items-center justify-center h-full">
-                      <div className="w-24 h-24 mx-auto rounded-full p-1 bg-gradient-to-br from-primary/50 to-blue-600/50 shadow-2xl shadow-primary/20 mb-2">
-                        <div className="w-full h-full rounded-full overflow-hidden border-2 border-slate-900 bg-slate-800 relative z-10">
-                          {ob.photo_url ? (
-                            <img
-                              src={buildImageUrl(ob.photo_url)}
-                              className="w-full h-full object-cover"
-                              alt="profile"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Users className="w-10 h-10 text-slate-500" />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <h4 className="text-3xl font-black text-white tracking-tight drop-shadow-md">{ob.name}</h4>
-                        <div className="inline-block px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
-                          <p className="text-primary font-bold uppercase tracking-widest text-[10px]">{ob.position}</p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-3 pt-6 w-full max-w-[200px]">
-                        {ob.email && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); openInGmail(ob.email); }}
-                            className="group/btn w-full py-3 px-4 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all transform hover:scale-105 active:scale-95"
-                          >
-                            <Mail className="w-4 h-4" />
-                            <span className="text-xs uppercase tracking-wider">Contact Now</span>
-                          </button>
-                        )}
-                        <p className="text-[10px] text-slate-400 font-medium truncate px-2">{ob.email}</p>
-                      </div>
-                    </div>
-                  </div>
+                  <h3 className="text-base font-bold text-white leading-tight line-clamp-2" title={ob.name}>
+                    {ob.name}
+                  </h3>
                 </div>
               </motion.div>
             ))}
@@ -1412,120 +1418,73 @@ const LandingPage = () => {
 
       {/* Coordinator Modal Removed */}
 
-      {/* Event Image Full View Dialog */}
-      <Dialog open={selectedEventImage !== null} onOpenChange={() => setSelectedEventImage(null)}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0 bg-card border-border">
-          {selectedEventImage && (
-            <div className="relative">
-              <div className="sticky top-0 bg-background/95 backdrop-blur border-b border-border p-6 z-10 shadow-sm flex justify-between items-start">
-                <div>
-                  <DialogTitle className="text-2xl font-bold text-foreground mb-1">{selectedEventImage.title}</DialogTitle>
-                  <DialogDescription className="sr-only">
-                    Full details and registration for {selectedEventImage.title}
-                  </DialogDescription>
-                  <p className="text-muted-foreground flex items-center gap-2 text-sm">
-                    <Calendar className="w-4 h-4" />
-                    {format(new Date(selectedEventImage.date), "EEEE, MMMM do, yyyy")}
-                    {selectedEventImage.location && (
-                      <>
-                        <span>•</span>
-                        <MapPin className="w-4 h-4" />
-                        {selectedEventImage.location}
-                      </>
-                    )}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  {(() => {
-                    const eventDate = new Date(selectedEventImage.date);
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    const isUpcoming = eventDate >= today;
+      {/* View Office Bearer Details Dialog */}
+      <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+        <DialogContent className="max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-card">
+          <div className="relative w-full aspect-[4/5] bg-muted">
+            {selectedOB?.photo_url ? (
+              <img
+                src={buildImageUrl(selectedOB.photo_url)}
+                alt={selectedOB.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800 text-slate-500">
+                <Users className="w-20 h-20" />
+                <p className="mt-4 font-bold text-xs uppercase tracking-widest text-slate-400">No Photo</p>
+              </div>
+            )}
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-5 pt-20 text-white">
+              <h2 className="text-2xl font-black uppercase tracking-tight leading-none mb-1">{selectedOB?.name}</h2>
+              <p className="text-white/80 font-medium text-sm border-l-4 border-primary pl-2">{selectedOB?.position}</p>
+            </div>
+            <Button
+              size="icon"
+              variant="secondary"
+              className="absolute top-3 right-3 h-8 w-8 rounded-full bg-black/20 hover:bg-black/40 text-white border-0 backdrop-blur-md"
+              onClick={() => setShowViewDialog(false)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
 
-                    return isUpcoming ? (
-                      <Button
-                        onClick={() => {
-                          setSelectedEventForVolunteer(selectedEventImage);
-                          setShowVolunteerForm(true);
-                        }}
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg"
-                      >
-                        Volunteer
-                      </Button>
-                    ) : null;
-                  })()}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setSelectedEventImage(null)}
-                    className="hover:bg-muted rounded-full"
-                  >
-                    <X className="w-5 h-5" />
-                  </Button>
+          <div className="p-5 space-y-3 bg-card">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
+                <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-600 shrink-0">
+                  <Mail className="w-4 h-4" />
                 </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[9px] uppercase font-black tracking-widest text-muted-foreground">Email</p>
+                  <p className="font-medium text-xs truncate select-all">{selectedOB?.email || 'N/A'}</p>
+                </div>
+                {selectedOB?.email && (
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-blue-500" onClick={() => openInGmail(selectedOB.email)}>
+                    <ArrowRight className="w-3 h-3" />
+                  </Button>
+                )}
               </div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.1 }}
-                className="p-6 space-y-6"
-              >
-                <div className="prose dark:prose-invert max-w-none">
-                  <p className="text-lg leading-relaxed text-foreground/90">{selectedEventImage.description}</p>
+              <div className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
+                <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 shrink-0">
+                  <Phone className="w-4 h-4" />
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-muted/30 p-6 rounded-xl border border-border/50">
-                  <div>
-                    <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-                      Event Details
-                    </h4>
-                    <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li className="flex justify-between border-b border-border/50 pb-2">
-                        <span>Category:</span>
-                        <span className="font-medium text-foreground">{selectedEventImage.category || 'General'}</span>
-                      </li>
-                      <li className="flex justify-between border-b border-border/50 pb-2">
-                        <span>Time:</span>
-                        <span className="font-medium text-foreground">{selectedEventImage.time || 'All Day'}</span>
-                      </li>
-                      <li className="flex justify-between border-b border-border/50 pb-2">
-                        <span>Organizer:</span>
-                        <span className="font-medium text-foreground">{selectedEventImage.organizer || 'SM Volunteers'}</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  {selectedEventImage.image_url && (
-                    <div className="flex items-center justify-center bg-background rounded-lg border border-border/50 p-2">
-                      {(() => {
-                        const buildImageUrl = (imageUrl: string | null | undefined) => {
-                          if (!imageUrl) return null;
-                          if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-                            return imageUrl;
-                          }
-                          const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-                          const apiRoot = apiBase.replace(/\/api\/?$/, '');
-                          return `${apiRoot}${imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`}`;
-                        };
-                        const imageUrl = buildImageUrl(selectedEventImage.image_url);
-                        return imageUrl ? (
-                          <img
-                            src={imageUrl}
-                            alt={selectedEventImage.title}
-                            className="max-h-64 rounded shadow-sm object-contain"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                        ) : null;
-                      })()}
-                    </div>
-                  )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-[9px] uppercase font-black tracking-widest text-muted-foreground">Mobile</p>
+                  <p className="font-medium text-xs truncate select-all">{selectedOB?.contact || 'N/A'}</p>
                 </div>
-              </motion.div>
+                {selectedOB?.contact && (
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-green-500" onClick={() => window.location.href = `tel:${selectedOB.contact}`}>
+                    <ArrowRight className="w-3 h-3" />
+                  </Button>
+                )}
+              </div>
             </div>
-          )}
+
+            <div className="pt-1">
+              <Button className="w-full font-bold rounded-lg py-5 text-base" onClick={() => setShowViewDialog(false)}>Close</Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -1776,69 +1735,4 @@ const LandingPage = () => {
 
 
 
-const facultyCoordinators = [
-  {
-    name: "Dr. B. Mythili Gnanamangai",
-    role: "Faculty Coordinator",
-    email: "mythilignanamangai@ksrct.ac.in",
-    phone: "+91 9487088678",
-    image: mythiliImg,
-    description: "Dr. B. Mythili Gnanamangai has been a pillar of strength for SM Volunteers, guiding students with her expertise in community service and social impact."
-  },
-  {
-    name: "Mr. S. Rajkumar",
-    role: "Faculty Coordinator",
-    email: "rajkumars@ksrct.ac.in",
-    phone: "+91 9003718103",
-    image: rajkumarImg,
-    description: "Mr. S. Rajkumar actively coordinates various social initiatives and ensures the smooth functioning of volunteer activities across the campus."
-  },
-  {
-    name: "Dr. A. Palaniappan",
-    role: "Faculty Coordinator",
-    email: "palaniappan@ksrct.ac.in",
-    phone: "+91 9894366121",
-    image: palaniappanImg,
-    description: "Dr. A. Palaniappan provides strategic guidance and academic leadership for SM Volunteers, fostering an environment of service excellence and student development."
-  }
-];
-
-
-
-const otherActiveVolunteers = [
-  { name: "Naveen Raj", dept: "BE EEE", year: "3rd Year" },
-  { name: "Shalini K", dept: "B.Tech BioTech", year: "2nd Year" },
-  { name: "Rahul S", dept: "BE Mechanical", year: "4th Year" },
-  { name: "Divya P", dept: "BE ECE", year: "3rd Year" },
-  { name: "Vignesh A", dept: "B.Tech IT", year: "2nd Year" },
-  { name: "Akshaya G", dept: "BE Civil", year: "4th Year" }
-];
-
-// NGO Partners Data
-const ngoPartners = [
-  {
-    name: "Atchayam Trust",
-    focus: "Begger Free India",
-    description: "Providing a Beggar Free India.",
-    location: "Erode",
-    logoUrl: "/images/ATCHAYAM TRUST.png",
-    areas: ["Beggar Rehabilitation", "Rescuing", "Reintegration"]
-  },
-  {
-    name: "Bhumi",
-    focus: "Educational",
-    description: "Working towards providing quality education for all.",
-    location: "India",
-    logoUrl: "/images/Bhumi logo.png",
-    areas: ["Education", "Awareness", "Career Guidance"]
-  },
-  {
-    name: "Talent Quest India",
-    focus: "Educational",
-    description: "Working towards environmental conservation and sustainable development practices.",
-    location: "Tamil Nadu",
-    logoUrl: "/images/TQI_logo-removebg-preview.png",
-    areas: ["Education", "Growth", "Skill Development"]
-  },
-];
 export default LandingPage;

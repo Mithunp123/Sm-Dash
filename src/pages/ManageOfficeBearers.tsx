@@ -312,11 +312,23 @@ const ManageOfficeBearers = () => {
     toast.success("Sample template downloaded!");
   };
 
+  const filteredOfficeBearers = officeBearers.filter(ob =>
+    ob.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    ob.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (ob.academic_year && ob.academic_year.includes(searchQuery))
+  );
+
   return (
     <main className="flex-1 w-full bg-background overflow-x-hidden min-h-screen">
       <div className="w-full px-4 md:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <BackButton to="/admin" />
+          <Button
+            variant="ghost"
+            className="gap-2 font-bold text-muted-foreground hover:text-primary transition-colors pl-0"
+            onClick={() => navigate("/admin")}
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+          </Button>
         </div>
 
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-6">
@@ -330,7 +342,7 @@ const ManageOfficeBearers = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
-            <div className="grid grid-cols-3 sm:flex items-center gap-3">
+            <div className="grid grid-cols-2 sm:flex items-center gap-3">
 
 
               <Button
@@ -378,153 +390,67 @@ const ManageOfficeBearers = () => {
         </Card>
 
         <div className="space-y-4">
-          {/* Mobile Card List */}
-          <div className="grid grid-cols-1 gap-4 md:hidden">
-            {officeBearers.length === 0 ? (
-              <Card className="p-12 text-center border-dashed">
-                <p className="text-muted-foreground font-medium">No office bearers found.</p>
-              </Card>
+          {/* Responsive Card Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {loading ? (
+              <div className="col-span-full h-40 flex items-center justify-center">
+                <p className="text-muted-foreground animate-pulse font-medium">Loading office bearers...</p>
+              </div>
+            ) : filteredOfficeBearers.length === 0 ? (
+              <div className="col-span-full">
+                <Card className="p-12 text-center border-dashed">
+                  <p className="text-muted-foreground font-medium">No office bearers found.</p>
+                </Card>
+              </div>
             ) : (
-              officeBearers
-                .filter(ob =>
-                  ob.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  ob.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  (ob.academic_year && ob.academic_year.includes(searchQuery))
-                )
-                .map((ob) => (
-                  <Card key={ob.id} className="overflow-hidden border-border/50 shadow-sm hover:shadow-md transition-all active:scale-[0.98]">
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-4">
-                        <Avatar className="w-14 h-14 rounded-2xl border-2 border-primary/10 shrink-0">
-                          <AvatarImage src={ob.photo_url ? `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${ob.photo_url}` : undefined} />
-                          <AvatarFallback className="bg-primary/5 text-primary font-black uppercase text-xl">
-                            {ob.name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-start">
-                            <h3 className="font-bold text-lg truncate pr-2">{ob.name}</h3>
-                            <div className="flex gap-1 shrink-0">
-                              <Button size="icon" variant="ghost" onClick={() => openEditDialog(ob)} className="w-8 h-8 text-blue-500 hover:bg-blue-50">
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button size="icon" variant="ghost" onClick={() => { setSelectedOB(ob); setShowDeleteDialog(true); }} className="w-8 h-8 text-red-500 hover:bg-red-50">
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                          <p className="text-sm text-muted-foreground truncate mb-2">{ob.email || 'No Email'}</p>
-                          <div className="flex flex-wrap gap-2 mt-1">
-                            <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-2 py-0.5 font-bold text-[10px] uppercase tracking-wider">
-                              {ob.position}
-                            </Badge>
-                            <Badge variant="outline" className="font-bold border-primary/30 text-primary/70 text-[10px] px-2 py-0.5">
-                              {ob.year || 'IV Year'}
-                            </Badge>
+              filteredOfficeBearers.map((ob) => (
+                <Card key={ob.id} className="group overflow-hidden border-border/50 shadow-sm hover:shadow-xl hover:translate-y-[-4px] transition-all duration-300 flex flex-col bg-card/60 backdrop-blur-md">
+                  <CardContent className="p-4 flex flex-col flex-1">
+                    <div className="flex items-start gap-4 mb-4">
+                      <Avatar className="w-16 h-16 rounded-2xl border-2 border-primary/10 shrink-0 shadow-sm">
+                        <AvatarImage src={ob.photo_url ? `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${ob.photo_url}` : undefined} className="object-cover" />
+                        <AvatarFallback className="bg-primary/5 text-primary font-black uppercase text-xl">
+                          {ob.name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0 pt-1">
+                        <div className="flex justify-between items-start">
+                          <h3 className="font-bold text-lg truncate pr-2 leading-tight" title={ob.name}>{ob.name}</h3>
+                          <div className="flex gap-1 shrink-0 -mr-2 -mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button size="icon" variant="ghost" onClick={() => openEditDialog(ob)} className="w-8 h-8 text-blue-500 hover:bg-blue-50">
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => { setSelectedOB(ob); setShowDeleteDialog(true); }} className="w-8 h-8 text-red-500 hover:bg-red-50">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
                           </div>
                         </div>
-                      </div>
-                      <div className="mt-4 pt-4 border-t flex items-center justify-between text-xs font-bold text-muted-foreground">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-slate-400">Academic:</span>
-                          <span className="text-primary/70">{ob.academic_year}</span>
+                        <p className="text-xs text-muted-foreground truncate font-medium">{ob.email || 'No Email'}</p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-2 py-0.5 font-bold text-[10px] uppercase tracking-wider">
+                            {ob.position}
+                          </Badge>
+                          <Badge variant="outline" className="font-bold border-primary/30 text-primary/70 text-[10px] px-2 py-0.5">
+                            {ob.year || 'IV Year'}
+                          </Badge>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-slate-400">Contact:</span>
-                          <span className="text-foreground/80">{ob.contact || 'N/A'}</span>
-                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))
+                    </div>
+
+                    <div className="mt-auto pt-4 border-t border-border/50 flex items-center justify-between text-xs font-bold text-muted-foreground bg-muted/30 -mx-4 -mb-4 px-4 py-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-slate-400 font-medium uppercase tracking-wider text-[10px]">Academic</span>
+                        <span className="text-primary/70">{ob.academic_year}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-foreground/80">{ob.contact || 'N/A'}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
             )}
           </div>
-
-          {/* Desktop Table */}
-          <Card className="hidden md:block border-border/50 overflow-hidden shadow-sm">
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-slate-50/50 dark:bg-slate-900/50">
-                      <TableHead className="font-bold py-4 w-16 text-center">S.No</TableHead>
-                      <TableHead className="font-bold">Bearer Details</TableHead>
-                      <TableHead className="font-bold">Position</TableHead>
-                      <TableHead className="font-bold">Year</TableHead>
-                      <TableHead className="font-bold">Contact Info</TableHead>
-                      <TableHead className="font-bold">Academic Year</TableHead>
-                      <TableHead className="font-bold text-right pr-6">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {officeBearers.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-12 text-muted-foreground font-medium">
-                          No office bearers found. Add one to get started.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      officeBearers
-                        .filter(ob =>
-                          ob.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          ob.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          (ob.academic_year && ob.academic_year.includes(searchQuery))
-                        )
-                        .map((ob, index) => (
-                          <TableRow key={ob.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
-                            <TableCell className="text-center font-bold text-muted-foreground">
-                              {index + 1}
-                            </TableCell>
-                            <TableCell className="py-4">
-                              <div className="flex items-center gap-4 pl-2">
-                                <Avatar className="w-12 h-12 rounded-xl border-2 border-primary/10">
-                                  <AvatarImage src={ob.photo_url ? `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${ob.photo_url}` : undefined} />
-                                  <AvatarFallback className="bg-primary/5 text-primary font-black uppercase">
-                                    {ob.name.charAt(0)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <p className="font-bold text-lg leading-none mb-1">{ob.name}</p>
-                                  <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">{ob.email || 'No Email'}</p>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-3 py-1 font-bold">
-                                {ob.position}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="font-bold border-primary/30 text-primary/70">
-                                {ob.year || 'IV Year'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="space-y-1 text-sm font-medium">
-                                <p>{ob.contact || 'No Contact'}</p>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <span className="font-black text-slate-500">{ob.academic_year}</span>
-                            </TableCell>
-                            <TableCell className="text-right pr-6">
-                              <div className="flex justify-end gap-2">
-                                <Button size="icon" variant="ghost" onClick={() => openEditDialog(ob)} className="text-blue-500 hover:text-blue-600 hover:bg-blue-50/50">
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                                <Button size="icon" variant="ghost" onClick={() => { setSelectedOB(ob); setShowDeleteDialog(true); }} className="text-red-500 hover:text-red-600 hover:bg-red-50/50">
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
 

@@ -43,6 +43,11 @@ const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
     return () => window.removeEventListener('profileUpdated', handleProfileUpdate);
   }, []);
 
+  // Update user state when location changes (e.g. after login redirect)
+  useEffect(() => {
+    setUser(auth.getUser());
+  }, [location.pathname]);
+
   // Fetch latest user data on mount to ensure photo is up to date
   useEffect(() => {
     const refreshUserKey = async () => {
@@ -78,6 +83,12 @@ const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
   // Get user initials for avatar fallback
   const getInitials = (name: string) => {
     if (!name) return "U";
+    // Check if name is an email
+    if (name.includes('@')) {
+      const part = name.split('@')[0];
+      return part.substring(0, 2).toUpperCase();
+    }
+
     const parts = name.trim().split(" ");
     if (parts.length >= 2) {
       return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
@@ -88,14 +99,22 @@ const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
   // Get first name for greeting
   const getFirstName = (name: string) => {
     if (!name) return "User";
-    const firstName = name.trim().split(" ")[0];
+
+    let displayName = name;
+    if (name.includes('@')) {
+      displayName = name.split('@')[0];
+      // Capitalize first letter
+      displayName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+    }
+
+    const firstName = displayName.trim().split(" ")[0];
     return firstName.length > 12 ? firstName.substring(0, 12) + "..." : firstName;
   };
 
   return (
     <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${isLandingPage
       ? "bg-[#020617] border-b border-slate-800 shadow-2xl relative overflow-hidden"
-      : "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b"
+      : "bg-[hsl(var(--sidebar))] border-b border-white/5"
       }`}>
       {/* Background Pattern for Landing Page Header */}
       {isLandingPage && (
@@ -104,7 +123,7 @@ const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
           <div className="absolute top-0 left-1/4 w-1/2 h-full bg-blue-500/10 blur-[100px]"></div>
         </div>
       )}
-      <div className="max-w-7xl mx-auto relative z-10 px-4 md:px-0">
+      <div className="w-full px-4 md:px-6 relative z-10">
         {!isAuthenticated ? (
           /* Landing Page: Two-Row Layout */
           <div className="flex flex-row items-center justify-between gap-4 py-4 md:py-8 md:px-10">
@@ -339,12 +358,12 @@ const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
           </div>
         ) : (
           /* Dashboard Layout (Single Row) */
-          <div className="flex h-16 items-center px-4 md:px-6">
+          <div className="flex h-20 items-center px-4 md:px-6">
             {showMenuTrigger && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="mr-4 md:hidden"
+                className="mr-4 md:hidden text-white"
                 onClick={onMenuClick}
                 aria-label="Toggle Menu"
               >
@@ -353,7 +372,7 @@ const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
             )}
 
             <div className="flex-1 flex items-center gap-4">
-              <div className="font-semibold text-foreground md:hidden">
+              <div className="font-semibold text-white md:hidden">
                 SM Volunteers
               </div>
             </div>
@@ -361,45 +380,39 @@ const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
             <div className="flex items-center gap-3">
               <NotificationBell />
               {user && (
-                <div className="flex items-center gap-3 pl-3 border-l border-border/50">
+                <div className="flex items-center gap-3 pl-3 border-l border-white/10">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
-                        className="flex items-center gap-3 hover:bg-accent px-3 py-2 h-auto"
+                        className="flex items-center gap-3 hover:bg-white/5 px-3 py-2 h-auto text-white hover:text-white"
                       >
-                        <div className="hidden lg:flex flex-col items-start">
-                          <span className="text-sm font-semibold leading-none text-foreground">
+                        <div className="hidden lg:flex flex-col items-start gap-0.5">
+                          <span className="text-sm font-semibold leading-none">
                             {getFirstName(user.name)}
                           </span>
-                          <span className="text-xs text-muted-foreground capitalize font-medium">
+                          <span className="text-sm text-white/75 capitalize font-medium leading-none">
                             {user.role?.replace('_', ' ')}
                           </span>
                         </div>
-                        {/* Mobile view: Show only avatar initially, or maybe small text? User asked for name/role/photo. 
-                           Let's show avatar and name on mobile if space permits, or stick to the design. 
-                           Actually, standard pattern is Avatar on mobile. 
-                           BUT user explicitly said "name and role and photo". 
-                           Let's try to show them. */}
                         <div className="flex lg:hidden flex-col items-end mr-2 text-right">
-                          <span className="text-sm font-semibold leading-none text-foreground max-w-[100px] truncate">
+                          <span className="text-sm font-semibold leading-none max-w-[100px] truncate">
                             {getFirstName(user.name)}
                           </span>
-                          <span className="text-[10px] text-muted-foreground capitalize font-medium max-w-[100px] truncate">
+                          <span className="text-[10px] text-white/60 capitalize font-medium max-w-[100px] truncate">
                             {user.role?.replace('_', ' ')}
                           </span>
                         </div>
 
-                        <Avatar className="h-9 w-9 border-2 border-primary/20">
+                        <Avatar className="h-9 w-9 border-2 border-white/20">
                           <AvatarImage
                             src={buildImageUrl(user.photo_url || (user as any).photo) || undefined}
                             alt={user.name}
                           />
-                          <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
+                          <AvatarFallback className="bg-primary/20 text-primary font-semibold text-sm">
                             {getInitials(user.name)}
                           </AvatarFallback>
                         </Avatar>
-                        <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56">
@@ -434,7 +447,7 @@ const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
                         className="cursor-pointer text-destructive focus:text-destructive"
                       >
                         <LogOut className="mr-2 h-4 w-4" />
-                        <span>Logout</span>
+                        <span>Log out</span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

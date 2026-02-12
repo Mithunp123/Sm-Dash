@@ -296,7 +296,7 @@ const Login = () => {
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center p-4 md:p-8 min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 relative">
+    <div className="flex-1 flex items-center justify-center p-4 md:p-8 min-h-screen bg-gradient-to-br from-violet-100 via-indigo-50 to-cyan-100 dark:from-slate-950 dark:via-indigo-950 dark:to-slate-900 relative">
       {/* Back Button */}
       <motion.button
         initial={{ opacity: 0, x: -20 }}
@@ -309,23 +309,22 @@ const Login = () => {
       </motion.button>
 
       {/* Glassmorphism Split Layout */}
-      <div className="w-full max-w-6xl grid md:grid-cols-2 gap-8 items-center">
+      <div className="w-full max-w-7xl grid md:grid-cols-2 gap-12 items-center">
 
         {/* Left Side - Login Form */}
         <motion.div
-          initial={{ opacity: 0, x: -50, rotateY: -10 }}
-          animate={{ opacity: 1, x: 0, rotateY: 0 }}
+          initial={{ opacity: 0, x: -50 }}
+          animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          style={{ perspective: "1200px" }}
         >
-          <Card className="w-full border-border/50 shadow-2xl rounded-3xl p-8 md:p-10 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 hover:shadow-primary/10 transition-shadow">
+          <Card className="w-full border-border/50 shadow-2xl rounded-3xl p-10 md:p-12 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 hover:shadow-primary/10 transition-shadow">
             <div className="space-y-8">
               <div className="text-center space-y-2 animate-fade-in">
-                <h1 className="text-2xl md:text-3xl font-black tracking-tight flex items-center justify-center gap-2">
+                <h1 className="text-3xl md:text-4xl font-black tracking-tight flex items-center justify-center gap-2">
                   <span>SM</span>
                   <span className="text-primary">Volunteers</span>
                 </h1>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-base text-muted-foreground">
                   Login to manage your{" "}
                   <span className="font-medium text-foreground">events, attendance & volunteering</span>
                 </p>
@@ -348,7 +347,7 @@ const Login = () => {
                       variant={activeRole === r.key ? "default" : "outline"}
                       size="sm"
                       className={cn(
-                        "rounded-full px-4 text-xs transition-all",
+                        "rounded-full px-5 py-2 h-auto text-sm transition-all",
                         activeRole === r.key ? "shadow-md" : "hover:bg-accent hover:text-accent-foreground"
                       )}
                       onClick={() => setActiveRole(r.key as any)}
@@ -363,7 +362,7 @@ const Login = () => {
               <Button
                 type="button"
                 variant="outline"
-                className="w-full gap-3 h-11 border-border/60 hover:bg-accent/50"
+                className="w-full gap-3 h-12 border-border/60 hover:bg-accent/50 text-base"
                 onClick={() => {
                   try {
                     const apiBase = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
@@ -374,7 +373,7 @@ const Login = () => {
                   }
                 }}
               >
-                <svg className="w-4 h-4" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                <svg className="w-5 h-5" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg" aria-hidden>
                   <path
                     fill="#4285F4"
                     d="M533.5 278.4c0-18.6-1.5-37.1-4.7-54.8H272v103.6h146.9c-6.3 34-25 62.8-53.5 82.1v68.1h86.3c50.6-46.6 81.8-115.5 81.8-199z"
@@ -407,7 +406,7 @@ const Login = () => {
               {/* Email / password login */}
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2 text-left">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email" className="text-base">Email</Label>
                   <Input
                     id="email"
                     type="email"
@@ -415,7 +414,7 @@ const Login = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="h-10"
+                    className="h-12 text-base"
                   />
                 </div>
                 <div className="space-y-2 text-left">
@@ -427,14 +426,14 @@ const Login = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      className="h-10 pr-10"
+                      className="h-12 pr-10 text-base"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
                 </div>
@@ -449,7 +448,7 @@ const Login = () => {
                 </div>
                 <Button
                   type="submit"
-                  className="w-full h-11 font-semibold text-base shadow-sm"
+                  className="w-full h-12 font-semibold text-lg shadow-sm"
                   disabled={loading}
                 >
                   {loading ? (
@@ -465,23 +464,21 @@ const Login = () => {
 
         {/* Right Side - SM Logo */}
         <motion.div
-          initial={{ opacity: 0, x: 50, rotateY: 20 }}
-          animate={{ opacity: 1, x: 0, rotateY: 0 }}
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 1, ease: "easeOut" }}
-          className="hidden md:flex flex-col items-center justify-center p-12 rounded-3xl backdrop-blur-xl bg-white/60 dark:bg-slate-900/60 border border-white/40 shadow-2xl hover:bg-white/70 dark:hover:bg-slate-900/70 transition-all duration-500 group [perspective:1000px] overflow-hidden"
-          style={{ transformStyle: "preserve-3d" }}
+          className="hidden md:flex flex-col items-center justify-center p-16 rounded-3xl backdrop-blur-xl bg-white/60 dark:bg-slate-900/60 border border-white/40 shadow-2xl hover:bg-white/70 dark:hover:bg-slate-900/70 transition-all duration-500 group overflow-hidden"
         >
           <div className="relative">
             <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse"></div>
             <motion.div
-              animate={{ rotateY: 360 }}
-              transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-              style={{ transformStyle: "preserve-3d" }}
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
             >
               <img
                 src="/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
                 alt="SM Volunteers Logo"
-                className="w-64 h-64 object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)] relative z-10 group-hover:scale-110 transition-transform duration-500"
+                className="w-80 h-80 object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)] relative z-10 group-hover:scale-105 transition-transform duration-500"
                 onError={(e) => {
                   const fallback = '/images/Brand_logo.png';
                   if (!e.currentTarget.src.includes(fallback)) {
@@ -491,22 +488,19 @@ const Login = () => {
               />
             </motion.div>
           </div>
-          <motion.div
-            className="text-center mt-8 space-y-2"
-            animate={{ translateZ: 50 }}
-          >
-            <h2 className="text-4xl font-black bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent drop-shadow-sm">
+          <div className="text-center mt-10 space-y-3">
+            <h2 className="text-5xl font-black bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent drop-shadow-sm">
               SM Volunteers
             </h2>
-            <p className="text-muted-foreground font-bold tracking-widest uppercase text-xs">
+            <p className="text-muted-foreground font-bold tracking-widest uppercase text-sm">
               Fostering Society
             </p>
-            <div className="pt-4">
-              <span className="text-xs px-4 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-bold italic">
+            <div className="pt-6">
+              <span className="text-sm px-6 py-2 rounded-full bg-primary/10 text-primary border border-primary/20 font-bold italic">
                 "Service above self"
               </span>
             </div>
-          </motion.div>
+          </div>
         </motion.div>
       </div>
 

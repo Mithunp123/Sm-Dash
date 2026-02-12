@@ -8,107 +8,89 @@
 @layer base {
   :root {
     /* 
-      PROFESSIONAL COLLEGE THEME 
-      Primary: Royal Navy Blue
-      Secondary: Clean White / Light Gray
-      Accent: Professional Gold / Highlight
+      PROFESSIONAL ACADEMIC THEME 
+      Clean, minimal, and authoritative.
     */
 
-    --background: 210 20% 98%;
-    /* Off-white background for reduced eye strain */
+    /* Background: Professional Light Blue-Grey (Distinct from white) */
+    --background: 220 30% 92%;
     --foreground: 222 47% 11%;
-    /* Deep Navy Black for text */
 
+    /* Cards: Pure white to stand out against the background */
     --card: 0 0% 100%;
-    /* Pure white cards */
     --card-foreground: 222 47% 11%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    /* ROYAL NAVY BLUE - Trustworthy, Academic, Professional */
+    /* Sidebar: Slightly distinct from background in light mode */
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+
+    /* Primary: Deep Royal Blue - Professional & Trustworthy */
     --primary: 221 83% 53%;
-    /* A vibrant yet professional Royal Blue */
     --primary-foreground: 210 40% 98%;
 
-    /* SUBTLE GRAY - For secondary actions */
+    /* Secondary: Subtle Gray - For lower hierarchy */
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222 47% 11%;
 
-    /* MUTED - For metadata and de-emphasized text */
+    /* Muted: For details */
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    /* ACCENT - Subtle Gold/Amber for highlights (Academic Feel) */
+    /* Accent: Light Highlight */
     --accent: 210 40% 96.1%;
-    /* Used for hover states usually */
     --accent-foreground: 222 47% 11%;
 
-    /* DESTRUCTIVE - Clean Red */
+    /* Destructive: Error state */
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    /* BORDERS & INPUTS */
+    /* Borders: Very subtle */
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 221 83% 53%;
-    /* Matches Primary */
 
     --radius: 0.5rem;
-    /* 8px radius for a modern but boxed professional look */
 
-    /* CHART COLORS for Analytics */
+    /* Charts */
     --chart-1: 221 83% 53%;
-    /* Blue */
     --chart-2: 173 58% 39%;
-    /* Teal */
     --chart-3: 197 37% 24%;
-    /* Dark Blue */
     --chart-4: 43 74% 66%;
-    /* Muted Gold */
     --chart-5: 27 87% 67%;
-    /* Orange */
   }
 
   .dark {
-    /* Professional Dark Mode (Navy based) */
-    /* Background: Deep Charcoal/Navy (Slate 950/900 mix) */
+    /* Professional Dark Mode */
     --background: 222 47% 10%;
     --foreground: 210 40% 98%;
 
-    /* Cards: Elevated surface (Slate 900/800 mix) - Lighter than background */
+    --sidebar: 222 47% 7%;
+    /* Slightly darker than background for sidebar */
+    --sidebar-foreground: 210 40% 98%;
+
     --card: 222 47% 14%;
     --card-foreground: 210 40% 98%;
 
-    /* Sidebar: Darker than background */
-    --sidebar: 222 47% 7%;
-    --sidebar-foreground: 210 40% 98%;
-
-    /* Popovers: Same as cards */
     --popover: 222 47% 14%;
     --popover-foreground: 210 40% 98%;
 
-    /* Primary: Clean Indigo/Blue */
     --primary: 217 91% 60%;
     --primary-foreground: 222 47.4% 11.2%;
 
-    /* Secondary: Muted dark blue/gray */
     --secondary: 217 32% 17%;
     --secondary-foreground: 210 40% 98%;
 
-    /* Muted: For backgrounds that need to recede */
     --muted: 217 32% 17%;
     --muted-foreground: 215 20% 65%;
 
-    /* Accent: Highlights */
     --accent: 217 32% 17%;
     --accent-foreground: 210 40% 98%;
 
-    /* Destructive */
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    /* Borders: Visible but subtle */
     --border: 217 32% 20%;
     --input: 217 32% 20%;
     --ring: 224 76% 48%;
@@ -126,9 +108,9 @@
 
   body {
     @apply bg-background text-foreground transition-colors duration-300 antialiased;
-    font-family: 'Inter', sans-serif;
-    font-feature-settings: "rlig" 1, "calt" 1;
-    /* Better font rendering */
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.015em;
+    /* Cleaner, tighter text */
   }
 
   h1,
@@ -137,31 +119,28 @@
   h4,
   h5,
   h6 {
-    @apply font-semibold tracking-tight;
+    @apply font-semibold tracking-tight text-foreground;
   }
 
+  /* Explicit sizing for hierarchy */
   h1 {
-    @apply text-3xl;
+    @apply text-3xl md:text-4xl;
   }
 
   h2 {
-    @apply text-2xl;
+    @apply text-2xl md:text-3xl;
   }
 
   h3 {
-    @apply text-xl;
+    @apply text-xl md:text-2xl;
   }
 
   h4 {
-    @apply text-lg;
+    @apply text-lg md:text-xl;
   }
 
-  select {
-    @apply bg-background text-foreground border-border focus:ring-2 focus:ring-primary focus:outline-none;
-  }
-
-  option {
-    @apply bg-background text-foreground;
+  p {
+    @apply leading-relaxed;
   }
 }
 

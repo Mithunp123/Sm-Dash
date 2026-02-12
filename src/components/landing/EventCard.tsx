@@ -10,10 +10,11 @@ interface EventCardProps {
     isToday: boolean;
     isThisWeek: boolean;
     isPast: boolean;
-    onImageClick: (event: any) => void;
+    onImageClick?: (event: any) => void;
+    onRegisterClick?: (event: any) => void;
 }
 
-const EventCard: React.FC<EventCardProps> = ({ event, eventDate, isToday, isThisWeek, isPast, onImageClick }) => {
+const EventCard: React.FC<EventCardProps> = ({ event, eventDate, isToday, isThisWeek, isPast, onImageClick, onRegisterClick }) => {
     const [imageLoading, setImageLoading] = useState(true);
     const [imageError, setImageError] = useState(false);
 
@@ -21,8 +22,8 @@ const EventCard: React.FC<EventCardProps> = ({ event, eventDate, isToday, isThis
 
     return (
         <Card
-            className="group hover:shadow-2xl transition-all duration-500 border border-border/50 hover:border-primary/50 bg-card/80 backdrop-blur-sm overflow-hidden cursor-pointer h-full flex flex-col"
-            onClick={() => onImageClick(event)}
+            className={`group hover:shadow-2xl transition-all duration-500 border border-border/50 hover:border-primary/50 bg-card/80 backdrop-blur-sm overflow-hidden h-full flex flex-col ${onImageClick ? 'cursor-pointer' : ''}`}
+            onClick={() => onImageClick && onImageClick(event)}
         >
             <div className={`h-1.5 ${isToday
                 ? 'bg-gradient-to-r from-primary via-primary/80 to-primary/60'
@@ -100,15 +101,41 @@ const EventCard: React.FC<EventCardProps> = ({ event, eventDate, isToday, isThis
                     </span>
                 </CardDescription>
             </CardHeader>
-            <CardContent className="pt-0">
+            <CardContent className="pt-0 flex flex-col gap-4">
                 {event.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2 mb-4 leading-relaxed">
+                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                         {event.description}
                     </p>
                 )}
-                <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mt-auto">
-                    <Sparkles className="w-3 h-3 text-primary/60" />
-                    <span>Year: {event.year}</span>
+
+                <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/30">
+                    <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
+                        <Sparkles className="w-3 h-3 text-primary/60" />
+                        <span>Year: {event.year}</span>
+                    </div>
+                    {onRegisterClick && !isPast && (
+                        <div className="flex items-center gap-2 mt-2 w-full">
+                            {event.volunteers_limit > 0 && (
+                                <span className={`text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${(event.volunteers_limit - (event.volunteers_count || 0)) < 10
+                                        ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                                        : "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                    }`}>
+                                    {Math.max(0, event.volunteers_limit - (event.volunteers_count || 0))} slots left
+                                </span>
+                            )}
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    onRegisterClick(event);
+                                }}
+                                className="bg-primary text-primary-foreground px-4 py-1.5 rounded-full text-xs font-bold shadow-md hover:bg-primary/90 transition-all transform hover:scale-105 active:scale-95 z-50 relative pointer-events-auto ml-auto"
+                            >
+                                Register as Volunteer
+                            </button>
+                        </div>
+                    )}
                 </div>
             </CardContent>
         </Card>

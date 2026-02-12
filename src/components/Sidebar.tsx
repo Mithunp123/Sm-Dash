@@ -117,22 +117,22 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
 
   return (
     <div className={cn("flex flex-col h-full bg-[hsl(var(--sidebar))] border-r border-border", className)}>
-      <div className="p-6 border-b border-border/50">
+      <div className="p-6 border-b border-white/5">
         {/* Logo Area */}
         <div
           className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={() => navigate("/")}
         >
-          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-lg shadow-primary/20 overflow-hidden">
+          <div className="shrink-0">
             <img
               src="/Images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
               alt="SM Volunteers Logo"
-              className="w-full h-full object-contain p-1"
+              className="w-16 h-16 object-contain"
             />
           </div>
           <div className="flex flex-col overflow-hidden">
-            <span className="font-bold text-lg text-primary truncate leading-tight">SM Volunteers</span>
-            <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium truncate">Dashboard</span>
+            <span className="font-bold text-xl text-primary tracking-tight">SM Volunteers</span>
+            <span className="text-xs text-muted-foreground/80 uppercase tracking-widest font-medium">Dashboard</span>
           </div>
         </div>
       </div>
@@ -150,7 +150,7 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
                   "w-full justify-start gap-3 h-10 mb-1 transition-all duration-200",
                   active
                     ? "bg-primary text-primary-foreground shadow-sm font-semibold"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50 font-medium"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/5 font-medium"
                 )}
                 onClick={() => {
                   navigate(item.path);
@@ -164,22 +164,6 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
           })}
         </nav>
       </ScrollArea>
-
-      <div className="p-4 border-t border-border/50 bg-secondary/20">
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-2 py-2 rounded-lg bg-card border border-border/50 shadow-sm hover:bg-destructive/10 hover:border-destructive/50 transition-all cursor-pointer group"
-        >
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs group-hover:bg-destructive/20 group-hover:text-destructive transition-colors">
-            {(user.name || user.email || "U").slice(0, 2).toUpperCase()}
-          </div>
-          <div className="flex flex-col overflow-hidden flex-1">
-            <span className="text-sm font-semibold truncate text-foreground group-hover:text-destructive transition-colors">{user.name || "User"}</span>
-            <span className="text-xs text-muted-foreground truncate capitalize">{user.role?.replace('_', ' ')}</span>
-          </div>
-          <LogOut className="w-4 h-4 text-muted-foreground group-hover:text-destructive transition-colors" />
-        </button>
-      </div>
     </div>
   );
 };

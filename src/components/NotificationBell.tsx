@@ -85,7 +85,7 @@ const NotificationBell = () => {
           const volunteers = volunteersJson ? JSON.parse(volunteersJson) : [];
           const pendingVolunteers = volunteers.filter((v: any) => (v.status || 'pending') === 'pending');
 
-          totalUnread = unreadMessages.length + pendingVolunteers.length;
+          totalUnread += unreadMessages.length + pendingVolunteers.length;
 
           if (unreadMessages.length > 0) {
             notifs.push({
@@ -145,7 +145,7 @@ const NotificationBell = () => {
 
     checkNotifications();
     // Check every 30 seconds (reduced frequency to avoid spamming when backend is down)
-    const interval = setInterval(checkNotifications, 30000);
+    const interval = setInterval(checkNotifications, 10000);
 
     // Also listen for storage changes
     window.addEventListener('storage', checkNotifications);
@@ -160,7 +160,7 @@ const NotificationBell = () => {
       window.removeEventListener('adminMessage', checkNotifications);
       window.removeEventListener('messageReply', checkNotifications);
     };
-  }, []);
+  }, [location.pathname]);
 
   if (!auth.isAuthenticated()) {
     return null;
@@ -177,6 +177,34 @@ const NotificationBell = () => {
         }
       } catch (e) {
         console.error("Error saving dismissed notification", e);
+      }
+    } else if (notif.type === 'message') {
+      // Mark all unread messages as read
+      try {
+        const messages = JSON.parse(localStorage.getItem('admin_messages') || '[]');
+        const updatedMessages = messages.map((m: any) => ({ ...m, read: true }));
+        localStorage.setItem('admin_messages', JSON.stringify(updatedMessages));
+        window.dispatchEvent(new Event('adminMessage'));
+      } catch (e) {
+        console.error("Error marking messages as read", e);
+      }
+    } else if (notif.type === 'reply') {
+      // Mark all unread replies for this user as read
+      try {
+        const user = auth.getUser();
+        if (user && user.email) {
+          const replies = JSON.parse(localStorage.getItem('message_replies') || '[]');
+          const updatedReplies = replies.map((r: any) => {
+            if (r.email === user.email) {
+              return { ...r, read: true };
+            }
+            return r;
+          });
+          localStorage.setItem('message_replies', JSON.stringify(updatedReplies));
+          window.dispatchEvent(new Event('messageReply'));
+        }
+      } catch (e) {
+        console.error("Error marking replies as read", e);
       }
     }
 

@@ -40,7 +40,8 @@ const ManageAwards = () => {
     recipient_name: "",
     award_date: "",
     year: "",
-    category: ""
+    category: "",
+    award_type: "individual"
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
 
@@ -82,7 +83,7 @@ const ManageAwards = () => {
   };
 
   const resetForm = () => {
-    setForm({ title: "", description: "", recipient_name: "", award_date: "", year: "", category: "" });
+    setForm({ title: "", description: "", recipient_name: "", award_date: "", year: "", category: "", award_type: "individual" });
     setImageFile(null);
     setEditingAward(null);
     if (fileRef.current) fileRef.current.value = "";
@@ -101,7 +102,8 @@ const ManageAwards = () => {
       recipient_name: award.recipient_name || "",
       award_date: award.award_date || "",
       year: award.year || "",
-      category: award.category || ""
+      category: award.category || "",
+      award_type: "individual" // Default to individual as we don't persist type separately
     });
     setImageFile(null);
     if (fileRef.current) fileRef.current.value = "";
@@ -240,7 +242,19 @@ const ManageAwards = () => {
                       variant="outline"
                       size="sm"
                       className="flex-1 h-9 rounded-xl font-bold text-[10px] uppercase tracking-widest border-2"
-                      onClick={() => { setEditingAward(award); setForm({ ...award, description: award.description || "", recipient_name: award.recipient_name || "", award_date: award.award_date || "", year: award.year || "", category: award.category || "" }); setShowForm(true); }}
+                      onClick={() => {
+                        setEditingAward(award);
+                        setForm({
+                          title: award.title,
+                          description: award.description || "",
+                          recipient_name: award.recipient_name || "",
+                          award_date: award.award_date || "",
+                          year: award.year || "",
+                          category: award.category || "",
+                          award_type: "individual"
+                        });
+                        setShowForm(true);
+                      }}
                     >
                       Edit
                     </Button>
@@ -279,12 +293,41 @@ const ManageAwards = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label>Recipient / NGO Name</Label>
+              <Label>Award Type</Label>
+              <div className="flex bg-muted p-1 rounded-xl">
+                <button
+                  className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${form.award_type === 'individual' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                  onClick={() => setForm({ ...form, award_type: 'individual' })}
+                >
+                  Individual
+                </button>
+                <button
+                  className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${form.award_type === 'organization' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                  onClick={() => setForm({ ...form, award_type: 'organization' })}
+                >
+                  Organization / NGO
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>{form.award_type === 'organization' ? 'NGO / Organization Name' : 'Recipient Name'}</Label>
               <Input
                 value={form.recipient_name}
                 onChange={(e) => setForm({ ...form, recipient_name: e.target.value })}
+                placeholder={form.award_type === 'organization' ? "e.g., Bhumi NGO" : "e.g., John Doe"}
               />
             </div>
+
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <Input
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                placeholder="e.g., Best Service, Environmental Award"
+              />
+            </div>
+
             <div className="space-y-2">
               <Label>Award Date</Label>
               <Input type="date" value={form.award_date} onChange={(e) => setForm({ ...form, award_date: e.target.value })} />

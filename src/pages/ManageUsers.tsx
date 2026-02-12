@@ -360,6 +360,13 @@ const ManageUsers = () => {
   };
 
 
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesRole = roleFilter === "all" || user.role === roleFilter;
+    return matchesSearch && matchesRole;
+  });
+
   return (
     <div className="min-h-screen flex flex-col">
       <DeveloperCredit />
@@ -425,95 +432,88 @@ const ManageUsers = () => {
             </Card>
 
             {/* Users Grid - Cards Layout */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {loading ? (
                 <div className="col-span-full text-center py-8">Loading users...</div>
-              ) : users.length === 0 ? (
+              ) : filteredUsers.length === 0 ? (
                 <div className="col-span-full text-center py-8 text-muted-foreground">No users found</div>
               ) : (
-                users
-                  .filter((user) => {
-                    const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      user.email.toLowerCase().includes(searchQuery.toLowerCase());
-                    const matchesRole = roleFilter === "all" || user.role === roleFilter;
-                    return matchesSearch && matchesRole;
-                  })
-                  .map((user) => (
-                    <Card key={user.id} className="group relative overflow-hidden rounded-3xl border-border/40 bg-card/60 backdrop-blur-md shadow-md hover:shadow-xl hover:translate-y-[-4px] transition-all duration-300">
-                      <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full opacity-10 blur-xl ${user.role === 'admin' ? 'bg-red-500' : user.role === 'office_bearer' ? 'bg-primary' : 'bg-slate-400'}`} />
-                      <div className={`absolute left-0 top-0 bottom-0 w-1 ${user.role === 'admin' ? 'bg-red-500' : user.role === 'office_bearer' ? 'bg-primary' : 'bg-slate-400'}`} />
+                filteredUsers.map((user) => (
+                  <Card key={user.id} className="group relative overflow-hidden rounded-3xl border-border/40 bg-card/60 backdrop-blur-md shadow-md hover:shadow-xl hover:translate-y-[-4px] transition-all duration-300 flex flex-col">
+                    <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full opacity-10 blur-xl ${user.role === 'admin' ? 'bg-red-500' : user.role === 'office_bearer' ? 'bg-primary' : 'bg-slate-400'}`} />
+                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${user.role === 'admin' ? 'bg-red-500' : user.role === 'office_bearer' ? 'bg-primary' : 'bg-slate-400'}`} />
 
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                          <div className="min-w-0">
-                            <CardTitle className="text-xl font-black text-foreground uppercase tracking-tight truncate pr-2 leading-none mb-1">{user.name}</CardTitle>
-                            <CardDescription className="text-[10px] font-bold text-muted-foreground truncate tracking-wide">{user.email}</CardDescription>
-                          </div>
-                          <Badge variant={getRoleBadgeColor(user.role)} className="font-bold text-[9px] uppercase tracking-widest px-2 py-0.5 h-5">
-                            {user.role.replace('_', ' ')}
-                          </Badge>
+                    <CardHeader className="pb-3 flex-shrink-0">
+                      <div className="flex items-center justify-between">
+                        <div className="min-w-0 pr-2">
+                          <CardTitle className="text-lg font-black text-foreground uppercase tracking-tight truncate leading-tight mb-1" title={user.name}>{user.name}</CardTitle>
+                          <CardDescription className="text-[10px] font-bold text-muted-foreground truncate tracking-wide" title={user.email}>{user.email}</CardDescription>
                         </div>
-                      </CardHeader>
+                        <Badge variant={getRoleBadgeColor(user.role)} className="shrink-0 font-bold text-[9px] uppercase tracking-widest px-2 py-0.5 h-5">
+                          {user.role.replace('_', ' ')}
+                        </Badge>
+                      </div>
+                    </CardHeader>
 
-                      <CardContent>
-                        <div className="grid grid-cols-2 gap-2 mb-4">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setShowSetPasswordDialog(true);
-                            }}
-                            className="h-9 rounded-xl font-black text-[9px] uppercase tracking-widest border-2 hover:bg-primary/5 hover:text-primary transition-all gap-1.5"
-                          >
-                            <Key className="w-3.5 h-3.5" />
-                            Password
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setShowResetDialog(true);
-                            }}
-                            className="h-9 rounded-xl font-black text-[9px] uppercase tracking-widest border-2 hover:bg-orange-500/10 hover:text-orange-500 transition-all gap-1.5"
-                          >
-                            <RefreshCw className="w-3.5 h-3.5" />
-                            Reset
-                          </Button>
-                        </div>
+                    <CardContent className="flex flex-col flex-1 justify-end">
+                      <div className="grid grid-cols-2 gap-2 mb-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setShowSetPasswordDialog(true);
+                          }}
+                          className="h-8 rounded-xl font-black text-[9px] uppercase tracking-widest border-2 hover:bg-primary/5 hover:text-primary transition-all gap-1.5"
+                        >
+                          <Key className="w-3 h-3" />
+                          Password
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setShowResetDialog(true);
+                          }}
+                          className="h-8 rounded-xl font-black text-[9px] uppercase tracking-widest border-2 hover:bg-orange-500/10 hover:text-orange-500 transition-all gap-1.5"
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          Reset
+                        </Button>
+                      </div>
 
-                        <div className="flex gap-2 pt-4 border-t border-border/50">
-                          <Button
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setFormData({
-                                name: user.name,
-                                email: user.email,
-                                role: user.role,
-                                password: ""
-                              });
-                              setShowEditDialog(true);
-                            }}
-                            className="flex-1 h-9 rounded-xl font-black text-[10px] uppercase tracking-widest bg-primary hover:primary/90 transition-all"
-                          >
-                            Edit Profile
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setShowDeleteDialog(true);
-                            }}
-                            className="h-9 w-9 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
+                      <div className="flex gap-2 pt-4 border-t border-border/50 mt-auto">
+                        <Button
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setFormData({
+                              name: user.name,
+                              email: user.email,
+                              role: user.role,
+                              password: ""
+                            });
+                            setShowEditDialog(true);
+                          }}
+                          className="flex-1 h-9 rounded-xl font-black text-[10px] uppercase tracking-widest bg-primary hover:bg-primary/90 transition-all"
+                        >
+                          Edit Profile
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setShowDeleteDialog(true);
+                          }}
+                          className="h-9 w-9 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
               )}
             </div>
           </div>

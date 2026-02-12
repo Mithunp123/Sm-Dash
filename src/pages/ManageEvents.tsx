@@ -825,7 +825,7 @@ const ManageEvents = () => {
                   <p className="text-lg font-bold text-muted-foreground">No events found for this period</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {events.map((event) => {
                     const buildImageUrl = (imageUrl: string | null | undefined) => {
                       if (!imageUrl) return null;
@@ -839,110 +839,117 @@ const ManageEvents = () => {
                     const imageUrl = buildImageUrl(event.image_url);
 
                     return (
-                      <div key={event.id} className={`group relative flex flex-col md:flex-row items-center gap-6 p-5 rounded-3xl border-2 transition-all duration-300 ${selectedEventIds.includes(event.id) ? 'border-primary bg-primary/5 ring-4 ring-primary/5 shadow-primary/10' : 'border-border/40 bg-card hover:border-primary/20 hover:shadow-xl'}`}>
-                        {/* Checkbox Overlay for Mobile */}
-                        <div className="absolute top-4 left-4 z-20">
-                          <Checkbox
-                            checked={selectedEventIds.includes(event.id)}
-                            onCheckedChange={(checked) => handleSelectEvent(event.id, checked as boolean)}
-                            className="w-6 h-6 rounded-lg pointer-events-auto"
-                          />
-                        </div>
-
-                        {/* Thumbnail */}
-                        <div className="flex-shrink-0 w-full md:w-32 md:h-32 h-56 rounded-2xl overflow-hidden bg-muted border border-border/50 relative shadow-inner group-hover:scale-[1.02] transition-transform">
+                      <div key={event.id} className={`group flex flex-col bg-card rounded-2xl border transition-all duration-300 overflow-hidden ${selectedEventIds.includes(event.id) ? 'border-primary ring-2 ring-primary/20 shadow-lg' : 'border-border/40 hover:shadow-md hover:border-primary/20'}`}>
+                        {/* Image Section */}
+                        <div className="relative h-48 w-full overflow-hidden bg-muted">
                           {imageUrl ? (
                             <img
                               src={imageUrl}
                               alt={event.title}
-                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                               onError={(e) => {
                                 e.currentTarget.style.display = 'none';
                               }}
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-gradient-to-br from-muted to-muted/50">
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-secondary/30">
                               <ImageIcon className="w-10 h-10 opacity-20" />
                             </div>
                           )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                          {/* Checkbox */}
+                          <div className="absolute top-3 left-3 z-20">
+                            <div className={`p-1 rounded-lg transition-colors ${selectedEventIds.includes(event.id) ? 'bg-primary' : 'bg-black/30 backdrop-blur-md'}`}>
+                              <Checkbox
+                                checked={selectedEventIds.includes(event.id)}
+                                onCheckedChange={(checked) => handleSelectEvent(event.id, checked as boolean)}
+                                className="w-5 h-5 border-white/50 data-[state=checked]:bg-transparent data-[state=checked]:border-white text-white"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Date Badge */}
+                          <div className="absolute bottom-3 right-3">
+                            <div className="bg-black/60 backdrop-blur-md text-white text-xs font-bold px-2.5 py-1 rounded-lg border border-white/10 flex items-center gap-1.5 shadow-sm">
+                              <Calendar className="w-3 h-3 text-primary" />
+                              {new Date(event.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </div>
+                          </div>
+
+                          {event.is_special_day && (
+                            <div className="absolute top-3 right-3">
+                              <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-0 font-bold shadow-lg animate-pulse">
+                                Special Day
+                              </Badge>
+                            </div>
+                          )}
                         </div>
 
-                        {/* Content */}
-                        <div className="flex-1 min-w-0 space-y-3 w-full">
-                          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-                            <div className="space-y-1 text-center md:text-left">
-                              <h3 className="font-black text-2xl text-foreground uppercase tracking-tight line-clamp-2 md:line-clamp-1">{event.title}</h3>
-                              <div className="flex flex-wrap items-center gap-3 justify-center md:justify-start">
-                                <Badge variant="outline" className="font-black bg-primary/5 text-primary border-primary/20 rounded-lg px-2 text-[10px] uppercase tracking-wider">{event.year}</Badge>
-                                <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
-                                  <div className="p-1.5 bg-muted rounded-lg">
-                                    <Calendar className="w-3.5 h-3.5" />
-                                  </div>
-                                  {new Date(event.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                </div>
-                              </div>
+                        {/* Content Section */}
+                        <div className="flex-1 p-5 flex flex-col gap-4">
+                          <div className="space-y-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <h3 className="font-bold text-lg text-foreground line-clamp-2 leading-tight group-hover:text-primary transition-colors" title={event.title}>
+                                {event.title}
+                              </h3>
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-2 justify-center md:justify-end">
-                              {event.is_special_day && (
-                                <Badge className="bg-amber-100 text-amber-900 border-amber-200 font-bold px-3 py-1 rounded-full uppercase text-[10px] tracking-widest flex items-center gap-1.5">
-                                  <div className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse"></div>
-                                  Special Day
-                                </Badge>
-                              )}
-                              <div className="flex items-center gap-2 px-3 py-1 bg-primary/5 rounded-full text-xs font-black text-primary border border-primary/10">
-                                <Users className="w-4 h-4" />
-                                {volunteerCounts[event.id] || 0} Vol.
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge variant="secondary" className="bg-secondary/50 font-semibold text-xs border-secondary-foreground/10">
+                                Batch {event.year}
+                              </Badge>
+                              <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
+                                <Users className="w-3.5 h-3.5 text-primary/70" />
+                                {volunteerCounts[event.id] || 0} Volunteers
                               </div>
                             </div>
                           </div>
 
-                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
+                          <div className="grid grid-cols-[1fr,auto,auto] gap-2 mt-auto pt-2">
                             <Button
-                              variant="default"
                               onClick={() => navigate(`/admin/events/${event.id}`)}
-                              className="flex-1 sm:flex-none h-11 rounded-2xl font-bold bg-foreground text-background hover:bg-foreground/90 transition-all gap-2"
+                              className="h-10 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
                             >
-                              <Users className="w-4 h-4" />
                               Manage Records
                             </Button>
 
-                            <div className="flex items-center gap-2 flex-1 sm:flex-none">
-                              <Button
-                                variant="outline"
-                                onClick={() => {
-                                  setSelectedEvent(event);
-                                  setFormData({
-                                    title: event.title,
-                                    description: event.description || "",
-                                    date: event.date ? event.date.split('T')[0] : "",
-                                    year: event.year || new Date().getFullYear().toString(),
-                                    is_special_day: event.is_special_day || false,
-                                    image_url: event.image_url || "",
-                                    max_volunteers: event.max_volunteers?.toString() || "",
-                                    volunteer_registration_deadline: event.volunteer_registration_deadline ? event.volunteer_registration_deadline.slice(0, 16) : ""
-                                  });
-                                  setEventImageFile(null);
-                                  setShowEditDialog(true);
-                                }}
-                                className="flex-1 sm:w-11 h-11 rounded-2xl p-0 font-bold border-border/50 hover:bg-muted"
-                              >
-                                <Edit className="w-4 h-4" />
-                                <span className="sm:hidden ml-2">Edit</span>
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                className="flex-1 sm:w-11 h-11 rounded-2xl p-0 font-bold shadow-lg shadow-destructive/10"
-                                onClick={() => {
-                                  setSelectedEvent(event);
-                                  setShowDeleteDialog(true);
-                                }}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                                <span className="sm:hidden ml-2">Delete</span>
-                              </Button>
-                            </div>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                setSelectedEvent(event);
+                                setFormData({
+                                  title: event.title,
+                                  description: event.description || "",
+                                  date: event.date ? event.date.split('T')[0] : "",
+                                  year: event.year || new Date().getFullYear().toString(),
+                                  is_special_day: event.is_special_day || false,
+                                  image_url: event.image_url || "",
+                                  max_volunteers: event.max_volunteers?.toString() || "",
+                                  volunteer_registration_deadline: event.volunteer_registration_deadline ? event.volunteer_registration_deadline.slice(0, 16) : ""
+                                });
+                                setEventImageFile(null);
+                                setShowEditDialog(true);
+                              }}
+                              className="h-10 w-10 rounded-xl border-border/60 hover:bg-muted hover:border-primary/30"
+                              title="Edit Event"
+                            >
+                              <Edit className="w-4 h-4 text-muted-foreground" />
+                            </Button>
+
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-10 w-10 rounded-xl border-border/60 hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive"
+                              onClick={() => {
+                                setSelectedEvent(event);
+                                setShowDeleteDialog(true);
+                              }}
+                              title="Delete Event"
+                            >
+                              <Trash2 className="w-4 h-4 text-muted-foreground group-hover:text-destructive transition-colors" />
+                            </Button>
                           </div>
                         </div>
                       </div>
