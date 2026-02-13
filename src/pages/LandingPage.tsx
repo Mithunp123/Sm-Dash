@@ -99,15 +99,6 @@ const facultyCoordinators = [
   }
 ];
 
-const otherActiveVolunteers = [
-  { name: "Naveen Raj", dept: "BE EEE", year: "3rd Year" },
-  { name: "Shalini K", dept: "B.Tech BioTech", year: "2nd Year" },
-  { name: "Rahul S", dept: "BE Mechanical", year: "4th Year" },
-  { name: "Divya P", dept: "BE ECE", year: "3rd Year" },
-  { name: "Vignesh A", dept: "B.Tech IT", year: "2nd Year" },
-  { name: "Akshaya G", dept: "BE Civil", year: "4th Year" }
-];
-
 // NGO Partners Data
 const ngoPartners = [
   {
@@ -561,19 +552,22 @@ const LandingPage = () => {
         )}
       </AnimatePresence>
 
-      {/* Hero Section - Reference Site Style with Background Image */}
+      {/* Hero Section - Ultra Modern */}
       <section className="relative w-full min-h-[500px] md:min-h-[700px] overflow-hidden z-10 flex items-center justify-center pt-24 pb-12">
-        {/* Background Image with Overlay */}
+        {/* Dynamic Gradient Background */}
         <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-950"></div>
           <div
             className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000 md:bg-[center_35%]"
             style={{
               backgroundImage: 'url("/images/Home.jpg")',
-              filter: 'brightness(1.1)', // Slightly brighter for better contrast on mobile
+              filter: 'brightness(1.15) saturate(1.1)',
             }}
           />
-          <div className="absolute inset-0 bg-black/20 md:bg-black/10"></div>
+          {/* Enhanced overlay with gradient */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-blue-950/40 to-slate-950/50"></div>
+          {/* Animated accent overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-transparent to-orange-600/20"></div>
         </div>
 
         {/* Content */}
@@ -587,11 +581,11 @@ const LandingPage = () => {
           >
             <motion.h1
               variants={fadeInUp}
-              className="text-4xl sm:text-5xl md:text-7xl font-black drop-shadow-2xl tracking-tighter leading-tight"
+              className="text-5xl sm:text-6xl md:text-8xl font-black drop-shadow-2xl tracking-tighter leading-tight"
             > <br></br> <br></br> <br></br>
-              <span className="text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">SM</span>{" "}
+              <span className="text-white font-black drop-shadow-[0_0_40px_rgba(255,255,255,0.6)]">SM</span>{" "}
               <br className="sm:hidden" />
-              <span className="bg-gradient-to-r from-[#ff6d00] to-[#ffab40] bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-orange-300 via-orange-400 to-yellow-300 bg-clip-text text-transparent font-black drop-shadow-[0_0_30px_rgba(255,160,0,0.6)]">
                 VOLUNTEERS
               </span>
             </motion.h1>
@@ -600,14 +594,14 @@ const LandingPage = () => {
               variants={fadeInUp}
               className="relative px-2 md:px-6"
             >
-              <span className="block text-xl md:text-3xl font-black italic tracking-wide md:tracking-[0.1em] bg-gradient-to-r from-white via-blue-200 to-white bg-clip-text text-transparent drop-shadow-2xl uppercase leading-tight">
+              <span className="block text-2xl md:text-4xl font-black italic tracking-wide md:tracking-[0.08em] bg-gradient-to-r from-yellow-100 via-white to-blue-100 bg-clip-text text-transparent drop-shadow-2xl uppercase leading-tight">
                 To build the ministry of <br className="hidden sm:block" /> socially responsible volunteers
               </span>
               <motion.div
                 initial={{ width: 0, opacity: 0 }}
-                animate={{ width: "60%", opacity: 1 }}
+                animate={{ width: "70%", opacity: 1 }}
                 transition={{ duration: 1.5, delay: 0.8 }}
-                className="h-1 bg-gradient-to-r from-transparent via-orange-500 to-transparent mx-auto mt-6 rounded-full"
+                className="h-1.5 bg-gradient-to-r from-transparent orange-500 to-transparent mx-auto mt-6 rounded-full shadow-lg shadow-orange-500/50"
               />
             </motion.div>
 
@@ -617,7 +611,7 @@ const LandingPage = () => {
             >
               <Button
                 size="lg"
-                className="bg-white text-blue-900 hover:bg-blue-50 shadow-2xl hover:shadow-blue-500/50 transform hover:scale-105 transition-all duration-300 px-8 md:px-10 py-6 md:py-7 text-base md:text-lg font-bold rounded-2xl w-full sm:w-auto"
+                className="bg-gradient-to-r from-white to-blue-50 text-slate-900 hover:from-blue-50 hover:to-white shadow-2xl hover:shadow-orange-500/50 transform hover:scale-110 transition-all duration-300 px-8 md:px-12 py-6 md:py-7 text-base md:text-lg font-black rounded-2xl w-full sm:w-auto uppercase tracking-wide"
                 onClick={() =>
                   isAuthenticated ? navigate(getDashboardPath()) : window.location.href = "/login"
                 }
@@ -635,10 +629,10 @@ const LandingPage = () => {
       {/* About Section - SM Volunteers Only */}
       <section
         id="about-section"
-        className="py-32 relative overflow-hidden z-10 bg-slate-50 dark:bg-slate-950"
+        className="py-32 relative overflow-hidden z-10 bg-gradient-to-b from-slate-50 via-blue-50 to-white dark:from-slate-950 dark:via-blue-950 dark:to-slate-900"
       >
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-5">
+        {/* Animated background pattern */}
+        <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
           <div className="absolute inset-0" style={{
             backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)',
             backgroundSize: '40px 40px'
@@ -648,10 +642,10 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-4 relative z-10">
           {/* About SM Volunteers Title */}
           <div className="text-center mb-12">
-            <h2 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white mb-4 tracking-tighter uppercase">
+            <h2 className="text-3xl md:text-5xl font-black mb-4 tracking-tight bg-gradient-to-r from-blue-600 to-orange-500 bg-clip-text text-transparent">
               About SM Volunteers
             </h2>
-            <div className="w-24 h-2 bg-blue-600 mx-auto rounded-full"></div>
+            <div className="w-24 h-3 bg-gradient-to-r from-blue-600 to-orange-500 mx-auto rounded-full shadow-lg shadow-blue-500/30"></div>
           </div>
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -666,18 +660,18 @@ const LandingPage = () => {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.8, delay: 0.2 }}
-                className="lg:col-span-7 bg-white dark:bg-slate-900 text-slate-900 dark:text-white p-6 md:p-10 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 relative h-full flex flex-col justify-center order-2 lg:order-1"
+                className="lg:col-span-7 bg-gradient-to-br from-white to-blue-50 dark:from-slate-800 dark:to-slate-900 text-slate-900 dark:text-white p-6 md:p-10 rounded-3xl shadow-2xl border border-blue-200 dark:border-blue-900 relative h-full flex flex-col justify-center order-2 lg:order-1"
               >
-                <h3 className="text-xl md:text-2xl font-bold mb-6 text-blue-600 flex items-center gap-2">
-                  <span className="w-8 h-1 bg-blue-600 rounded-full"></span>
+                <h3 className="text-xl md:text-2xl font-black mb-6 text-blue-600 dark:text-blue-400 flex items-center gap-3">
+                  <span className="w-8 h-1.5 bg-gradient-to-r from-blue-600 to-orange-500 rounded-full"></span>
                   Service Motto Volunteers
                 </h3>
                 <div className="space-y-4">
-                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-sm md:text-lg text-justify font-medium">
-                    Service Motto volunteers (SM Volunteers) started their journey on <strong className="text-blue-600">October 5, 2021</strong>. What began as a small group of passionate students has grown into a powerful movement within the KSRCT campus. Our primary objective is to bridge the gap between students and social service, fostering a sense of responsibility and compassion.
+                  <p className="text-slate-700 dark:text-slate-200 leading-relaxed text-sm md:text-lg text-justify font-medium">
+                    Service Motto volunteers (SM Volunteers) started their journey on <strong className="text-blue-600 dark:text-blue-400">October 5, 2021</strong>. What began as a small group of passionate students has grown into a powerful movement within the KSRCT campus. Our primary objective is to bridge the gap between students and social service, fostering a sense of responsibility and compassion.
                   </p>
-                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-sm md:text-lg text-justify font-medium">
-                    Through strategic collaborations with NGOs like <strong className="text-blue-600">Bhumi</strong>, we engage in diverse activities including education support, women empowerment, environmental protection, and community health. We don't just volunteer; we build leadership, empathy, and lifelong skills.
+                  <p className="text-slate-700 dark:text-slate-200 leading-relaxed text-sm md:text-lg text-justify font-medium">
+                    Through strategic collaborations with NGOs like <strong className="text-blue-600 dark:text-blue-400">Bhumi</strong>, we engage in diverse activities including education support, women empowerment, environmental protection, and community health. We don't just volunteer; we build leadership, empathy, and lifelong skills.
                   </p>
                 </div>
               </motion.div>
@@ -689,7 +683,7 @@ const LandingPage = () => {
                 transition={{ duration: 0.8, delay: 0.4 }}
                 className="lg:col-span-5 relative group order-1 lg:order-2 flex justify-center items-center"
               >
-                <div className="absolute -inset-4 bg-blue-600/10 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="absolute -inset-4 bg-gradient-to-r from-blue-600 to-orange-500 blur-2xl rounded-full opacity-20 group-hover:opacity-40 transition-opacity"></div>
                 <div className="relative z-10">
                   <motion.img
                     initial={{ opacity: 0, scale: 0.8 }}
@@ -697,7 +691,7 @@ const LandingPage = () => {
                     transition={{ duration: 1, ease: "easeOut" }}
                     src="/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
                     alt="SM Volunteers Logo"
-                    className="h-48 sm:h-64 md:h-80 w-auto object-contain drop-shadow-[0_0_30px_rgba(37,99,235,0.2)]"
+                    className="h-48 sm:h-64 md:h-80 w-auto object-contain drop-shadow-[0_0_40px_rgba(59,130,246,0.4)]"
                   />
                 </div>
               </motion.div>
@@ -713,7 +707,7 @@ const LandingPage = () => {
             className="mt-20 mb-12"
           >
             <div className="text-center mb-12">
-              <h2 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white mb-4 tracking-tighter">
+              <h2 className="text-3xl md:text-5xl font-black mb-4 tracking-tight bg-gradient-to-r from-blue-600 to-orange-500 bg-clip-text text-transparent">
                 About KSRCT
               </h2>
               <p className="text-lg text-slate-600 dark:text-slate-400">
@@ -724,7 +718,7 @@ const LandingPage = () => {
                 whileInView={{ width: 96 }}
                 viewport={{ once: true }}
                 transition={{ duration: 1, delay: 0.5 }}
-                className="h-1 bg-primary mx-auto mt-4 rounded-full"
+                className="h-1 bg-gradient-to-r from-blue-600 to-orange-500 mx-auto mt-4 rounded-full Shadow-lg shadow-blue-500/30"
               ></motion.div>
             </div>
 
@@ -745,12 +739,12 @@ const LandingPage = () => {
                 <motion.div
                   key={index}
                   variants={fadeInUp}
-                  className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm p-6 rounded-2xl border border-slate-200 dark:border-slate-700 text-center hover:scale-105 transition-transform"
+                  className="bg-gradient-to-br from-white to-blue-50 dark:from-slate-800 dark:to-slate-900 border border-blue-200 dark:border-blue-900/50 p-6 rounded-2xl text-center hover:scale-105 transition-transform shadow-lg hover:shadow-xl hover:shadow-blue-500/20"
                 >
-                  <div className="text-3xl md:text-4xl font-black text-primary mb-2 tracking-tighter">
+                  <div className="text-3xl md:text-4xl font-black bg-gradient-to-r from-blue-600 to-orange-500 bg-clip-text text-transparent mb-2 tracking-tighter">
                     <RunningNumber value={stat.value} />
                   </div>
-                  <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">{stat.label}</div>
+                  <div className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest">{stat.label}</div>
                 </motion.div>
               ))}
             </motion.div>
@@ -764,7 +758,7 @@ const LandingPage = () => {
                 transition={{ duration: 0.8 }}
                 className="relative group order-1"
               >
-                <div className="absolute -inset-4 bg-primary/20 blur-2xl rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="absolute -inset-4 bg-gradient-to-r from-blue-600 to-orange-500 blur-2xl rounded-3xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
                 <img
                   src="/images/Home.jpg"
                   alt="KSRCT Main Building"
@@ -777,13 +771,13 @@ const LandingPage = () => {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.8 }}
-                className="bg-slate-900 text-white p-6 md:p-10 rounded-3xl shadow-2xl border border-slate-800 relative h-full flex flex-col justify-center order-2"
+                className="bg-gradient-to-br from-slate-900 to-blue-950 text-white p-6 md:p-10 rounded-3xl shadow-2xl border border-blue-800/30 relative h-full flex flex-col justify-center order-2"
               >
-                <h3 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-primary flex items-center gap-2">
-                  <span className="w-8 h-1 bg-primary rounded-full"></span>
+                <h3 className="text-xl md:text-2xl font-black mb-4 md:mb-6 bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent flex items-center gap-3">
+                  <span className="w-8 h-1.5 bg-gradient-to-r from-orange-500 to-red-500 rounded-full"></span>
                   K.S.Rangasamy College of Technology
                 </h3>
-                <p className="text-slate-300 leading-relaxed text-sm md:text-lg text-justify font-medium">
+                <p className="text-slate-200 leading-relaxed text-sm md:text-lg text-justify font-medium">
                   K.S.Rangasamy College of Technology (KSRCT) was started in 1994. Approved by AICTE and affiliated with Anna University, Chennai, KSRCT has Autonomous status from UGC. It ranked 99th in NIRF 2017 and 51-100 band in NIRF Innovation Ranking 2023 for Engineering. Accredited with NAAC A++ grade and NBA Tier 1 departments.
                 </p>
               </motion.div>
@@ -796,23 +790,28 @@ const LandingPage = () => {
       {/* Events Section */}
       <section
         id="events-section"
-        className="py-20 md:py-28 bg-gradient-to-br from-background via-muted/20 to-primary/5"
+        className="py-20 md:py-28 bg-gradient-to-br from-slate-50 via-blue-50 to-white dark:from-slate-950 dark:via-blue-950 dark:to-slate-900 relative overflow-hidden"
       >
-        <div className="max-w-7xl mx-auto px-4">
+        {/* Decorative Elements */}
+        <div className="absolute top-0 left-0 w-64 h-64 bg-blue-400/5 dark:bg-blue-600/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-orange-400/5 dark:bg-orange-600/5 rounded-full blur-3xl translate-x-1/4 translate-y-1/4"></div>
+        <div className="absolute top-1/2 right-0 w-48 h-48 bg-blue-300/5 dark:bg-blue-500/5 rounded-full blur-3xl translate-x-1/3"></div>
+
+        <div className="max-w-7xl mx-auto px-4 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-muted rounded-full border border-border mb-4">
-              <Calendar className="w-5 h-5 text-muted-foreground" />
-              <span className="text-sm font-semibold text-foreground">What's Happening</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100/50 dark:bg-blue-900/30 rounded-full border border-blue-200 dark:border-blue-800 mb-4">
+              <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <span className="text-sm font-semibold text-blue-900 dark:text-blue-200 uppercase tracking-wide">What's Happening</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-foreground">
+            <h2 className="text-3xl md:text-5xl font-black mb-4 tracking-tight bg-gradient-to-r from-blue-600 to-orange-500 bg-clip-text text-transparent">
               Upcoming Events & Activities
             </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+            <p className="text-lg text-slate-600 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed font-medium">
               Join us for these exciting opportunities to make a difference. Every event is a chance to connect, learn, and create impact together.
             </p>
           </motion.div>
@@ -820,7 +819,7 @@ const LandingPage = () => {
           {loadingEvents ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-[400px] w-full bg-muted animate-pulse rounded-3xl shadow-sm"></div>
+                <div key={i} className="h-[400px] w-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 animate-pulse rounded-3xl shadow-sm"></div>
               ))}
             </div>
           ) : upcomingEvents.length > 0 ? (
@@ -849,10 +848,10 @@ const LandingPage = () => {
               ))}
             </motion.div>
           ) : (
-            <div className="text-center py-20 bg-white/50 backdrop-blur-sm rounded-[3rem] border-4 border-dashed border-slate-200">
-              <Activity className="w-20 h-20 mx-auto text-slate-300 mb-6 animate-bounce" />
-              <p className="text-slate-900 text-2xl font-black tracking-tight mb-2">No upcoming events</p>
-              <p className="text-slate-500 font-medium">We're planning something incredible. Stay tuned!</p>
+            <div className="text-center py-20 bg-gradient-to-br from-white to-blue-50 dark:from-slate-800 dark:to-slate-900 backdrop-blur-sm rounded-[3rem] border-4 border-dashed border-blue-200 dark:border-blue-900/50">
+              <Activity className="w-20 h-20 mx-auto text-slate-300 dark:text-slate-600 mb-6 animate-bounce" />
+              <p className="text-slate-900 dark:text-white text-2xl font-black tracking-tight mb-2">No upcoming events</p>
+              <p className="text-slate-500 dark:text-slate-400 font-medium">We're planning something incredible. Stay tuned!</p>
             </div>
           )}
         </div>
@@ -861,23 +860,28 @@ const LandingPage = () => {
       {/* Awards Section */}
       <section
         id="awards-section"
-        className="py-20 md:py-28 bg-gradient-to-br from-yellow-50/50 via-background to-amber-50/30 dark:from-yellow-950/10 dark:via-background dark:to-amber-900/10"
+        className="py-20 md:py-28 bg-gradient-to-br from-white via-blue-50/30 to-orange-50/20 dark:from-slate-800 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden"
       >
-        <div className="max-w-7xl mx-auto px-4">
+        {/* Decorative Elements */}
+        <div className="absolute top-1/4 left-0 w-80 h-80 bg-orange-300/8 rounded-full blur-3xl -translate-x-1/2"></div>
+        <div className="absolute bottom-0 left-1/4 w-64 h-64 bg-amber-300/8 rounded-full blur-3xl translate-y-1/2"></div>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-300/8 rounded-full blur-3xl translate-x-1/3 -translate-y-1/4"></div>
+
+        <div className="max-w-7xl mx-auto px-4 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-100/50 dark:bg-yellow-900/30 rounded-full border border-yellow-200 dark:border-yellow-800 mb-4">
-              <Award className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-              <span className="text-sm font-semibold text-yellow-900 dark:text-yellow-200">Celebrating Success</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-100/60 dark:bg-orange-900/30 rounded-full border border-orange-300 dark:border-orange-600/50 mb-4 backdrop-blur-sm">
+              <Award className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+              <span className="text-sm font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-wide">Celebrating Success</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-foreground">
+            <h2 className="text-3xl md:text-5xl font-black mb-4 tracking-tight bg-gradient-to-r from-blue-600 to-orange-500 bg-clip-text text-transparent">
               Awards & Recognition
             </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+            <p className="text-lg text-slate-600 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed font-medium">
               Every award tells a story—a story of dedication, impact, and the incredible difference our volunteers make. These aren't just trophies; they're proof that when students come together, amazing things happen.
             </p>
           </motion.div>
@@ -885,7 +889,7 @@ const LandingPage = () => {
           {loadingAwards ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-[350px] w-full bg-muted animate-pulse rounded-3xl shadow-sm"></div>
+                <div key={i} className="h-[350px] w-full bg-gradient-to-br from-orange-200 to-amber-200 dark:from-orange-900 dark:to-amber-900 animate-pulse rounded-3xl shadow-sm"></div>
               ))}
             </div>
           ) : awards.length > 0 ? (
@@ -916,8 +920,8 @@ const LandingPage = () => {
               </motion.div>
             </div>
           ) : (
-            <div className="text-center py-20 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-[3rem] border-4 border-dashed border-yellow-200">
-              <Award className="w-20 h-20 mx-auto text-yellow-200 mb-6" />
+            <div className="text-center py-20 bg-gradient-to-br from-white to-orange-50 dark:from-slate-800 dark:to-slate-900 backdrop-blur-sm rounded-[3rem] border-4 border-dashed border-orange-200 dark:border-orange-900/50">
+              <Award className="w-20 h-20 mx-auto text-orange-200 dark:text-orange-900 mb-6" />
               <p className="text-slate-900 dark:text-white text-2xl font-black tracking-tight mb-2">Awards arriving soon</p>
               <p className="text-slate-500 dark:text-slate-400 font-medium">Recognition for our incredible community impact.</p>
             </div>
@@ -926,16 +930,20 @@ const LandingPage = () => {
       </section>
 
       {/* Leadership Section */}
-      <section className="w-full py-16 md:py-24 bg-muted/10">
-        <div className="max-w-7xl mx-auto px-4">
+      <section className="w-full py-16 md:py-24 bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-slate-800 dark:via-slate-900 dark:to-blue-950 relative overflow-hidden">
+        {/* Decorative Elements */}
+        <div className="absolute top-0 left-0 w-80 h-80 bg-blue-400/5 dark:bg-blue-600/5 rounded-full blur-3xl -translate-x-1/3 -translate-y-1/2"></div>
+        <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-orange-300/5 dark:bg-orange-600/5 rounded-full blur-3xl translate-x-1/4"></div>
+
+        <div className="max-w-7xl mx-auto px-4 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-4xl font-bold mb-4 text-primary">Leadership</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
+            <h2 className="text-3xl md:text-5xl font-black mb-4 tracking-tight bg-gradient-to-r from-blue-600 to-orange-500 bg-clip-text text-transparent">Leadership</h2>
+            <p className="text-slate-600 dark:text-slate-300 max-w-2xl mx-auto text-lg font-medium">
               The visionary leaders guiding K.S.Rangasamy College of Technology and the SM Volunteers forum.
             </p>
           </motion.div>
@@ -1041,16 +1049,20 @@ const LandingPage = () => {
       </section>
 
       {/* Faculty Coordinators Section */}
-      <section id="coordinators-section" className="w-full py-16 md:py-24 bg-background">
-        <div className="max-w-7xl mx-auto px-4">
+      <section id="coordinators-section" className="w-full py-16 md:py-24 bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-blue-950 relative overflow-hidden">
+        {/* Decorative Elements */}
+        <div className="absolute top-1/3 right-0 w-96 h-96 bg-blue-400/5 dark:bg-blue-600/5 rounded-full blur-3xl translate-x-1/3"></div>
+        <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-orange-300/5 dark:bg-orange-600/5 rounded-full blur-3xl translate-y-1/3"></div>
+
+        <div className="max-w-7xl mx-auto px-4 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-4xl font-black mb-4 text-primary tracking-tight">Faculty Coordinators</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto font-medium">
+            <h2 className="text-3xl md:text-5xl font-black mb-4 tracking-tight bg-gradient-to-r from-blue-600 to-orange-500 bg-clip-text text-transparent">Faculty Coordinators</h2>
+            <p className="text-slate-600 dark:text-slate-300 max-w-2xl mx-auto font-medium text-lg">
               Meet our team of dedicated faculty members who coordinate and guide the SM Volunteers mission.
             </p>
           </motion.div>
@@ -1067,9 +1079,9 @@ const LandingPage = () => {
               >
                 <div className="relative w-full h-full transition-transform duration-700 preserve-3d group-hover:rotate-y-180 cursor-pointer active:rotate-y-180">
                   {/* Front Side */}
-                  <Card className="absolute inset-0 backface-hidden bg-card border-border/50 overflow-hidden shadow-xl flex flex-col items-center text-center rounded-[2rem] h-full">
-                    <div className="w-full bg-primary/5 flex items-center justify-center p-6 md:p-8 border-b border-border/50 relative overflow-hidden flex-shrink-0">
-                      <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-primary/20 overflow-hidden shadow-xl relative z-10 bg-background">
+                  <Card className="absolute inset-0 backface-hidden bg-gradient-to-br from-white to-blue-50 dark:from-slate-800 dark:to-slate-900 border border-blue-200 dark:border-blue-900/50 overflow-hidden shadow-xl flex flex-col items-center text-center rounded-[2rem] h-full hover:shadow-2xl hover:shadow-blue-500/20 transition-shadow">
+                    <div className="w-full bg-gradient-to-r from-blue-600/10 to-orange-500/10 flex items-center justify-center p-6 md:p-8 border-b border-blue-200 dark:border-blue-900/50 relative overflow-hidden flex-shrink-0">
+                      <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-blue-600/30 overflow-hidden shadow-xl relative z-10 bg-white dark:bg-slate-800">
                         <img
                           src={coordinator.image}
                           alt={coordinator.name}
@@ -1082,52 +1094,52 @@ const LandingPage = () => {
                     </div>
                     <div className="p-4 md:p-6 space-y-2 md:space-y-3 flex-grow flex flex-col justify-center">
                       <div>
-                        <h3 className="text-lg md:text-xl font-black text-foreground mb-1 leading-tight">{coordinator.name}</h3>
-                        <p className="text-primary font-bold uppercase tracking-wider text-[10px]">{coordinator.role}</p>
+                        <h3 className="text-lg md:text-xl font-black text-slate-900 dark:text-white mb-1 leading-tight">{coordinator.name}</h3>
+                        <p className="text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider text-[10px]">{coordinator.role}</p>
                       </div>
-                      <p className="text-muted-foreground text-[11px] md:text-xs leading-relaxed font-medium line-clamp-3 md:line-clamp-none">
+                      <p className="text-slate-600 dark:text-slate-400 text-[11px] md:text-xs leading-relaxed font-medium line-clamp-3 md:line-clamp-none">
                         {coordinator.description}
                       </p>
                       <div className="pt-2 mt-auto">
-                        <p className="text-[9px] md:text-[10px] text-primary font-black uppercase tracking-widest animate-pulse">Click for contact</p>
+                        <p className="text-[9px] md:text-[10px] text-blue-600 dark:text-blue-400 font-black uppercase tracking-widest animate-pulse">Click for contact</p>
                       </div>
                     </div>
                   </Card>
 
                   {/* Back Side */}
-                  <Card className="absolute inset-0 rotate-y-180 backface-hidden bg-slate-50 dark:bg-slate-900 border-primary/20 overflow-hidden shadow-2xl flex flex-col items-center justify-center text-center rounded-[2rem] p-6 h-full">
+                  <Card className="absolute inset-0 rotate-y-180 backface-hidden bg-gradient-to-br from-blue-600 to-orange-600 border border-orange-500/30 overflow-hidden shadow-2xl flex flex-col items-center justify-center text-center rounded-[2rem] p-6 h-full">
                     <div className="w-full space-y-4 md:space-y-6">
-                      <div className="relative mx-auto w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 shadow-lg">
-                        <Mail className="w-6 h-6 md:w-8 md:h-8 text-primary" />
+                      <div className="relative mx-auto w-12 h-12 md:w-16 md:h-16 rounded-full bg-white/20 flex items-center justify-center border border-white/40 shadow-lg">
+                        <Mail className="w-6 h-6 md:w-8 md:h-8 text-white" />
                       </div>
                       <div className="space-y-1">
-                        <h3 className="text-lg md:text-xl font-black text-primary leading-tight">{coordinator.name}</h3>
-                        <p className="text-muted-foreground font-bold uppercase text-[9px] md:text-[10px] tracking-widest">{coordinator.role}</p>
+                        <h3 className="text-lg md:text-xl font-black text-white leading-tight">{coordinator.name}</h3>
+                        <p className="text-white/80 font-bold uppercase text-[9px] md:text-[10px] tracking-widest">{coordinator.role}</p>
                       </div>
                       <div className="space-y-2 md:space-y-3">
                         <button
                           onClick={(e) => { e.stopPropagation(); openInGmail(coordinator.email); }}
-                          className="flex items-center gap-3 p-2 md:p-3 rounded-xl bg-background border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all w-full group/btn"
+                          className="flex items-center gap-3 p-2 md:p-3 rounded-xl bg-white/20 border border-white/30 hover:border-white/60 hover:bg-white/30 transition-all w-full group/btn"
                         >
-                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary/10 flex items-center justify-center group-hover/btn:bg-primary/20">
-                            <Mail className="w-4 h-4 md:w-5 md:h-5 text-primary" />
+                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/20 flex items-center justify-center group-hover/btn:bg-white/30">
+                            <Mail className="w-4 h-4 md:w-5 md:h-5 text-white" />
                           </div>
                           <div className="text-left overflow-hidden">
-                            <p className="text-[7px] md:text-[8px] font-black uppercase text-muted-foreground tracking-widest">Email Address</p>
-                            <p className="text-[10px] md:text-xs font-bold text-foreground truncate">{coordinator.email}</p>
+                            <p className="text-[7px] md:text-[8px] font-black uppercase text-white/70 tracking-widest">Email Address</p>
+                            <p className="text-[10px] md:text-xs font-bold text-white truncate">{coordinator.email}</p>
                           </div>
                         </button>
 
                         <a
                           href={`tel:${coordinator.phone}`}
-                          className="flex items-center gap-3 p-2 md:p-3 rounded-xl bg-background border border-border/20 w-full hover:border-emerald-500/50 transition-all group/btn"
+                          className="flex items-center gap-3 p-2 md:p-3 rounded-xl bg-white/20 border border-white/30 w-full hover:border-white/60 transition-all group/btn"
                         >
-                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                            <Phone className="w-4 h-4 md:w-5 md:h-5 text-emerald-500" />
+                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/20 flex items-center justify-center">
+                            <Phone className="w-4 h-4 md:w-5 md:h-5 text-white" />
                           </div>
                           <div className="text-left">
-                            <p className="text-[7px] md:text-[8px] font-black uppercase text-muted-foreground tracking-widest">Mobile Contact</p>
-                            <p className="text-[10px] md:text-xs font-bold text-foreground">{coordinator.phone}</p>
+                            <p className="text-[7px] md:text-[8px] font-black uppercase text-white/70 tracking-widest">Mobile Contact</p>
+                            <p className="text-[10px] md:text-xs font-bold text-white">{coordinator.phone}</p>
                           </div>
                         </a>
                       </div>
@@ -1140,27 +1152,28 @@ const LandingPage = () => {
         </div>
       </section>
 
-      <section id="office-bearers-section" className="py-24 bg-slate-950 text-white relative overflow-hidden">
-        {/* Decorative background atoms */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 blur-[100px] rounded-full -mr-48 -mt-48 animate-pulse"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary/10 blur-[100px] rounded-full -ml-48 -mb-48"></div>
+      <section id="office-bearers-section" className="py-24 bg-gradient-to-br from-white via-blue-50 to-slate-50 dark:from-slate-800 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden">
+        {/* Decorative Elements */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-orange-300/8 rounded-full blur-3xl translate-x-1/2 -translate-y-1/3"></div>
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-300/8 rounded-full blur-3xl -translate-x-1/3 translate-y-1/3"></div>
+        <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-orange-300/8 rounded-full blur-3xl"></div>
 
         <div className="max-w-7xl mx-auto px-4 relative z-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-16">
             <div>
-              <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-4">
-                Student Office <span className="text-primary">Bearers</span>
+              <h2 className="text-3xl md:text-5xl font-black tracking-tight bg-gradient-to-r from-blue-600 to-orange-500 bg-clip-text text-transparent mb-4">
+                Student <span>Office Bearers</span>
               </h2>
-              <p className="text-slate-400 max-w-2xl text-lg mt-4">
+              <p className="text-slate-600 dark:text-slate-300 max-w-2xl text-lg mt-4 font-medium">
                 The dedicated leadership team guiding our volunteer missions and community impact.
               </p>
             </div>
-            <div className="px-6 py-3 bg-primary/10 border border-primary/20 rounded-full backdrop-blur-md">
-              <span className="text-primary text-sm font-black uppercase tracking-widest italic">Leadership {new Date().getFullYear()}</span>
+            <div className="px-6 py-3 bg-white/40 dark:bg-white/10 border border-blue-200 dark:border-blue-500/30 rounded-full backdrop-blur-xl shadow-lg">
+              <span className="bg-gradient-to-r from-blue-600 to-orange-500 bg-clip-text text-transparent text-sm font-black uppercase tracking-widest">Leadership {new Date().getFullYear()}</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 px-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {officeBearers.map((ob, i) => (
               <motion.div
                 key={ob.id || i}
@@ -1169,46 +1182,44 @@ const LandingPage = () => {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.05 }}
-                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50 backdrop-blur-md shadow-lg hover:shadow-primary/20 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full"
+                className="group relative overflow-hidden rounded-2xl border border-white/30 dark:border-white/15 bg-white/60 dark:bg-slate-800/50 backdrop-blur-xl shadow-xl hover:shadow-2xl hover:shadow-orange-200/30 dark:hover:shadow-orange-500/20 transition-all duration-300 flex flex-col h-full"
               >
                 {/* Photo Section - Standard Aspect Ratio */}
-                <div className="relative w-full aspect-[4/5] overflow-hidden bg-slate-800">
+                <div className="relative w-full aspect-[3/4] overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700">
                   {ob.photo_url ? (
                     <img
                       src={buildImageUrl(ob.photo_url)}
                       alt={ob.name}
-                      className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
+                      className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-110"
                       onError={(e) => {
                         (e.target as any).src = '/Images/Brand_logo.png';
                       }}
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-slate-800 text-slate-600">
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-700 text-slate-400">
                       <Users className="w-12 h-12" />
                     </div>
                   )}
 
                   {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-40 group-hover:opacity-60 transition-opacity duration-300"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </div>
 
                 {/* Content Section */}
-                <div className="p-3 flex flex-col flex-1 relative bg-gradient-to-b from-slate-900/90 to-slate-950">
-                  <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent opacity-50"></div>
-
-                  <div className="mb-1.5">
-                    <span className="inline-block px-1.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[7px] font-black uppercase tracking-widest text-primary truncate max-w-full">
+                <div className="p-3 flex flex-col flex-1 relative bg-white/50 dark:bg-slate-800/60 backdrop-blur-sm">
+                  <div className="mb-2">
+                    <span className="inline-block px-2 py-1 rounded-full bg-gradient-to-r from-blue-100 to-orange-100 dark:from-blue-900/30 dark:to-orange-900/30 border border-blue-200 dark:border-blue-600/30 text-[7px] font-black uppercase tracking-widest text-blue-700 dark:text-blue-300 truncate max-w-full">
                       {ob.position}
                     </span>
                   </div>
 
-                  <h3 className="text-sm font-bold text-white leading-tight line-clamp-1 mb-0.5" title={ob.name}>
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white leading-tight line-clamp-1 mb-1" title={ob.name}>
                     {ob.name}
                   </h3>
 
-                  <p className="text-[10px] font-medium text-slate-400 flex items-center gap-1">
-                    <Phone className="w-3 h-3 text-primary/70" />
-                    {ob.contact || 'N/A'}
+                  <p className="text-[8px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                    <Phone className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                    <span className="truncate">{ob.contact || 'N/A'}</span>
                   </p>
                 </div>
               </motion.div>
@@ -1220,14 +1231,18 @@ const LandingPage = () => {
       {/* NGO Partners Section */}
       <section
         id="ngo-section"
-        className="py-16 md:py-24 bg-card"
+        className="py-16 md:py-24 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-950 relative overflow-hidden"
       >
-        <div className="max-w-7xl mx-auto px-4">
+        {/* Decorative Elements */}
+        <div className="absolute top-0 left-0 w-80 h-80 bg-blue-400/5 dark:bg-blue-600/5 rounded-full blur-3xl -translate-x-1/3 -translate-y-1/2"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-orange-400/5 dark:bg-orange-600/5 rounded-full blur-3xl translate-x-1/3 translate-y-1/3"></div>
+
+        <div className="max-w-7xl mx-auto px-4 relative z-10">
           <motion.h2
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="text-4xl font-bold mb-4 text-center text-primary"
+            className="text-3xl md:text-5xl font-black mb-4 text-center bg-gradient-to-r from-blue-600 to-orange-500 bg-clip-text text-transparent"
           >
             NGO Partners
           </motion.h2>
@@ -1236,7 +1251,7 @@ const LandingPage = () => {
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
-            className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto font-medium"
+            className="text-center text-slate-600 dark:text-slate-300 mb-12 max-w-2xl mx-auto font-medium text-lg"
           >
             Collaborating with leading organizations for community development
           </motion.p>
@@ -1250,9 +1265,9 @@ const LandingPage = () => {
           >
             {ngoPartners.map((ngo, idx) => (
               <motion.div key={idx} variants={fadeInUp} className="h-full">
-                <Card className="bg-background border-border/50 transition-all hover:shadow-lg hover:scale-105 overflow-hidden flex flex-col rounded-lg hover:border-primary/30 h-full">
+                <Card className="bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-900/50 transition-all hover:shadow-2xl hover:shadow-blue-500/20 hover:scale-105 overflow-hidden flex flex-col rounded-3xl hover:border-blue-400 dark:hover:border-blue-700 h-full">
                   {ngo.logoUrl && (
-                    <div className="h-36 flex items-center justify-center border-b border-border/50 overflow-hidden flex-shrink-0 p-4 bg-white/95 dark:bg-white/90">
+                    <div className="h-36 flex items-center justify-center border-b border-blue-200 dark:border-blue-900/50 overflow-hidden flex-shrink-0 p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-slate-700 dark:to-slate-600">
                       <img
                         src={ngo.logoUrl}
                         alt={ngo.name}
@@ -1268,25 +1283,25 @@ const LandingPage = () => {
                       />
                     </div>
                   )}
-                  <CardHeader className="text-center border-b border-border/50 bg-background">
-                    <CardTitle className="text-lg text-foreground">{ngo.name}</CardTitle>
-                    <CardDescription className="font-semibold text-muted-foreground">🎯 {ngo.focus}</CardDescription>
+                  <CardHeader className="text-center border-b border-blue-200 dark:border-blue-900/50 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-900">
+                    <CardTitle className="text-lg text-slate-900 dark:text-white font-black">{ngo.name}</CardTitle>
+                    <CardDescription className="font-bold text-blue-600 dark:text-blue-400 text-base">🎯 {ngo.focus}</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-3 pt-4">
-                    <p className="text-sm text-muted-foreground">{ngo.description}</p>
-                    <div className="space-y-2 text-xs">
+                  <CardContent className="space-y-3 pt-4 flex-grow flex flex-col">
+                    <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">{ngo.description}</p>
+                    <div className="space-y-2 text-xs flex-grow">
                       <div className="flex items-start gap-2">
-                        <MapPin className="w-3 h-3 mt-0.5 text-primary" />
-                        <span className="text-muted-foreground">{ngo.location}</span>
+                        <MapPin className="w-3 h-3 mt-0.5 text-blue-600 dark:text-blue-400" />
+                        <span className="text-slate-600 dark:text-slate-300 font-medium">{ngo.location}</span>
                       </div>
                       <div className="flex items-start gap-2">
-                        <Heart className="w-3 h-3 mt-0.5 text-primary" />
-                        <span className="text-muted-foreground">{ngo.focus}</span>
+                        <Heart className="w-3 h-3 mt-0.5 text-orange-500 dark:text-orange-400" />
+                        <span className="text-slate-600 dark:text-slate-300 font-medium">{ngo.focus}</span>
                       </div>
                     </div>
                     <div className="flex gap-2 pt-3 flex-wrap">
                       {ngo.areas.map((area, i) => (
-                        <span key={i} className="bg-primary/10 text-primary text-xs px-2 py-1 rounded border border-primary/20">
+                        <span key={i} className="bg-gradient-to-r from-blue-600/10 to-orange-500/10 text-blue-700 dark:text-blue-300 text-xs px-2 py-1 rounded-full border border-blue-600/20 dark:border-blue-900/50 font-semibold">
                           {area}
                         </span>
                       ))}
@@ -1301,11 +1316,15 @@ const LandingPage = () => {
 
       <section
         id="contact-section"
-        className="bg-slate-50 dark:bg-[#020617] text-slate-900 dark:text-white py-24 relative overflow-hidden"
+        className="bg-gradient-to-br from-slate-50 via-blue-50 to-white dark:from-slate-900 dark:via-blue-950 dark:to-slate-950 text-slate-900 dark:text-white py-24 relative overflow-hidden"
       >
-        <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
-          <div className="absolute top-0 left-1/4 w-px h-full bg-primary/20"></div>
-          <div className="absolute top-0 right-1/4 w-px h-full bg-primary/20"></div>
+        {/* Decorative Elements */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-orange-400/5 dark:bg-orange-600/5 rounded-full blur-3xl translate-x-1/4 -translate-y-1/4"></div>
+        <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-blue-400/5 dark:bg-blue-600/5 rounded-full blur-3xl translate-y-1/3"></div>
+
+        <div className="absolute top-0 left-0 w-full h-full opacity-5 dark:opacity-10 pointer-events-none">
+          <div className="absolute top-0 left-1/4 w-px h-full bg-blue-600"></div>
+          <div className="absolute top-0 right-1/4 w-px h-full bg-orange-500"></div>
         </div>
 
         <motion.div
@@ -1315,8 +1334,8 @@ const LandingPage = () => {
           className="max-w-6xl mx-auto px-4 text-center space-y-12 relative z-10"
         >
           <div className="space-y-4">
-            <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">Ready to Make a Difference?</h2>
-            <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 font-medium max-w-2xl mx-auto px-4">
+            <h2 className="text-3xl md:text-5xl font-black mb-4 tracking-tight bg-gradient-to-r from-blue-600 to-orange-500 bg-clip-text text-transparent">Ready to Make a Difference?</h2>
+            <p className="text-lg md:text-xl text-slate-600 dark:text-slate-300 font-medium max-w-2xl mx-auto px-4">
               Join thousands of volunteers contributing to a better society through meaningful community service.
             </p>
           </div>
@@ -1324,7 +1343,7 @@ const LandingPage = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center px-6">
             <Button
               size="lg"
-              className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold shadow-xl transition-all transform hover:scale-105 px-8 md:px-10 py-6 md:py-7 rounded-2xl text-base md:text-lg w-full sm:w-auto"
+              className="bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 font-bold shadow-xl hover:shadow-2xl hover:shadow-blue-500/40 transition-all transform hover:scale-105 px-8 md:px-10 py-6 md:py-7 rounded-2xl text-base md:text-lg w-full sm:w-auto uppercase tracking-wide"
               onClick={() =>
                 isAuthenticated ? navigate(getDashboardPath()) : window.location.href = "/login"
               }
@@ -1334,7 +1353,7 @@ const LandingPage = () => {
             <Button
               size="lg"
               variant="outline"
-              className="bg-background/50 backdrop-blur-sm text-foreground hover:bg-muted border-2 border-primary/20 font-bold shadow-xl transition-all transform hover:scale-105 px-8 md:px-10 py-6 md:py-7 rounded-2xl text-base md:text-lg w-full sm:w-auto"
+              className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white border-2 border-blue-600 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-slate-700 font-bold shadow-xl hover:shadow-2xl hover:shadow-blue-500/30 transition-all transform hover:scale-105 px-8 md:px-10 py-6 md:py-7 rounded-2xl text-base md:text-lg w-full sm:w-auto uppercase tracking-wide"
               onClick={() => setContactOpen(true)}
             >
               <Mail className="mr-2 w-5 h-5" /> Contact Us
