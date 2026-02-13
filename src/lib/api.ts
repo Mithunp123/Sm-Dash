@@ -37,10 +37,14 @@ class ApiClient {
     }
 
     const url = `${this.baseURL}${endpoint}`;
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
+    const headers: any = {
       ...options.headers,
     };
+
+    // Only set Content-Type to json if NOT FormData and not explicitly set
+    if (!(options.body instanceof FormData) && !headers['Content-Type']) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
@@ -800,6 +804,53 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify({ studentIds }),
     });
+  }
+
+  async bulkUploadStudents(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request('/students/bulk-upload', {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
+  async bulkUploadCandidates(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request('/interviews/bulk-upload', {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
+  async getCandidates() {
+    return this.request('/interviews');
+  }
+
+  async addCandidate(data: any) {
+    return this.request('/interviews/add', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateCandidate(id: number, data: any) {
+    return this.request(`/interviews/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async sendInterviewEmails(candidateIds: number[]) {
+    return this.request('/interviews/send-emails', {
+      method: 'POST',
+      body: JSON.stringify({ candidateIds }),
+    });
+  }
+
+  async getMyInterviewStatus() {
+    return this.request('/interviews/my-status');
   }
 
   // Chat message methods

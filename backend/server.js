@@ -9,6 +9,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
+import studentRoutes from './routes/students.js';
+import interviewRoutes from './routes/interviews.js';
+console.log('Loading interview routes...');
 import attendanceRoutes from './routes/attendance.js';
 import meetingRoutes from './routes/meetings.js';
 import projectRoutes from './routes/projects.js';
@@ -101,6 +104,8 @@ app.use('/api/auth', authRoutes);
 // Also expose auth routes at /auth so frontend simple redirects (e.g. /auth/google) work
 app.use('/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/students', studentRoutes);
+app.use('/api/interviews', interviewRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/meetings', meetingRoutes);
 app.use('/api/projects', projectRoutes);

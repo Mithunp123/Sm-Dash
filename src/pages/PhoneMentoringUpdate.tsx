@@ -834,7 +834,7 @@ const PhoneMentoringUpdate = () => {
             <DialogHeader>
               <DialogTitle>Mark Attendance</DialogTitle>
               <DialogDescription>
-                {attendanceDialog.mentee ? `Record class status for ${attendanceDialog.mentee.mentee_name}` : ""}
+                {attendanceDialog.mentee ? `Record class status for ${attendanceDialog.mentee.mentee_name}` : "Record class status"}
               </DialogDescription>
             </DialogHeader>
             {attendanceDialog.mentee && (
@@ -953,8 +953,8 @@ const PhoneMentoringUpdate = () => {
                               {row.attendance_date ? format(new Date(row.attendance_date), "PPP") : "Unknown Date"}
                             </span>
                             <span className={`px-2 py-0.5 rounded text-xs font-bold ${row.status === "PRESENT"
-                                ? "bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20"
-                                : "bg-muted text-muted-foreground border border-border"
+                              ? "bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20"
+                              : "bg-muted text-muted-foreground border border-border"
                               }`}>
                               {row.status}
                             </span>

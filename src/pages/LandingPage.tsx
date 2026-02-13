@@ -829,27 +829,24 @@ const LandingPage = () => {
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.8 }}
-              className="embla overflow-hidden"
-              ref={eventsRef}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
             >
-              <div className="embla__container flex">
-                {upcomingEvents.map((event) => (
-                  <div key={event.id} className="embla__slide flex-[0_0_100%] md:flex-[0_0_48%] lg:flex-[0_0_32%] min-w-0 px-4">
-                    <EventCard
-                      event={event}
-                      eventDate={new Date(event.date)}
-                      isToday={new Date(event.date).toDateString() === new Date().toDateString()}
-                      isThisWeek={new Date(event.date).getTime() - new Date().getTime() <= 7 * 24 * 60 * 60 * 1000}
-                      isPast={new Date(event.date).getTime() < new Date().getTime()}
-                      onImageClick={setSelectedEventImage}
-                      onRegisterClick={(event) => {
-                        setSelectedEventForVolunteer(event);
-                        setShowVolunteerForm(true);
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
+              {upcomingEvents.map((event) => (
+                <div key={event.id} className="h-full">
+                  <EventCard
+                    event={event}
+                    eventDate={new Date(event.date)}
+                    isToday={new Date(event.date).toDateString() === new Date().toDateString()}
+                    isThisWeek={new Date(event.date).getTime() - new Date().getTime() <= 7 * 24 * 60 * 60 * 1000}
+                    isPast={new Date(event.date).getTime() < new Date().getTime()}
+                    onImageClick={setSelectedEventImage}
+                    onRegisterClick={(event) => {
+                      setSelectedEventForVolunteer(event);
+                      setShowVolunteerForm(true);
+                    }}
+                  />
+                </div>
+              ))}
             </motion.div>
           ) : (
             <div className="text-center py-20 bg-white/50 backdrop-blur-sm rounded-[3rem] border-4 border-dashed border-slate-200">
@@ -1163,7 +1160,7 @@ const LandingPage = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 px-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 px-2">
             {officeBearers.map((ob, i) => (
               <motion.div
                 key={ob.id || i}
@@ -1172,8 +1169,7 @@ const LandingPage = () => {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.05 }}
-                onClick={() => { setSelectedOB(ob); setShowViewDialog(true); }}
-                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50 backdrop-blur-md shadow-lg hover:shadow-primary/20 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col h-full"
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/50 backdrop-blur-md shadow-lg hover:shadow-primary/20 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full"
               >
                 {/* Photo Section - Standard Aspect Ratio */}
                 <div className="relative w-full aspect-[4/5] overflow-hidden bg-slate-800">
@@ -1197,18 +1193,23 @@ const LandingPage = () => {
                 </div>
 
                 {/* Content Section */}
-                <div className="p-4 flex flex-col flex-1 relative bg-gradient-to-b from-slate-900/90 to-slate-950">
+                <div className="p-3 flex flex-col flex-1 relative bg-gradient-to-b from-slate-900/90 to-slate-950">
                   <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent opacity-50"></div>
 
-                  <div className="mb-2">
-                    <span className="inline-block px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[8px] font-black uppercase tracking-widest text-primary truncate max-w-full">
+                  <div className="mb-1.5">
+                    <span className="inline-block px-1.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[7px] font-black uppercase tracking-widest text-primary truncate max-w-full">
                       {ob.position}
                     </span>
                   </div>
 
-                  <h3 className="text-base font-bold text-white leading-tight line-clamp-2" title={ob.name}>
+                  <h3 className="text-sm font-bold text-white leading-tight line-clamp-1 mb-0.5" title={ob.name}>
                     {ob.name}
                   </h3>
+
+                  <p className="text-[10px] font-medium text-slate-400 flex items-center gap-1">
+                    <Phone className="w-3 h-3 text-primary/70" />
+                    {ob.contact || 'N/A'}
+                  </p>
                 </div>
               </motion.div>
             ))}

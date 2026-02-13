@@ -383,9 +383,13 @@ export const initDatabase = async () => {
         hosteller_dayscholar TEXT,
         position TEXT,
         custom_fields TEXT,
+        interview_status TEXT DEFAULT 'Pending' CHECK(interview_status IN ('Pending', 'Selected', 'Rejected')),
+        interview_marks INTEGER DEFAULT NULL,
+        mentor_id INTEGER DEFAULT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (mentor_id) REFERENCES users(id) ON DELETE SET NULL,
         UNIQUE(user_id)
       )
     `);
@@ -397,6 +401,10 @@ export const initDatabase = async () => {
     await addColumnSafe(database, 'profiles', 'father_number', 'TEXT');
     await addColumnSafe(database, 'profiles', 'hosteller_dayscholar', 'TEXT');
     await addColumnSafe(database, 'profiles', 'position', 'TEXT');
+    // Interview related columns
+    await addColumnSafe(database, 'profiles', 'interview_status', "TEXT DEFAULT 'Pending'");
+    await addColumnSafe(database, 'profiles', 'interview_marks', 'INTEGER DEFAULT NULL');
+    await addColumnSafe(database, 'profiles', 'mentor_id', 'INTEGER DEFAULT NULL');
 
     // Migrate existing role-specific profile data into unified profiles table if profiles is empty
     try {
@@ -785,6 +793,31 @@ export const initDatabase = async () => {
     await addColumnSafe(database, 'activity_logs', 'module_name', 'TEXT');
     await addColumnSafe(database, 'activity_logs', 'action_description', 'TEXT');
     await addColumnSafe(database, 'activity_logs', 'reference_id', 'TEXT');
+
+    // Interview Candidates table
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS interview_candidates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        phone TEXT,
+        dept TEXT,
+        year TEXT,
+        register_no TEXT UNIQUE NOT NULL,
+        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'interviewed', 'selected', 'rejected')),
+        marks INTEGER DEFAULT 0,
+        interviewer TEXT,
+        interview_date DATE,
+        interview_time TIME,
+        email_sent INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await addColumnSafe(database, 'interview_candidates', 'email_sent', 'INTEGER DEFAULT 0');
+    await addColumnSafe(database, 'interview_candidates', 'interviewer', 'TEXT');
+    await addColumnSafe(database, 'interview_candidates', 'interview_date', 'DATE');
+    await addColumnSafe(database, 'interview_candidates', 'interview_time', 'TIME');
 
     // console.log('Creating: feedback_questions');
     // Feedback questions table

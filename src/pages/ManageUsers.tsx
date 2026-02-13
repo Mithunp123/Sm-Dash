@@ -17,6 +17,7 @@ import { auth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
+import { BulkUploadModal } from "@/components/BulkUploadModal";
 
 const ManageUsers = () => {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ const ManageUsers = () => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showBulkUploadDialog, setShowBulkUploadDialog] = useState(false);
   const [importedUsers, setImportedUsers] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -388,14 +390,14 @@ const ManageUsers = () => {
                   <Plus className="w-4 h-4" />
                   Add User
                 </Button>
-                <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
-                  <Button onClick={downloadTemplate} variant="outline" className="gap-2 h-11 rounded-2xl border-2 font-black text-[9px] uppercase tracking-widest">
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                  <Button onClick={downloadTemplate} variant="outline" className="flex-1 sm:flex-none gap-2 h-11 rounded-2xl border-2 font-black text-[9px] uppercase tracking-widest px-3">
                     <Upload className="w-3.5 h-3.5 text-primary" />
                     Template
                   </Button>
-                  <Button onClick={() => setShowImportDialog(true)} variant="outline" className="gap-2 h-11 rounded-2xl border-2 font-black text-[9px] uppercase tracking-widest">
+                  <Button onClick={() => setShowImportDialog(true)} variant="outline" className="flex-1 sm:flex-none gap-2 h-11 rounded-2xl border-2 font-black text-[9px] uppercase tracking-widest px-3">
                     <Upload className="w-3.5 h-3.5 text-primary" />
-                    Import
+                    Import Users
                   </Button>
                 </div>
               </div>
@@ -891,11 +893,13 @@ const ManageUsers = () => {
         </DialogContent>
       </Dialog>
 
-
-
+      <BulkUploadModal
+        isOpen={showBulkUploadDialog}
+        onClose={() => setShowBulkUploadDialog(false)}
+        onSuccess={() => loadUsers()}
+      />
     </div>
   );
 };
 
 export default ManageUsers;
-

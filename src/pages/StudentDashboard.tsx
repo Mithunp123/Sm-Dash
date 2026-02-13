@@ -31,6 +31,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
   const [odHistory, setOdHistory] = useState<any>(null);
   const [notifiedIds, setNotifiedIds] = useState<(number | string)[]>([]);
   const [profileData, setProfileData] = useState<any>(null);
+  const [interviewStatus, setInterviewStatus] = useState<any>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
 
@@ -81,13 +82,14 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
       const currentUser = auth.getUser();
       if (!currentUser) return;
 
-      const [projRes, meetRes, evRes, resRes, odRes, profileRes] = await Promise.all([
+      const [projRes, meetRes, evRes, resRes, odRes, profileRes, interviewRes] = await Promise.all([
         api.getUserProjects(currentUser.id),
         api.getMeetings(),
         api.getEvents(), // Fetch all events for the timeline
         api.getResources(),
         api.getStudentODHistory(currentUser.id),
-        api.getStudentProfile(currentUser.id)
+        api.getStudentProfile(currentUser.id),
+        api.getMyInterviewStatus()
       ]);
 
       if (projRes.success) setProjects(projRes.projects || []);
@@ -96,6 +98,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
       if (resRes.success) setResources(resRes.resources || []);
       if (odRes.success) setOdHistory(odRes);
       if (profileRes.success) setProfileData(profileRes.profile);
+      if (interviewRes.success) setInterviewStatus(interviewRes.candidate);
 
     } catch (err: any) {
       console.error('Error loading dashboard data:', err);
@@ -214,6 +217,78 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
               {/* Left Side: Welcome & Meetings */}
               <div className="lg:col-span-2 space-y-6">
                 {/* Refined Welcome Banner */}
+                {/* Interview Status Card - Only show if assigned or decision made */}
+                {interviewStatus && (interviewStatus.interview_date || interviewStatus.status === 'selected' || interviewStatus.status === 'rejected') && (
+                  <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-violet-600 to-indigo-600 p-8 text-white shadow-xl mb-6">
+                    <div className="relative z-10">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md mb-4 text-xs font-bold uppercase tracking-widest border border-white/10">
+                        <Briefcase className="w-3 h-3 text-white" />
+                        <span>Interview Update</span>
+                      </div>
+                      <h2 className="text-3xl font-bold mb-2 tracking-tight">
+                        {interviewStatus.status === 'selected' ? 'Congratulations! You are Selected!' :
+                          interviewStatus.status === 'rejected' ? 'Application Update' :
+                            'Interview Scheduled'}
+                      </h2>
+                      <div className="space-y-4 mt-6">
+                        {interviewStatus.status === 'selected' && (
+                          <p className="text-indigo-100 font-medium text-lg">
+                            We are thrilled to have you on board! Please check your email for further instructions.
+                          </p>
+                        )}
+                        {interviewStatus.status === 'rejected' && (
+                          <p className="text-indigo-100 font-medium">
+                            Thank you for your interest. Unfortunately, we cannot move forward with your application at this time.
+                          </p>
+                        )}
+                        {interviewStatus.status === 'interviewed' && (
+                          <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm border border-white/10">
+                            <div className="flex items-center gap-3 mb-2">
+                              <CheckCircle2 className="w-6 h-6 text-green-400" />
+                              <h3 className="text-lg font-bold text-white">Interview Completed</h3>
+                            </div>
+                            <p className="text-indigo-100/80 text-sm">
+                              Your interview has been completed. Please wait for the selection results.
+                            </p>
+                          </div>
+                        )}
+                        {interviewStatus.status === 'pending' && interviewStatus.interview_date && (
+                          <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm border border-white/10">
+                            <h3 className="text-sm font-bold uppercase tracking-widest text-indigo-200 mb-2">Your Interview Details</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="flex items-center gap-3">
+                                <CalendarIcon className="w-5 h-5 text-indigo-300" />
+                                <div>
+                                  <p className="text-xs text-indigo-200 uppercase font-bold">Date</p>
+                                  <p className="font-bold text-lg">{interviewStatus.interview_date}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <Clock className="w-5 h-5 text-indigo-300" />
+                                <div>
+                                  <p className="text-xs text-indigo-200 uppercase font-bold">Time</p>
+                                  <p className="font-bold text-lg">{interviewStatus.interview_time || 'TBD'}</p>
+                                </div>
+                              </div>
+                              {interviewStatus.interviewer && (
+                                <div className="flex items-center gap-3 col-span-full border-t border-white/10 pt-3 mt-1">
+                                  <Briefcase className="w-5 h-5 text-indigo-300" />
+                                  <div>
+                                    <p className="text-xs text-indigo-200 uppercase font-bold">Interviewer</p>
+                                    <p className="font-bold">{interviewStatus.interviewer}</p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+                    <div className="absolute bottom-0 right-20 translate-y-1/2 w-48 h-48 bg-violet-400/20 rounded-full blur-2xl" />
+                  </div>
+                )}
+
                 <div className="relative overflow-hidden rounded-[2rem] bg-indigo-600 p-8 text-foreground shadow-xl">
                   <div className="relative z-10">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md mb-4 text-xs font-bold uppercase tracking-widest border border-white/10">

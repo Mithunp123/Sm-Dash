@@ -18,6 +18,7 @@ import OfficeBearerProfile from "./pages/OfficeBearerProfile";
 import StudentProjects from "./pages/StudentProjects";
 import StudentBills from "./pages/StudentBills";
 import StudentReports from "./pages/StudentReports";
+import ManageInterviews from "./pages/ManageInterviews";
 import ManageUsers from "./pages/ManageUsers";
 import ManageMeetings from "./pages/ManageMeetings";
 import ManageBills from "./pages/ManageBills";
@@ -80,6 +81,7 @@ const App = () => (
             <Route path="/home" element={<Index />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/users" element={<ProtectedRoute requiredPermission="can_manage_users"><ManageUsers /></ProtectedRoute>} />
+            <Route path="/admin/interviews" element={<ProtectedRoute requiredRoles={['admin', 'office_bearer']}><ManageInterviews /></ProtectedRoute>} />
             <Route path="/admin/meetings" element={<ProtectedRoute requiredPermission="can_manage_meetings"><ManageMeetings /></ProtectedRoute>} />
             <Route path="/admin/bills" element={<ProtectedRoute requiredPermission="can_manage_bills"><ManageBills /></ProtectedRoute>} />
             <Route path="/admin/analytics" element={<ProtectedRoute requiredPermission="can_view_analytics"><Analytics /></ProtectedRoute>} />

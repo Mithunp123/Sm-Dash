@@ -149,8 +149,17 @@ const AttendanceProjects = () => {
     };
 
     const handleMarkAttendanceClick = (studentId: number, status: string) => {
-        setAttendanceData(prev => ({ ...prev, [studentId]: status }));
-        setUnsavedChanges(prev => ({ ...prev, [studentId]: status }));
+        setAttendanceData(prev => {
+            const currentStatus = prev[studentId];
+            const newStatus = currentStatus === status ? '' : status;
+            return { ...prev, [studentId]: newStatus };
+        });
+
+        setUnsavedChanges(prev => {
+            const currentStatus = attendanceData[studentId];
+            const newStatus = currentStatus === status ? '' : status;
+            return { ...prev, [studentId]: newStatus };
+        });
     };
 
     const handleMarkAllPresent = () => {
@@ -344,6 +353,7 @@ const AttendanceProjects = () => {
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                     <div>
                                         <DialogTitle className="text-2xl font-black truncate">{selectedProject?.title}</DialogTitle>
+                                        <DialogDescription>Manage attendance for this project</DialogDescription>
                                         <div className="flex items-center gap-2 mt-1 text-primary font-bold">
                                             <Calendar className="w-4 h-4" />
                                             <span>{new Date(selectedDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
@@ -494,11 +504,11 @@ const AttendanceProjects = () => {
                                 </div>
                             </div>
 
-                            <div className="p-6 border-t bg-background flex flex-col sm:flex-row justify-end gap-3 sm:rounded-b-3xl">
-                                <Button size="lg" className="flex-1 rounded-2xl h-14 font-black uppercase tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-[1.02]" onClick={handleSaveAttendance} disabled={isSaving || Object.keys(unsavedChanges).length === 0}>
-                                    {isSaving ? 'Syncing...' : 'Submit Attendance'}
+                            <div className="p-4 border-t bg-background flex justify-end gap-3 sm:rounded-b-3xl">
+                                <Button variant="ghost" className="rounded-xl font-bold" onClick={() => setShowMarkDialog(false)}>Cancel</Button>
+                                <Button className="rounded-xl font-bold px-8 shadow-lg shadow-primary/20" onClick={handleSaveAttendance} disabled={isSaving || Object.keys(unsavedChanges).length === 0}>
+                                    {isSaving ? 'Saving...' : 'Save Attendance'}
                                 </Button>
-                                <Button size="lg" variant="ghost" className="rounded-2xl h-14 font-bold" onClick={() => setShowMarkDialog(false)}>Cancel</Button>
                             </div>
                         </DialogContent>
                     </Dialog>

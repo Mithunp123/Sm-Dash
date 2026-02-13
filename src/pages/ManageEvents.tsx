@@ -783,33 +783,7 @@ const ManageEvents = () => {
                 Events <span className="text-primary/50 text-xl font-bold italic ml-1">({events.length})</span>
               </CardTitle>
 
-              <div className="flex flex-wrap items-center justify-center gap-3 w-full sm:w-auto">
-                <div className="flex items-center gap-2 bg-background/50 px-4 py-2 rounded-2xl border border-border/50 shadow-sm">
-                  <Checkbox
-                    id="bulk-select"
-                    checked={events.length > 0 && selectedEventIds.length === events.length}
-                    onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
-                    className="rounded-md"
-                  />
-                  <Label htmlFor="bulk-select" className="text-sm font-bold uppercase tracking-wider cursor-pointer">Select All</Label>
-                </div>
 
-                {selectedEventIds.length > 0 && (
-                  <Button
-                    variant="outline"
-                    onClick={downloadSelectedEventsPDF}
-                    disabled={bulkDownloadLoading}
-                    className="h-10 rounded-2xl font-bold border-primary/20 hover:bg-primary/5 transition-all gap-2"
-                  >
-                    {bulkDownloadLoading ? (
-                      <div className="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
-                    ) : (
-                      <Download className="w-4 h-4 text-primary" />
-                    )}
-                    <span>Download ({selectedEventIds.length})</span>
-                  </Button>
-                )}
-              </div>
             </CardHeader>
             <CardContent className="p-4 md:p-6 bg-muted/5">
               {loading ? (
@@ -825,7 +799,7 @@ const ManageEvents = () => {
                   <p className="text-lg font-bold text-muted-foreground">No events found for this period</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {events.map((event) => {
                     const buildImageUrl = (imageUrl: string | null | undefined) => {
                       if (!imageUrl) return null;
@@ -839,7 +813,7 @@ const ManageEvents = () => {
                     const imageUrl = buildImageUrl(event.image_url);
 
                     return (
-                      <div key={event.id} className={`group flex flex-col bg-card rounded-2xl border transition-all duration-300 overflow-hidden ${selectedEventIds.includes(event.id) ? 'border-primary ring-2 ring-primary/20 shadow-lg' : 'border-border/40 hover:shadow-md hover:border-primary/20'}`}>
+                      <div key={event.id} className="group flex flex-col bg-card rounded-2xl border transition-all duration-300 overflow-hidden border-border/40 hover:shadow-md hover:border-primary/20">
                         {/* Image Section */}
                         <div className="relative h-48 w-full overflow-hidden bg-muted">
                           {imageUrl ? (
@@ -852,22 +826,15 @@ const ManageEvents = () => {
                               }}
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-secondary/30">
-                              <ImageIcon className="w-10 h-10 opacity-20" />
-                            </div>
+                            <img
+                              src="/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
+                              alt="Default Event"
+                              className="w-full h-full object-contain p-8 bg-slate-900/50"
+                            />
                           )}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                          {/* Checkbox */}
-                          <div className="absolute top-3 left-3 z-20">
-                            <div className={`p-1 rounded-lg transition-colors ${selectedEventIds.includes(event.id) ? 'bg-primary' : 'bg-black/30 backdrop-blur-md'}`}>
-                              <Checkbox
-                                checked={selectedEventIds.includes(event.id)}
-                                onCheckedChange={(checked) => handleSelectEvent(event.id, checked as boolean)}
-                                className="w-5 h-5 border-white/50 data-[state=checked]:bg-transparent data-[state=checked]:border-white text-white"
-                              />
-                            </div>
-                          </div>
+
 
                           {/* Date Badge */}
                           <div className="absolute bottom-3 right-3">

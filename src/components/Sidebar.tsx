@@ -38,6 +38,7 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
   const adminMenuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
     { icon: Users, label: "Manage Users", path: "/admin/users" },
+    { icon: UserCheck, label: "Interview Candidates", path: "/admin/interviews" },
     { icon: UsersRound, label: "Manage Office Bearers", path: "/admin/office-bearers" },
     { icon: Users, label: "Student Database", path: "/admin/student-db" },
     { icon: Briefcase, label: "Manage Projects", path: "/admin/projects" },

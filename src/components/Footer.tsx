@@ -94,13 +94,7 @@ const Footer = ({ className }: { className?: string }) => {
               </div>
             </div>
 
-            <div className="space-y-4 pt-4 border-t border-slate-800/50">
-              <p className="text-xs text-slate-500">Have suggestions or queries?</p>
-              <Button variant="outline" className="w-full rounded-xl border-dashed border-slate-700 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all gap-2 group">
-                <Mail className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                Give Feedback
-              </Button>
-            </div>
+
           </div>
         </div>
 
