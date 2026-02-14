@@ -167,7 +167,7 @@ const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
                       document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
                   }}
-                  className="whitespace-nowrap text-xs md:text-sm font-bold text-slate-300 hover:text-white hover:bg-white/10 px-4 py-2 rounded-lg transition-all uppercase tracking-tight"
+                  className="whitespace-nowrap text-xs md:text-sm font-bold text-white/90 hover:text-white hover:bg-white/20 px-4 py-2 rounded-lg transition-all uppercase tracking-tight shadow-sm"
                 >
                   {item.label}
                 </button>
@@ -279,14 +279,14 @@ const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
                       document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
                   }}
-                  className="whitespace-nowrap text-xs md:text-sm font-bold text-slate-300 hover:text-white hover:bg-white/10 px-4 py-2 rounded-lg transition-all uppercase tracking-tight"
+                  className="whitespace-nowrap text-xs md:text-sm font-bold text-white/90 hover:text-white hover:bg-white/20 px-4 py-2 rounded-lg transition-all uppercase tracking-tight shadow-sm"
                 >
                   {item.label}
                 </button>
               ))}
               <Button
                 onClick={handleLogout}
-                className="whitespace-nowrap text-xs md:text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg transition-all uppercase tracking-tight ml-2"
+                className="whitespace-nowrap text-xs md:text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg transition-all uppercase tracking-tight ml-2 shadow-md"
               >
                 Logout
               </Button>
@@ -321,14 +321,14 @@ const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
                               document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                             }
                           }}
-                          className="flex items-center text-lg font-bold text-slate-300 hover:text-primary py-2 transition-all uppercase tracking-widest text-left"
+                          className="flex items-center text-lg font-bold text-white/90 hover:text-primary py-2 transition-all uppercase tracking-widest text-left"
                         >
                           {item.label}
                         </button>
                       ))}
                       <Button
                         onClick={handleLogout}
-                        className="mt-4 bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 uppercase tracking-widest rounded-xl"
+                        className="mt-4 bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 uppercase tracking-widest rounded-xl shadow-md"
                       >
                         Logout
                       </Button>
@@ -372,7 +372,7 @@ const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
             )}
 
             <div className="flex-1 flex items-center gap-4">
-              <div className="font-semibold text-white md:hidden">
+              <div className="font-semibold text-white">
                 SM Volunteers
               </div>
             </div>

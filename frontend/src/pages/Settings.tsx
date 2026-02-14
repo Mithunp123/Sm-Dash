@@ -72,7 +72,7 @@ const Settings = () => {
   // Theme state
   const [theme, setTheme] = useState(() => {
     const stored = localStorage.getItem('theme');
-    return stored || 'light';
+    return stored || 'dark';
   });
 
   useEffect(() => {

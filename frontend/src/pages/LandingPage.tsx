@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import principalImg from "../../images/Dr.R. Gopalakrishnan.jpg";
-import palaniappanImg from "../../images/Dr.A.Palaniappan.jpg";
-import mythiliImg from "../../images/MYTHILI MAM.png";
-import rajkumarImg from "../../images/Rajkumar.png";
+import principalImg from "../../../Images/Dr.R. Gopalakrishnan.jpg";
+import palaniappanImg from "../../../Images/Dr.A.Palaniappan.jpg";
+import mythiliImg from "../../../Images/MYTHILI MAM.png";
+import rajkumarImg from "../../../Images/Rajkumar.png";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";

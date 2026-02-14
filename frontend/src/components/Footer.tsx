@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Phone, Mail, MapPin, Instagram, Facebook, Linkedin, Youtube, Twitter } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import brandLogo from '../../Images/Brand_logo.png';
+import brandLogo from '../../../Images/Brand_logo.png';
 
 const Footer = ({ className }: { className?: string }) => {
   return (

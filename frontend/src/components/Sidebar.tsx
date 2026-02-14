@@ -126,7 +126,7 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
         >
           <div className="shrink-0">
             <img
-              src="/Images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
+              src="/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
               alt="SM Volunteers Logo"
               className="w-16 h-16 object-contain"
             />
@@ -151,14 +151,14 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
                   "w-full justify-start gap-3 h-10 mb-1 transition-all duration-200",
                   active
                     ? "bg-primary text-primary-foreground shadow-sm font-semibold"
-                    : "text-muted-foreground hover:text-foreground hover:bg-white/5 font-medium"
+                    : "text-foreground hover:text-primary hover:bg-primary/10 font-medium"
                 )}
                 onClick={() => {
                   navigate(item.path);
                   onItemClick?.();
                 }}
               >
-                <Icon className={cn("w-5 h-5 flex-shrink-0 transition-colors", active ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground")} />
+                <Icon className={cn("w-5 h-5 flex-shrink-0 transition-colors", active ? "text-primary-foreground" : "text-foreground")} />
                 <span className="text-sm truncate">{item.label}</span>
               </Button>
             );
