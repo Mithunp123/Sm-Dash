@@ -214,7 +214,7 @@ const Analytics = () => {
 
             <Card className="gradient-card border-border/50 hover:shadow-lg transition-all animate-fade-in" style={{ animationDelay: '0.2s' }}>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-violet text-sm">
+                <CardTitle className="flex items-center gap-2 text-purple-600 text-sm">
                   <BarChart3 className="w-4 h-4" />
                   Projects
                 </CardTitle>

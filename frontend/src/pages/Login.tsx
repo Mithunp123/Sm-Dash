@@ -302,7 +302,7 @@ const Login = () => {
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         onClick={() => navigate("/")}
-        className="absolute top-8 left-8 flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-primary transition-colors bg-white/20 dark:bg-white/5 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 shadow-xl"
+        className="absolute top-8 left-8 flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-primary transition-colors bg-white/20 dark:bg-white/5 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 shadow-xl z-50"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Home
@@ -328,79 +328,6 @@ const Login = () => {
                   Login to manage your{" "}
                   <span className="font-medium text-foreground">events, attendance & volunteering</span>
                 </p>
-              </div>
-
-              {/* Role tabs */}
-              <div className="space-y-3">
-                <p className="text-xs text-muted-foreground text-center uppercase tracking-wider font-semibold">
-                  Sign in as
-                </p>
-                <div className="flex justify-center gap-2">
-                  {[
-                    { key: "admin", label: "Admin" },
-                    { key: "office_bearer", label: "Office Bearer" },
-                    { key: "student", label: "Student" },
-                  ].map((r) => (
-                    <Button
-                      key={r.key}
-                      type="button"
-                      variant={activeRole === r.key ? "default" : "outline"}
-                      size="sm"
-                      className={cn(
-                        "rounded-full px-5 py-2 h-auto text-sm transition-all",
-                        activeRole === r.key ? "shadow-md" : "hover:bg-accent hover:text-accent-foreground"
-                      )}
-                      onClick={() => setActiveRole(r.key as any)}
-                    >
-                      {r.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Google authentication */}
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full gap-3 h-12 border-border/60 hover:bg-accent/50 text-base"
-                onClick={() => {
-                  try {
-                    const apiBase = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
-                    const authBase = apiBase.replace(/\/api\/?$/, "");
-                    window.location.href = `${authBase}/auth/google?role=${activeRole}`;
-                  } catch (err) {
-                    console.error("Google login redirect failed", err);
-                  }
-                }}
-              >
-                <svg className="w-5 h-5" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                  <path
-                    fill="#4285F4"
-                    d="M533.5 278.4c0-18.6-1.5-37.1-4.7-54.8H272v103.6h146.9c-6.3 34-25 62.8-53.5 82.1v68.1h86.3c50.6-46.6 81.8-115.5 81.8-199z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M272 544.3c72.4 0 133.2-24 177.6-65.1l-86.3-68.1c-24 16.1-54.7 25.6-91.3 25.6-70.2 0-129.7-47.4-151-111.1H34.6v69.8C78.6 483 167 544.3 272 544.3z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M121 323.7c-10.7-31.9-10.7-66.3 0-98.2V155.7H34.6c-38.5 75.6-38.5 164.7 0 240.3L121 323.7z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M272 107.7c39.4 0 74.9 13.6 102.8 40.3l77.1-77.1C405.2 24 344.4 0 272 0 167 0 78.6 61.3 34.6 155.7l86.4 69.8C142.3 155.1 201.8 107.7 272 107.7z"
-                  />
-                </svg>
-                <span className="font-medium">Continue with Google</span>
-              </Button>
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-border/60" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white/80 dark:bg-slate-900/80 px-2 text-muted-foreground">Or login with email</span>
-                </div>
               </div>
 
               {/* Email / password login */}
@@ -458,6 +385,51 @@ const Login = () => {
                   ) : "Login"}
                 </Button>
               </form>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border/60" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white/80 dark:bg-slate-900/80 px-2 text-muted-foreground">Or continue with</span>
+                </div>
+              </div>
+
+              {/* Google authentication */}
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full gap-3 h-12 border-border/60 hover:bg-accent/50 text-base"
+                onClick={() => {
+                  try {
+                    const apiBase = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+                    const authBase = apiBase.replace(/\/api\/?$/, "");
+                    window.location.href = `${authBase}/auth/google?role=${activeRole}`;
+                  } catch (err) {
+                    console.error("Google login redirect failed", err);
+                  }
+                }}
+              >
+                <svg className="w-5 h-5" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                  <path
+                    fill="#4285F4"
+                    d="M533.5 278.4c0-18.6-1.5-37.1-4.7-54.8H272v103.6h146.9c-6.3 34-25 62.8-53.5 82.1v68.1h86.3c50.6-46.6 81.8-115.5 81.8-199z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M272 544.3c72.4 0 133.2-24 177.6-65.1l-86.3-68.1c-24 16.1-54.7 25.6-91.3 25.6-70.2 0-129.7-47.4-151-111.1H34.6v69.8C78.6 483 167 544.3 272 544.3z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M121 323.7c-10.7-31.9-10.7-66.3 0-98.2V155.7H34.6c-38.5 75.6-38.5 164.7 0 240.3L121 323.7z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M272 107.7c39.4 0 74.9 13.6 102.8 40.3l77.1-77.1C405.2 24 344.4 0 272 0 167 0 78.6 61.3 34.6 155.7l86.4 69.8C142.3 155.1 201.8 107.7 272 107.7z"
+                  />
+                </svg>
+                <span className="font-medium">Continue with Google</span>
+              </Button>
             </div>
           </Card>
         </motion.div>

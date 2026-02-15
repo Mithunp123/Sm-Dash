@@ -145,7 +145,7 @@ const OfficeBearerDashboard = () => {
         </div>
 
         {!hasAnyPermission ? (
-          <Card className="border-none shadow-2xl bg-card/50 backdrop-blur-xl rounded-[3rem] p-16 overflow-hidden relative">
+          <Card className="border-none shadow-2xl bg-card/50 backdrop-blur-xl rounded-3xl p-16 overflow-hidden relative">
             <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
             <CardContent className="relative z-10 text-center space-y-8">
               <div className="w-24 h-24 bg-muted/20 rounded-[2rem] flex items-center justify-center mx-auto ring-1 ring-border/50">
@@ -169,7 +169,7 @@ const OfficeBearerDashboard = () => {
                 { label: 'Total Reports', value: stats.reports, icon: FileText, color: 'text-rose-500', bg: 'bg-rose-50/50 dark:bg-rose-500/10' },
                 { label: 'Hours Logged', value: stats.hours, icon: Clock, color: 'text-amber-500', bg: 'bg-amber-50/50 dark:bg-amber-500/10' }
               ].map((stat, i) => (
-                <Card key={i} className="border-none shadow-xl hover:shadow-2xl transition-all duration-500 rounded-[2.5rem] overflow-hidden bg-card/60 backdrop-blur-xl group cursor-default border border-border/10">
+                <Card key={i} className="border-none shadow-xl hover:shadow-2xl transition-all duration-500 rounded-3xl overflow-hidden bg-card/60 backdrop-blur-xl group cursor-default border border-border/10">
                   <CardContent className="p-7 flex flex-col gap-5">
                     <div className={`w-14 h-14 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500`}>
                       <stat.icon className="w-7 h-7" />
@@ -188,7 +188,7 @@ const OfficeBearerDashboard = () => {
               {/* Feature Highlights */}
               <div className="lg:col-span-2 space-y-8">
                 {/* Hero Banner Part II */}
-                <div className="relative overflow-hidden rounded-[3rem] bg-gradient-to-br from-indigo-600 to-primary p-10 text-foreground shadow-2xl">
+                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 to-primary p-10 text-foreground shadow-2xl">
                   <div className="relative z-10 flex flex-col h-full justify-between gap-8">
                     <div>
                       <Badge className="bg-white/20 backdrop-blur-md border-white/10 text-foreground font-bold mb-4 px-4 py-1 rounded-full text-xs uppercase tracking-widest">
@@ -218,7 +218,7 @@ const OfficeBearerDashboard = () => {
                 {/* Management Quick Navigation */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {permissions.can_manage_students && (
-                    <Card className="rounded-[2.5rem] border-none bg-card/40 backdrop-blur-md shadow-sm hover:shadow-xl transition-all hover:scale-[1.02] cursor-pointer group" onClick={() => navigate("/admin/students")}>
+                    <Card className="rounded-3xl border-none bg-card/40 backdrop-blur-md shadow-sm hover:shadow-xl transition-all hover:scale-[1.02] cursor-pointer group" onClick={() => navigate("/admin/students")}>
                       <CardContent className="p-8 flex items-center gap-6">
                         <div className="w-16 h-16 rounded-[1.5rem] bg-blue-100 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center shrink-0 group-hover:rotate-6 transition-transform">
                           <UserCircle className="w-8 h-8" />
@@ -232,7 +232,7 @@ const OfficeBearerDashboard = () => {
                     </Card>
                   )}
                   {permissions.can_manage_attendance && (
-                    <Card className="rounded-[2.5rem] border-none bg-card/40 backdrop-blur-md shadow-sm hover:shadow-xl transition-all hover:scale-[1.02] cursor-pointer group" onClick={() => navigate("/admin/attendance")}>
+                    <Card className="rounded-3xl border-none bg-card/40 backdrop-blur-md shadow-sm hover:shadow-xl transition-all hover:scale-[1.02] cursor-pointer group" onClick={() => navigate("/admin/attendance")}>
                       <CardContent className="p-8 flex items-center gap-6">
                         <div className="w-16 h-16 rounded-[1.5rem] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 flex items-center justify-center shrink-0 group-hover:rotate-6 transition-transform">
                           <ClipboardCheck className="w-8 h-8" />
@@ -246,7 +246,7 @@ const OfficeBearerDashboard = () => {
                     </Card>
                   )}
                   {permissions.can_manage_bills && (
-                    <Card className="rounded-[2.5rem] border-none bg-card/40 backdrop-blur-md shadow-sm hover:shadow-xl transition-all hover:scale-[1.02] cursor-pointer group" onClick={() => navigate("/admin/bills")}>
+                    <Card className="rounded-3xl border-none bg-card/40 backdrop-blur-md shadow-sm hover:shadow-xl transition-all hover:scale-[1.02] cursor-pointer group" onClick={() => navigate("/admin/bills")}>
                       <CardContent className="p-8 flex items-center gap-6">
                         <div className="w-16 h-16 rounded-[1.5rem] bg-rose-100 dark:bg-rose-900/30 text-rose-600 flex items-center justify-center shrink-0 group-hover:rotate-6 transition-transform">
                           <FileText className="w-8 h-8" />
@@ -260,7 +260,7 @@ const OfficeBearerDashboard = () => {
                     </Card>
                   )}
                   {permissions.can_manage_feedback_questions && (
-                    <Card className="rounded-[2.5rem] border-none bg-card/40 backdrop-blur-md shadow-sm hover:shadow-xl transition-all hover:scale-[1.02] cursor-pointer group" onClick={() => navigate("/admin/feedback/questions")}>
+                    <Card className="rounded-3xl border-none bg-card/40 backdrop-blur-md shadow-sm hover:shadow-xl transition-all hover:scale-[1.02] cursor-pointer group" onClick={() => navigate("/admin/feedback/questions")}>
                       <CardContent className="p-8 flex items-center gap-6">
                         <div className="w-16 h-16 rounded-[1.5rem] bg-amber-100 dark:bg-amber-900/30 text-amber-600 flex items-center justify-center shrink-0 group-hover:rotate-6 transition-transform">
                           <MessageSquare className="w-8 h-8" />
@@ -274,7 +274,7 @@ const OfficeBearerDashboard = () => {
                     </Card>
                   )}
                   {permissions.can_manage_announcements && (
-                    <Card className="rounded-[2.5rem] border-none bg-card/40 backdrop-blur-md shadow-sm hover:shadow-xl transition-all hover:scale-[1.02] cursor-pointer group" onClick={() => navigate("/admin/announcements")}>
+                    <Card className="rounded-3xl border-none bg-card/40 backdrop-blur-md shadow-sm hover:shadow-xl transition-all hover:scale-[1.02] cursor-pointer group" onClick={() => navigate("/admin/announcements")}>
                       <CardContent className="p-8 flex items-center gap-6">
                         <div className="w-16 h-16 rounded-[1.5rem] bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 flex items-center justify-center shrink-0 group-hover:rotate-6 transition-transform">
                           <Megaphone className="w-8 h-8" />
@@ -302,7 +302,7 @@ const OfficeBearerDashboard = () => {
                 </div>
 
                 {/* Quick Action Summary Card */}
-                <Card className="rounded-[2.5rem] bg-slate-900 text-foreground border-none shadow-2xl relative overflow-hidden group">
+                <Card className="rounded-3xl bg-slate-900 text-foreground border-none shadow-2xl relative overflow-hidden group">
                   <div className="p-8 space-y-6 relative z-10">
                     <div className="flex items-center gap-3 text-primary">
                       <Layers className="w-6 h-6" />
@@ -352,7 +352,7 @@ const OfficeBearerDashboard = () => {
                 </Card>
 
                 {/* Wisdom/Inspiration Card */}
-                <Card className="rounded-[2.5rem] border-none bg-indigo-50/50 dark:bg-indigo-900/10 p-8 space-y-4 relative overflow-hidden group">
+                <Card className="rounded-3xl border-none bg-indigo-50/50 dark:bg-indigo-900/10 p-8 space-y-4 relative overflow-hidden group">
                   <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
                     <Trophy className="w-5 h-5" />
                     <span className="font-black uppercase tracking-widest text-xs">Leader's Wisdom</span>

@@ -66,14 +66,14 @@ const Index = () => {
                       }
                     }}
                   />
-                  <span className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary via-accent to-violet bg-clip-text text-transparent hidden">SMV</span>
+                  <span className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent hidden">SMV</span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">SM Volunteers</p>
               </div>
 
               {/* NGO Logos */}
               <div className="logo-container group">
-                <div className="w-40 h-40 md:w-48 md:h-48 bg-card/50 rounded-lg flex items-center justify-center border-2 border-violet/30 hover:border-violet transition-all duration-300 hover:scale-105 hover:shadow-[0_0_25px_rgb(156,106,255)] p-2 overflow-hidden relative">
+                <div className="w-40 h-40 md:w-48 md:h-48 bg-card/50 rounded-lg flex items-center justify-center border-2 border-primary/30 hover:border-primary transition-all duration-300 hover:scale-105 hover:shadow-[0_0_25px_hsl(var(--primary))] p-2 overflow-hidden relative">
                   <div className="grid grid-cols-3 gap-1 w-full h-full">
                     <div className="flex items-center justify-center">
                       <img
@@ -109,7 +109,7 @@ const Index = () => {
                       />
                     </div>
                   </div>
-                  <div className="text-xs md:text-sm font-semibold text-violet text-center space-y-1 absolute opacity-0 group-hover:opacity-100 transition-opacity bg-card/90 p-2 rounded">
+                  <div className="text-xs md:text-sm font-semibold text-primary text-center space-y-1 absolute opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-card/95 p-2 rounded shadow-lg">
                     <div>Atchaym Trust</div>
                     <div>Bhumi</div>
                     <div>TQI</div>
@@ -120,7 +120,7 @@ const Index = () => {
             </div>
 
             {/* Title and Tagline */}
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-primary via-accent to-violet bg-clip-text text-transparent animate-fade-in">
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-fade-in">
               SM Volunteers
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground mb-4 animate-fade-in">
@@ -190,7 +190,7 @@ const Index = () => {
 
               <Card className="gradient-card border-border/50 hover:glow-primary transition-all hover:scale-105 cursor-pointer group">
                 <CardHeader>
-                  <FileText className="w-12 h-12 text-violet mb-2 group-hover:scale-110 transition-transform" />
+                  <FileText className="w-12 h-12 text-primary mb-2 group-hover:scale-110 transition-transform" />
                   <CardTitle>Bills</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -216,7 +216,7 @@ const Index = () => {
 
               <Card className="gradient-card border-border/50 hover:glow-accent transition-all hover:scale-105 cursor-pointer group">
                 <CardHeader>
-                  <BookOpen className="w-12 h-12 text-violet mb-2 group-hover:scale-110 transition-transform" />
+                  <BookOpen className="w-12 h-12 text-primary mb-2 group-hover:scale-110 transition-transform" />
                   <CardTitle>Project Management</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -269,7 +269,7 @@ const Index = () => {
 
               <Card className="gradient-card border-border/50 hover:glow-accent transition-all hover:scale-105">
                 <CardHeader>
-                  <Award className="w-12 h-12 text-violet mb-2" />
+                  <Award className="w-12 h-12 text-primary mb-2" />
                   <CardTitle>Recognition</CardTitle>
                 </CardHeader>
                 <CardContent>
