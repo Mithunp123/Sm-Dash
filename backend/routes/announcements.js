@@ -75,6 +75,40 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 });
 
+// UPDATE announcement
+router.put('/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    const { title, content, priority, linkUrl, imageUrl, deadline } = req.body;
+    const db = getDatabase();
+
+    if (!title || !content) {
+        return res.status(400).json({ success: false, message: 'Title and content are required' });
+    }
+
+    try {
+        const announcement = await get(db, 'SELECT * FROM announcements WHERE id = ?', [id]);
+        if (!announcement) {
+            return res.status(404).json({ success: false, message: 'Announcement not found' });
+        }
+
+        await run(db,
+            'UPDATE announcements SET title = ?, content = ?, priority = ?, link_url = ?, image_url = ?, deadline = ? WHERE id = ?',
+            [title, content, priority || 'normal', linkUrl || null, imageUrl || null, deadline || null, id]
+        );
+
+        await logActivity(req.user.id, 'UPDATE_ANNOUNCEMENT', { id, title }, req, {
+            action_type: 'UPDATE',
+            module_name: 'announcements',
+            action_description: `Updated announcement: ${title}`,
+            reference_id: id
+        });
+
+        res.json({ success: true, message: 'Announcement updated successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 // DELETE announcement (Soft delete)
 router.delete('/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;

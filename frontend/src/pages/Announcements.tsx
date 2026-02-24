@@ -54,10 +54,18 @@ const Announcements = () => {
 
         setSending(true);
         try {
-            const res = await api.createAnnouncement?.({
-                ...formData,
-                target: "all"
-            });
+            let res;
+            if (editingId) {
+                res = await api.updateAnnouncement?.(editingId, {
+                    ...formData,
+                    target: "all"
+                });
+            } else {
+                res = await api.createAnnouncement?.({
+                    ...formData,
+                    target: "all"
+                });
+            }
 
             if (res?.success) {
                 toast.success(editingId ? "Announcement updated!" : "Announcement posted!");

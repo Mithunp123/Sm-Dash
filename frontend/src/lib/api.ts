@@ -918,6 +918,13 @@ class ApiClient {
     });
   }
 
+  async updateAnnouncement(id: number, data: any) {
+    return this.request(`/announcements/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
   async deleteAnnouncement(id: number) {
     return this.request(`/announcements/${id}`, {
       method: 'DELETE'
