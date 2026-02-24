@@ -416,8 +416,6 @@ const LandingPage = () => {
       transition={{ duration: 0.5, delay: 0.2 }}
       className="flex-1 w-full bg-transparent text-foreground relative selection:bg-primary/20"
     >
-      <RunningNotification />
-
       <AnimatePresence>
         {!pageReady && (
           <motion.div
@@ -624,7 +622,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-
+      <RunningNotification />
 
       {/* About Section - SM Volunteers Only */}
       <section
