@@ -223,7 +223,7 @@ const NotificationBell = () => {
         <Button
           variant="ghost"
           size="sm"
-          className="relative text-white hover:text-white hover:bg-white/10"
+          className="relative text-foreground hover:text-primary hover:bg-primary/10"
         >
           <Bell className="w-5 h-5" />
           {unreadCount > 0 && (

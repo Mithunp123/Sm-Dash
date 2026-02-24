@@ -254,7 +254,7 @@ const ManageMeetings = () => {
             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto items-stretch sm:items-center">
               <Button
                 onClick={() => setShowCalendar(!showCalendar)}
-                variant="outline"
+                variant="secondary"
                 className="gap-2 h-10 rounded-md font-semibold text-sm px-4 w-full sm:w-auto"
               >
                 <Calendar className="w-4 h-4" />
@@ -262,14 +262,14 @@ const ManageMeetings = () => {
               </Button>
               <Button
                 onClick={() => setShowAddDialog(true)}
-                className="gap-2 h-10 rounded-md font-semibold text-sm px-4 bg-primary w-full sm:w-auto"
+                className="gap-2 h-10 rounded-md font-semibold text-sm px-4 bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4" />
                 Add Meeting
               </Button>
               <Button
                 onClick={() => setShowImportantDayDialog(true)}
-                variant="secondary"
+                variant="default"
                 className="gap-2 h-10 rounded-md font-semibold text-sm px-4 w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4" />
