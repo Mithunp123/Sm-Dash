@@ -296,7 +296,7 @@ const StudentAttendance = () => {
             {/* Header */}
             <div className="flex flex-col gap-2">
               <div className="mb-2">
-                <BackButton />
+
               </div>
               <div>
                 <h1 className="text-4xl font-black tracking-tight text-foreground">Attendance & Mission Logs</h1>

@@ -48,33 +48,7 @@ const OfficeBearerDashboard = () => {
       setLoading(true);
       const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-      const [
-        usersRes,
-        meetingsRes,
-        billsRes,
-        timeRes,
-        awardsRes,
-        studentsRes,
-        projectsRes,
-        resourcesRes,
-        teamsRes,
-      ] = await Promise.all([
-        api.getUsers(),
-        api.getMeetings(),
-        api.getBills(),
-        api.getTimeAllotments(),
-        api.getAwards(),
-        api.getStudentsScoped(),
-        api.getProjects(),
-        fetch(`${API_BASE}/resources`, {
-          headers: { Authorization: `Bearer ${auth.getToken() || ''}` },
-        }).then((r) => r.json()).catch(() => ({ success: false, resources: [] })),
-        fetch(`${API_BASE}/teams`, {
-          headers: { Authorization: `Bearer ${auth.getToken() || ''}` },
-        }).then((r) => r.json()).catch(() => ({ success: false, teams: [] })),
-      ]);
-
-      // also read local volunteer submissions (frontend-only fallback)
+      // Read local volunteer submissions (frontend-only fallback)
       let approvedCount = 0;
       try {
         const store = localStorage.getItem('volunteer_submissions');
@@ -84,19 +58,83 @@ const OfficeBearerDashboard = () => {
         approvedCount = 0;
       }
 
+      // Try to get users count (admin only) - catch error if forbidden
+      let usersCount = approvedCount;
+      try {
+        const usersRes = await api.getUsers();
+        if (usersRes.success && usersRes.users) {
+          usersCount = usersRes.users.length;
+        }
+      } catch (error: any) {
+        // Office bearers don't have access to /api/users - use fallback
+        console.log('Users endpoint not accessible, using fallback count');
+      }
+
+      const [
+        meetingsRes,
+        billsRes,
+        timeRes,
+        awardsRes,
+        studentsRes,
+        projectsRes,
+        resourcesRes,
+        teamsRes,
+      ] = await Promise.allSettled([
+        api.getMeetings().catch((e) => ({ success: false, meetings: [], error: e.message })),
+        api.getBills().catch((e) => ({ success: false, bills: [], error: e.message })),
+        api.getTimeAllotments().catch((e) => ({ success: false, allotments: [], error: e.message })),
+        api.getAwards().catch((e) => ({ success: false, awards: [], error: e.message })),
+        api.getStudentsScoped().catch((e) => ({ success: false, students: [], error: e.message })),
+        api.getProjects().catch((e) => ({ success: false, projects: [], error: e.message })),
+        fetch(`${API_BASE}/resources`, {
+          headers: { Authorization: `Bearer ${auth.getToken() || ''}` },
+        }).then((r) => r.json()).catch(() => ({ success: false, resources: [] })),
+        fetch(`${API_BASE}/teams`, {
+          headers: { Authorization: `Bearer ${auth.getToken() || ''}` },
+        }).then((r) => r.json()).catch(() => ({ success: false, teams: [] })),
+      ]);
+
+      // Extract results from Promise.allSettled
+      const meetings = meetingsRes.status === 'fulfilled' ? meetingsRes.value : { success: false, meetings: [] };
+      const bills = billsRes.status === 'fulfilled' ? billsRes.value : { success: false, bills: [] };
+      const time = timeRes.status === 'fulfilled' ? timeRes.value : { success: false, allotments: [] };
+      const awards = awardsRes.status === 'fulfilled' ? awardsRes.value : { success: false, awards: [] };
+      const students = studentsRes.status === 'fulfilled' ? studentsRes.value : { success: false, students: [] };
+      const projects = projectsRes.status === 'fulfilled' ? projectsRes.value : { success: false, projects: [] };
+      const resources = resourcesRes.status === 'fulfilled' ? resourcesRes.value : { success: false, resources: [] };
+      const teams = teamsRes.status === 'fulfilled' ? teamsRes.value : { success: false, teams: [] };
+
       setStats({
-        volunteers: approvedCount || usersRes.users?.length || 0,
-        events: meetingsRes.meetings?.length || 0,
-        reports: billsRes.bills?.length || 0,
-        hours: timeRes.allotments?.reduce((sum: number, t: any) => sum + (t.hours || 0), 0) || 0,
-        awards: awardsRes.awards?.length || 0,
-        students: studentsRes.students?.length || 0,
-        projects: projectsRes.projects?.length || 0,
-        resources: resourcesRes.resources?.length || 0,
-        teams: teamsRes.teams?.length || 0,
+        volunteers: usersCount,
+        events: meetings.meetings?.length || 0,
+        reports: bills.bills?.length || 0,
+        hours: time.allotments?.reduce((sum: number, t: any) => sum + (t.hours || 0), 0) || 0,
+        awards: awards.awards?.length || 0,
+        students: students.students?.length || 0,
+        projects: projects.projects?.length || 0,
+        resources: resources.resources?.length || 0,
+        teams: teams.teams?.length || 0,
       });
-    } catch (error) {
-      console.error('Failed to load stats:', error);
+
+      // Log any errors for debugging (but don't show toasts for expected permission errors)
+      const errors = [
+        meetings.error,
+        bills.error,
+        time.error,
+        awards.error,
+        students.error,
+        projects.error,
+      ].filter(Boolean);
+
+      if (errors.length > 0) {
+        console.warn('Some dashboard data failed to load:', errors);
+      }
+    } catch (error: any) {
+      console.error('Failed to load dashboard data:', error);
+      // Only show error toast if it's not a permission issue
+      if (!error.message?.includes('forbidden') && !error.message?.includes('403')) {
+        toast.error('Failed to load some dashboard data. Please refresh the page.');
+      }
     } finally {
       setLoading(false);
     }
@@ -128,12 +166,12 @@ const OfficeBearerDashboard = () => {
         {/* Premium Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pt-4">
           <div className="space-y-2">
-            <h1 className="text-4xl font-bold text-foreground tracking-tight">
+            <h1 className="page-title">
               OB Control Center
             </h1>
-            <p className="text-sm font-bold text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2">
+            <p className="page-subtitle flex items-center gap-2">
               <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
-              Welcome back, <span className="text-foreground">{user?.name || 'Office Bearer'}</span>
+              Welcome back, <span className="text-foreground font-semibold">{user?.name || 'Office Bearer'}</span>
             </p>
           </div>
           <div className="flex items-center gap-4">

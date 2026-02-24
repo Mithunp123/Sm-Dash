@@ -377,55 +377,63 @@ const ManageUsers = () => {
           <div className="w-full px-4 md:px-6 lg:px-8 py-8">
             {/* Back Button */}
             <div className="mb-6">
-              <BackButton to="/admin" />
+
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
               <div>
-                <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground">User Control</h1>
-                <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Manage platform access and permissions</p>
+                <h1 className="page-title">User Control</h1>
+                <p className="page-subtitle border-l-4 border-primary/30 pl-3 mt-2">Manage platform access and permissions</p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                <Button onClick={() => setShowAddDialog(true)} className="gap-2 h-11 px-6 rounded-2xl shadow-lg shadow-primary/20 font-bold bg-primary text-xs">
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto items-stretch sm:items-center">
+                <Button onClick={() => setShowAddDialog(true)} className="gap-2 h-10 px-4 rounded-md font-semibold bg-primary text-sm">
                   <Plus className="w-4 h-4" />
                   Add User
                 </Button>
                 <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                  <Button onClick={downloadTemplate} variant="outline" className="flex-1 sm:flex-none gap-2 h-11 rounded-2xl border-2 font-black text-[9px] uppercase tracking-widest px-3">
-                    <Upload className="w-3.5 h-3.5 text-primary" />
+                  <Button onClick={downloadTemplate} variant="outline" className="flex-1 sm:flex-none gap-2 h-10 rounded-md font-semibold text-sm px-4">
+                    <Upload className="w-4 h-4" />
                     Template
                   </Button>
-                  <Button onClick={() => setShowImportDialog(true)} variant="outline" className="flex-1 sm:flex-none gap-2 h-11 rounded-2xl border-2 font-black text-[9px] uppercase tracking-widest px-3">
-                    <Upload className="w-3.5 h-3.5 text-primary" />
+                  <Button onClick={() => setShowImportDialog(true)} variant="outline" className="flex-1 sm:flex-none gap-2 h-10 rounded-md font-semibold text-sm px-4">
+                    <Upload className="w-4 h-4" />
                     Import Users
                   </Button>
                 </div>
               </div>
             </div>
 
-            {/* Filter Section */}
-            <Card className="border-border/40 mb-8 bg-card/60 backdrop-blur-md shadow-xl rounded-3xl overflow-hidden">
-              <CardContent className="p-4 md:p-6 bg-muted/20">
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="flex-1 relative group">
-                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors w-5 h-5" />
-                    <Input
-                      placeholder="Search users by name or email..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-12 h-12 bg-background border-border/50 focus:ring-primary/20 transition-all rounded-2xl text-sm"
-                    />
+            {/* Filter Section - Standardized */}
+            <Card className="border-border/40 mb-8 bg-card shadow-sm rounded-md overflow-hidden">
+              <CardContent className="p-4 md:p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2 flex-1">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                      Search
+                    </Label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                      <Input
+                        placeholder="Search users by name or email..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10 h-10 rounded-md bg-background border-border text-foreground"
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="space-y-2 flex-1">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                      Filter by Role
+                    </Label>
                     <Select value={roleFilter} onValueChange={setRoleFilter}>
-                      <SelectTrigger className="w-full md:w-48 h-12 rounded-2xl bg-background border-border/50 font-bold text-xs uppercase tracking-widest">
-                        <SelectValue placeholder="Filter by role" />
+                      <SelectTrigger className="w-full h-10 rounded-md bg-background border-border text-foreground">
+                        <SelectValue placeholder="All Roles" />
                       </SelectTrigger>
-                      <SelectContent className="rounded-2xl">
-                        <SelectItem value="all">All Roles</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="office_bearer">Office Bearer</SelectItem>
-                        <SelectItem value="student">Student</SelectItem>
+                      <SelectContent className="rounded-md">
+                        <SelectItem value="all" className="text-foreground">All Roles</SelectItem>
+                        <SelectItem value="admin" className="text-foreground">Admin</SelectItem>
+                        <SelectItem value="office_bearer" className="text-foreground">Office Bearer</SelectItem>
+                        <SelectItem value="student" className="text-foreground">Student</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -448,8 +456,8 @@ const ManageUsers = () => {
                     <CardHeader className="pb-3 flex-shrink-0">
                       <div className="flex items-center justify-between">
                         <div className="min-w-0 pr-2">
-                          <CardTitle className="text-lg font-black text-foreground uppercase tracking-tight truncate leading-tight mb-1" title={user.name}>{user.name}</CardTitle>
-                          <CardDescription className="text-[10px] font-bold text-muted-foreground truncate tracking-wide" title={user.email}>{user.email}</CardDescription>
+                          <CardTitle className="card-title uppercase tracking-tight truncate leading-tight mb-1" title={user.name}>{user.name}</CardTitle>
+                          <CardDescription className="body-text-sm truncate tracking-wide" title={user.email}>{user.email}</CardDescription>
                         </div>
                         <Badge variant={getRoleBadgeColor(user.role)} className="shrink-0 font-bold text-[9px] uppercase tracking-widest px-2 py-0.5 h-5">
                           {user.role.replace('_', ' ')}

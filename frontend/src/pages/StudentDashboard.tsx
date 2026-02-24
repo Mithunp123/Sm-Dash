@@ -171,14 +171,14 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
         {/* Compact Header */}
         <div className="mb-4 flex items-end justify-between pb-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">
+            <h1 className="page-title">
               {activeTab === 'calendar' ? 'Mission Timeline' : 'Dashboard Overview'}
             </h1>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+            <p className="page-subtitle">
               {activeTab === 'calendar' ? 'Stay updated with your schedule' : `Welcome back, ${auth.getUser()?.name || 'Volunteer'}`}
             </p>
           </div>
-          <BackButton />
+
         </div>
 
         {/* Tabs Interface - Tab Bar Removed as requested */}
@@ -225,7 +225,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
                         <Briefcase className="w-3 h-3 text-white" />
                         <span>Interview Update</span>
                       </div>
-                      <h2 className="text-3xl font-bold mb-2 tracking-tight">
+                      <h2 className="section-title">
                         {interviewStatus.status === 'selected' ? 'Congratulations! You are Selected!' :
                           interviewStatus.status === 'rejected' ? 'Application Update' :
                             'Interview Scheduled'}
@@ -295,7 +295,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
                       <Star className="w-3 h-3 fill-white" />
                       <span>Volunteer Status: Active</span>
                     </div>
-                    <h2 className="text-3xl font-bold mb-2 tracking-tight">
+                    <h2 className="section-title text-white">
                       Ready for the next mission?
                     </h2>
                     <p className="text-indigo-100 font-medium">

@@ -11,12 +11,18 @@ import BottomNavbar from "./BottomNavbar";
 
 interface MainLayoutProps {
     showSidebar?: boolean;
+    showBackButton?: boolean;
 }
 
-const MainLayout = ({ showSidebar = true }: MainLayoutProps) => {
+const MainLayout = ({ showSidebar = true, showBackButton: backButtonProp }: MainLayoutProps) => {
     // Mobile menu state removed as we are using BottomNavbar
     // const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); 
     const location = useLocation();
+
+    // Show back button on all pages except dashboard and certain management pages
+    const isDashboard = location.pathname.match(/^\/admin\/?$|^\/student\/?$|^\/office-bearer\/?$/);
+    const isManagementPage = location.pathname.match(/^\/admin\/(office-bearers|teams)\/?$/);
+    const showBackButton = backButtonProp !== undefined ? backButtonProp : (!isDashboard && !isManagementPage);
 
     return (
         <div className="flex min-h-screen w-full flex-col bg-background text-foreground relative selection:bg-primary/20 overflow-x-hidden">
@@ -41,10 +47,13 @@ const MainLayout = ({ showSidebar = true }: MainLayoutProps) => {
                 <Header
                     onMenuClick={() => { }} // No-op since we removed the menu trigger
                     showMenuTrigger={false} // Hide hamburger on mobile as we have bottom nav
+                    showSidebar={showSidebar}
+                    showBackButton={showBackButton}
                 />
 
                 {/* Adjust padding for Bottom Nav (pb-20 for mobile, pb-12 for desktop) */}
-                <main className="flex-1 w-full max-w-full overflow-x-hidden overflow-y-auto pb-24 md:pb-12 px-4 md:px-8">
+                {/* Add pt-20 (80px) to account for fixed header height */}
+                <main className="flex-1 w-full max-w-full overflow-x-hidden overflow-y-auto pb-24 md:pb-12 px-4 md:px-8 pt-20">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={location.pathname}

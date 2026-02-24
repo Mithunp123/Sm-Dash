@@ -2,7 +2,6 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DeveloperCredit from "@/components/DeveloperCredit";
-import { BackButton } from "@/components/BackButton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -626,10 +625,7 @@ const PhoneMentoringUpdate = () => {
     <div className="flex-1 flex flex-col bg-transparent">
       <DeveloperCredit />
       <main className="flex-1 w-full px-2 sm:px-4 md:px-6 lg:px-8 py-6 md:py-8 flex flex-col gap-6">
-        {/* Back Button */}
-        <div className="mb-4">
-          <BackButton />
-        </div>
+
 
 
 

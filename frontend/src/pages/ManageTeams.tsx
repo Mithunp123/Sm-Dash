@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import DeveloperCredit from "@/components/DeveloperCredit";
-import { BackButton } from "@/components/BackButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -574,7 +573,7 @@ const ManageTeams = () => {
             {teams.map((team) => (
               <Card
                 key={team.id}
-                className="group relative overflow-hidden rounded-3xl border-border/40 bg-card/60 backdrop-blur-md shadow-md hover:shadow-xl hover:translate-y-[-4px] transition-all duration-300 cursor-pointer"
+                className="group relative overflow-hidden rounded-md border-border/40 bg-card shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer"
                 onClick={() => {
                   setSelectedTeam(team);
                   loadTeamDetails(team.id);

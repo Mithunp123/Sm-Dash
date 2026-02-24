@@ -224,7 +224,7 @@ export default function ViewFeedbackReports() {
       <main className="flex-1 p-2 md:p-4 bg-background w-full">
         <div className="w-full">
           <div className="mb-4">
-            <BackButton to="/admin" />
+
           </div>
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div>

@@ -79,3 +79,46 @@ export const getOTPEmailTemplate = (otp) => {
     </div>
   `;
 };
+
+/**
+ * Generates the HTML template for interview invitation email
+ * @param {string} name - Candidate name
+ * @param {string} registerNo - Registration number
+ * @returns {string} HTML string
+ */
+export const getInterviewEmailTemplate = (name, registerNo) => {
+    return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+      <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <h2 style="color: #2563eb; margin-top: 0;">Interview Registration Successful</h2>
+        <p>Dear ${name},</p>
+        <p>Welcome! You have been successfully registered for the <strong>SM Volunteers Interview Process</strong>.</p>
+        
+        <div style="background-color: #eff6ff; border-left: 4px solid #2563eb; padding: 15px; margin: 20px 0;">
+          <p style="margin: 0 0 10px 0;"><strong>Registration Details:</strong></p>
+          <p style="margin: 5px 0;"><strong>Registration Number:</strong> ${registerNo}</p>
+          <p style="margin: 5px 0; color: #666; font-size: 14px;">Keep this information for your records.</p>
+        </div>
+
+        <p>We will notify you shortly about:</p>
+        <ul style="color: #666; font-size: 14px;">
+          <li>Interview date and time</li>
+          <li>Interview venue and format</li>
+          <li>Required documents</li>
+          <li>Additional instructions</li>
+        </ul>
+
+        <p style="margin-top: 20px; color: #666;">If you have any questions, please reach out to us. We look forward to meeting you!</p>
+
+        <p style="margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+          <strong>Best Regards,</strong><br/>
+          SM Volunteers Team
+        </p>
+        
+        <p style="color: #999; font-size: 12px; margin-top: 15px;">
+          This is an automated email. Please do not reply to this message. For queries, contact us through the official website.
+        </p>
+      </div>
+    </div>
+  `;
+};

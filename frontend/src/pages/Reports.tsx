@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import DeveloperCredit from '@/components/DeveloperCredit';
-import { BackButton } from '@/components/BackButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -327,14 +326,14 @@ const Reports = () => {
 
           {/* Back Button */}
           <div className="mb-4">
-            <BackButton />
+
           </div>
 
           {/* Page Header */}
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-semibold text-foreground mb-1">Reports</h1>
-              <p className="text-sm text-muted-foreground">Create folders and upload files by category</p>
+              <h1 className="page-title mb-1">Reports</h1>
+              <p className="page-subtitle">Create folders and upload files by category</p>
             </div>
           </div>
 
@@ -384,14 +383,14 @@ const Reports = () => {
                           setShowFolderModal(true);
                         }}
                         variant="outline"
-                        className="gap-2"
+                        className="gap-2 h-10 rounded-md font-semibold text-sm px-4"
                       >
                         <FolderPlus className="w-4 h-4" />
                         Subfolder
                       </Button>
                       <Button
                         onClick={() => setShowUploadModal(true)}
-                        className="gap-2 bg-primary hover:bg-primary/90"
+                        className="gap-2 h-10 rounded-md font-semibold text-sm px-4 bg-primary text-primary-foreground"
                       >
                         <Upload className="w-4 h-4" />
                         Upload File
@@ -436,7 +435,7 @@ const Reports = () => {
                       const matchesSearch = f.name.toLowerCase().includes(searchQuery.toLowerCase());
                       return matchesFolder && matchesType && matchesSearch;
                     }).length === 0 ? (
-                      <div className="col-span-full py-20 text-center border-2 border-dashed border-muted-foreground/20 rounded-xl bg-muted/5">
+                      <div className="col-span-full py-20 text-center border-2 border-dashed border-muted-foreground/20 rounded-md bg-muted/5">
                         <Folder className="w-16 h-16 text-muted-foreground/20 mx-auto mb-4" />
                         <h3 className="text-lg font-semibold text-foreground">No folders yet</h3>
                         <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">Create your first folder to start organizing your {activeTypeLabel.toLowerCase()}s.</p>
@@ -466,7 +465,7 @@ const Reports = () => {
                         .map((folder) => (
                           <div
                             key={folder.id}
-                            className={`group relative p-5 rounded-xl border border-border/50 bg-card hover:bg-muted/50 transition-all duration-300 hover:shadow-md cursor-pointer overflow-hidden ${folder.description?.includes('[DISABLED]') ? 'opacity-70 bg-red-50/10' : ''}`}
+                            className={`group relative p-4 rounded-md border border-border/50 bg-card hover:bg-muted/50 transition-all duration-300 hover:shadow-md cursor-pointer overflow-hidden ${folder.description?.includes('[DISABLED]') ? 'opacity-70 bg-red-50/10' : ''}`}
                             onClick={() => {
                               const isDisabled = folder.description?.includes('[DISABLED]');
                               if (isDisabled && !auth.hasRole('admin')) {

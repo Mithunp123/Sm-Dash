@@ -4,27 +4,32 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { BackButton } from "@/components/BackButton";
-import { Search, Upload, Mail, CheckCircle, XCircle, Plus, Edit2 } from "lucide-react";
+
+import { Search, Upload, Plus, Edit2, UserCheck, UserX, CheckCircle2, Clock } from "lucide-react";
+import MailSender from "@/components/MailSender";
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { BulkUploadModal } from "@/components/BulkUploadModal";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import * as XLSX from 'xlsx';
 
 const ManageInterviews = () => {
     const navigate = useNavigate();
     const [candidates, setCandidates] = useState<any[]>([]);
+    const [officeBearers, setOfficeBearers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showBulkUploadDialog, setShowBulkUploadDialog] = useState(false);
     const [showAddDialog, setShowAddDialog] = useState(false);
+    const [showAssignDialog, setShowAssignDialog] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
-    const [selectedCandidates, setSelectedCandidates] = useState<number[]>([]);
+    const [statusFilter, setStatusFilter] = useState<string>("all");
+    const [deptFilter, setDeptFilter] = useState<string>("all");
+    const [yearFilter, setYearFilter] = useState<string>("all");
+    const [selectedCandidate, setSelectedCandidate] = useState<any | null>(null);
     const [formData, setFormData] = useState({
         name: "",
         email: "",
@@ -33,15 +38,9 @@ const ManageInterviews = () => {
         year: "",
         register_no: ""
     });
-
-    // Edit Candidate State
-    const [editCandidate, setEditCandidate] = useState<any | null>(null);
-    const [editFormData, setEditFormData] = useState({
-        status: "",
-        interviewer: "",
-        marks: 0,
-        interview_date: "",
-        interview_time: ""
+    const [assignFormData, setAssignFormData] = useState({
+        mentor_id: "",
+        mentor_name: ""
     });
 
     useEffect(() => {
@@ -50,6 +49,7 @@ const ManageInterviews = () => {
             return;
         }
         loadCandidates();
+        loadOfficeBearers();
     }, []);
 
     const loadCandidates = async () => {
@@ -63,6 +63,17 @@ const ManageInterviews = () => {
             toast.error("Failed to load candidates: " + error.message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadOfficeBearers = async () => {
+        try {
+            const response = await api.getOfficeBearers();
+            if (response.success) {
+                setOfficeBearers(response.officeBearers || []);
+            }
+        } catch (error: any) {
+            console.error("Failed to load office bearers:", error);
         }
     };
 
@@ -83,57 +94,53 @@ const ManageInterviews = () => {
         }
     };
 
-    const handleEditClick = (candidate: any) => {
-        setEditCandidate(candidate);
-
-        // Get current date and time for defaults
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const currentDate = `${year}-${month}-${day}`;
-        const currentTime = now.toTimeString().slice(0, 5); // HH:MM
-
-        // Handle existing date parsing (handle ISO strings or YYYY-MM-DD)
-        let existingDate = '';
-        if (candidate.interview_date) {
-            if (typeof candidate.interview_date === 'string') {
-                existingDate = candidate.interview_date.split('T')[0];
-            } else {
-                // If it's a date object (unlikely from JSON response but possible in some setups)
-                const d = new Date(candidate.interview_date);
-                const y = d.getFullYear();
-                const m = String(d.getMonth() + 1).padStart(2, '0');
-                const dd = String(d.getDate()).padStart(2, '0');
-                existingDate = `${y}-${m}-${dd}`;
-            }
+    const handleAssignMentor = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedCandidate || !assignFormData.mentor_id) {
+            toast.error("Please select a mentor");
+            return;
         }
 
-        setEditFormData({
-            status: candidate.status || 'pending',
-            interviewer: candidate.interviewer || '',
-            marks: candidate.marks || 0,
-            interview_date: existingDate || currentDate,
-            interview_time: candidate.interview_time || currentTime
-        });
-    };
-
-    const handleUpdateCandidate = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!editCandidate) return;
-
         try {
-            const response = await api.updateCandidate(editCandidate.id, editFormData);
+            // Use updateCandidate API - backend matches by interviewer name or email
+            const selectedMentor = officeBearers.find(ob => ob.id.toString() === assignFormData.mentor_id);
+            const mentorName = selectedMentor?.name || assignFormData.mentor_name;
+            const mentorEmail = selectedMentor?.email || '';
+            
+            const response = await api.updateCandidate(selectedCandidate.id, {
+                interviewer: mentorName,
+                interviewer_email: mentorEmail, // Add email for better matching
+                mentor_id: parseInt(assignFormData.mentor_id),
+                status: 'assigned' // Set to 'assigned' when mentor is assigned
+            });
+
             if (response.success) {
-                toast.success("Candidate updated successfully");
-                setEditCandidate(null);
+                toast.success("Mentor assigned successfully");
+                setShowAssignDialog(false);
+                setSelectedCandidate(null);
+                setAssignFormData({ mentor_id: "", mentor_name: "" });
                 loadCandidates();
             } else {
-                toast.error(response.message || "Failed to update candidate");
+                toast.error(response.message || "Failed to assign mentor");
             }
         } catch (error: any) {
             toast.error("Error: " + error.message);
         }
+    };
+
+    const handleOpenAssignDialog = (candidate: any) => {
+        // Check if already completed
+        if (candidate.status === 'completed') {
+            toast.info("Cannot reassign mentor for completed interview.");
+            return;
+        }
+
+        setSelectedCandidate(candidate);
+        setAssignFormData({
+            mentor_id: candidate.mentor_id?.toString() || "",
+            mentor_name: candidate.interviewer || ""
+        });
+        setShowAssignDialog(true);
     };
 
     const downloadTemplate = () => {
@@ -147,222 +154,331 @@ const ManageInterviews = () => {
         XLSX.writeFile(workbook, 'interview_candidates_template.xlsx');
     };
 
-    const filteredCandidates = candidates.filter((c) =>
-        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.register_no.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    const toggleSelectAll = () => {
-        if (selectedCandidates.length === filteredCandidates.length && filteredCandidates.length > 0) {
-            setSelectedCandidates([]);
-        } else {
-            setSelectedCandidates(filteredCandidates.map(c => c.id));
-        }
-    };
-
-    const toggleSelectCandidate = (id: number) => {
-        if (selectedCandidates.includes(id)) {
-            setSelectedCandidates(selectedCandidates.filter(cId => cId !== id));
-        } else {
-            setSelectedCandidates([...selectedCandidates, id]);
-        }
-    };
-
-    const handleSendEmails = async () => {
-        if (selectedCandidates.length === 0) return;
-
-        try {
-            const response = await api.sendInterviewEmails(selectedCandidates);
-            if (response.success) {
-                toast.success(`Emails sent to ${response.sentCount} candidates`);
-                setSelectedCandidates([]);
-                loadCandidates();
-            } else {
-                toast.error(response.message || "Failed to send emails");
-            }
-        } catch (error: any) {
-            toast.error("Error sending emails: " + error.message);
-        }
-    };
-
     const getStatusBadge = (status: string) => {
         switch (status) {
-            case 'selected': return 'bg-green-500 hover:bg-green-600';
-            case 'rejected': return 'bg-red-500 hover:bg-red-600';
-            case 'interviewed': return 'bg-blue-500 hover:bg-blue-600';
-            default: return 'bg-slate-500 hover:bg-slate-600';
+            case 'completed':
+                return <Badge className="bg-green-500 hover:bg-green-600 text-white">Completed</Badge>;
+            case 'pending':
+                return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">Pending Interview</Badge>;
+            case 'assigned':
+                return <Badge className="bg-blue-500 hover:bg-blue-600 text-white">Assigned</Badge>;
+            default:
+                return <Badge className="bg-slate-500 hover:bg-slate-600 text-white">Unassigned</Badge>;
         }
     };
+
+    const filteredCandidates = candidates.filter((c) => {
+        const matchesSearch = 
+            c.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            c.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            c.register_no?.toLowerCase().includes(searchQuery.toLowerCase());
+
+        const matchesStatus = statusFilter === "all" || c.status === statusFilter;
+        const matchesDept = deptFilter === "all" || c.dept === deptFilter;
+        const matchesYear = yearFilter === "all" || c.year === yearFilter;
+
+        return matchesSearch && matchesStatus && matchesDept && matchesYear;
+    });
+
+    const uniqueDepartments = Array.from(new Set(candidates.map(c => c.dept).filter(Boolean))).sort();
+    const uniqueYears = Array.from(new Set(candidates.map(c => c.year).filter(Boolean))).sort();
+
+    const unassignedCount = candidates.filter(c => !c.interviewer && c.status !== 'completed').length;
+    const assignedCount = candidates.filter(c => c.interviewer && (c.status === 'assigned' || c.status === 'pending')).length;
+    const completedCount = candidates.filter(c => c.status === 'completed').length;
 
     return (
         <div className="min-h-screen flex flex-col bg-background">
             <div className="w-full px-4 md:px-6 lg:px-8 py-8">
                 <div className="mb-6">
-                    <BackButton to="/admin" />
+
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold text-foreground">Interview Candidates</h1>
-                        <p className="text-sm text-muted-foreground mt-1">Manage process registration and status</p>
+                        <h1 className="page-title">Interview Candidates</h1>
+                        <p className="page-subtitle mt-2 ">Manage candidates and assign mentors for face-to-face interviews</p>
                     </div>
-                    <div className="flex gap-2">
-                        {selectedCandidates.length > 0 && (
-                            <Button onClick={handleSendEmails} variant="secondary" className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
-                                <Mail className="w-4 h-4" />
-                                Send Emails ({selectedCandidates.length})
-                            </Button>
-                        )}
-                        <Button onClick={() => setShowAddDialog(true)} className="gap-2 bg-green-600 hover:bg-green-700">
+                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto items-stretch sm:items-center">
+                        <MailSender />
+                        <Button onClick={() => setShowAddDialog(true)} className="gap-2 h-10 rounded-md font-semibold text-sm px-4 bg-primary text-foreground">
                             <Plus className="w-4 h-4" />
                             Add Candidate
                         </Button>
-                        <Button onClick={downloadTemplate} variant="outline" className="gap-2">
+                        <Button onClick={downloadTemplate} variant="outline" className="gap-2 h-10 rounded-md font-semibold text-sm px-4 text-foreground">
                             <Upload className="w-4 h-4" />
                             Template
                         </Button>
-                        <Button onClick={() => setShowBulkUploadDialog(true)} className="gap-2">
+                        <Button onClick={() => setShowBulkUploadDialog(true)} className="gap-2 h-10 rounded-md font-semibold text-sm px-4 bg-primary text-foreground">
                             <Upload className="w-4 h-4" />
                             Bulk Upload
                         </Button>
                     </div>
                 </div>
 
-                <Card className="mb-8">
-                    <CardContent className="p-4">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                            <Input
-                                placeholder="Search by name, email, or register no..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-10"
-                            />
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <Card className="border-border/40 bg-card shadow-sm rounded-md">
+                        <CardContent className="p-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-muted-foreground font-medium">Total Candidates</p>
+                                    <p className="text-3xl font-black text-primary-foreground tracking-tight mt-2">{candidates.length}</p>
+                                </div>
+                                <UserX className="w-8 h-8 text-slate-500 opacity-60" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card className="border-border/40 bg-card shadow-sm rounded-md">
+                        <CardContent className="p-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-muted-foreground font-medium">Unassigned</p>
+                                    <p className="text-3xl font-black text-primary-foreground tracking-tight mt-2">{unassignedCount}</p>
+                                </div>
+                                <UserX className="w-8 h-8 text-orange-500 opacity-60" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card className="border-border/40 bg-card shadow-sm rounded-md">
+                        <CardContent className="p-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-muted-foreground font-medium">Assigned / Pending</p>
+                                    <p className="text-3xl font-black text-primary-foreground tracking-tight mt-2">{assignedCount}</p>
+                                </div>
+                                <Clock className="w-8 h-8 text-yellow-500 opacity-60" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card className="border-border/40 bg-card shadow-sm rounded-md">
+                        <CardContent className="p-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-muted-foreground font-medium">Completed</p>
+                                    <p className="text-3xl font-black text-primary-foreground tracking-tight mt-2">{completedCount}</p>
+                                </div>
+                                <CheckCircle2 className="w-8 h-8 text-green-500 opacity-60" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Search and Filters */}
+                <Card className="mb-8 border-border/40 bg-card shadow-sm rounded-md">
+                    <CardContent className="p-4 md:p-6">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div className="space-y-2">
+                                <Label className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                                    Search
+                                </Label>
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                                    <Input
+                                        placeholder="Search by name, email, register no..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="pl-10 h-10 rounded-md bg-background border-border text-foreground placeholder:text-muted-foreground"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                                    Status
+                                </Label>
+                                <select
+                                    value={statusFilter}
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <option value="all">All Status</option>
+                                    <option value="">Unassigned</option>
+                                    <option value="assigned">Assigned</option>
+                                    <option value="pending">Pending Interview</option>
+                                    <option value="completed">Completed</option>
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                                    Department
+                                </Label>
+                                <select
+                                    value={deptFilter}
+                                    onChange={(e) => setDeptFilter(e.target.value)}
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <option value="all">All Departments</option>
+                                    {uniqueDepartments.map(dept => (
+                                        <option key={dept} value={dept}>{dept}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                                    Year
+                                </Label>
+                                <select
+                                    value={yearFilter}
+                                    onChange={(e) => setYearFilter(e.target.value)}
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <option value="all">All Years</option>
+                                    {uniqueYears.map(year => (
+                                        <option key={year} value={year}>{year}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
 
+                {/* Candidates Table */}
                 <Card>
                     <CardHeader>
                         <CardTitle>Candidates List</CardTitle>
                         <CardDescription>Total: {filteredCandidates.length}</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-12">
-                                        <Checkbox
-                                            checked={filteredCandidates.length > 0 && selectedCandidates.length === filteredCandidates.length}
-                                            onCheckedChange={toggleSelectAll}
-                                        />
-                                    </TableHead>
-                                    <TableHead>Register No</TableHead>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Contact</TableHead>
-                                    <TableHead>Meta</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Interviewer</TableHead>
-                                    <TableHead>Email Sent</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {loading ? (
-                                    <TableRow>
-                                        <TableCell colSpan={9} className="text-center py-8">Loading...</TableCell>
-                                    </TableRow>
-                                ) : filteredCandidates.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No candidates found</TableCell>
-                                    </TableRow>
-                                ) : (
-                                    filteredCandidates.map((c) => (
-                                        <TableRow key={c.id}>
-                                            <TableCell>
-                                                <Checkbox
-                                                    checked={selectedCandidates.includes(c.id)}
-                                                    onCheckedChange={() => toggleSelectCandidate(c.id)}
-                                                />
-                                            </TableCell>
-                                            <TableCell className="font-mono text-xs">{c.register_no}</TableCell>
-                                            <TableCell>
-                                                <div className="font-medium">{c.name}</div>
-                                                <div className="text-xs text-muted-foreground">{c.email}</div>
-                                            </TableCell>
-                                            <TableCell>{c.phone || '-'}</TableCell>
-                                            <TableCell>
-                                                <div className="text-xs">
-                                                    <span className="font-semibold">{c.dept}</span> • {c.year}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge className={`${getStatusBadge(c.status)} capitalize`}>
-                                                    {c.status}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-col">
-                                                    {c.interviewer ? <span className="font-medium text-sm">{c.interviewer}</span> : <span className="text-muted-foreground text-xs italic">Unassigned</span>}
-                                                    {c.interview_date && (
-                                                        <span className="text-xs text-muted-foreground">
-                                                            {c.interview_date} {c.interview_time ? `• ${c.interview_time}` : ''}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                {c.email_sent ? (
-                                                    <CheckCircle className="w-4 h-4 text-green-500" />
-                                                ) : (
-                                                    <XCircle className="w-4 h-4 text-slate-300" />
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Button size="icon" variant="ghost" onClick={() => handleEditClick(c)}>
-                                                    <Edit2 className="w-4 h-4" />
-                                                </Button>
-                                            </TableCell>
+                        {loading ? (
+                            <div className="text-center py-8 text-muted-foreground">Loading...</div>
+                        ) : filteredCandidates.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">No candidates found</div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Register No</TableHead>
+                                            <TableHead>Name</TableHead>
+                                            <TableHead>Contact</TableHead>
+                                            <TableHead>Department & Year</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Assigned Mentor</TableHead>
+                                            <TableHead>Marks</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
                                         </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredCandidates.map((c) => (
+                                            <TableRow key={c.id}>
+                                                <TableCell className="font-mono text-xs text-foreground">{c.register_no || '-'}</TableCell>
+                                                <TableCell>
+                                                    <div className="font-medium text-foreground">{c.name}</div>
+                                                    <div className="text-xs text-muted-foreground">{c.email}</div>
+                                                </TableCell>
+                                                <TableCell className="text-sm text-foreground">{c.phone || '-'}</TableCell>
+                                                <TableCell>
+                                                    <div className="text-sm">
+                                                        <span className="font-semibold text-foreground">{c.dept || '-'}</span>
+                                                        {c.year && <span className="text-muted-foreground"> • {c.year}</span>}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>{getStatusBadge(c.status || '')}</TableCell>
+                                                <TableCell>
+                                                    {c.interviewer ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <UserCheck className="w-4 h-4 text-green-500" />
+                                                            <span className="text-sm font-medium text-foreground">{c.interviewer}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-2">
+                                                            <UserX className="w-4 h-4 text-muted-foreground" />
+                                                            <span className="text-xs text-muted-foreground italic">Unassigned</span>
+                                                        </div>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {c.status === 'completed' && c.marks !== null ? (
+                                                        <div className="flex flex-col">
+                                                            <span className="font-semibold text-foreground">{c.marks}</span>
+                                                            {c.remarks && (
+                                                                <span className="text-xs text-muted-foreground truncate max-w-[200px]" title={c.remarks}>
+                                                                    {c.remarks}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-muted-foreground text-sm">-</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => handleOpenAssignDialog(c)}
+                                                        disabled={c.status === 'completed'}
+                                                        className="h-10 rounded-md font-semibold text-sm px-4"
+                                                    >
+                                                        {c.interviewer ? <Edit2 className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                                                        {c.interviewer ? ' Reassign' : ' Assign'}
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
-                {/* Add Dialog */}
+                {/* Add Candidate Dialog */}
                 <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>Add Interview Candidate</DialogTitle>
-                            <DialogDescription>Manually add a single candidate to the list.</DialogDescription>
+                            <DialogDescription>Add a new candidate for face-to-face interview</DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleAddCandidate} className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="name">Name *</Label>
-                                    <Input id="name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required />
+                                    <Label htmlFor="name">Full Name *</Label>
+                                    <Input
+                                        id="name"
+                                        value={formData.name}
+                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                        required
+                                        className="h-10 rounded-md"
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="regno">Register No *</Label>
-                                    <Input id="regno" value={formData.register_no} onChange={e => setFormData({ ...formData, register_no: e.target.value })} required />
+                                    <Input
+                                        id="regno"
+                                        value={formData.register_no}
+                                        onChange={e => setFormData({ ...formData, register_no: e.target.value })}
+                                        required
+                                        className="h-10 rounded-md"
+                                    />
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="email">Email *</Label>
-                                <Input id="email" type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} required />
+                                <Label htmlFor="email">Email ID *</Label>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                    required
+                                    className="h-10 rounded-md"
+                                />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="phone">Phone</Label>
-                                    <Input id="phone" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
+                                    <Label htmlFor="phone">Mobile Number</Label>
+                                    <Input
+                                        id="phone"
+                                        value={formData.phone}
+                                        onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                        className="h-10 rounded-md"
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="year">Year</Label>
                                     <Select value={formData.year} onValueChange={v => setFormData({ ...formData, year: v })}>
-                                        <SelectTrigger><SelectValue placeholder="Select Year" /></SelectTrigger>
+                                        <SelectTrigger className="h-10 rounded-md">
+                                            <SelectValue placeholder="Select Year" />
+                                        </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="I">I</SelectItem>
                                             <SelectItem value="II">II</SelectItem>
@@ -374,85 +490,94 @@ const ManageInterviews = () => {
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="dept">Department</Label>
-                                <Input id="dept" value={formData.dept} onChange={e => setFormData({ ...formData, dept: e.target.value })} placeholder="e.g. CSE" />
+                                <Input
+                                    id="dept"
+                                    value={formData.dept}
+                                    onChange={e => setFormData({ ...formData, dept: e.target.value })}
+                                    placeholder="e.g. CSE, IT, ECE"
+                                    className="h-10 rounded-md"
+                                />
                             </div>
                             <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
-                                <Button type="submit">Add Candidate</Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setShowAddDialog(false)}
+                                    className="h-10 rounded-md font-semibold text-sm px-4"
+                                >
+                                    Cancel
+                                </Button>
+                                <Button type="submit" className="h-10 rounded-md font-semibold text-sm px-4">
+                                    Add Candidate
+                                </Button>
                             </DialogFooter>
                         </form>
                     </DialogContent>
                 </Dialog>
 
-                {/* Edit Dialog */}
-                <Dialog open={!!editCandidate} onOpenChange={(open) => !open && setEditCandidate(null)}>
+                {/* Assign Mentor Dialog */}
+                <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Edit Candidate</DialogTitle>
-                            <DialogDescription>Update status and interviewer details.</DialogDescription>
+                            <DialogTitle>Assign Mentor / Interviewer</DialogTitle>
+                            <DialogDescription>
+                                {selectedCandidate && (
+                                    <>
+                                        Assign a mentor to <strong>{selectedCandidate.name}</strong> ({selectedCandidate.register_no}).
+                                        Each candidate can have only ONE mentor. Once assigned, the interview will be visible to the mentor.
+                                    </>
+                                )}
+                            </DialogDescription>
                         </DialogHeader>
-                        {editCandidate && (
-                            <form onSubmit={handleUpdateCandidate} className="space-y-4">
+                        {selectedCandidate && (
+                            <form onSubmit={handleAssignMentor} className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label className="text-base font-semibold">{editCandidate.name} ({editCandidate.register_no})</Label>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="edit-status">Status</Label>
-                                    <Select value={editFormData.status} onValueChange={v => setEditFormData({ ...editFormData, status: v })}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select Status" />
+                                    <Label htmlFor="mentor">Select Mentor / Interviewer *</Label>
+                                    <Select
+                                        value={assignFormData.mentor_id}
+                                        onValueChange={(value) => {
+                                            const mentor = officeBearers.find(ob => ob.id.toString() === value);
+                                            setAssignFormData({
+                                                mentor_id: value,
+                                                mentor_name: mentor ? mentor.name : ""
+                                            });
+                                        }}
+                                    >
+                                        <SelectTrigger className="h-10 rounded-md">
+                                            <SelectValue placeholder="Select a mentor/interviewer" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="pending">Pending</SelectItem>
-                                            <SelectItem value="interviewed">Interviewed</SelectItem>
-                                            <SelectItem value="selected">Selected</SelectItem>
-                                            <SelectItem value="rejected">Rejected</SelectItem>
+                                            {officeBearers.map((ob) => (
+                                                <SelectItem key={ob.id} value={ob.id.toString()}>
+                                                    {ob.name} {ob.position ? `(${ob.position})` : ''}
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="edit-interviewer">Assigned Interviewer</Label>
-                                    <Input
-                                        id="edit-interviewer"
-                                        value={editFormData.interviewer}
-                                        onChange={e => setEditFormData({ ...editFormData, interviewer: e.target.value })}
-                                        placeholder="Enter interviewer name (must match their login name)"
-                                    />
-                                    <p className="text-xs text-muted-foreground">Enter the exact name of the office bearer/admin to assign.</p>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="edit-date">Date</Label>
-                                        <Input
-                                            id="edit-date"
-                                            type="date"
-                                            value={editFormData.interview_date}
-                                            onChange={e => setEditFormData({ ...editFormData, interview_date: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="edit-time">Time</Label>
-                                        <Input
-                                            id="edit-time"
-                                            type="time"
-                                            value={editFormData.interview_time}
-                                            onChange={e => setEditFormData({ ...editFormData, interview_time: e.target.value })}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="edit-marks">Marks (Optional)</Label>
-                                    <Input
-                                        id="edit-marks"
-                                        type="number"
-                                        value={editFormData.marks}
-                                        onChange={e => setEditFormData({ ...editFormData, marks: parseInt(e.target.value) || 0 })}
-                                        placeholder="0"
-                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        Select an office bearer to assign as mentor/interviewer. This candidate will only be visible to the assigned mentor.
+                                    </p>
                                 </div>
                                 <DialogFooter>
-                                    <Button type="button" variant="outline" onClick={() => setEditCandidate(null)}>Cancel</Button>
-                                    <Button type="submit">Save Changes</Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => {
+                                            setShowAssignDialog(false);
+                                            setSelectedCandidate(null);
+                                            setAssignFormData({ mentor_id: "", mentor_name: "" });
+                                        }}
+                                        className="h-10 rounded-md font-semibold text-sm px-4"
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        type="submit"
+                                        disabled={!assignFormData.mentor_id}
+                                        className="h-10 rounded-md font-semibold text-sm px-4"
+                                    >
+                                        Assign Mentor
+                                    </Button>
                                 </DialogFooter>
                             </form>
                         )}

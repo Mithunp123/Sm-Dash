@@ -49,7 +49,7 @@ const StudentProjects = () => {
             <DeveloperCredit />
             <div className="w-full space-y-8">
                 <div className="flex flex-col gap-4">
-                    <BackButton to="/student" />
+
                     <div className="flex justify-between items-center">
                         <div>
                             <h1 className="text-4xl font-black tracking-tight text-foreground">My Projects</h1>

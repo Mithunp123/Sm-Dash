@@ -12,7 +12,6 @@ import { Badge } from "@/components/ui/badge";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DeveloperCredit from "@/components/DeveloperCredit";
-import { BackButton } from "@/components/BackButton";
 import { Calendar, Plus, ArrowLeft, Edit, Trash2, Users, Upload, UserPlus, Image as ImageIcon, Download, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
@@ -710,18 +709,15 @@ const ManageEvents = () => {
       <DeveloperCredit />
       <main className="flex-1 w-full bg-background overflow-x-hidden">
         <div className="w-full px-4 md:px-6 lg:px-8 py-8">
-          {/* Back Button */}
-          <div className="mb-6">
-            <BackButton to="/admin" />
-          </div>
+
 
           {/* Page Header */}
           <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-1">
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground">
+              <h1 className="page-title">
                 Events
               </h1>
-              <p className="text-muted-foreground font-medium text-sm md:text-base border-l-4 border-primary/30 pl-3">
+              <p className="page-subtitle border-l-4 border-primary/30 pl-3">
                 Create events and manage student participation
               </p>
             </div>
@@ -730,41 +726,45 @@ const ManageEvents = () => {
                 setFormData({ title: "", description: "", date: "", year: selectedYear, is_special_day: false, image_url: "", max_volunteers: "", volunteer_registration_deadline: "" });
                 setShowAddDialog(true);
               }}
-              className="h-12 px-6 rounded-2xl font-bold shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 transition-all gap-2 w-full md:w-auto"
+              className="h-10 rounded-md font-semibold text-sm px-4 bg-primary hover:bg-primary/90 gap-2 w-full md:w-auto"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4" />
               Add Event
             </Button>
           </div>
 
-          {/* Filter Card */}
-          <Card className="border-border/40 mb-8 bg-card shadow-xl overflow-hidden rounded-3xl">
-            <CardContent className="p-4 md:p-6 bg-muted/20">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:flex lg:items-center gap-4 md:gap-8">
+          {/* Filter Card - Standardized */}
+          <Card className="border-border/40 mb-8 bg-card shadow-sm overflow-hidden rounded-md">
+            <CardContent className="p-4 md:p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:flex lg:items-center gap-4">
                 <div className="space-y-2 flex-1">
-                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground pl-1">Filter by Year</Label>
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                    Filter by Year
+                  </Label>
                   <Select value={selectedYear} onValueChange={setSelectedYear}>
-                    <SelectTrigger className="w-full lg:w-40 h-12 rounded-2xl bg-background border-border/50 font-bold focus:ring-primary/20">
+                    <SelectTrigger className="w-full h-10 rounded-md bg-background border-border text-foreground">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="rounded-2xl">
+                    <SelectContent className="rounded-md">
                       {years.map(year => (
-                        <SelectItem key={year} value={year} className="font-bold">{year}</SelectItem>
+                        <SelectItem key={year} value={year} className="text-foreground">{year}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2 flex-1">
-                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground pl-1">Filter by Month</Label>
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                    Filter by Month
+                  </Label>
                   <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                    <SelectTrigger className="w-full lg:w-48 h-12 rounded-2xl bg-background border-border/50 font-bold focus:ring-primary/20">
+                    <SelectTrigger className="w-full h-10 rounded-md bg-background border-border text-foreground">
                       <SelectValue placeholder="All months" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-2xl">
-                      <SelectItem value="all" className="font-bold">All months</SelectItem>
+                    <SelectContent className="rounded-md">
+                      <SelectItem value="all" className="text-foreground">All months</SelectItem>
                       {monthOptions.map((m) => (
-                        <SelectItem key={m.value} value={m.value} className="font-bold">{m.label}</SelectItem>
+                        <SelectItem key={m.value} value={m.value} className="text-foreground">{m.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -774,25 +774,23 @@ const ManageEvents = () => {
           </Card>
 
           {/* Events Section */}
-          <Card className="border-border/40 bg-card shadow-2xl overflow-hidden rounded-3xl">
-            <CardHeader className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-muted/10 border-b">
-              <CardTitle className="flex items-center gap-3 text-2xl font-black uppercase tracking-tight">
-                <div className="p-2 bg-primary/10 rounded-xl">
-                  <Calendar className="w-6 h-6 text-primary" />
+          <Card className="border-border/40 bg-card shadow-sm overflow-hidden rounded-md">
+            <CardHeader className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 border-b">
+              <CardTitle className="flex items-center gap-3 text-2xl font-bold text-foreground">
+                <div className="p-2 bg-primary/10 rounded-md">
+                  <Calendar className="w-5 h-5 text-primary" />
                 </div>
-                Events <span className="text-primary/50 text-xl font-bold italic ml-1">({events.length})</span>
+                Events <span className="text-muted-foreground text-lg font-semibold ml-1">({events.length})</span>
               </CardTitle>
-
-
             </CardHeader>
-            <CardContent className="p-4 md:p-6 bg-muted/5">
+            <CardContent className="p-4 md:p-6">
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-4">
                   <div className="w-12 h-12 border-4 border-primary/10 border-t-primary rounded-full animate-spin"></div>
                   <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">Syncing Events...</p>
                 </div>
               ) : events.length === 0 ? (
-                <div className="text-center py-20 border-2 border-dashed border-border/50 rounded-3xl bg-muted/10">
+                <div className="text-center py-20 border-2 border-dashed border-border/50 rounded-md bg-muted/10">
                   <div className="bg-muted w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Calendar className="w-8 h-8 opacity-20" />
                   </div>
@@ -813,7 +811,7 @@ const ManageEvents = () => {
                     const imageUrl = buildImageUrl(event.image_url);
 
                     return (
-                      <div key={event.id} className="group flex flex-col bg-card rounded-2xl border transition-all duration-300 overflow-hidden border-border/40 hover:shadow-md hover:border-primary/20">
+                      <div key={event.id} className="group flex flex-col bg-card rounded-md border transition-all duration-200 overflow-hidden border-border hover:shadow-md hover:border-primary/30">
                         {/* Image Section */}
                         <div className="relative h-48 w-full overflow-hidden bg-muted">
                           {imageUrl ? (
@@ -838,7 +836,7 @@ const ManageEvents = () => {
 
                           {/* Date Badge */}
                           <div className="absolute bottom-3 right-3">
-                            <div className="bg-black/60 backdrop-blur-md text-white text-xs font-bold px-2.5 py-1 rounded-lg border border-white/10 flex items-center gap-1.5 shadow-sm">
+                            <div className="bg-background/90 backdrop-blur-md text-foreground text-xs font-semibold px-2.5 py-1 rounded-md border border-border/50 flex items-center gap-1.5 shadow-sm">
                               <Calendar className="w-3 h-3 text-primary" />
                               {new Date(event.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </div>
@@ -866,8 +864,8 @@ const ManageEvents = () => {
                               <Badge variant="secondary" className="bg-secondary/50 font-semibold text-xs border-secondary-foreground/10">
                                 Batch {event.year}
                               </Badge>
-                              <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
-                                <Users className="w-3.5 h-3.5 text-primary/70" />
+                              <div className="flex items-center gap-1.5 text-xs font-medium text-foreground bg-muted/50 px-2 py-1 rounded-md border border-border/50">
+                                <Users className="w-3.5 h-3.5 text-primary" />
                                 {volunteerCounts[event.id] || 0} Volunteers
                               </div>
                             </div>
@@ -876,7 +874,7 @@ const ManageEvents = () => {
                           <div className="grid grid-cols-[1fr,auto,auto] gap-2 mt-auto pt-2">
                             <Button
                               onClick={() => navigate(`/admin/events/${event.id}`)}
-                              className="h-10 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+                              className="h-10 rounded-md font-semibold text-sm bg-primary text-primary-foreground hover:bg-primary/90 px-4"
                             >
                               Manage Records
                             </Button>
@@ -899,23 +897,23 @@ const ManageEvents = () => {
                                 setEventImageFile(null);
                                 setShowEditDialog(true);
                               }}
-                              className="h-10 w-10 rounded-xl border-border/60 hover:bg-muted hover:border-primary/30"
+                              className="h-10 w-10 rounded-md border-border hover:bg-muted hover:border-primary/30"
                               title="Edit Event"
                             >
-                              <Edit className="w-4 h-4 text-muted-foreground" />
+                              <Edit className="w-4 h-4 text-foreground" />
                             </Button>
 
                             <Button
                               variant="outline"
                               size="icon"
-                              className="h-10 w-10 rounded-xl border-border/60 hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive"
+                              className="h-10 w-10 rounded-md border-border hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive"
                               onClick={() => {
                                 setSelectedEvent(event);
                                 setShowDeleteDialog(true);
                               }}
                               title="Delete Event"
                             >
-                              <Trash2 className="w-4 h-4 text-muted-foreground group-hover:text-destructive transition-colors" />
+                              <Trash2 className="w-4 h-4 text-foreground" />
                             </Button>
                           </div>
                         </div>
@@ -963,17 +961,17 @@ const ManageEvents = () => {
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className="rounded-xl"
+                  className="rounded-md"
                   required
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="year">Year *</Label>
                 <Select value={formData.year} onValueChange={(value) => setFormData({ ...formData, year: value })}>
-                  <SelectTrigger className="rounded-xl">
+                  <SelectTrigger className="rounded-md">
                     <SelectValue placeholder="Select year" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl">
+                  <SelectContent className="rounded-md">
                     {years.map(year => (
                       <SelectItem key={year} value={year}>{year}</SelectItem>
                     ))}
@@ -1026,7 +1024,7 @@ const ManageEvents = () => {
                   value={formData.max_volunteers}
                   onChange={(e) => setFormData({ ...formData, max_volunteers: e.target.value })}
                   placeholder="e.g., 50"
-                  className="rounded-xl"
+                  className="rounded-md"
                 />
               </div>
               <div className="space-y-2">
@@ -1036,18 +1034,18 @@ const ManageEvents = () => {
                   type="datetime-local"
                   value={formData.volunteer_registration_deadline}
                   onChange={(e) => setFormData({ ...formData, volunteer_registration_deadline: e.target.value })}
-                  className="rounded-xl"
+                  className="rounded-md"
                 />
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 justify-end pt-4">
-              <Button type="button" variant="outline" className="rounded-xl h-11 font-bold order-2 sm:order-1" onClick={() => {
+              <Button type="button" variant="outline" className="h-10 rounded-md font-semibold text-sm px-4 order-2 sm:order-1" onClick={() => {
                 setShowAddDialog(false);
                 setEventImageFile(null);
               }}>
                 Cancel
               </Button>
-              <Button type="submit" className="rounded-xl h-11 font-bold order-1 sm:order-2">Add Event</Button>
+              <Button type="submit" className="h-10 rounded-md font-semibold text-sm px-4 bg-primary order-1 sm:order-2">Add Event</Button>
             </div>
           </form>
         </DialogContent>
@@ -1087,17 +1085,17 @@ const ManageEvents = () => {
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className="rounded-xl"
+                  className="rounded-md"
                   required
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-year">Year *</Label>
                 <Select value={formData.year} onValueChange={(value) => setFormData({ ...formData, year: value })}>
-                  <SelectTrigger className="rounded-xl">
+                  <SelectTrigger className="rounded-md">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl">
+                  <SelectContent className="rounded-md">
                     {years.map(year => (
                       <SelectItem key={year} value={year}>{year}</SelectItem>
                     ))}
@@ -1150,7 +1148,7 @@ const ManageEvents = () => {
                   value={formData.max_volunteers}
                   onChange={(e) => setFormData({ ...formData, max_volunteers: e.target.value })}
                   placeholder="e.g., 50"
-                  className="rounded-xl"
+                  className="rounded-md"
                 />
               </div>
               <div className="space-y-2">
@@ -1160,18 +1158,18 @@ const ManageEvents = () => {
                   type="datetime-local"
                   value={formData.volunteer_registration_deadline}
                   onChange={(e) => setFormData({ ...formData, volunteer_registration_deadline: e.target.value })}
-                  className="rounded-xl"
+                  className="rounded-md"
                 />
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 justify-end pt-4">
-              <Button type="button" variant="outline" className="rounded-xl h-11 font-bold order-2 sm:order-1" onClick={() => {
+              <Button type="button" variant="outline" className="h-10 rounded-md font-semibold text-sm px-4 order-2 sm:order-1" onClick={() => {
                 setShowEditDialog(false);
                 setEventImageFile(null);
               }}>
                 Cancel
               </Button>
-              <Button type="submit" className="rounded-xl h-11 font-bold order-1 sm:order-2">Update Event</Button>
+              <Button type="submit" className="h-10 rounded-md font-semibold text-sm px-4 bg-primary order-1 sm:order-2">Update Event</Button>
             </div>
           </form>
         </DialogContent>

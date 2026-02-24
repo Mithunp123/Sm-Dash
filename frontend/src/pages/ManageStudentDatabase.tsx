@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DeveloperCredit from "@/components/DeveloperCredit";
-import { BackButton } from "@/components/BackButton";
 import { Users, Edit, Trash2, Search, Plus, ArrowLeft, Download, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import * as XLSX from "xlsx";
@@ -359,7 +358,7 @@ const ManageStudentDatabase = () => {
           <ErrorBoundary>
             <div className="w-full p-2 md:p-4 space-y-6">
               <div className="mb-4">
-                <BackButton to="/admin" />
+
               </div>
 
               {/* Page Header */}

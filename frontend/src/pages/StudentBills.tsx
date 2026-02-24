@@ -8,7 +8,6 @@ import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { BackButton } from "@/components/BackButton";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -122,7 +121,7 @@ const StudentBills = () => {
             <DeveloperCredit />
             <div className="w-full px-4 md:px-6 lg:px-8 space-y-8">
                 <div className="flex flex-col gap-4">
-                    <BackButton to="/student" />
+
                     <div className="flex justify-between items-center bg-white dark:bg-slate-950 p-6 rounded-3xl border border-border shadow-sm">
                         <div>
                             <h1 className="text-4xl font-black tracking-tight text-foreground">Mission Billing</h1>

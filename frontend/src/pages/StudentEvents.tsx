@@ -230,7 +230,7 @@ const StudentEvents = () => {
       <div className="flex-1 p-6">
         <div className="w-full px-4 md:px-6 lg:px-8">
           <div className="flex items-center gap-4 mb-6">
-            <BackButton />
+
             <div>
               <h1 className="text-3xl font-bold text-foreground">Events</h1>
               <p className="text-muted-foreground mt-1">

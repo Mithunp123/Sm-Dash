@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import DeveloperCredit from "@/components/DeveloperCredit";
-import { BackButton } from "@/components/BackButton";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -173,16 +173,16 @@ const ManageAwards = () => {
       <div className="w-full p-2 md:p-4 space-y-6">
         {/* Back Button */}
         <div className="mb-4">
-          <BackButton to="/admin" />
+
         </div>
 
         {/* Page Header */}
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div>
-            <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground">Awards & Honors</h1>
-            <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Recognizing excellence in the community</p>
+            <h1 className="page-title">Awards & Honors</h1>
+            <p className="page-subtitle border-l-4 border-primary/30 pl-3 mt-2">Recognizing excellence in the community</p>
           </div>
-          <Button onClick={() => setShowForm(true)} className="gap-2 h-11 px-6 rounded-2xl shadow-lg shadow-primary/20 font-bold w-full sm:w-auto">
+          <Button onClick={() => setShowForm(true)} className="gap-2 h-10 px-4 rounded-md font-semibold text-sm text-foreground w-full sm:w-auto">
             <Plus className="w-4 h-4" />
             Add Award
           </Button>
@@ -199,7 +199,7 @@ const ManageAwards = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {awards.map((award) => (
-              <Card key={award.id} className="group relative overflow-hidden rounded-3xl border-border/40 bg-card/60 backdrop-blur-md shadow-md hover:shadow-xl hover:translate-y-[-4px] transition-all duration-300">
+              <Card key={award.id} className="group relative overflow-hidden rounded-md border-border/40 bg-card shadow-sm hover:shadow-lg transition-all duration-300">
                 <div className="relative h-48 overflow-hidden bg-muted">
                   {imgUrl(award) ? (
                     <img
@@ -221,14 +221,14 @@ const ManageAwards = () => {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-xl font-black text-foreground uppercase tracking-tight line-clamp-1">{award.title}</CardTitle>
                   {award.recipient_name && (
-                    <CardDescription className="font-bold text-primary flex items-center gap-1 mt-1">
+                    <CardDescription className="font-bold text-foreground flex items-center gap-1 mt-1">
                       <Trophy className="w-3 h-3" />
                       {award.recipient_name}
                     </CardDescription>
                   )}
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed h-8">
+                  <p className="text-[11px] text-foreground line-clamp-2 leading-relaxed h-8">
                     {award.description || "No description provided."}
                   </p>
                   <div className="flex items-center gap-4 text-[10px] font-black uppercase text-muted-foreground tracking-widest bg-muted/30 p-2 rounded-xl">
@@ -241,7 +241,7 @@ const ManageAwards = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 h-9 rounded-xl font-bold text-[10px] uppercase tracking-widest border-2"
+                      className="flex-1 h-10 rounded-md font-semibold text-sm text-foreground"
                       onClick={() => {
                         setEditingAward(award);
                         setForm({
@@ -261,7 +261,7 @@ const ManageAwards = () => {
                     <Button
                       variant="destructive"
                       size="sm"
-                      className="h-9 w-9 rounded-xl p-0 flex items-center justify-center"
+                      className="h-10 w-10 rounded-md p-0 flex items-center justify-center"
                       onClick={() => handleDelete(award)}
                     >
                       <Trash2 className="w-4 h-4" />
@@ -343,10 +343,10 @@ const ManageAwards = () => {
               />
             </div>
             <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
-              <Button variant="outline" className="rounded-xl h-11 font-bold order-2 sm:order-1" onClick={() => setShowForm(false)} disabled={saving}>
+              <Button variant="outline" className="rounded-md h-10 font-semibold text-sm order-2 sm:order-1 text-foreground" onClick={() => setShowForm(false)} disabled={saving}>
                 Cancel
               </Button>
-              <Button onClick={handleSave} disabled={saving} className="rounded-xl h-11 font-bold gap-2 order-1 sm:order-2">
+              <Button onClick={handleSave} disabled={saving} className="rounded-md h-10 font-semibold text-sm gap-2 order-1 sm:order-2 text-foreground">
                 <Upload className="w-4 h-4" />
                 {saving ? "Saving..." : editingAward ? "Update" : "Create"}
               </Button>

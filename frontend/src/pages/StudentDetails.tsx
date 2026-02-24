@@ -294,7 +294,7 @@ const StudentDetails = () => {
         <div className="min-h-screen flex flex-col bg-background text-foreground">
             <main className="flex-1 p-2 md:p-4 w-full">
                 <div className="mb-4">
-                    <BackButton to="/admin/students" />
+
                 </div>
 
                 {/* Header Profile Section */}
@@ -553,7 +553,7 @@ const StudentDetails = () => {
                                             step={1}
                                             onValueChange={v => setAssignIndex(v[0])}
                                         />
-                                        <div className="p-2 border rounded-md mt-2 text-center bg-muted/20">
+                                        <div className="p-2 border rounded-md mt-2 text-center bg-muted/20 text-foreground font-medium slider-value">
                                             {projects[assignIndex]?.title}
                                         </div>
                                     </>
@@ -562,8 +562,8 @@ const StudentDetails = () => {
                                 )}
                             </div>
                             <div className="flex justify-end gap-2">
-                                <Button variant="outline" onClick={() => setShowAssignDialog(false)}>Cancel</Button>
-                                <Button onClick={handleAssignProject} disabled={projects.length === 0}>Assign</Button>
+                                <Button variant="outline" onClick={() => setShowAssignDialog(false)} className="h-10 rounded-md font-semibold text-sm px-4">Cancel</Button>
+                                <Button onClick={handleAssignProject} disabled={projects.length === 0} className="h-10 rounded-md font-semibold text-sm px-4">Assign</Button>
                             </div>
                         </div>
                     </DialogContent>
@@ -588,7 +588,7 @@ const StudentDetails = () => {
                                             step={1}
                                             onValueChange={v => setAssignEventIndex(v[0])}
                                         />
-                                        <div className="p-2 border rounded-md mt-2 text-center bg-muted/20">
+                                        <div className="p-2 border rounded-md mt-2 text-center bg-muted/20 text-foreground font-medium slider-value">
                                             {events[assignEventIndex]?.title}
                                         </div>
                                     </>
@@ -597,8 +597,8 @@ const StudentDetails = () => {
                                 )}
                             </div>
                             <div className="flex justify-end gap-2">
-                                <Button variant="outline" onClick={() => setShowAssignEventDialog(false)}>Cancel</Button>
-                                <Button onClick={handleAssignEvent} disabled={events.length === 0}>Assign</Button>
+                                <Button variant="outline" onClick={() => setShowAssignEventDialog(false)} className="h-10 rounded-md font-semibold text-sm px-4">Cancel</Button>
+                                <Button onClick={handleAssignEvent} disabled={events.length === 0} className="h-10 rounded-md font-semibold text-sm px-4">Assign</Button>
                             </div>
                         </div>
                     </DialogContent>

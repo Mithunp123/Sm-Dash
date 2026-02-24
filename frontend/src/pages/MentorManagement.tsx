@@ -984,7 +984,7 @@ const MentorManagement = () => {
         <div className="w-full">
           {/* Back Button */}
           <div className="mb-6">
-            <BackButton to="/admin" />
+
           </div>
 
           {/* Page Header */}

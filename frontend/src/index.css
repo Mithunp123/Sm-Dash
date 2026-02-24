@@ -8,91 +8,92 @@
 @layer base {
   :root {
     /* 
-      MODERN ACADEMIC THEME 
-      Vibrant, engaging, and professional with gradients.
+      ACADEMIC COLLEGE THEME 
+      Professional, formal, and trustworthy design for institutional use.
+      Suitable for college administration, faculty review, and NAAC presentations.
     */
 
-    /* Background: Clean gradient-ready light base */
-    --background: 60 100% 99%;
-    --foreground: 225 25% 15%;
+    /* Background: Academic Light (#F8FAFC) */
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
 
-    /* Cards: Pure white with depth */
+    /* Cards: Pure white with subtle depth */
     --card: 0 0% 100%;
-    --card-foreground: 225 25% 15%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 225 25% 15%;
+    --popover-foreground: 222 47% 11%;
 
     /* Sidebar: Clean white */
     --sidebar: 0 0% 100%;
-    --sidebar-foreground: 225 25% 15%;
+    --sidebar-foreground: 222 47% 11%;
 
-    /* Primary: Vibrant Blue - Modern & Bold */
-    --primary: 214 95% 55%;
+    /* Primary: Academic Blue (#1E3A8A) */
+    --primary: 224 71% 31%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary: Warm Orange - Accent */
-    --secondary: 24 95% 58%;
+    /* Secondary: Slate Gray (#334155) */
+    --secondary: 215 25% 27%;
     --secondary-foreground: 0 0% 100%;
 
-    /* Muted: Soft Gray */
-    --muted: 220 13% 91%;
-    --muted-foreground: 220 9% 46%;
+    /* Muted: Soft Gray for subtle elements */
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 16% 47%;
 
-    /* Accent: Teal Pop */
-    --accent: 174 92% 48%;
+    /* Accent: Teal (#0F766E) - Minimal use */
+    --accent: 173 80% 26%;
     --accent-foreground: 0 0% 100%;
 
-    /* Destructive: Bold Red */
-    --destructive: 0 84% 60%;
+    /* Destructive: Professional Red */
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
     /* Borders: Clean subtle */
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 214 95% 55%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 224 71% 31%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    /* Charts - Vibrant palette */
-    --chart-1: 214 95% 55%;
-    --chart-2: 24 95% 58%;
-    --chart-3: 174 92% 48%;
-    --chart-4: 280 85% 65%;
-    --chart-5: 40 91% 55%;
+    /* Charts - Academic palette */
+    --chart-1: 224 71% 31%;
+    --chart-2: 215 25% 27%;
+    --chart-3: 173 80% 26%;
+    --chart-4: 215 20% 65%;
+    --chart-5: 214 32% 85%;
   }
 
   .dark {
-    /* Modern Dark Mode */
-    --background: 225 30% 8%;
-    --foreground: 60 100% 95%;
+    /* Academic Dark Mode - Professional and readable with better contrast */
+    --background: 222 47% 10%;
+    --foreground: 210 40% 98%;
 
-    --sidebar: 225 30% 5%;
-    --sidebar-foreground: 60 100% 95%;
+    --sidebar: 222 47% 8%;
+    --sidebar-foreground: 210 40% 98%;
 
-    --card: 225 30% 12%;
-    --card-foreground: 60 100% 95%;
+    --card: 222 47% 15%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 225 30% 12%;
-    --popover-foreground: 60 100% 95%;
+    --popover: 222 47% 15%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 214 95% 60%;
-    --primary-foreground: 225 25% 15%;
+    --primary: 224 71% 50%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 24 95% 58%;
-    --secondary-foreground: 225 25% 15%;
+    --secondary: 215 25% 45%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 225 25% 25%;
-    --muted-foreground: 220 9% 70%;
+    --muted: 215 20% 25%;
+    --muted-foreground: 215 16% 75%;
 
-    --accent: 174 92% 48%;
-    --accent-foreground: 225 25% 15%;
+    --accent: 173 80% 45%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 50%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 225 25% 20%;
-    --input: 225 25% 20%;
-    --ring: 214 95% 60%;
+    --border: 215 25% 25%;
+    --input: 215 25% 25%;
+    --ring: 224 71% 50%;
   }
 }
 
@@ -107,9 +108,78 @@
 
   body {
     @apply bg-background text-foreground transition-colors duration-300 antialiased;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    letter-spacing: -0.015em;
-    /* Cleaner, tighter text */
+    font-family: 'Inter', 'Roboto', system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.01em;
+    line-height: 1.6;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Professional, readable typography */
+  }
+  
+  /* Ensure text is always readable */
+  .dark body,
+  .dark p,
+  .dark h1,
+  .dark h2,
+  .dark h3,
+  .dark h4,
+  .dark h5,
+  .dark h6 {
+    color: hsl(var(--foreground));
+    font-weight: 500;
+  }
+  
+  .dark .text-foreground {
+    color: hsl(var(--foreground)) !important;
+  }
+  
+  .dark .text-muted-foreground {
+    color: hsl(var(--muted-foreground)) !important;
+  }
+
+  /* Global text visibility - ensure all text is visible */
+  * {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Ensure text doesn't get hidden by overflow */
+  body, html {
+    overflow-x: hidden;
+  }
+
+  /* Force text visibility on all elements */
+  p, span, div, h1, h2, h3, h4, h5, h6, label, button, a {
+    color: inherit;
+  }
+
+  /* Dark mode text contrast improvements - ensure all text is visible */
+  .dark p,
+  .dark span:not(.text-primary):not(.text-secondary):not(.text-destructive):not(.text-accent):not(.text-white),
+  .dark div:not(.text-primary):not(.text-secondary):not(.text-destructive):not(.text-accent):not(.text-white) {
+    color: hsl(var(--foreground)) !important;
+  }
+
+  /* Ensure header text is always visible with shadow */
+  header * {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  .dark header * {
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Prevent text from being cut off - allow wrapping instead */
+  .truncate {
+    white-space: normal !important;
+    overflow: visible !important;
+  }
+
+  /* Ensure cards don't hide text */
+  [class*="card"], [class*="Card"] {
+    overflow: visible;
   }
 
   h1,
@@ -276,5 +346,94 @@
 
   .rotate-y-180 {
     transform: rotateY(180deg);
+  }
+
+  /* ========================================
+     MOBILE RESPONSIVE UTILITIES
+     ======================================== */
+
+  /* Mobile-first container padding */
+  .container-responsive {
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .container-responsive {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .container-responsive {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container-responsive {
+      padding-left: 2.5rem;
+      padding-right: 2.5rem;
+      max-width: 1280px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }
+
+  /* Responsive text sizes */
+  .text-responsive {
+    font-size: 0.875rem;
+  }
+
+  @media (min-width: 768px) {
+    .text-responsive {
+      font-size: 1rem;
+    }
+  }
+
+  /* Responsive spacing */
+  .section-responsive {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .section-responsive {
+      padding-top: 3rem;
+      padding-bottom: 3rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .section-responsive {
+      padding-top: 4rem;
+      padding-bottom: 4rem;
+    }
+  }
+
+  /* Mobile-friendly touch targets */
+  @media (max-width: 768px) {
+    button,
+    a,
+    [role="button"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
+
+  /* Slider Label and Value Text Styles - Ensure Visibility */
+  .slider-label,
+  .slider-value {
+    color: hsl(var(--foreground)) !important;
+    font-weight: 500;
+    font-size: 0.875rem;
+  }
+
+  .dark .slider-label,
+  .dark .slider-value {
+    color: hsl(var(--foreground)) !important;
   }
 }

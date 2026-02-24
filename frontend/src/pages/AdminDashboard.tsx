@@ -143,35 +143,31 @@ const AdminDashboard = () => {
   return (
     <>
       <DeveloperCredit />
-      <div className="w-full min-h-screen bg-background/50 p-4 md:p-8 space-y-8">
+      <div className="w-full min-h-screen bg-background p-4 md:p-8 space-y-8">
 
-        {/* Welcome Section */}
+        {/* Welcome Section - Academic Professional Style */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 p-8 md:p-12 shadow-2xl border border-white/10"
+          className="relative overflow-hidden rounded-lg bg-gradient-to-br from-primary via-primary/95 to-primary/90 p-8 md:p-12 shadow-lg border border-primary/20"
         >
           <div className="relative z-10 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-white/80 text-xs font-medium backdrop-blur-md mb-4 border border-white/10">
-              <Sparkles className="w-3 h-3 text-yellow-400" />
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/20 text-white text-xs font-semibold backdrop-blur-sm mb-4 border border-white/30">
+              <Sparkles className="w-3 h-3 text-white" />
               <span>Admin Dashboard</span>
             </div>
-            <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight mb-2">
-              Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">{user?.name}</span>
+            <h1 className="page-title text-white mb-3">
+              Welcome back, <span className="text-white font-extrabold">{user?.name}</span>
             </h1>
-            <p className="text-slate-300 text-lg">
+            <p className="page-subtitle text-white/90">
               Here's what's happening with your volunteers today.
             </p>
           </div>
-
-          {/* Background Decorations */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/20 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/2"></div>
         </motion.div>
 
         {/* Overview Stats */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold flex items-center gap-2">
+        <div className="section-container mb-xl">
+          <h2 className="section-title flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-primary" />
             Overview
           </h2>
@@ -183,23 +179,20 @@ const AdminDashboard = () => {
           >
             {statCards.map((stat, i) => (
               <motion.div key={i} variants={item}>
-                <Card className={`group relative overflow-hidden border ${stat.border} bg-card/50 hover:bg-card/80 transition-all duration-300 hover:shadow-lg hover:shadow-${stat.color.split('-')[1]}-500/10 hover:-translate-y-1`}>
+                <Card className="group relative overflow-hidden border-radius-md card-container hover:border-primary/30 transition-all duration-200 hover:shadow-md">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                    <CardTitle className="card-title">
                       {stat.title}
                     </CardTitle>
-                    <div className={`p-2 rounded-xl ${stat.bg} ${stat.color} group-hover:scale-110 transition-transform duration-300`}>
-                      <stat.icon className="h-4 w-4" />
+                    <div className={`p-2.5 rounded-md ${stat.bg} ${stat.color} group-hover:scale-110 transition-transform duration-200`}>
+                      <stat.icon className="h-5 w-5" />
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold tracking-tight">{stat.value.toLocaleString()}</div>
-                    <p className="text-xs text-muted-foreground mt-1 font-medium flex items-center gap-1">
+                    <div className="text-3xl font-bold tracking-tight text-foreground">{stat.value.toLocaleString()}</div>
+                    <p className="body-text-sm mt-2">
                       {stat.desc}
                     </p>
-
-                    {/* Decorative gradient line at bottom */}
-                    <div className={`absolute bottom-0 left-0 w-full h-1 ${stat.bg} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
                   </CardContent>
                 </Card>
               </motion.div>

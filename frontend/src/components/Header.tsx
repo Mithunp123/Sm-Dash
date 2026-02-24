@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { auth } from "@/lib/auth";
-import { LogOut, Menu, User, ChevronDown } from "lucide-react";
+import { LogOut, Menu, User, ChevronDown, ArrowLeft } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -22,9 +22,12 @@ import { api } from "@/lib/api";
 interface HeaderProps {
   onMenuClick?: () => void;
   showMenuTrigger?: boolean;
+  showBackButton?: boolean;
+  showHeader?: boolean;
+  showSidebar?: boolean;
 }
 
-const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
+const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, showHeader = true, showSidebar = true }: HeaderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isAuthenticated = auth.isAuthenticated();
@@ -73,7 +76,7 @@ const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
     refreshUserKey();
   }, [isAuthenticated]);
 
-  if (isLoginPage) return null;
+  if (isLoginPage || !showHeader) return null;
 
   const handleLogout = () => {
     auth.logout();
@@ -112,8 +115,8 @@ const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
   };
 
   return (
-    <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${isLandingPage
-      ? "bg-[#020617] border-b border-slate-800 shadow-2xl relative overflow-hidden"
+    <header className={`fixed top-0 z-50 right-0 transition-all duration-300 ${showSidebar ? "md:left-64" : "left-0"} left-0 w-full md:w-auto ${isLandingPage
+      ? "bg-[#020617] border-b border-slate-800 shadow-2xl overflow-hidden"
       : "bg-[hsl(var(--sidebar))] border-b border-white/5"
       }`}>
       {/* Background Pattern for Landing Page Header */}
@@ -368,6 +371,19 @@ const Header = ({ onMenuClick, showMenuTrigger = true }: HeaderProps) => {
                 aria-label="Toggle Menu"
               >
                 <Menu className="h-5 w-5" />
+              </Button>
+            )}
+
+            {showBackButton && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(-1)}
+                className="mr-4 text-white border-white/30 hover:bg-white/20 hover:border-white/50 gap-2 transition-all duration-200"
+                aria-label="Go back"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span className="hidden sm:inline text-sm font-medium">Back</span>
               </Button>
             )}
 

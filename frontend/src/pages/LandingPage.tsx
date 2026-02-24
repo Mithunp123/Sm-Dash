@@ -553,7 +553,7 @@ const LandingPage = () => {
       </AnimatePresence>
 
       {/* Hero Section - Ultra Modern */}
-      <section className="relative w-full min-h-[500px] md:min-h-[700px] overflow-hidden z-10 flex items-center justify-center pt-24 pb-12">
+      <section className="relative w-full min-h-[500px] md:min-h-[700px] overflow-hidden z-10 flex items-center justify-center pt-32 md:pt-40 pb-12">
         {/* Dynamic Gradient Background */}
         <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-950"></div>
@@ -561,7 +561,7 @@ const LandingPage = () => {
             className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000 md:bg-[center_35%]"
             style={{
               backgroundImage: 'url("/images/Home.jpg")',
-              filter: 'brightness(1.15) saturate(1.1)',
+              opacity: 1,
             }}
           />
           {/* Enhanced overlay with gradient */}
@@ -585,7 +585,7 @@ const LandingPage = () => {
             > <br></br> <br></br> <br></br>
               <span className="text-white font-black drop-shadow-[0_0_40px_rgba(255,255,255,0.6)]">SM</span>{" "}
               <br className="sm:hidden" />
-              <span className="bg-gradient-to-r from-orange-300 via-orange-400 to-yellow-300 bg-clip-text text-transparent font-black drop-shadow-[0_0_30px_rgba(255,160,0,0.6)]">
+              <span className="text-white font-black drop-shadow-[0_0_30px_rgba(255,255,255,0.6)]">
                 VOLUNTEERS
               </span>
             </motion.h1>
@@ -594,7 +594,7 @@ const LandingPage = () => {
               variants={fadeInUp}
               className="relative px-2 md:px-6"
             >
-              <span className="block text-2xl md:text-4xl font-black italic tracking-wide md:tracking-[0.08em] bg-gradient-to-r from-yellow-100 via-white to-blue-100 bg-clip-text text-transparent drop-shadow-2xl uppercase leading-tight">
+              <span className="block text-2xl md:text-4xl font-black italic tracking-wide md:tracking-[0.08em] text-white drop-shadow-2xl uppercase leading-tight">
                 To build the ministry of <br className="hidden sm:block" /> socially responsible volunteers
               </span>
               <motion.div

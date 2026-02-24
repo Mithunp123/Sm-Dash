@@ -99,7 +99,7 @@ const StudentReports = () => {
             <DeveloperCredit />
             <div className="w-full px-4 md:px-6 lg:px-8 space-y-8">
                 <div className="flex flex-col gap-4">
-                    <BackButton to="/student" />
+
                     <div className="flex justify-between items-center bg-white dark:bg-slate-950 p-6 rounded-3xl border border-border shadow-sm">
                         <div>
                             <h1 className="text-4xl font-black tracking-tight text-foreground">Mission Intel</h1>

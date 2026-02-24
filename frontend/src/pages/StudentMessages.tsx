@@ -31,7 +31,7 @@ const StudentMessages = () => {
                                 Connect with Admins and Office Bearers
                             </p>
                         </div>
-                        <BackButton />
+
                     </div>
 
                     {/* Messages Content */}

@@ -67,7 +67,7 @@ const ProjectDetails = () => {
         <div className="min-h-screen flex flex-col bg-background text-foreground">
             <main className="flex-1 p-4 md:p-8 w-full px-4 md:px-6 lg:px-8 space-y-6">
                 <div className="mb-4">
-                    <BackButton to="/admin/projects" />
+
                 </div>
 
                 {/* Header Section */}

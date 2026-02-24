@@ -357,7 +357,7 @@ const StudentProfile = () => {
         <div className="w-full">
           {/* Back Button */}
           <div className="mb-4">
-            <BackButton />
+
           </div>
 
           {/* Hero Header Section with Profile Picture */}

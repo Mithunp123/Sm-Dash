@@ -853,6 +853,35 @@ class ApiClient {
     return this.request('/interviews/my-status');
   }
 
+  // Get candidates assigned to current mentor/interviewer
+  async getMyInterviewCandidates() {
+    return this.request('/interviews/my-candidates');
+  }
+
+  // Submit interview marks (mentor only, one-time submission)
+  async submitInterviewMarks(candidateId: number, data: { marks: number; remarks?: string }) {
+    return this.request(`/interviews/${candidateId}/submit-marks`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Assign mentor to candidate (admin only)
+  async assignInterviewMentor(candidateId: number, data: { mentor_id: number; mentor_name: string }) {
+    return this.request(`/interviews/${candidateId}/assign-mentor`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Send bulk email via SMTP
+  async sendBulkEmail(data: { recipients: string[]; subject: string; body: string; html?: boolean; priority?: number; type: string }) {
+    return this.request('/mail/send-bulk', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   // Chat message methods
   async getConversations() {
     return this.request('/messages/conversations');

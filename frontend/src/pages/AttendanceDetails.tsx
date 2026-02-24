@@ -12,7 +12,7 @@ import { Download, Eye, Edit, Calendar, Briefcase, Users, ArrowLeft, CheckCircle
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
-import { BackButton } from "@/components/BackButton";
+
 import { Card, CardContent } from "@/components/ui/card";
 
 interface AttendanceRecord {
@@ -356,7 +356,7 @@ const AttendanceDetails = () => {
             <main className="flex-1 p-2 md:p-4 w-full">
                 {/* Back Button */}
                 <div className="mb-4">
-                    <BackButton to="/admin/attendance" />
+
                 </div>
 
                 {/* Header */}
@@ -370,11 +370,11 @@ const AttendanceDetails = () => {
                             <p className="text-muted-foreground font-medium text-xs md:text-sm border-l-4 border-primary/30 pl-3">Attendance management and records</p>
                         </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto items-stretch sm:items-center">
                         <Button
                             onClick={handleMarkAllPresent}
                             disabled={!selectedDate || filteredRecords.length === 0 || markingAll}
-                            className="h-11 rounded-xl bg-primary hover:bg-primary/90 font-bold shadow-lg shadow-primary/20 transition-all gap-2 flex-1 sm:flex-none"
+                            className="h-10 rounded-md bg-primary hover:bg-primary/90 font-semibold gap-2 text-sm px-4 flex-1 sm:flex-none"
                         >
                             <CheckCircle2 className="w-4 h-4" />
                             {markingAll ? "Marking..." : "Mark All Present"}
@@ -382,7 +382,7 @@ const AttendanceDetails = () => {
                         <Button
                             onClick={handleDownloadExcel}
                             disabled={!selectedDate || attendanceRecords.length === 0}
-                            className="h-11 rounded-xl bg-white border-2 border-border/50 hover:bg-muted font-bold transition-all gap-2 flex-1 sm:flex-none"
+                            className="h-10 rounded-md font-semibold gap-2 text-sm px-4 flex-1 sm:flex-none"
                             variant="outline"
                         >
                             <Download className="w-4 h-4" />

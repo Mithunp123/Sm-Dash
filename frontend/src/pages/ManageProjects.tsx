@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import DeveloperCredit from "@/components/DeveloperCredit";
-import { BackButton } from "@/components/BackButton";
 import { Plus, Edit, Trash2, Eye, Users, Activity, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
@@ -169,23 +168,21 @@ const ManageProjects = () => {
       <DeveloperCredit />
       <main className="flex-1 w-full bg-background overflow-x-hidden">
         <div className="w-full p-2 md:p-4 space-y-6">
-          <div className="mb-4">
-            <BackButton to="/admin" />
-          </div>
+
 
           {/* Page Header */}
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 px-2">
             <div>
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground">Projects</h1>
-              <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Design and manage community initiatives</p>
+              <h1 className="page-title">Projects</h1>
+              <p className="page-subtitle border-l-4 border-primary/30 pl-3 mt-2">Design and manage community initiatives</p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto items-stretch sm:items-center">
               <Button
                 onClick={() => {
                   setFormData({ title: "", description: "", ngo_name: "", status: "active", start_date: "", end_date: "" });
                   setShowCreateDialog(true);
                 }}
-                className="gap-2 h-11 px-6 rounded-2xl font-bold text-[10px] uppercase tracking-widest bg-primary shadow-lg shadow-primary/20 w-full sm:w-auto"
+                className="gap-2 h-10 rounded-md font-semibold text-sm px-4 bg-primary w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4" />
                 Create Project
@@ -202,7 +199,7 @@ const ManageProjects = () => {
                 <p className="text-muted-foreground mb-4">
                   Get started by creating your first project.
                 </p>
-                <Button onClick={() => setShowCreateDialog(true)}>Create Project</Button>
+                <Button onClick={() => setShowCreateDialog(true)} className="h-10 rounded-md font-semibold text-sm px-4">Create Project</Button>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -243,30 +240,30 @@ const ManageProjects = () => {
                       <div className="grid grid-cols-2 gap-2 mb-2">
                         <Button
                           onClick={() => navigate(`${basePath}/projects/${project.id}/assign`)}
-                          className="h-10 rounded-xl bg-primary shadow-lg shadow-primary/20 font-black text-[10px] uppercase tracking-widest gap-2"
+                          className="h-10 rounded-md bg-primary font-semibold text-sm gap-2 px-3"
                         >
-                          <Users className="w-3.5 h-3.5" /> Assign
+                          <Users className="w-4 h-4" /> Assign
                         </Button>
                         <Button
                           variant="outline"
                           onClick={() => navigate(`${basePath}/projects/${project.id}`)}
-                          className="h-10 rounded-xl border-2 font-black text-[10px] uppercase tracking-widest hover:bg-primary/5 hover:text-primary transition-all gap-2"
+                          className="h-10 rounded-md font-semibold text-sm hover:bg-primary/5 hover:text-primary gap-2 px-3"
                         >
-                          <Eye className="w-3.5 h-3.5" /> View
+                          <Eye className="w-4 h-4" /> View
                         </Button>
                       </div>
                       <div className="flex gap-2">
                         <Button
                           variant="ghost"
                           onClick={() => openEdit(project)}
-                          className="flex-1 h-10 rounded-xl font-black text-[10px] uppercase tracking-widest text-blue-600 hover:bg-blue-500/10 hover:text-blue-600 transition-all gap-2"
+                          className="flex-1 h-10 rounded-md font-semibold text-sm text-primary hover:bg-primary/10 gap-2 px-3"
                         >
-                          <Edit className="w-3.5 h-3.5" /> Edit
+                          <Edit className="w-4 h-4" /> Edit
                         </Button>
                         <Button
                           variant="ghost"
                           onClick={() => openDelete(project)}
-                          className="h-10 w-10 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all p-0 flex items-center justify-center"
+                          className="h-10 w-10 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all p-0 flex items-center justify-center"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -313,8 +310,8 @@ const ManageProjects = () => {
               </div>
             </div>
             <DialogFooter className="gap-3 flex-col sm:flex-row">
-              <Button variant="outline" className="h-12 rounded-2xl font-bold order-2 sm:order-1" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
-              <Button onClick={handleCreate} disabled={!formData.title} className="h-12 rounded-2xl bg-primary hover:bg-primary/90 font-bold shadow-lg shadow-primary/20 order-1 sm:order-2">Create Project</Button>
+              <Button variant="outline" className="h-10 rounded-md font-semibold text-sm px-4 order-2 sm:order-1" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
+              <Button onClick={handleCreate} disabled={!formData.title} className="h-10 rounded-md bg-primary hover:bg-primary/90 font-semibold text-sm px-4 order-1 sm:order-2">Create Project</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog >

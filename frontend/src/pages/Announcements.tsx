@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { BackButton } from "@/components/BackButton";
+
 import { Megaphone, Trash2, History, Sparkles, ChevronRight, Send, Clock, Calendar as CalendarIcon, Edit } from "lucide-react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
@@ -109,13 +109,13 @@ const Announcements = () => {
         <div className="w-full px-3 md:px-6 py-4 space-y-6 md:space-y-8 animate-in fade-in duration-700">
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                 <div className="flex items-center gap-3">
-                    <BackButton to="/admin" />
+
                     <div>
-                        <h1 className="text-xl md:text-3xl lg:text-4xl font-black text-foreground tracking-tight uppercase flex flex-wrap items-center gap-x-2">
+                        <h1 className="page-title uppercase flex flex-wrap items-center gap-x-2">
                             Announcement
                             <span className="bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent italic">Control Center</span>
                         </h1>
-                        <p className="text-[10px] md:text-sm text-muted-foreground font-medium uppercase tracking-widest opacity-80 mt-1">Broadcast updates in real-time</p>
+                        <p className="page-subtitle uppercase tracking-widest mt-2">Broadcast updates in real-time</p>
                     </div>
                 </div>
             </div>

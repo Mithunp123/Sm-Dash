@@ -4,7 +4,7 @@ import xlsx from 'xlsx';
 import { getDatabase } from '../database/init.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { logActivity } from '../utils/logger.js';
-import { sendEmail } from '../utils/email.js';
+import { sendEmail, getInterviewEmailTemplate } from '../utils/email.js';
 
 const router = express.Router();
 
@@ -115,6 +115,7 @@ router.post('/bulk-upload', authenticateToken, requireRole('admin'), upload.sing
         let successCount = 0;
         let skippedCount = 0;
         const skippedDetails = [];
+        const successfulCandidates = [];
 
         for (const row of data) {
             // Extract values using original keys found in map
@@ -157,8 +158,16 @@ router.post('/bulk-upload', authenticateToken, requireRole('admin'), upload.sing
                 );
                 const candidateId = result.lastID;
 
-                // Prepare Email (removed)
+                // Prepare and send email
+                const subject = "Interview Process Registration - SM Volunteers";
+                const html = getInterviewEmailTemplate(name, register_no);
+                
+                const sent = await sendEmail(email, subject, html);
+                if (sent) {
+                    await run(db, 'UPDATE interview_candidates SET email_sent = 1 WHERE id = ?', [candidateId]);
+                }
 
+                successfulCandidates.push({ name, email });
                 successCount++;
 
             } catch (err) {
@@ -224,8 +233,16 @@ router.post('/add', authenticateToken, requireRole('admin'), async (req, res) =>
             [name, email, phone, dept, year, register_no]
         );
 
-        // Send Email
+        const candidateId = result.lastID;
 
+        // Send Email
+        const subject = "Interview Process Registration - SM Volunteers";
+        const html = getInterviewEmailTemplate(name, register_no);
+        
+        const sent = await sendEmail(email, subject, html);
+        if (sent) {
+            await run(db, 'UPDATE interview_candidates SET email_sent = 1 WHERE id = ?', [candidateId]);
+        }
 
         await logActivity(req.user.id, 'ADD_CANDIDATE', { name, email }, req, {
             action_type: 'CREATE',
@@ -233,7 +250,7 @@ router.post('/add', authenticateToken, requireRole('admin'), async (req, res) =>
             action_description: `Added interview candidate: ${name}`
         });
 
-        res.json({ success: true, message: 'Candidate added successfully' });
+        res.json({ success: true, message: 'Candidate added successfully and email sent' });
 
     } catch (error) {
         console.error('Add candidate error:', error);
@@ -350,18 +367,7 @@ router.post('/send-emails', authenticateToken, requireRole('admin'), async (req,
             const { id, name, email, register_no } = candidate;
 
             const subject = "Interview Process Registration - SM Volunteers";
-            const html = `
-                <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.6;">
-                    <h2 style="color: #2563eb;">Registration Successful</h2>
-                    <p>Dear ${name},</p>
-                    <p>You have been successfully registered for the SM Volunteers interview process.</p>
-                    <p><strong>Registration Number:</strong> ${register_no}</p>
-                    <p>We will notify you about the interview schedule shortly.</p>
-                    <br/>
-                    <p>Best Regards,</p>
-                    <p>SM Volunteers Team</p>
-                </div>
-            `;
+            const html = getInterviewEmailTemplate(name, register_no);
 
             try {
                 const sent = await sendEmail(email, subject, html);

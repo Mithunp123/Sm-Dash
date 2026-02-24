@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { BackButton } from "@/components/BackButton";
+
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar, Edit, Trash2, Upload, Plus, Users, Save, Download, UserPlus } from "lucide-react";
@@ -392,7 +392,7 @@ const EventDetails = () => {
         <div className="min-h-screen flex flex-col bg-background text-foreground">
             <main className="flex-1 p-4 md:p-8 w-full">
                 <div className="mb-4">
-                    <BackButton to="/admin/events" /> {/* Need to verify route */}
+
                 </div>
 
                 {/* Header */}

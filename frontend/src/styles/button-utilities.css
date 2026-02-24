@@ -1,0 +1,76 @@
+/**
+ * STANDARDIZED BUTTON UTILITIES
+ * Use these classes to ensure consistent button styling across all pages
+ */
+
+/* Standard Button Base - Consistent height and radius */
+.btn-standard {
+  height: 42px;
+  min-height: 42px;
+  border-radius: 0.5rem; /* rounded-md */
+  font-weight: 500;
+  font-size: 0.875rem; /* text-sm */
+  padding: 0.5rem 1rem; /* px-4 py-2 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+/* Small Button */
+.btn-standard-sm {
+  height: 36px;
+  min-height: 36px;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem; /* text-xs */
+}
+
+/* Large Button */
+.btn-standard-lg {
+  height: 44px;
+  min-height: 44px;
+  padding: 0.625rem 1.5rem;
+  font-size: 1rem; /* text-base */
+}
+
+/* Primary Button */
+.btn-standard-primary {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: none;
+}
+
+.btn-standard-primary:hover {
+  background-color: hsl(var(--primary) / 0.9);
+}
+
+/* Secondary/Outline Button */
+.btn-standard-outline {
+  background-color: transparent;
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+}
+
+.btn-standard-outline:hover {
+  background-color: hsl(var(--muted));
+}
+
+/* Action Button Group - Consistent spacing */
+.btn-group {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .btn-group {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .btn-group > * {
+    width: 100%;
+  }
+}

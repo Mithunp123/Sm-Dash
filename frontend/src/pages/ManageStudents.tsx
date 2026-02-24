@@ -323,53 +323,66 @@ const ManageStudents = () => {
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 w-full">
           {/* Back Button */}
           <div className="mb-6">
-            <BackButton to="/admin" />
+
           </div>
 
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground">Student Profiles</h1>
-              <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Manage core community database</p>
+              <h1 className="page-title">Student Profiles</h1>
+              <p className="page-subtitle border-l-4 border-primary/30 pl-3 mt-2">Manage core community database</p>
             </div>
           </div>
 
-          {/* Filter Section */}
-          <Card className="border-border/40 mb-8 bg-card/60 backdrop-blur-md shadow-xl rounded-3xl overflow-hidden">
-            <CardContent className="p-4 md:p-6 bg-muted/20">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1 relative group">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors w-5 h-5" />
-                  <Input
-                    placeholder="Search students by name or email..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-12 h-12 bg-background border-border/50 focus:ring-primary/20 transition-all rounded-2xl text-sm"
-                  />
+          {/* Filter Section - Standardized */}
+          <Card className="border-border/40 mb-8 bg-card shadow-sm rounded-md overflow-hidden">
+            <CardContent className="p-4 md:p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2 flex-1">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                    Search
+                  </Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                    <Input
+                      placeholder="Search students by name or email..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 h-10 rounded-md bg-background border-border text-foreground placeholder:text-muted-foreground"
+                    />
+                  </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="space-y-2 flex-1">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                    Department
+                  </Label>
                   <Select value={deptFilter} onValueChange={setDeptFilter}>
-                    <SelectTrigger className="w-full sm:w-40 h-12 rounded-2xl bg-background border-border/50 font-bold text-xs uppercase tracking-widest">
-                      <SelectValue placeholder="Department" />
+                    <SelectTrigger className="w-full h-10 rounded-md bg-background border-border text-foreground">
+                      <SelectValue placeholder="All Departments" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-2xl">
-                      <SelectItem value="all">All Departments</SelectItem>
-                      <SelectItem value="CSE">CSE</SelectItem>
-                      <SelectItem value="ECE">ECE</SelectItem>
-                      <SelectItem value="MECH">MECH</SelectItem>
-                      <SelectItem value="EEE">EEE</SelectItem>
-                      <SelectItem value="CIVIL">CIVIL</SelectItem>
+                    <SelectContent className="rounded-md">
+                      <SelectItem value="all" className="text-foreground">All Departments</SelectItem>
+                      <SelectItem value="CSE" className="text-foreground">CSE</SelectItem>
+                      <SelectItem value="ECE" className="text-foreground">ECE</SelectItem>
+                      <SelectItem value="MECH" className="text-foreground">MECH</SelectItem>
+                      <SelectItem value="EEE" className="text-foreground">EEE</SelectItem>
+                      <SelectItem value="CIVIL" className="text-foreground">CIVIL</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-2 flex-1">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                    Year
+                  </Label>
                   <Select value={yearFilter} onValueChange={setYearFilter}>
-                    <SelectTrigger className="w-full sm:w-32 h-12 rounded-2xl bg-background border-border/50 font-bold text-xs uppercase tracking-widest">
-                      <SelectValue placeholder="Year" />
+                    <SelectTrigger className="w-full h-10 rounded-md bg-background border-border text-foreground">
+                      <SelectValue placeholder="All Years" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-2xl">
-                      <SelectItem value="all">All Years</SelectItem>
-                      <SelectItem value="I">I Year</SelectItem>
-                      <SelectItem value="II">II Year</SelectItem>
-                      <SelectItem value="III">III Year</SelectItem>
-                      <SelectItem value="IV">IV Year</SelectItem>
+                    <SelectContent className="rounded-md">
+                      <SelectItem value="all" className="text-foreground">All Years</SelectItem>
+                      <SelectItem value="I" className="text-foreground">I Year</SelectItem>
+                      <SelectItem value="II" className="text-foreground">II Year</SelectItem>
+                      <SelectItem value="III" className="text-foreground">III Year</SelectItem>
+                      <SelectItem value="IV" className="text-foreground">IV Year</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -418,13 +431,13 @@ const ManageStudents = () => {
                             </div>
 
                             <div className="grid grid-cols-2 gap-2 mb-4">
-                              <div className="bg-muted/30 p-2 rounded-xl">
-                                <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Phone</p>
-                                <p className="text-xs font-bold text-foreground truncate">{student.profile?.phone || "-"}</p>
+                              <div className="bg-muted/30 p-2 rounded-md border border-border/50">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Phone</p>
+                                <p className="text-sm font-medium text-foreground truncate">{student.profile?.phone || "-"}</p>
                               </div>
-                              <div className="bg-muted/30 p-2 rounded-xl">
-                                <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Blood</p>
-                                <p className="text-xs font-bold text-foreground truncate">{student.profile?.blood_group || "-"}</p>
+                              <div className="bg-muted/30 p-2 rounded-md border border-border/50">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Blood</p>
+                                <p className="text-sm font-medium text-foreground truncate">{student.profile?.blood_group || "-"}</p>
                               </div>
                             </div>
 
@@ -433,14 +446,14 @@ const ManageStudents = () => {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleEditProfile(student)}
-                                className="flex-1 h-9 rounded-xl font-bold text-[10px] uppercase tracking-widest border-2"
+                                className="flex-1 h-9 rounded-md font-semibold text-xs"
                               >
                                 Profile
                               </Button>
                               <Button
                                 size="sm"
                                 onClick={() => handleAssignProject(student)}
-                                className="flex-1 h-9 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20"
+                                className="flex-1 h-9 rounded-md font-semibold text-xs bg-primary"
                               >
                                 Project
                               </Button>
@@ -451,7 +464,7 @@ const ManageStudents = () => {
                                   setSelectedStudent(student);
                                   setShowDeleteDialog(true);
                                 }}
-                                className="h-9 w-9 rounded-xl p-0 flex items-center justify-center"
+                                className="h-9 w-9 rounded-md p-0 flex items-center justify-center"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
@@ -563,7 +576,7 @@ const ManageStudents = () => {
                 <div className="text-sm text-muted-foreground">No projects available</div>
               ) : (
                 <div>
-                  <div className="mb-2 text-sm font-medium">
+                  <div className="mb-2 text-sm font-medium text-foreground slider-value">
                     Selected: {assignIndex !== null && projects[assignIndex] ? `${projects[assignIndex].title}${projects[assignIndex].ngo_name ? ` (${projects[assignIndex].ngo_name})` : ''}` : 'None'}
                   </div>
                   <Slider
@@ -588,10 +601,11 @@ const ManageStudents = () => {
                   setShowAssignDialog(false);
                   setSelectedStudent(null);
                 }}
+                className="h-10 rounded-md font-semibold text-sm px-4"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={assignIndex === null}>Assign</Button>
+              <Button type="submit" disabled={assignIndex === null} className="h-10 rounded-md font-semibold text-sm px-4">Assign</Button>
             </div>
           </form>
         </DialogContent>
@@ -613,7 +627,7 @@ const ManageStudents = () => {
                 <div className="text-sm text-muted-foreground">No events available</div>
               ) : (
                 <div>
-                  <div className="mb-2 text-sm font-medium">
+                  <div className="mb-2 text-sm font-medium text-foreground slider-value">
                     Selected: {assignEventIndex !== null && events[assignEventIndex] ? `${events[assignEventIndex].name}` : 'None'}
                   </div>
                   <Slider
@@ -638,10 +652,11 @@ const ManageStudents = () => {
                   setShowAssignEventDialog(false);
                   setSelectedStudent(null);
                 }}
+                className="h-10 rounded-md font-semibold text-sm px-4"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={assignEventIndex === null}>Assign</Button>
+              <Button type="submit" disabled={assignEventIndex === null} className="h-10 rounded-md font-semibold text-sm px-4">Assign</Button>
             </div>
           </form>
         </DialogContent>

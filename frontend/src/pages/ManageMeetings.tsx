@@ -7,9 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-
 import DeveloperCredit from "@/components/DeveloperCredit";
-import { BackButton } from "@/components/BackButton";
+
 import { Calendar, Plus, ArrowLeft, Edit, Trash2, CheckCircle2, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
@@ -243,27 +242,27 @@ const ManageMeetings = () => {
       <main className="flex-1 w-full bg-background overflow-x-hidden">
         <div className="w-full p-2 md:p-4 space-y-6">
           <div className="mb-4">
-            <BackButton to="/admin" />
+
           </div>
 
           {/* Page Header */}
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 px-2">
             <div>
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground">Meetings & Days</h1>
-              <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Schedule community gatherings and observe special occasions</p>
+              <h1 className="page-title">Meetings & Days</h1>
+              <p className="page-subtitle border-l-4 border-primary/30 pl-3 mt-2">Schedule community gatherings and observe special occasions</p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto items-stretch sm:items-center">
               <Button
                 onClick={() => setShowCalendar(!showCalendar)}
                 variant="outline"
-                className="gap-2 h-11 px-6 rounded-2xl font-bold text-[10px] uppercase tracking-widest border-2 w-full sm:w-auto"
+                className="gap-2 h-10 rounded-md font-semibold text-sm px-4 w-full sm:w-auto"
               >
                 <Calendar className="w-4 h-4" />
                 {showCalendar ? "Switch to List" : "Switch to Calendar"}
               </Button>
               <Button
                 onClick={() => setShowAddDialog(true)}
-                className="gap-2 h-11 px-6 rounded-2xl font-bold text-[10px] uppercase tracking-widest bg-primary shadow-lg shadow-primary/20 w-full sm:w-auto"
+                className="gap-2 h-10 rounded-md font-semibold text-sm px-4 bg-primary w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4" />
                 Add Meeting
@@ -271,7 +270,7 @@ const ManageMeetings = () => {
               <Button
                 onClick={() => setShowImportantDayDialog(true)}
                 variant="secondary"
-                className="gap-2 h-11 px-6 rounded-2xl font-bold text-[10px] uppercase tracking-widest w-full sm:w-auto shadow-md"
+                className="gap-2 h-10 rounded-md font-semibold text-sm px-4 w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4" />
                 Add Imp Day

@@ -11,7 +11,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DeveloperCredit from "@/components/DeveloperCredit";
-import { BackButton } from "@/components/BackButton";
 import { Plus, ArrowLeft, Edit, Trash2, Search, Briefcase, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
@@ -347,26 +346,24 @@ const ManageBills = () => {
         <div className="w-full">
           {/* Back Button */}
           <div className="mb-4">
-            {currentView === 'bills' ? (
+            {currentView === 'bills' && (
               <Button variant="ghost" onClick={handleBackToFolders} className="gap-2 pl-0 hover:pl-2 transition-all">
                 <ArrowLeft className="w-4 h-4" /> Back to Folders
               </Button>
-            ) : (
-              <BackButton to="/admin" />
             )}
           </div>
 
           {/* Page Header */}
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground">
+              <h1 className="page-title">
                 {viewTitle.includes('Bill Folders') ? (
                   <>Bill Folders</>
                 ) : (
                   viewTitle
                 )}
               </h1>
-              <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">{currentView === 'folders' ? 'Manage folders to organize bills' : 'Manage bills in this folder'}</p>
+              <p className="page-subtitle border-l-4 border-primary/30 pl-3 mt-2">{currentView === 'folders' ? 'Manage folders to organize bills' : 'Manage bills in this folder'}</p>
             </div>
             {currentView === 'folders' ? (
               <Button onClick={() => {
@@ -375,12 +372,12 @@ const ManageBills = () => {
                 setNewFolderDesc('');
                 setNewFolderDisabled(false);
                 setShowFolderDialog(true);
-              }} className="gap-2 rounded-2xl h-12 shadow-lg shadow-primary/20">
+              }} className="gap-2 rounded-md h-10 font-semibold text-sm px-4 bg-primary text-primary-foreground">
                 <Plus className="w-4 h-4" />
                 Create Folder
               </Button>
             ) : (
-              <Button onClick={() => { resetForm(); setShowDialog(true); }} className="gap-2 rounded-2xl h-12 shadow-lg shadow-primary/20">
+              <Button onClick={() => { resetForm(); setShowDialog(true); }} className="gap-2 rounded-md h-10 font-semibold text-sm px-4 bg-primary text-primary-foreground">
                 <Plus className="w-4 h-4" />
                 Create Bill
               </Button>
@@ -398,7 +395,7 @@ const ManageBills = () => {
                   <Card key={folder.id} className={`hover:shadow-xl transition-all duration-300 bg-card/50 backdrop-blur-sm border-border/50 group relative overflow-hidden rounded-[2rem] ${isDisabled ? 'opacity-75' : ''}`}>
                     <div className="p-6 flex flex-col items-center text-center space-y-4 relative z-10">
                       <div
-                        className={`p-5 rounded-3xl transition-all duration-500 ${isDisabled && !isAdmin ? 'bg-muted cursor-not-allowed' : 'bg-primary/10 group-hover:bg-primary/20 group-hover:scale-110 group-hover:rotate-3 cursor-pointer'}`}
+                        className={`p-4 rounded-md transition-all duration-300 ${isDisabled && !isAdmin ? 'bg-muted cursor-not-allowed' : 'bg-card hover:bg-muted/50 cursor-pointer border border-border/50'}`}
                         onClick={() => {
                           if (isDisabled && !isAdmin) {
                             toast.error("This folder is currently disabled");
@@ -502,7 +499,7 @@ const ManageBills = () => {
                             <TableCell className="font-medium">{bill.title || bill.name}</TableCell>
                             <TableCell>?{(bill.amount || 0).toLocaleString()}</TableCell>
                             <TableCell><Badge variant="secondary" className="capitalize">{(bill.bill_type || bill.type) || 'N/A'}</Badge></TableCell>
-                            <TableCell>{(bill.bill_date || bill.date) ? new Date(bill.bill_date || bill.date).toLocaleDateString() : '—'}</TableCell>
+                            <TableCell>{(bill.bill_date || bill.date) ? new Date(bill.bill_date || bill.date).toLocaleDateString() : 'ï¿½'}</TableCell>
                             <TableCell>{getStatusBadge(bill.status)}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex gap-2 justify-end">
@@ -793,7 +790,7 @@ const ManageBills = () => {
                       {formData.items.map((it, idx) => (
                         <div key={idx} className="p-3 grid grid-cols-5 gap-2 border-t text-sm items-center">
                           <div className="capitalize">{it.category}</div>
-                          <div>{it.category === 'transport' ? `${it.from || '—'} ? ${it.to || '—'}` : (it.description || '—')}</div>
+                          <div>{it.category === 'transport' ? `${it.from || 'ï¿½'} ? ${it.to || 'ï¿½'}` : (it.description || 'ï¿½')}</div>
                           <div>?{(it.amount || 0).toFixed(2)}</div>
                           <div className="col-span-2 text-right">
                             <Button type="button" size="sm" variant="destructive" onClick={() => {

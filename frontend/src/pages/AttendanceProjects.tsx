@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import DeveloperCredit from "@/components/DeveloperCredit";
-import { BackButton } from "@/components/BackButton";
+
 import { Calendar, Briefcase, Eye, Search, CheckCircle2, Clock, XCircle, Users } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { auth } from "@/lib/auth";
@@ -219,9 +219,7 @@ const AttendanceProjects = () => {
             <DeveloperCredit />
             <main className="flex-1 w-full bg-background overflow-x-hidden">
                 <div className="w-full px-4 md:px-6 lg:px-8 py-8 space-y-8">
-                    <div className="mb-6">
-                        <BackButton to={backPath} />
-                    </div>
+
 
                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
                         <div className="space-y-2">

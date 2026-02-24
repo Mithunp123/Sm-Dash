@@ -13,7 +13,6 @@ import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { BackButton } from "@/components/BackButton";
 
 // Common departments list (match student profile)
 const DEPARTMENTS = [
@@ -271,13 +270,14 @@ const OfficeBearerProfile = () => {
         <div className="w-full">
           {/* Back Button */}
           <div className="mb-6">
-            <BackButton to="/office-bearer" />
+
           </div>
 
-          <div className="mb-6 bg-white dark:bg-slate-900 border border-border rounded-lg p-6 shadow-sm relative overflow-hidden">
-            <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
-              {/* Profile Picture */}
-              <div className="relative group">
+          {/* Profile Card Frame - Like Image Design */}
+          <div className="mb-6 relative">
+            <Card className="border border-border bg-card dark:bg-slate-900 overflow-hidden rounded-md shadow-lg">
+              {/* Upper Section - Portrait with Overlays */}
+              <div className="relative h-64 md:h-80 bg-gradient-to-br from-slate-800 to-slate-900 dark:from-slate-950 dark:to-slate-900">
                 <input
                   type="file"
                   id="profile-photo-upload"
@@ -285,73 +285,102 @@ const OfficeBearerProfile = () => {
                   onChange={handlePhotoChange}
                   className="hidden"
                 />
-                <div className="w-24 h-24 rounded-full border-2 border-border bg-muted flex items-center justify-center overflow-hidden relative shadow-inner">
+                
+                {/* Portrait Photo */}
+                <div className="absolute inset-0 flex items-center justify-center">
                   {photoPreview ? (
                     <img
                       src={photoPreview}
                       alt="Profile"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover opacity-90"
                     />
                   ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-primary/10">
-                      <span className="text-3xl font-semibold text-primary">
+                    <div className="w-full h-full flex items-center justify-center bg-primary/10">
+                      <span className="text-6xl md:text-8xl font-bold text-primary/30">
                         {profileData.name ? profileData.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) : 'OB'}
                       </span>
                     </div>
                   )}
                 </div>
-                {/* Action buttons - Only visible when isEditing is true */}
+
+                {/* Logo Overlay - Top Left */}
+                <div className="absolute top-4 left-4 z-10">
+                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-primary/90 backdrop-blur-sm border-2 border-primary/50 flex items-center justify-center shadow-lg">
+                    <div className="text-white font-bold text-xs md:text-sm text-center">
+                      <div className="text-[8px] md:text-[10px] uppercase tracking-wider">SM</div>
+                      <div className="text-[10px] md:text-xs font-black">VOL</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status Badge - Top Right */}
+                <div className="absolute top-4 right-4 z-10">
+                  <div className="px-3 py-1.5 rounded-md bg-slate-700/90 backdrop-blur-sm border border-slate-600/50 flex items-center gap-2 shadow-lg">
+                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                    <span className="text-white text-xs font-semibold uppercase tracking-wider">ACTIVE</span>
+                  </div>
+                </div>
+
+                {/* Edit Photo Button - Bottom Right (when editing) */}
                 {isEditing && (
-                  <div className="absolute bottom-0 right-0 flex gap-1">
+                  <div className="absolute bottom-4 right-4 z-10 flex gap-2">
                     <label
                       htmlFor="profile-photo-upload"
-                      className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm hover:bg-primary/90 cursor-pointer hover:scale-110 transition-transform"
+                      className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 cursor-pointer hover:scale-110 transition-transform backdrop-blur-sm"
                       title={photoPreview ? "Change photo" : "Upload photo"}
                     >
-                      <Camera className="w-4 h-4" />
+                      <Camera className="w-5 h-5" />
                     </label>
                     {photoPreview && (
                       <button
                         onClick={() => setShowDeleteConfirm(true)}
-                        className="w-8 h-8 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-sm hover:bg-destructive/90 cursor-pointer hover:scale-110 transition-transform"
+                        className="w-10 h-10 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-lg hover:bg-destructive/90 cursor-pointer hover:scale-110 transition-transform backdrop-blur-sm"
                         title="Delete photo"
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-5 h-5" />
                       </button>
                     )}
                   </div>
                 )}
               </div>
 
-              {/* Name and Email */}
-              <div className="flex-1 text-center md:text-left">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <h1 className="text-2xl font-semibold text-foreground mb-1">
-                      {profileData.name || 'Office Bearer Profile'}
+              {/* Lower Section - Text Information */}
+              <CardContent className="p-6 bg-card dark:bg-slate-900">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div className="flex-1">
+                    {/* Role/Title */}
+                    <div className="mb-2">
+                      <span className="text-primary text-xs md:text-sm font-semibold uppercase tracking-wider">
+                        — {profileData.position || 'Office Bearer'} {profileData.dept ? `• ${profileData.dept}` : ''}
+                      </span>
+                    </div>
+                    
+                    {/* Name */}
+                    <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
+                      {profileData.name || 'Office Bearer'}
                     </h1>
-                    <p className="text-sm text-muted-foreground">
-                      {profileData.email || 'Update your profile information'}
-                    </p>
-                    {profileData.dept && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {profileData.dept} {profileData.year ? `• ${profileData.year} Year` : ''}
+                    
+                    {/* Organization/College */}
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-muted-foreground">
+                        {profileData.email || 'Update your profile'}
                       </p>
-                    )}
+                      {!isEditing && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setIsEditing(true)}
+                          className="h-8 w-8 rounded-full"
+                          title="Edit Profile"
+                        >
+                          <Settings className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  {!isEditing && (
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsEditing(true)}
-                      className="gap-2"
-                    >
-                      <Settings className="w-4 h-4" />
-                      Edit Profile
-                    </Button>
-                  )}
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Delete Confirmation Dialog */}

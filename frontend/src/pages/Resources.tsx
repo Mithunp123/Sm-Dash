@@ -7,7 +7,6 @@ import { auth } from '@/lib/auth';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, FileText, Download, Eye, Loader2, BookMarked, Lightbulb, DollarSign, FileCheck, Briefcase } from 'lucide-react';
 import PDFViewer from '@/components/PDFViewer';
-import { BackButton } from '@/components/BackButton';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -96,17 +95,17 @@ const Resources = () => {
             {/* Page Header */}
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-semibold text-foreground mb-1">Resources</h1>
-                <p className="text-sm text-muted-foreground">Access study materials, guides, and documentation</p>
+                <h1 className="page-title mb-1">Resources</h1>
+                <p className="page-subtitle">Access study materials, guides, and documentation</p>
               </div>
-              <BackButton />
+
             </div>
 
             {/* Resources List */}
             <div>
               <div className="mb-6">
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-foreground">All Resources</h2>
-                <p className="text-sm text-muted-foreground mt-1">{filteredFiles.length} {filteredFiles.length === 1 ? 'resource' : 'resources'} available</p>
+                <h2 className="section-title">All Resources</h2>
+                <p className="body-text-sm mt-2">{filteredFiles.length} {filteredFiles.length === 1 ? 'resource' : 'resources'} available</p>
               </div>
 
               {loading ? (

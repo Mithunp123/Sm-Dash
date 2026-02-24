@@ -80,24 +80,33 @@
 }
 
 /* ========================================
-   COLOR SYSTEM (Two Main Colors)
+   COLOR SYSTEM (Academic Palette)
    ======================================== */
 
 :root {
-  /* PRIMARY COLOR - Royal Blue (Headings & Primary Buttons) */
-  --color-primary: #3B82F6;           /* Royal Blue */
-  --color-primary-hover: #2563EB;     /* Darker Blue on Hover */
-  --color-primary-light: #60A5FA;     /* Light Blue */
-  --color-primary-dark: #1E40AF;      /* Dark Blue */
+  /* PRIMARY COLOR - Academic Blue (#1E3A8A) */
+  --color-primary: #1E3A8A;           /* Academic Blue */
+  --color-primary-hover: #1E40AF;     /* Darker Blue on Hover */
+  --color-primary-light: #3B82F6;     /* Light Blue */
+  --color-primary-dark: #1E3A8A;      /* Dark Blue */
   --color-primary-50: #EFF6FF;        /* Very Light Blue Background */
   --color-primary-100: #DBEAFE;       /* Light Blue Background */
   
-  /* SECONDARY COLOR - Slate Gray (Body Text & Secondary Content) */
-  --color-secondary: #475569;         /* Slate 600 - Body Text */
+  /* SECONDARY COLOR - Slate Gray (#334155) */
+  --color-secondary: #334155;         /* Slate Gray - Body Text */
   --color-secondary-light: #64748B;   /* Slate 500 - Light Text */
-  --color-secondary-dark: #334155;    /* Slate 700 - Dark Text */
+  --color-secondary-dark: #1E293B;     /* Slate 800 - Dark Text */
   --color-secondary-50: #F8FAFC;      /* Slate 50 - Light Background */
   --color-secondary-100: #F1F5F9;     /* Slate 100 - Card Background */
+  
+  /* ACCENT COLOR - Teal (#0F766E) - Minimal use */
+  --color-accent: #0F766E;            /* Teal Accent */
+  --color-accent-light: #14B8A6;      /* Light Teal */
+  --color-accent-dark: #0D9488;       /* Dark Teal */
+  
+  /* BACKGROUND & TEXT */
+  --color-background: #F8FAFC;        /* Background */
+  --color-text: #0F172A;              /* Text */
   
   /* NEUTRAL COLORS (Supporting) */
   --color-white: #FFFFFF;
@@ -117,16 +126,19 @@
   --color-success: #10B981;           /* Green */
   --color-warning: #F59E0B;           /* Amber */
   --color-error: #EF4444;             /* Red */
-  --color-info: #3B82F6;              /* Blue */
+  --color-info: #1E3A8A;              /* Academic Blue */
 }
 
 /* Dark Mode Colors */
 .dark {
-  --color-primary: #60A5FA;           /* Lighter blue for dark mode */
-  --color-primary-hover: #3B82F6;
+  --color-primary: #3B82F6;           /* Lighter blue for dark mode */
+  --color-primary-hover: #60A5FA;
   --color-secondary: #CBD5E1;         /* Lighter gray for readability */
   --color-secondary-light: #94A3B8;
   --color-secondary-dark: #E2E8F0;
+  --color-accent: #14B8A6;           /* Lighter teal for dark mode */
+  --color-background: #0F172A;
+  --color-text: #F8FAFC;
   --color-black: #FFFFFF;
   --color-white: #0F172A;
 }
@@ -316,16 +328,18 @@ p {
 }
 
 /* ========================================
-   BUTTON SYSTEM
+   BUTTON SYSTEM (Consistent Height: 40-44px)
    ======================================== */
 
 .btn {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Roboto', sans-serif;
   font-size: var(--font-size-button);
   font-weight: var(--font-weight-medium);
   line-height: 1;
+  height: 42px;                       /* Consistent height */
+  min-height: 42px;
   padding: var(--space-3) var(--space-6);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-md);    /* Consistent radius */
   border: none;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
@@ -389,16 +403,21 @@ p {
   background-color: var(--color-gray-100);
 }
 
-/* Button Sizes */
+/* Button Sizes - Maintain consistent height */
 .btn-sm {
   font-size: var(--font-size-body-sm);
+  height: 36px;
+  min-height: 36px;
   padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
 }
 
 .btn-lg {
   font-size: var(--font-size-body-lg);
+  height: 44px;
+  min-height: 44px;
   padding: var(--space-4) var(--space-8);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
 }
 
 .btn-icon {
@@ -414,21 +433,21 @@ p {
 }
 
 /* ========================================
-   CARD SYSTEM
+   CARD SYSTEM (Consistent Design)
    ======================================== */
 
 .card {
   background-color: var(--color-white);
-  border-radius: var(--radius-lg);
-  padding: var(--space-6);
-  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-md);   /* Consistent radius */
+  padding: var(--space-6);             /* Consistent padding */
+  box-shadow: var(--shadow-sm);       /* Subtle shadow */
   border: 1px solid var(--color-gray-200);
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .card:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);        /* Slightly stronger on hover */
+  border-color: var(--color-primary);
 }
 
 .card-header {
@@ -483,8 +502,17 @@ p {
 
 /* Dark Mode Cards */
 .dark .card {
-  background-color: var(--color-gray-800);
-  border-color: var(--color-gray-700);
+  background-color: hsl(var(--card));
+  border-color: hsl(var(--border));
+  color: hsl(var(--card-foreground));
+}
+
+.dark .card * {
+  color: hsl(var(--card-foreground));
+}
+
+.dark .card .text-muted-foreground {
+  color: hsl(var(--muted-foreground)) !important;
 }
 
 /* ========================================
@@ -704,6 +732,35 @@ label {
   display: block;
 }
 
+/* Form Group - Aligned labels and inputs */
+.form-group {
+  margin-bottom: var(--space-4);
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-secondary-dark);
+}
+
+/* Touch-friendly inputs on mobile */
+@media (max-width: 768px) {
+  .input,
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  textarea,
+  select {
+    min-height: 44px;                  /* Touch-friendly size */
+    font-size: 16px;                   /* Prevents zoom on iOS */
+    padding: var(--space-3) var(--space-4);
+  }
+}
+
 /* ========================================
    RESPONSIVE GRID SYSTEM
    ======================================== */
@@ -748,6 +805,94 @@ label {
 }
 
 /* ========================================
+   TABLE SYSTEM (Consistent Design)
+   ======================================== */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-body-sm);
+}
+
+.table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: var(--space-4) 0;
+}
+
+/* Mobile: Horizontal scroll for tables */
+@media (max-width: 768px) {
+  .table-container {
+    overflow-x: scroll;
+    display: block;
+    width: 100%;
+  }
+  
+  table {
+    min-width: 600px;                  /* Minimum width for readability */
+  }
+}
+
+/* Table Header */
+thead {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+}
+
+thead th {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-body-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid var(--color-primary-dark);
+}
+
+/* Table Body */
+tbody tr {
+  border-bottom: 1px solid var(--color-gray-200);
+  transition: background-color 0.2s ease;
+}
+
+tbody tr:hover {
+  background-color: var(--color-gray-50);
+}
+
+tbody td {
+  padding: var(--space-4);             /* Consistent row height */
+  vertical-align: middle;
+  color: var(--color-secondary-dark);
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+/* Table Footer */
+tfoot {
+  background-color: var(--color-gray-50);
+  font-weight: var(--font-weight-semibold);
+}
+
+tfoot td {
+  padding: var(--space-3) var(--space-4);
+  border-top: 2px solid var(--color-gray-300);
+}
+
+/* Striped Table */
+.table-striped tbody tr:nth-child(even) {
+  background-color: var(--color-gray-50);
+}
+
+/* Bordered Table */
+.table-bordered {
+  border: 1px solid var(--color-gray-200);
+}
+
+.table-bordered th,
+.table-bordered td {
+  border: 1px solid var(--color-gray-200);
+}
+
+/* ========================================
    ACCESSIBILITY
    ======================================== */
 
@@ -767,4 +912,269 @@ label {
 *:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+/* ========================================
+   STANDARDIZED TYPOGRAPHY CLASSES
+   ======================================== */
+
+/* PAGE TITLES - Sentence Case, Bold */
+.page-title {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  color: var(--color-text);
+  text-transform: none;
+  margin: 0;
+}
+
+/* PAGE SUBTITLE - Sentence Case, Regular */
+.page-subtitle {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--color-gray-600);
+  text-transform: none;
+  margin: 0;
+}
+
+/* SECTION TITLES - Sentence Case, Semibold */
+.section-title {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.3px;
+  color: var(--color-text);
+  text-transform: none;
+  margin: 0;
+}
+
+/* CARD TITLES - Sentence Case, Semibold */
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-text);
+  text-transform: none;
+  margin: 0;
+}
+
+/* TABLE HEADERS - Uppercase, Semibold, Small */
+.table-header {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--color-gray-700);
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* BODY TEXT - Regular Weight */
+.body-text {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--color-text);
+  text-transform: none;
+}
+
+/* BODY TEXT LARGE - Slightly Larger Body */
+.body-text-lg {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--color-text);
+  text-transform: none;
+}
+
+/* BODY TEXT SMALL - For Descriptions/Details */
+.body-text-sm {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--color-gray-600);
+  text-transform: none;
+}
+
+/* ========================================
+   STANDARDIZED LAYOUT CLASSES
+   ======================================== */
+
+/* PAGE HEADER SECTION - Consistent Header Layout */
+.page-header {
+  margin-bottom: 32px;
+  padding: 0;
+}
+
+.page-header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* PAGE WRAPPER - Standard Page Container */
+.page-wrapper {
+  padding: 20px;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* SECTION CONTAINER - Consistent Section Layout */
+.section-container {
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* CARD CONTAINER - Consistent Card Layout */
+.card-container {
+  border-radius: 8px;
+  border: 1px solid var(--color-gray-200);
+  background-color: var(--color-white);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.card-content {
+  padding: 20px;
+}
+
+/* GRID LAYOUT - Responsive Grid */
+.grid-container {
+  display: grid;
+  gap: 20px;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.grid-4 {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+/* FLEX LAYOUT - Consistent Flex */
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ========================================
+   STANDARDIZED BUTTON CLASSES
+   ======================================== */
+
+.btn-primary {
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: none;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-hover);
+  box-shadow: 0 2px 8px rgba(30, 58, 138, 0.2);
+}
+
+.btn-secondary {
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  background-color: var(--color-gray-200);
+  color: var(--color-text);
+  border: 1px solid var(--color-gray-300);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: none;
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-gray-300);
+}
+
+/* ========================================
+   TEXT CASING UTILITIES
+   ======================================== */
+
+.text-sentence-case {
+  text-transform: none;
+}
+
+.text-uppercase {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.text-capitalize {
+  text-transform: capitalize;
+}
+
+/* ========================================
+   SPACING UTILITIES
+   ======================================== */
+
+.spacing-sm { gap: 8px; }
+.spacing-md { gap: 12px; }
+.spacing-lg { gap: 16px; }
+.spacing-xl { gap: 24px; }
+.spacing-2xl { gap: 32px; }
+
+.p-sm { padding: 8px; }
+.p-md { padding: 12px; }
+.p-lg { padding: 16px; }
+.p-xl { padding: 20px; }
+.p-2xl { padding: 24px; }
+
+.mb-sm { margin-bottom: 8px; }
+.mb-md { margin-bottom: 12px; }
+.mb-lg { margin-bottom: 16px; }
+.mb-xl { margin-bottom: 24px; }
+.mb-2xl { margin-bottom: 32px; }
+
+/* ========================================
+   CARD & BORDER STANDARDS
+   ======================================== */
+
+.card-shadow {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.card-shadow-md {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.card-shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.border-radius-sm {
+  border-radius: 4px;
+}
+
+.border-radius-md {
+  border-radius: 8px;
+}
+
+.border-radius-lg {
+  border-radius: 12px;
 }

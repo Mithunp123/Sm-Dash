@@ -64,6 +64,7 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
   const getOfficeBearerMenuItems = () => {
     return [
       { icon: LayoutDashboard, label: "Dashboard", path: "/office-bearer" },
+      { icon: UserCheck, label: "My Interviews", path: "/mentor/interviews" },
       { icon: Users, label: "Student Database", path: "/admin/student-db" },
       { icon: Briefcase, label: "Manage Projects", path: "/admin/projects" },
       { icon: Calendar, label: "Meetings", path: "/admin/meetings" },

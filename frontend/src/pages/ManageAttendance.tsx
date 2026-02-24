@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import DeveloperCredit from "@/components/DeveloperCredit";
-import { BackButton } from "@/components/BackButton";
+
 import { Calendar, Plus, ArrowLeft, CheckCircle2, XCircle, Clock, Briefcase, Users, Search, Filter, Edit, Trash2, Eye, Download, X as XIcon, Activity } from "lucide-react";
 
 import { useNavigate, useLocation } from "react-router-dom";
@@ -526,29 +526,27 @@ const ManageAttendance = () => {
       <DeveloperCredit />
       <main className="flex-1 w-full bg-background overflow-x-hidden">
         <div className="w-full px-4 md:px-6 lg:px-8 py-8">
-          <div className="mb-6">
-            <BackButton to="/admin" />
-          </div>
+
 
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10">
             <div className="space-y-1">
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground flex items-center gap-3">
+              <h1 className="page-title flex items-center gap-3">
                 <div className="bg-primary/10 rounded-2xl p-2 md:p-2.5 shadow-inner shrink-0">
                   <Activity className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-primary" />
                 </div>
                 Master Attendance
               </h1>
-              <p className="text-muted-foreground font-medium text-xs md:text-base border-l-4 border-primary/30 pl-3">
+              <p className="page-subtitle border-l-4 border-primary/30 pl-3 mt-2">
                 Track and manage participation across all activities
               </p>
             </div>
-            <Button onClick={() => setShowCreateDialog(true)} className="gap-2 shadow-xl shadow-primary/30 font-bold px-8 h-12 text-sm w-full lg:w-auto rounded-xl bg-primary hover:bg-primary/90 transition-all hover:translate-y-[-2px] group">
+            <Button onClick={() => setShowCreateDialog(true)} className="gap-2 h-10 rounded-md font-semibold text-sm px-4 bg-primary text-primary-foreground w-full lg:w-auto">
               <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
               Quick Create
             </Button>
           </div>
 
-          <Card className="border-border/40 mb-10 bg-card/60 backdrop-blur-md shadow-xl overflow-hidden rounded-3xl">
+          <Card className="border-border/40 mb-10 bg-card shadow-sm overflow-hidden rounded-md">
             <CardContent className="p-4 md:p-6 bg-muted/20">
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1 relative group">
@@ -557,7 +555,7 @@ const ManageAttendance = () => {
                     placeholder="Search sessions, projects or locations..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-12 h-12 bg-background/50 border-border/50 focus:ring-primary/20 transition-all rounded-2xl text-base shadow-inner"
+                    className="pl-12 h-10 bg-background border-border focus:ring-primary/20 transition-all rounded-md text-sm"
                   />
                 </div>
                 <div className="flex items-center gap-3">
@@ -565,7 +563,7 @@ const ManageAttendance = () => {
                     <Filter className="w-5 h-5 text-primary" />
                   </div>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-full md:w-48 h-12 rounded-2xl bg-background/50 border-border/50 focus:ring-primary/20 font-bold text-xs uppercase tracking-widest">
+                    <SelectTrigger className="w-full md:w-48 h-10 rounded-md bg-background border-border focus:ring-primary/20 font-semibold text-sm">
                       <SelectValue placeholder="All Status" />
                     </SelectTrigger>
                     <SelectContent className="rounded-2xl border-border/50">

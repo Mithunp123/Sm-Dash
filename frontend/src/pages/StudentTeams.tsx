@@ -452,7 +452,7 @@ const StudentTeams = () => {
           <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <div className="mb-4">
-                <BackButton />
+
               </div>
               <h1 className="text-3xl font-bold tracking-tight">My Teams</h1>
               <p className="text-muted-foreground">View your teams and assignments</p>

@@ -156,7 +156,7 @@ const MenteeDetails = () => {
         <div className="min-h-screen flex flex-col bg-background text-foreground">
             <main className="flex-1 p-4 md:p-8 w-full">
                 <div className="mb-4">
-                    <BackButton to="/admin/mentor-management" />
+
                 </div>
 
                 {/* Header */}

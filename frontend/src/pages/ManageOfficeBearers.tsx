@@ -333,42 +333,40 @@ const ManageOfficeBearers = () => {
 
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-6">
           <div className="space-y-2">
-            <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground">
+            <h1 className="page-title">
               Office Bearers
             </h1>
-            <p className="text-muted-foreground font-medium text-sm md:text-base border-l-4 border-primary/30 pl-3">
+            <p className="page-subtitle border-l-4 border-primary/30 pl-3 mt-2">
               Manage student coordinators and leadership directory
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
             <div className="grid grid-cols-2 sm:flex items-center gap-3">
-
-
               <Button
                 onClick={downloadSampleExcel}
                 variant="outline"
-                className="flex-1 px-4 py-2 border-green-500/30 hover:bg-green-50 text-green-600 font-bold gap-2 rounded-xl h-11 text-xs sm:text-sm"
+                className="flex-1 gap-2 h-10 rounded-md font-semibold text-sm px-4"
               >
-                <FileSpreadsheet className="w-4 h-4 hidden sm:block" />
+                <FileSpreadsheet className="w-4 h-4" />
                 <span>Sample</span>
               </Button>
 
               <Button
                 variant="outline"
                 onClick={exportPDF}
-                className="flex-1 gap-2 border-primary/20 hover:bg-primary/5 text-primary font-bold h-11 text-xs sm:text-sm rounded-xl"
+                className="flex-1 gap-2 h-10 rounded-md font-semibold text-sm px-4"
               >
-                <FileText className="w-4 h-4 hidden sm:block" />
+                <FileText className="w-4 h-4" />
                 <span>PDF</span>
               </Button>
             </div>
 
             <Button
               onClick={() => setShowAddDialog(true)}
-              className="gap-2 shadow-xl shadow-primary/30 font-bold px-8 h-12 text-sm w-full sm:w-auto rounded-xl bg-primary hover:bg-primary/90 transition-all hover:translate-y-[-2px] group"
+              className="gap-2 h-10 rounded-md font-semibold px-4 text-sm w-full sm:w-auto bg-primary hover:bg-primary/90"
             >
-              <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+              <Plus className="w-4 h-4" />
               Add New Bearer
             </Button>
           </div>
@@ -407,7 +405,7 @@ const ManageOfficeBearers = () => {
                 <Card key={ob.id} className="group overflow-hidden border-border/50 shadow-sm hover:shadow-xl hover:translate-y-[-4px] transition-all duration-300 flex flex-col bg-card/60 backdrop-blur-md">
                   <CardContent className="p-4 flex flex-col flex-1">
                     <div className="flex items-start gap-4 mb-4">
-                      <Avatar className="w-16 h-16 rounded-2xl border-2 border-primary/10 shrink-0 shadow-sm">
+                      <Avatar className="w-14 h-14 rounded-md border-2 border-primary/10 shrink-0 shadow-sm">
                         <AvatarImage src={ob.photo_url ? `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${ob.photo_url}` : undefined} className="object-cover" />
                         <AvatarFallback className="bg-primary/5 text-primary font-black uppercase text-xl">
                           {ob.name.charAt(0)}

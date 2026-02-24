@@ -185,7 +185,7 @@ export default function StudentFeedback() {
         <div className="max-w-4xl mx-auto space-y-8 mb-8">
           <div className="flex flex-col gap-2">
             <div className="mb-2">
-              <BackButton />
+
             </div>
             <div>
               <h1 className="text-4xl font-black tracking-tight text-foreground">Student Feedback</h1>

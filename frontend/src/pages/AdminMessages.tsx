@@ -11,7 +11,7 @@ import { auth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
-import { BackButton } from "@/components/BackButton";
+
 import { Send, MessageSquare, Trash2, Search, UserPlus, Users, CheckCheck, ArrowLeft, Phone, Video, MoreVertical, Paperclip, Mic, Smile, Image as ImageIcon, FileText, X, ChevronDown, Edit2, Info, Reply } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { buildImageUrl } from "@/utils/imageUtils";
@@ -592,7 +592,7 @@ const AdminMessages = () => {
     <main className="flex-1 p-2 md:p-4 bg-background w-full h-[100dvh]">
       <div className="w-full h-full flex flex-col">
         <div className="mb-4">
-          <BackButton to="/admin" />
+
         </div>
 
         <div className="mb-4 flex items-center justify-between">

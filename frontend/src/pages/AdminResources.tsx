@@ -14,7 +14,6 @@ import { useNavigate } from 'react-router-dom';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Upload, Trash2, Eye, Loader2, FileText, FolderPlus, Folder, ArrowLeft } from 'lucide-react';
 import PDFViewer from '@/components/PDFViewer';
-import { BackButton } from '@/components/BackButton';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 const API_ROOT = API_BASE.replace(/\/api\/?$/, '');
@@ -300,10 +299,10 @@ const AdminResources = () => {
       <main className="flex-1 p-4 md:p-8 bg-transparent overflow-y-auto">
         <div className="w-full px-4 md:px-6 lg:px-8">
 
-          <BackButton to="/admin" className="mb-6" />
+
 
           {/* Hero Header Section */}
-          <div className="mb-8 bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-8 shadow-xl">
+          <div className="mb-8 bg-card border border-border/50 rounded-md p-6 shadow-sm">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
               <div>
                 <h1 className="text-4xl md:text-5xl font-bold mb-2 text-foreground">Resource Management</h1>
@@ -314,7 +313,7 @@ const AdminResources = () => {
                   {!currentFolder ? (
                     <Button
                       onClick={() => setShowFolderModal(true)}
-                      className="gap-2 bg-primary hover:bg-primary/90"
+                      className="gap-2 h-10 rounded-md font-semibold text-sm px-4 bg-primary text-primary-foreground"
                     >
                       <FolderPlus className="w-4 h-4" />
                       Create Folder
@@ -324,7 +323,7 @@ const AdminResources = () => {
                       <Button
                         onClick={() => setShowFolderModal(true)}
                         variant="outline"
-                        className="gap-2"
+                        className="gap-2 h-10 rounded-md font-semibold text-sm px-4"
                       >
                         <FolderPlus className="w-4 h-4" />
                         Subfolder
@@ -334,7 +333,7 @@ const AdminResources = () => {
                           setSelectedFolder(currentFolder);
                           setShowModal(true);
                         }}
-                        className="gap-2 bg-primary hover:bg-primary/90"
+                        className="gap-2 h-10 rounded-md font-semibold text-sm px-4 bg-primary text-primary-foreground"
                         disabled={uploading}
                       >
                         <Upload className="w-4 h-4" />

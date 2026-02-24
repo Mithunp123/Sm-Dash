@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import DeveloperCredit from "@/components/DeveloperCredit";
-import { BackButton } from "@/components/BackButton";
 import { BarChart3, ArrowLeft, Users, Calendar, Clock, TrendingUp, UsersRound, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
@@ -175,15 +174,12 @@ const Analytics = () => {
 
       <main className="flex-1 p-2 md:p-4 bg-background w-full">
         <div className="w-full">
-          {/* Back Button */}
-          <div className="mb-4">
-            <BackButton to="/admin" />
-          </div>
+
 
           {/* Page Header */}
           <div className="mb-6">
-            <h1 className="text-3xl font-semibold text-foreground mb-1">Analytics</h1>
-            <p className="text-sm text-muted-foreground">View participation statistics and trends</p>
+            <h1 className="page-title mb-1">Analytics</h1>
+            <p className="page-subtitle">View participation statistics and trends</p>
           </div>
 
           {/* Summary Cards */}

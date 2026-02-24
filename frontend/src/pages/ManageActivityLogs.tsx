@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import DeveloperCredit from "@/components/DeveloperCredit";
-import { BackButton } from "@/components/BackButton";
+
 import {
     Table,
     TableBody,
@@ -129,7 +129,7 @@ const ManageActivityLogs = () => {
             <main className="flex-1 w-full bg-background overflow-x-hidden">
                 <div className="w-full py-8 px-4 space-y-8">
                     <div className="mb-4">
-                        <BackButton to="/admin" />
+
                     </div>
 
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-10 px-2">

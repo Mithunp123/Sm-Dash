@@ -196,10 +196,7 @@ export default function ManageQuestions() {
       <main className="flex-1 p-2 md:p-4 bg-transparent">
         <div className="w-full">
 
-          {/* Page Header */}
-          <div className="mb-6">
-            <BackButton to="/admin" />
-          </div>
+
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground">Feedback Questions</h1>

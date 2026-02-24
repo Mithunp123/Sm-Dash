@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { BackButton } from "@/components/BackButton";
+
 import { Search, UserPlus2, Save, FileSpreadsheet, Download, Upload } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -177,7 +177,7 @@ const AssignProjectStudents = () => {
     return (
         <div className="min-h-screen bg-background p-4 md:p-8">
             <div className="w-full px-4 md:px-6 lg:px-8 space-y-6">
-                <BackButton to={backPath} />
+
 
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
