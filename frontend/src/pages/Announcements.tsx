@@ -35,12 +35,16 @@ const Announcements = () => {
     const loadAnnouncements = async () => {
         setLoading(true);
         try {
-            const res = await api.getAnnouncements?.() || { success: true, announcements: [] };
-            if (res.success) {
+            const res = await api.getAnnouncements?.();
+            if (res?.success) {
                 setAnnouncements(res.announcements || []);
+            } else {
+                console.error("Failed to load announcements:", res?.message);
+                toast.error(res?.message || "Failed to load announcements");
             }
         } catch (err: any) {
             console.error("Failed to load announcements:", err);
+            toast.error(err.message || "Error loading announcements");
         } finally {
             setLoading(false);
         }
@@ -71,12 +75,16 @@ const Announcements = () => {
                 toast.success(editingId ? "Announcement updated!" : "Announcement posted!");
                 setFormData({ title: "", content: "", priority: "normal", linkUrl: "", imageUrl: "", deadline: "" });
                 setEditingId(null);
+                // Wait a moment then reload announcements
+                await new Promise(resolve => setTimeout(resolve, 300));
                 loadAnnouncements();
             } else {
+                console.error("Response:", res);
                 toast.error(res?.message || "Failed to send announcement");
             }
         } catch (err: any) {
-            toast.error("Error sending announcement");
+            console.error("Error sending announcement:", err);
+            toast.error(err.message || "Error sending announcement");
         } finally {
             setSending(false);
         }
