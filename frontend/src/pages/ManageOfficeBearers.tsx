@@ -320,16 +320,20 @@ const ManageOfficeBearers = () => {
 
   return (
     <main className="flex-1 w-full bg-background overflow-x-hidden min-h-screen">
-      <div className="w-full px-4 md:px-6 lg:px-8 py-8">
-        <div className="mb-8">
+      {/* Header Section */}
+      <div className="w-full border-b border-border/40 bg-background/95 backdrop-blur-sm sticky top-0 z-30">
+        <div className="w-full px-4 md:px-6 lg:px-8 py-4">
           <Button
             variant="ghost"
-            className="gap-2 font-bold text-muted-foreground hover:text-primary transition-colors pl-0"
+            className="gap-2 font-semibold text-foreground hover:bg-primary/10 transition-colors pl-0"
             onClick={() => navigate("/admin")}
           >
             <ArrowLeft className="w-4 h-4" /> Back to Dashboard
           </Button>
         </div>
+      </div>
+
+      <div className="w-full px-4 md:px-6 lg:px-8 py-8">
 
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-6">
           <div className="space-y-2">

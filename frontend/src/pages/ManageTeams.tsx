@@ -24,8 +24,7 @@ import {
   Bell,
   Check,
   X,
-  ArrowLeft,
-  RefreshCw
+  ArrowLeft
 } from "lucide-react";
 import { api } from "@/lib/api";
 
@@ -430,12 +429,20 @@ const ManageTeams = () => {
     <div className="min-h-screen flex flex-col">
       <DeveloperCredit />
       <main className="flex-1 w-full bg-background overflow-x-hidden">
-        <div className="w-full px-4 md:px-6 lg:px-8 py-8">
-          <div className="mb-2">
-            <Button variant="ghost" className="gap-2 font-bold text-muted-foreground hover:text-primary transition-colors" onClick={() => window.history.back()}>
-              <RefreshCw className="w-4 h-4" /> Back to Dashboard
+        {/* Header Section */}
+        <div className="w-full border-b border-border/40 bg-background/95 backdrop-blur-sm sticky top-0 z-30">
+          <div className="w-full px-4 md:px-6 lg:px-8 py-4">
+            <Button
+              variant="ghost"
+              className="gap-2 font-semibold text-foreground hover:bg-primary/10 transition-colors pl-0"
+              onClick={() => window.history.back()}
+            >
+              <ArrowLeft className="w-4 h-4" /> Back to Dashboard
             </Button>
           </div>
+        </div>
+
+        <div className="w-full px-4 md:px-6 lg:px-8 py-8">
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
             <div>
