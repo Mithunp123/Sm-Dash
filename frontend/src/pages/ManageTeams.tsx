@@ -435,9 +435,9 @@ const ManageTeams = () => {
             <Button
               variant="ghost"
               className="gap-2 font-semibold text-foreground hover:bg-primary/10 transition-colors pl-0"
-              onClick={() => window.history.back()}
+              onClick={() => navigate("/admin/office-bearers")}
             >
-              <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+              <ArrowLeft className="w-4 h-4" /> Back to Office Bearers
             </Button>
           </div>
         </div>
