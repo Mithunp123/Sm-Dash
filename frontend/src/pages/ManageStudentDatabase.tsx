@@ -494,7 +494,7 @@ const ManageStudentDatabase = () => {
                                 </div>
                               </div>
 
-                              <div className="grid grid-cols-2 gap-2 mb-4">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
                                 <div className="bg-muted/30 p-2 rounded-xl">
                                   <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Reg No</p>
                                   <p className="text-xs font-bold text-foreground truncate">{u.profile?.register_no || "-"}</p>
@@ -633,7 +633,7 @@ const ManageStudentDatabase = () => {
             <DialogDescription>Update profile for {selectedUser?.name} ({roleLabels[selectedUser?.role] || selectedUser?.role})</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSave} className="space-y-4 mt-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Register No</Label>
                 <Input value={profileData.register_no} onChange={(e) => setProfileData({ ...profileData, register_no: e.target.value })} />
@@ -653,7 +653,7 @@ const ManageStudentDatabase = () => {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Year</Label>
                 <Select value={profileData.year || "none"} onValueChange={(val) => setProfileData({ ...profileData, year: val === "none" ? '' : val })}>
@@ -674,7 +674,7 @@ const ManageStudentDatabase = () => {
                 <Input value={profileData.academic_year} onChange={(e) => setProfileData({ ...profileData, academic_year: e.target.value })} placeholder="e.g., 2024-2025" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Phone Number</Label>
                 <Input value={profileData.phone} onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })} />
@@ -684,7 +684,7 @@ const ManageStudentDatabase = () => {
                 <Input value={profileData.father_number} onChange={(e) => setProfileData({ ...profileData, father_number: e.target.value })} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>DOB</Label>
                 <Input type="date" value={profileData.dob} onChange={(e) => setProfileData({ ...profileData, dob: e.target.value })} />
@@ -703,7 +703,7 @@ const ManageStudentDatabase = () => {
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Blood Group</Label>
                 <select

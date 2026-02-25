@@ -251,7 +251,7 @@ const ManageActivityLogs = () => {
                                                 </p>
                                             </div>
 
-                                            <div className="grid grid-cols-2 gap-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div className="flex items-center gap-2.5 px-3 py-2 bg-muted/20 rounded-2xl border border-border/20">
                                                     <Globe className="w-3.5 h-3.5 text-primary" />
                                                     <p className="text-[9px] font-black text-foreground uppercase tracking-widest">{log.ip_address || "127.0.0.1"}</p>

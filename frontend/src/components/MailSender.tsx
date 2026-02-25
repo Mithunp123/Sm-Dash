@@ -224,7 +224,7 @@ SM Volunteers Team`,
                         {/* Draft Type Selector */}
                         <div className="space-y-2">
                             <Label className="text-sm font-semibold text-foreground">Select Draft Type</Label>
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <Button
                                     type="button"
                                     variant={draftType === 'interview' ? 'default' : 'outline'}

@@ -430,7 +430,7 @@ const ManageInterviews = () => {
                             <DialogDescription>Add a new candidate for face-to-face interview</DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleAddCandidate} className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="name">Full Name *</Label>
                                     <Input
@@ -463,7 +463,7 @@ const ManageInterviews = () => {
                                     className="h-10 rounded-md"
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="phone">Mobile Number</Label>
                                     <Input

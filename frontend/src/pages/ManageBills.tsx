@@ -669,7 +669,7 @@ const ManageBills = () => {
                 className="border-2 focus:border-primary transition-colors resize-none"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-sm font-semibold">Date *</Label>
                 <Input
@@ -716,7 +716,7 @@ const ManageBills = () => {
               <div className="mt-3 border-t pt-4">
                 <Label className="text-base font-semibold mb-3 block">Add Items</Label>
                 <div className="bg-muted p-4 rounded-lg mb-4 space-y-3">
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div className="space-y-2">
                       <Label>Category</Label>
                       <select
@@ -881,7 +881,7 @@ const ManageBills = () => {
             {formData.bill_type === 'food' && (
               <div className="mt-3 border-t pt-4 space-y-3">
                 <Label className="text-base font-semibold">Food Expenses</Label>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="space-y-2">
                     <Label>Breakfast (?)</Label>
                     <Input type="number" step="0.01" min="0" placeholder="0.00" value={formData.food_breakfast} onChange={(e) => setFormData({ ...formData, food_breakfast: e.target.value })} />

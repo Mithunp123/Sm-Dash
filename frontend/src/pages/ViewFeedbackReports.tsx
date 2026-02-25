@@ -369,7 +369,7 @@ export default function ViewFeedbackReports() {
                   <div className="bg-blue-50 p-4 rounded-lg">
                     <h3 className="font-semibold text-foreground mb-3">Question Summary</h3>
                     <p className="text-foreground mb-4">{stats.question.question_text}</p>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <p className="text-sm text-muted-foreground">Total Responses</p>
                         <p className="text-2xl font-bold text-foreground">

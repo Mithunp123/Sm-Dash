@@ -105,7 +105,7 @@ export function BulkUploadModal({ isOpen, onClose, onSuccess, uploadFn, title, d
                         </div>
                     ) : (
                         <div className="space-y-6">
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 text-center">
                                     <div className="text-2xl font-bold text-white">{result.total}</div>
                                     <div className="text-xs text-slate-500 uppercase">Total Rows</div>

@@ -296,7 +296,7 @@ const Login = () => {
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center p-4 md:p-8 min-h-screen relative overflow-hidden">
+    <div className="flex-1 flex items-center justify-center p-4 md:p-8 min-h-screen relative overflow-y-auto overflow-x-hidden no-scrollbar">
       {/* Back Button */}
       <motion.button
         initial={{ opacity: 0, x: -20 }}
@@ -500,7 +500,7 @@ const Login = () => {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 w-full max-w-sm">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-sm">
             {[
               { value: '4+', label: 'Years' },
               { value: '1000+', label: 'Volunteers' },

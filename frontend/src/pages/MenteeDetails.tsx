@@ -221,23 +221,23 @@ const MenteeDetails = () => {
                                 </div>
                             ) : (
                                 <div className="space-y-4 text-sm">
-                                    <div className="grid grid-cols-2 gap-2 pb-2 border-b">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-2 border-b">
                                         <span className="text-muted-foreground">Status</span>
                                         <Badge variant={mentee.mentee_status === 'active' ? 'default' : 'secondary'}>{mentee.mentee_status}</Badge>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2 pb-2 border-b">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-2 border-b">
                                         <span className="text-muted-foreground">Phone</span>
                                         <span className="font-medium">{mentee.mentee_phone || '—'}</span>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2 pb-2 border-b">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-2 border-b">
                                         <span className="text-muted-foreground">Class</span>
                                         <span className="font-medium">{mentee.mentee_year || '—'}</span>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2 pb-2 border-b">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-2 border-b">
                                         <span className="text-muted-foreground">Parent</span>
                                         <span className="font-medium">{mentee.mentee_parent_contact || '—'}</span>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2 pb-2 border-b">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pb-2 border-b">
                                         <span className="text-muted-foreground">Assigned Mentor</span>
                                         <span className="font-medium text-primary">{mentee.volunteer_name || 'Unassigned'}</span>
                                     </div>

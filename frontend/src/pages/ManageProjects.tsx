@@ -237,7 +237,7 @@ const ManageProjects = () => {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2 mb-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
                         <Button
                           onClick={() => navigate(`${basePath}/projects/${project.id}/assign`)}
                           className="h-10 rounded-md bg-primary font-semibold text-sm gap-2 px-3"
@@ -298,7 +298,7 @@ const ManageProjects = () => {
                 <Label htmlFor="desc" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Description</Label>
                 <Textarea id="desc" placeholder="Briefly describe the project goals..." className="min-h-[100px] rounded-2xl bg-muted/20 border-border/50 focus:ring-primary/20 resize-none" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Start Date</Label>
                   <Input type="date" className="h-12 rounded-2xl bg-muted/20 border-border/50 focus:ring-primary/20" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} />
@@ -347,7 +347,7 @@ const ManageProjects = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label>Start Date</Label>
                   <Input type="date" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} />

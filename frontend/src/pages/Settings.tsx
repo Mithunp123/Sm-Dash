@@ -229,7 +229,7 @@ const Settings = () => {
                       onCheckedChange={toggleTheme}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <button
                       onClick={() => {
                         setTheme('light');

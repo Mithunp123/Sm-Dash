@@ -466,7 +466,7 @@ const ManageUsers = () => {
                     </CardHeader>
 
                     <CardContent className="flex flex-col flex-1 justify-end">
-                      <div className="grid grid-cols-2 gap-2 mb-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
                         <Button
                           variant="outline"
                           size="sm"

@@ -1217,7 +1217,7 @@ const MentorManagement = () => {
                               </div>
                             )}
 
-                            <div className="grid grid-cols-2 gap-y-4 gap-x-2 pt-4 border-t border-border/40">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-2 pt-4 border-t border-border/40">
                               <div>
                                 <span className="text-xs uppercase tracking-wider text-muted-foreground font-bold">School</span>
                                 <p className="text-xs font-medium truncate">{mentee.mentee_school || '-'}</p>
@@ -1922,7 +1922,7 @@ const MentorManagement = () => {
                     Assign a leader responsible for this project
                   </p>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Start Date</Label>
                     <Input
@@ -2049,7 +2049,7 @@ const MentorManagement = () => {
                                 </Badge>
                               </div>
 
-                              <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs mb-3">
                                 <div>
                                   <span className="text-muted-foreground block font-medium">Phone</span>
                                   <span>{record.phone || '-'}</span>

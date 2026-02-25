@@ -155,12 +155,8 @@
     color: inherit;
   }
 
-  /* Dark mode text contrast improvements - ensure all text is visible */
-  .dark p,
-  .dark span:not(.text-primary):not(.text-secondary):not(.text-destructive):not(.text-accent):not(.text-white),
-  .dark div:not(.text-primary):not(.text-secondary):not(.text-destructive):not(.text-accent):not(.text-white) {
-    color: hsl(var(--foreground)) !important;
-  }
+  /* Dark mode specific color boosts - intentionally minimal, avoid !important overrides
+     that break Tailwind color utilities like text-orange-400, text-blue-300 etc. */
 
   /* Ensure header text is always visible with shadow */
   header * {
@@ -171,11 +167,7 @@
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
   }
 
-  /* Prevent text from being cut off - allow wrapping instead */
-  .truncate {
-    white-space: normal !important;
-    overflow: visible !important;
-  }
+  /* DO NOT override .truncate — let Tailwind handle text truncation */
 
   /* Ensure cards don't hide text */
   [class*="card"], [class*="Card"] {
@@ -414,14 +406,18 @@
     }
   }
 
-  /* Mobile-friendly touch targets */
+  /* Mobile-friendly touch targets - min 44px height only, not width (breaks icon buttons) */
   @media (max-width: 768px) {
     button,
     a,
     [role="button"] {
-      min-height: 44px;
-      min-width: 44px;
+      min-height: 36px;
     }
+  }
+
+  /* Safe area insets for notched phones */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   /* Slider Label and Value Text Styles - Ensure Visibility */

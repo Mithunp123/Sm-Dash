@@ -183,7 +183,7 @@ const OfficeBearerDashboard = () => {
         </div>
 
         {!hasAnyPermission ? (
-          <Card className="border-none shadow-2xl bg-card/50 backdrop-blur-xl rounded-3xl p-16 overflow-hidden relative">
+          <Card className="border-none shadow-2xl bg-card/50 backdrop-blur-xl rounded-3xl p-8 md:p-16 overflow-hidden relative">
             <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
             <CardContent className="relative z-10 text-center space-y-8">
               <div className="w-24 h-24 bg-muted/20 rounded-[2rem] flex items-center justify-center mx-auto ring-1 ring-border/50">
@@ -226,7 +226,7 @@ const OfficeBearerDashboard = () => {
               {/* Feature Highlights */}
               <div className="lg:col-span-2 space-y-8">
                 {/* Hero Banner Part II */}
-                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 to-primary p-10 text-foreground shadow-2xl">
+                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 to-primary p-6 md:p-10 text-foreground shadow-2xl">
                   <div className="relative z-10 flex flex-col h-full justify-between gap-8">
                     <div>
                       <Badge className="bg-white/20 backdrop-blur-md border-white/10 text-foreground font-bold mb-4 px-4 py-1 rounded-full text-xs uppercase tracking-widest">

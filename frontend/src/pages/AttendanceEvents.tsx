@@ -263,7 +263,7 @@ const AttendanceEvents = () => {
                                             </CardDescription>
                                         </CardHeader>
                                         <CardContent className="px-6 pb-6">
-                                            <div className="grid grid-cols-3 gap-3 mb-6 bg-muted/30 p-4 rounded-2xl border border-border/50">
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6 bg-muted/30 p-4 rounded-2xl border border-border/50">
                                                 <div className="flex flex-col items-center">
                                                     <div className="text-2xl font-black text-green-500">{event.od_count || 0}</div>
                                                     <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">OD</div>

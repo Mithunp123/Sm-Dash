@@ -756,7 +756,7 @@ const PhoneMentoringUpdate = () => {
                           </div>
 
                           {/* Academic Info */}
-                          <div className="grid grid-cols-2 gap-4 mb-8">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                             <div className="p-3 rounded-xl bg-muted/20 border border-border/30">
                               <p className="text-xs text-muted-foreground font-black uppercase tracking-widest mb-1">Standard</p>
                               <p className="text-sm font-bold text-foreground">{mentee.mentee_year || "N/A"}</p>

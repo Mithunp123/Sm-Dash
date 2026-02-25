@@ -208,7 +208,7 @@ const VolunteerRegistration = () => {
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="year">Year *</Label>
                         <Select
@@ -251,7 +251,7 @@ const VolunteerRegistration = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="phone">Phone Number *</Label>
                         <Input
@@ -297,7 +297,7 @@ const VolunteerRegistration = () => {
                 <div className="border-t pt-6">
                   <h3 className="text-lg font-semibold mb-4 text-slate-800">Additional Details</h3>
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="dob">Date of Birth *</Label>
                         <Input

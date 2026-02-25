@@ -440,7 +440,7 @@ const EventDetails = () => {
                                             <Label>Description</Label>
                                             <Textarea value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} />
                                         </div>
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="grid gap-2">
                                                 <Label>Date</Label>
                                                 <Input type="date" value={editForm.date} onChange={e => setEditForm({ ...editForm, date: e.target.value })} />

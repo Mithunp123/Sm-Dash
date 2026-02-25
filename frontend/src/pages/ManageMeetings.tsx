@@ -445,7 +445,7 @@ const ManageMeetings = () => {
                                 <div className="shrink-0">{getStatusBadge(meeting.status)}</div>
                               </div>
 
-                              <div className="grid grid-cols-2 gap-2 mb-4">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
                                 <div className="bg-muted/30 p-2 rounded-xl">
                                   <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Location</p>
                                   <p className="text-[10px] font-bold text-foreground truncate">{meeting.location || "N/A"}</p>

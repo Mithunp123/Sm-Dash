@@ -285,7 +285,7 @@ const AttendanceProjects = () => {
                                             </CardDescription>
                                         </CardHeader>
                                         <CardContent className="space-y-6 relative z-10">
-                                            <div className="grid grid-cols-3 gap-3">
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                                 <div className="bg-slate-100/50 dark:bg-slate-800/50 p-3 rounded-2xl text-center border border-border/40 transition-colors group-hover:bg-green-50/50 dark:group-hover:bg-green-900/5 hover:border-green-200">
                                                     <div className="text-2xl font-black text-green-600">{present}</div>
                                                     <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Present</div>
@@ -465,7 +465,7 @@ const AttendanceProjects = () => {
                                                         }`}></div>
                                                 </div>
 
-                                                <div className="grid grid-cols-3 gap-3">
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                                     <button
                                                         onClick={() => handleMarkAttendanceClick(id, 'present')}
                                                         className={`flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all duration-300 ${status === 'present'

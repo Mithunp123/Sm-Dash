@@ -746,7 +746,7 @@ const LandingPage = () => {
             initial="initial"
             whileInView="animate"
             viewport={{ once: true }}
-            className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-16"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16"
           >
             {[
               { label: 'Years of Excellence', value: '4+' },
@@ -850,7 +850,7 @@ const LandingPage = () => {
               initial="initial"
               whileInView="animate"
               viewport={{ once: true }}
-              className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-16"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16"
             >
               {[
                 { label: 'Years of Excellence', value: '30+' },

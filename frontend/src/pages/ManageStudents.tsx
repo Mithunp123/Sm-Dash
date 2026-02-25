@@ -430,7 +430,7 @@ const ManageStudents = () => {
                               </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-2 mb-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
                               <div className="bg-muted/30 p-2 rounded-md border border-border/50">
                                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Phone</p>
                                 <p className="text-sm font-medium text-foreground truncate">{student.profile?.phone || "-"}</p>

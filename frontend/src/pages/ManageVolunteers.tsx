@@ -537,7 +537,7 @@ const ManageVolunteers = () => {
                             <p className="text-[10px] font-bold text-muted-foreground truncate">{v.email}</p>
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 mb-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
                           <div className="bg-muted/30 p-2 rounded-xl">
                             <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Dept</p>
                             <p className="text-[10px] font-bold text-foreground truncate">{v.department}</p>
@@ -665,7 +665,7 @@ const ManageVolunteers = () => {
                             {s.status || 'pending'}
                           </Badge>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 mb-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
                           <div className="bg-muted/30 p-2 rounded-xl">
                             <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Submitted</p>
                             <p className="text-[10px] font-bold text-foreground truncate">{new Date(s.created_at).toLocaleDateString()}</p>
@@ -806,7 +806,7 @@ const ManageVolunteers = () => {
 
               {detailItem && (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                     <div className="space-y-1">
                       <Label className="text-[10px] uppercase text-muted-foreground">Full Name</Label>
                       <p className="font-semibold text-base">{detailItem.name}</p>
@@ -887,7 +887,7 @@ const ManageVolunteers = () => {
               <DialogHeader>
                 <DialogTitle>{editing ? "Edit Volunteer Record" : "Add New Volunteer"}</DialogTitle>
               </DialogHeader>
-              <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <div className="col-span-2 space-y-2">
                   <Label>Full Name</Label>
                   <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="bg-muted/20" />

@@ -880,7 +880,7 @@ const ManageTeams = () => {
                   ))}
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label>Due Date</Label>
                   <Input
@@ -919,7 +919,7 @@ const ManageTeams = () => {
             </DialogHeader>
             {selectedAssignment && (
               <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label className="text-muted-foreground">Title</Label>
                     <p className="font-semibold">{selectedAssignment.title}</p>
