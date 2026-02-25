@@ -101,41 +101,28 @@ const PDFViewer = ({ open, onOpenChange, resource, onUpdate, canEdit = false }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl h-[90vh] max-h-[95vh] flex flex-col p-0 [&>button]:hidden">
-        <DialogHeader className="px-6 py-4 border-b flex-shrink-0">
+      <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] flex flex-col p-0 [&>button]:hidden bg-white dark:bg-slate-900 overflow-hidden">
+        <DialogHeader className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0 bg-white dark:bg-slate-900">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-bold truncate pr-4">
-              {isEditing ? 'Edit Resource' : (resource.title || resource.original_name || 'PDF Viewer')}
+            <DialogTitle className="text-xl font-medium text-slate-500 dark:text-slate-400">
+              {isEditing ? 'Edit Resource' : (resource.title || resource.original_name || 'Circular')}
             </DialogTitle>
-            <div className="flex items-center gap-2">
-              {!isEditing && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownload}
-                  className="gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Download
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setIsEditing(false);
-                  onOpenChange(false);
-                }}
-                className="h-9 w-9"
-              >
-                <X className="w-5 h-5" />
-              </Button>
-            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setIsEditing(false);
+                onOpenChange(false);
+              }}
+              className="h-8 w-8 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              <X className="w-5 h-5" />
+            </Button>
           </div>
         </DialogHeader>
 
         {isEditing ? (
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-6 bg-slate-50 dark:bg-slate-950">
             <div className="space-y-4 max-w-2xl mx-auto">
               <div className="space-y-2">
                 <Label>Title</Label>
@@ -185,13 +172,12 @@ const PDFViewer = ({ open, onOpenChange, resource, onUpdate, canEdit = false }: 
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col overflow-hidden">
-
-            {/* PDF Viewer */}
-            <div className="flex-1 bg-gray-100 dark:bg-gray-800">
+          <div className="flex-1 flex flex-col overflow-hidden bg-slate-800">
+            {/* PDF Viewer Container */}
+            <div className="flex-1 p-4 md:p-8 flex justify-center items-center">
               <iframe
-                src={`${resource.url}#toolbar=0&navpanes=0&view=FitH`}
-                className="w-full h-full border-none"
+                src={resource.url}
+                className="w-full h-full border-none shadow-2xl"
                 title={resource.title || resource.original_name || 'PDF'}
               />
             </div>

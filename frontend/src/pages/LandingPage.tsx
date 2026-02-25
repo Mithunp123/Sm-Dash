@@ -356,141 +356,6 @@ const LandingPage = () => {
     loadAnnouncements();
   }, []);
 
-  const RunningNotification = () => {
-    if (announcements.length === 0) {
-      const defaultText = "Welcome to SM Volunteers! Join our mission to create social impact through student-led initiatives. • Register for upcoming events and contribute to the community. • Check the latest updates in your volunteer portal.";
-      return (
-        <div className="fixed top-[150px] left-0 right-0 z-[49] w-full overflow-hidden bg-black/70 backdrop-blur-sm border-b-2 border-orange-500 shadow-2xl">
-
-          <div className="relative py-2.5 px-4 md:px-8 flex items-center gap-4">
-            {/* Label pill */}
-            <div className="flex-shrink-0 flex items-center gap-2 bg-orange-500 text-white text-[10px] md:text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-              </span>
-              📢 Announcements
-            </div>
-
-            {/* Scrolling text */}
-            <div className="flex-1 overflow-hidden">
-              <div className="animate-marquee-smooth whitespace-nowrap">
-                <span className="text-sm md:text-sm font-semibold text-slate-800 leading-relaxed inline-block">
-                  {defaultText} &nbsp; • &nbsp; {defaultText}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <style dangerouslySetInnerHTML={{
-            __html: `
-            @keyframes marquee-smooth {
-              0% { transform: translateX(0); }
-              100% { transform: translateX(-50%); }
-            }
-            .animate-marquee-smooth {
-              display: inline-block;
-              white-space: nowrap;
-              animation: marquee-smooth 50s linear infinite;
-            }
-            .animate-marquee-smooth:hover {
-              animation-play-state: paused;
-            }
-          `}} />
-        </div>
-      );
-    }
-    const showMarquee = announcements.length > 3;
-
-    return (
-      <div className="fixed top-[140px] left-0 right-0 z-[49] w-full overflow-hidden bg-black/70 backdrop-blur-sm border-b-2 border-orange-500 shadow-2xl">
-
-        <div className="relative py-2.5 px-4 md:px-8 flex items-center gap-4">
-          {/* Label pill */}
-          <div className="flex-shrink-0 flex items-center gap-2 bg-orange-500 text-white text-[10px] md:text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-            </span>
-            📢 Updates
-          </div>
-
-          {/* Content Container */}
-          <div className={`flex-1 ${showMarquee ? 'overflow-hidden' : ''}`}>
-            <div className={`${showMarquee ? 'inline-block animate-marquee-smooth whitespace-nowrap w-max' : 'flex justify-start flex-wrap gap-6'}`}>
-              <div className={`${showMarquee ? 'flex gap-12 items-center' : 'flex flex-wrap gap-x-8 gap-y-2 items-center'}`}>
-                {(showMarquee ? [...announcements, ...announcements] : announcements).map((a, i) => (
-                  <div key={`${a.id}-${i}`} className="flex items-center gap-3 whitespace-nowrap">
-                    {/* Priority Badge */}
-                    {a.priority === 'important' && (
-                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-black uppercase tracking-wide">
-                        <span className="relative flex h-1.5 w-1.5">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
-                        </span>
-                        Urgent
-                      </span>
-                    )}
-
-                    {/* Announcement Content */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs md:text-sm font-black text-orange-300 uppercase tracking-wide">
-                        {a.title}:
-                      </span>
-                      <span className="text-xs md:text-sm font-medium text-slate-700 normal-case">
-                        {a.content}
-                      </span>
-                    </div>
-
-                    {/* CTA Button */}
-                    {a.link_url && (
-                      a.link_url.startsWith('http') ? (
-                        <a
-                          href={a.link_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="ml-1 px-2.5 py-1 bg-orange-500 text-white text-[10px] rounded-md font-bold uppercase tracking-wide hover:bg-orange-400 transition-colors flex-shrink-0"
-                        >
-                          View
-                        </a>
-                      ) : (
-                        <button
-                          onClick={() => navigate(a.link_url)}
-                          className="ml-1 px-2.5 py-1 bg-orange-500 text-white text-[10px] rounded-md font-bold uppercase tracking-wide hover:bg-orange-400 transition-colors flex-shrink-0"
-                        >
-                          View
-                        </button>
-                      )
-                    )}
-
-                    {/* Separator */}
-                    {showMarquee && <span className="text-white/30 px-2 text-base font-light">|</span>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <style dangerouslySetInnerHTML={{
-          __html: `
-          @keyframes marquee-smooth {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-          }
-          .animate-marquee-smooth {
-            display: inline-block;
-            white-space: nowrap;
-            animation: marquee-smooth 50s linear infinite;
-          }
-          .animate-marquee-smooth:hover {
-            animation-play-state: paused;
-            cursor: pointer;
-          }
-        `}} />
-      </div>
-    );
-  };
 
   return (
     <motion.div
@@ -633,8 +498,6 @@ const LandingPage = () => {
         )}
       </AnimatePresence>
 
-      {/* ANNOUNCEMENT BAR - Top Position */}
-      <RunningNotification />
 
       <br>
       </br>
@@ -642,16 +505,10 @@ const LandingPage = () => {
       <br>
 
       </br>
-      <br>
+     
 
-      </br>
-      <br>
-
-      </br>
-      <br>
-
-      </br>
-
+      
+      
       {/* Hero Section - Ultra Modern */}
       <section className="relative w-full min-h-[900px] md:min-h-[900px] overflow-hidden z-10 flex items-center justify-center pt-32 md:pt-0 pb-12">
         {/* Background Image — 100% opacity, no overlays */}

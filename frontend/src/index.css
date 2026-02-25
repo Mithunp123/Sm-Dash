@@ -313,10 +313,25 @@
     }
   }
 
+  @keyframes marquee-running {
+    0% {
+      transform: translateX(100vw);
+    }
+    100% {
+      transform: translateX(-100%);
+    }
+  }
+
   .animate-marquee {
     display: flex;
     width: max-content;
     animation: marquee 40s linear infinite;
+  }
+
+  .animate-marquee-running {
+    display: flex;
+    width: max-content;
+    animation: marquee-running 15s linear infinite;
   }
 
   .animate-marquee:hover {

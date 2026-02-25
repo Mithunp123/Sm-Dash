@@ -22,6 +22,7 @@ const Index = () => {
 
       <DeveloperCredit />
 
+
       <main className="flex-1">
         {/* Hero Section with Logos */}
         <section className="relative py-20 px-4 overflow-hidden min-h-[90vh] flex items-center">

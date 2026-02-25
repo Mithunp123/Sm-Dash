@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Outlet, useLocation } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -7,6 +7,7 @@ import Sidebar from "@/components/Sidebar";
 import Footer from "@/components/Footer";
 import { cn } from "@/lib/utils";
 
+import { api } from "@/lib/api";
 import BottomNavbar from "./BottomNavbar";
 
 interface MainLayoutProps {
@@ -17,11 +18,26 @@ interface MainLayoutProps {
 const MainLayout = ({ showSidebar = true, showBackButton: backButtonProp }: MainLayoutProps) => {
     // Mobile menu state removed as we are using BottomNavbar
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [hasAnnouncements, setHasAnnouncements] = useState(false);
     const location = useLocation();
+
+    // Fetch announcements to determine if the top bar is active
+    useEffect(() => {
+        const checkAnnouncements = async () => {
+            try {
+                const res = await api.getAnnouncements?.() || { success: false, announcements: [] };
+                setHasAnnouncements(res.success && res.announcements?.length > 0);
+            } catch (e) {
+                setHasAnnouncements(false);
+            }
+        };
+        checkAnnouncements();
+    }, [location.pathname]);
 
     // Show back button on all pages except the main dashboards
     const isDashboard = location.pathname.match(/^\/admin\/?$|^\/student\/?$|^\/office-bearer\/?$/);
     const showBackButton = backButtonProp !== undefined ? backButtonProp : !isDashboard;
+    const isLandingOrHome = location.pathname === "/" || location.pathname === "/home";
 
     return (
         <div className="flex min-h-screen w-full flex-col bg-background text-foreground relative selection:bg-primary/20 overflow-x-hidden">
@@ -62,8 +78,11 @@ const MainLayout = ({ showSidebar = true, showBackButton: backButtonProp }: Main
                 />
 
                 {/* Adjust padding for Bottom Nav (pb-20 for mobile, pb-12 for desktop) */}
-                {/* Add pt-20 (80px) to account for fixed header height */}
-                <main className="flex-1 w-full max-w-full overflow-x-hidden overflow-y-auto pb-24 md:pb-12 px-4 md:px-8 pt-20">
+                {/* Dynamic padding: 120px if marquee active on Landing/Home, 24px otherwise */}
+                <main className={cn(
+                    "flex-1 w-full max-w-full overflow-x-hidden overflow-y-auto pb-24 md:pb-12 px-4 md:px-8",
+                    (isLandingOrHome && hasAnnouncements) ? "pt-[120px]" : "pt-24"
+                )}>
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={location.pathname}
