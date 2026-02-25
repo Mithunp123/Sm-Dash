@@ -116,20 +116,20 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
 
   return (
     <header className={`fixed top-0 z-50 right-0 transition-all duration-300 ${showSidebar ? "md:left-64" : "left-0"} left-0 w-full md:w-auto ${isLandingPage
-      ? "bg-[#020617] border-b border-slate-800 shadow-2xl overflow-hidden"
+      ? "bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 border-b border-slate-700/50 shadow-lg"
       : "bg-[hsl(var(--sidebar))] border-b border-white/5"
       }`}>
-      {/* Background Pattern for Landing Page Header */}
+      {/* Professional Background for Landing Page Header */}
       {isLandingPage && (
         <div className="absolute inset-0 z-0 pointer-events-none">
-          <div className="absolute inset-0 dot-grid opacity-20"></div>
-          <div className="absolute top-0 left-1/4 w-1/2 h-full bg-blue-500/10 blur-[100px]"></div>
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-cyan-500/40 via-cyan-400/40 to-blue-500/40"></div>
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-cyan-500/20 via-blue-400/20 to-cyan-500/20"></div>
         </div>
       )}
       <div className="w-full px-4 md:px-6 relative z-10">
         {!isAuthenticated ? (
           /* Landing Page: Two-Row Layout */
-          <div className="flex flex-row items-center justify-between gap-4 py-4 md:py-8 md:px-10">
+          <div className="flex flex-row items-center justify-between gap-2 md:gap-4 py-3 md:py-6 md:px-10">
             {/* SM Logo (Left) */}
             <button
               onClick={() => window.location.reload()}
@@ -140,14 +140,14 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
                 <img
                   src="/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
                   alt="SM Volunteers Logo"
-                  className="h-12 md:h-24 w-auto object-contain"
+                  className="h-14 md:h-20 w-auto object-contain"
                 />
                 <div className="absolute inset-0 rounded-full bg-primary/5 blur-md -z-10 animate-pulse"></div>
               </motion.div>
             </button>
 
             {/* Center: Navigation Menu (Desktop Only) */}
-            <nav className="hidden md:flex items-center justify-center gap-2 flex-grow max-w-7xl overflow-hidden px-2">
+            <nav className="hidden md:flex items-center justify-center gap-1.5 lg:gap-2 flex-grow max-w-7xl overflow-hidden px-2">
               {[
                 { label: 'Home', id: 'top' },
                 { label: 'About', id: 'about-section' },
@@ -170,7 +170,7 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
                       document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
                   }}
-                  className="whitespace-nowrap text-xs md:text-sm font-bold text-white/90 hover:text-white hover:bg-white/20 px-4 py-2 rounded-lg transition-all uppercase tracking-tight shadow-sm"
+                  className="whitespace-nowrap text-xs lg:text-sm font-bold text-gray-200 hover:text-cyan-300 hover:bg-cyan-500/10 px-3 lg:px-5 py-2 rounded-lg transition-all uppercase tracking-wide border border-transparent hover:border-cyan-400/50"
                 >
                   {item.label}
                 </button>
@@ -181,17 +181,17 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
             <div className="md:hidden flex items-center gap-2">
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="text-white">
+                  <Button variant="ghost" size="icon" className="text-gray-300 hover:bg-cyan-500/10 hover:text-cyan-300 transition-all border border-transparent hover:border-cyan-400/30">
                     <Menu className="h-6 w-6" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="bg-[#020617] border-slate-800 text-white p-0 w-72">
-                  <div className="flex flex-col h-full pt-20 px-6">
+                <SheetContent side="right" className="bg-gradient-to-b from-slate-900 to-slate-800 border-slate-700/50 text-white p-0 w-80">
+                  <div className="flex flex-col h-full pt-6 px-6">
                     <div className="mb-8 pl-2">
                       <img src="/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png" alt="SM" className="h-16 w-auto mb-4" />
-                      <h3 className="text-xl font-black text-primary tracking-tighter">SM VOLUNTEERS</h3>
+                      <h3 className="text-lg font-bold text-cyan-300 tracking-tight uppercase">SM VOLUNTEERS</h3>
                     </div>
-                    <nav className="flex flex-col gap-4">
+                    <nav className="flex flex-col gap-3">
                       {[
                         { label: 'Home', id: 'top' },
                         { label: 'About', id: 'about-section' },
@@ -214,7 +214,7 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
                               document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                             }
                           }}
-                          className="flex items-center text-lg font-bold text-slate-300 hover:text-primary py-2 transition-all uppercase tracking-widest text-left"
+                          className="flex items-center text font-bold text-200 hover:text-cyan-300 hover:bg-cyan-500/20 rounded-lg px-4 py-3 transition-all uppercase tracking-wide w-full text-left border border-transparent hover:border-cyan-400/30"
                         >
                           {item.label}
                         </button>
@@ -238,7 +238,7 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
                   <img
                     src="/images/Brand_logo.png"
                     alt="KSRCT Brand Logo"
-                    className="h-12 md:h-24 w-auto object-contain"
+                    className="h-14 md:h-20 w-auto object-contain"
                   />
                   <div className="absolute inset-0 rounded-full bg-primary/5 blur-md -z-10 animate-pulse"></div>
                 </motion.div>
@@ -247,7 +247,7 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
           </div>
         ) : isLandingPage ? (
           /* Landing Page when Logged In */
-          <div className="flex flex-row items-center justify-between gap-4 py-4 md:py-8 md:px-10">
+          <div className="flex flex-row items-center justify-between gap-2 md:gap-4 py-3 md:py-6 md:px-10">
             <button
               onClick={() => window.location.reload()}
               className="hover:opacity-100 transition-opacity cursor-pointer relative group shrink-0"
@@ -282,14 +282,14 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
                       document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
                   }}
-                  className="whitespace-nowrap text-xs md:text-sm font-bold text-white/90 hover:text-white hover:bg-white/20 px-4 py-2 rounded-lg transition-all uppercase tracking-tight shadow-sm"
+                  className="whitespace-nowrap text-xs md:text-sm font-bold text-gray-200 hover:text-cyan-300 hover:bg-cyan-500/10 px-4 py-2 rounded-lg transition-all uppercase tracking-wide border border-transparent hover:border-cyan-400/30"
                 >
                   {item.label}
                 </button>
               ))}
               <Button
                 onClick={handleLogout}
-                className="whitespace-nowrap text-xs md:text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg transition-all uppercase tracking-tight ml-2 shadow-md"
+                className="whitespace-nowrap text-xs md:text-sm font-bold bg-rose-600/20 border border-rose-500/50 hover:bg-rose-600/30 text-rose-300 px-4 py-2 rounded-lg transition-all uppercase tracking-wide ml-2"
               >
                 Logout
               </Button>
@@ -298,13 +298,13 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
             <div className="md:hidden flex items-center gap-2">
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="text-white">
+                  <Button variant="ghost" size="icon" className="text-gray-300 hover:bg-cyan-500/10 hover:text-cyan-300 transition-all border border-transparent hover:border-cyan-400/30">
                     <Menu className="h-6 w-6" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="bg-[#020617] border-slate-800 text-white p-0 w-72">
-                  <div className="flex flex-col h-full pt-20 px-6">
-                    <nav className="flex flex-col gap-4">
+                <SheetContent side="right" className="bg-gradient-to-b from-slate-900 to-slate-800 border-slate-700/50 text-white p-0 w-80">
+                  <div className="flex flex-col h-full pt-6 px-6">
+                    <nav className="flex flex-col gap-3">
                       {[
                         { label: 'Home', id: 'top' },
                         { label: 'About', id: 'about-section' },
@@ -324,14 +324,14 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
                               document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                             }
                           }}
-                          className="flex items-center text-lg font-bold text-white/90 hover:text-primary py-2 transition-all uppercase tracking-widest text-left"
+                          className="flex items-center text-base font-bold text-gray-200 hover:text-cyan-300 hover:bg-cyan-500/20 rounded-lg px-4 py-3 transition-all uppercase tracking-wide w-full text-left border border-transparent hover:border-cyan-400/30"
                         >
                           {item.label}
                         </button>
                       ))}
                       <Button
                         onClick={handleLogout}
-                        className="mt-4 bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 uppercase tracking-widest rounded-xl shadow-md"
+                        className="mt-6 w-full bg-rose-600/20 border border-rose-500/50 hover:bg-rose-600/30 text-rose-300 font-bold py-2 px-4 uppercase tracking-wide rounded-lg transition-all text-sm"
                       >
                         Logout
                       </Button>
@@ -353,7 +353,7 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
                   <img
                     src="/images/Brand_logo.png"
                     alt="KSRCT Brand Logo"
-                    className="h-12 md:h-24 w-auto object-contain"
+                    className="h-14 md:h-20 w-auto object-contain"
                   />
                 </motion.div>
               </a>
@@ -379,16 +379,18 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
                 variant="outline"
                 size="sm"
                 onClick={() => navigate(-1)}
-                className="mr-4 text-white border-white/30 hover:bg-white/20 hover:border-white/50 gap-2 transition-all duration-200"
+                className="mr-4 gap-2 transition-all duration-200 text-foreground dark:text-white border-border dark:border-white/40 hover:bg-foreground/5 dark:hover:bg-white/20 hover:border-foreground/70 dark:hover:border-white/60"
                 aria-label="Go back"
               >
                 <ArrowLeft className="h-4 w-4" />
-                <span className="hidden sm:inline text-sm font-medium">Back</span>
+                <span className="hidden sm:inline text-sm font-medium">
+                  Back
+                </span>
               </Button>
             )}
 
-            <div className="flex-1 flex items-center gap-4">
-              <div className="font-semibold text-white">
+            <div className="flex-1 flex items-center gap-4 text-foreground dark:text-white">
+              <div className="font-semibold tracking-tight drop-shadow-sm">
                 SM Volunteers
               </div>
             </div>

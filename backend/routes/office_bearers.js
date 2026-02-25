@@ -45,7 +45,7 @@ router.get('/', authenticateToken, (req, res) => {
 // Create
 router.post('/', authenticateToken, requireRole('admin', 'office_bearer'), upload.single('photo'), (req, res) => {
     const db = getDatabase();
-    const { name, position, contact, email, academic_year } = req.body;
+    const { name, position, contact, email, department, student_year, academic_year } = req.body;
     const photoUrl = req.file ? toUrlPath(req.file.filename) : null;
 
     if (!name || !position) {
@@ -54,9 +54,9 @@ router.post('/', authenticateToken, requireRole('admin', 'office_bearer'), uploa
     }
 
     db.run(
-        `INSERT INTO office_bearers (name, position, contact, email, photo_url, academic_year)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-        [name, position, contact || null, email || null, photoUrl, academic_year || null],
+        `INSERT INTO office_bearers (name, position, contact, email, department, student_year, photo_url, academic_year)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [name, position, contact || null, email || null, department || null, student_year || null, photoUrl, academic_year || null],
         async function (err) {
             if (err) {
                 if (req.file) fs.unlink(req.file.path, () => { });
@@ -76,7 +76,7 @@ router.post('/', authenticateToken, requireRole('admin', 'office_bearer'), uploa
 // Update
 router.put('/:id', authenticateToken, requireRole('admin', 'office_bearer'), upload.single('photo'), (req, res) => {
     const db = getDatabase();
-    const { name, position, contact, email, academic_year } = req.body;
+    const { name, position, contact, email, department, student_year, academic_year } = req.body;
 
     db.get('SELECT * FROM office_bearers WHERE id = ?', [req.params.id], (findErr, existing) => {
         if (findErr) {
@@ -103,13 +103,15 @@ router.put('/:id', authenticateToken, requireRole('admin', 'office_bearer'), upl
 
         db.run(
             `UPDATE office_bearers
-       SET name = ?, position = ?, contact = ?, email = ?, photo_url = ?, academic_year = ?, updated_at = CURRENT_TIMESTAMP
+       SET name = ?, position = ?, contact = ?, email = ?, department = ?, student_year = ?, photo_url = ?, academic_year = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`,
             [
                 name || existing.name,
                 position || existing.position,
                 contact || null,
                 email || null,
+                department || existing.department || null,
+                student_year || existing.student_year || null,
                 finalPhoto,
                 academic_year || existing.academic_year,
                 req.params.id

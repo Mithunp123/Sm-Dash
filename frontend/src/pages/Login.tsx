@@ -296,110 +296,148 @@ const Login = () => {
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center p-4 md:p-8 min-h-screen bg-gradient-to-br from-violet-100 via-indigo-50 to-cyan-100 dark:from-slate-950 dark:via-indigo-950 dark:to-slate-900 relative">
+    <div className="flex-1 flex items-center justify-center p-4 md:p-8 min-h-screen relative overflow-hidden">
       {/* Back Button */}
       <motion.button
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         onClick={() => navigate("/")}
-        className="absolute top-8 left-8 flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-primary transition-colors bg-white/20 dark:bg-white/5 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 shadow-xl z-50"
+        className="absolute top-6 left-6 flex items-center gap-2 text-sm font-bold text-white/80 hover:text-white transition-colors bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 shadow-xl z-50 hover:bg-white/20"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Home
       </motion.button>
 
-      {/* Glassmorphism Split Layout */}
-      <div className="w-full max-w-7xl grid md:grid-cols-2 gap-12 items-center">
+      {/* Background - clean dark gradient + glow blobs */}
+      <div className="absolute inset-0 z-0 bg-gradient-to-br from-slate-950 via-[#0d1424] to-slate-900">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-500/15 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-600/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-indigo-900/20 rounded-full blur-3xl" />
+      </div>
 
-        {/* Left Side - Login Form */}
+      {/* Main Layout */}
+      <div className="w-full max-w-6xl grid md:grid-cols-2 gap-8 items-center relative z-10">
+
+        {/* LEFT — Login Card */}
         <motion.div
-          initial={{ opacity: 0, x: -50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
         >
-          <Card className="w-full border-border/50 shadow-2xl rounded-3xl p-10 md:p-12 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 hover:shadow-primary/10 transition-shadow">
-            <div className="space-y-8">
-              <div className="text-center space-y-2 animate-fade-in">
-                <h1 className="text-3xl md:text-4xl font-black tracking-tight flex items-center justify-center gap-2">
-                  <span>SM</span>
-                  <span className="text-primary">Volunteers</span>
+          <div className="w-full relative rounded-3xl p-[1.5px] bg-gradient-to-b from-orange-500/60 via-orange-500/10 to-transparent shadow-[0_0_60px_rgba(249,115,22,0.25),0_0_120px_rgba(249,115,22,0.1)] overflow-hidden">
+            {/* Orange top accent bar */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-600 via-orange-400 to-yellow-400 rounded-t-3xl z-20" />
+            <div className="w-full rounded-3xl p-8 md:p-10 backdrop-blur-2xl bg-gradient-to-b from-slate-800/90 via-slate-900/95 to-slate-950/90">
+
+              {/* Logo + Title */}
+              <div className="text-center space-y-3 mb-8">
+                <div className="flex justify-center mb-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-orange-500/30 blur-xl rounded-full" />
+                    <img
+                      src="/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
+                      alt="SM Logo"
+                      className="w-16 h-16 object-contain relative z-10 drop-shadow-lg"
+                      onError={(e) => { e.currentTarget.src = '/images/Brand_logo.png'; }}
+                    />
+                  </div>
+                </div>
+                <h1 className="text-3xl md:text-4xl font-black tracking-tight">
+                  <span className="text-orange-600">SM</span>{" "}
+                  <span className="bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">Volunteers</span>
                 </h1>
-                <p className="text-base text-muted-foreground">
-                  Login to manage your{" "}
-                  <span className="font-medium text-foreground">events, attendance & volunteering</span>
+                <p className="text-sm text-slate-400">
+                  Login to manage your <span className="text-orange-300 font-semibold">events, attendance &amp; volunteering</span>
                 </p>
               </div>
 
+              {/* Role Badge (auto-detected) */}
+              <div className="flex justify-center mb-6">
+                <div className={cn(
+                  "px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border",
+                  activeRole === 'admin' ? 'bg-red-500/20 border-red-400/40 text-red-300' :
+                    activeRole === 'office_bearer' ? 'bg-blue-500/20 border-blue-400/40 text-blue-300' :
+                      'bg-orange-500/20 border-orange-400/40 text-orange-300'
+                )}>
+                  {activeRole === 'office_bearer' ? '🎖 Office Bearer' : activeRole === 'admin' ? '🛡 Admin' : '🤝 Student Volunteer'}
+                </div>
+              </div>
+
               {/* Email / password login */}
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2 text-left">
-                  <Label htmlFor="email" className="text-base">Email</Label>
-                  <Input
+              <form onSubmit={handleLogin} className="space-y-5">
+                <div className="space-y-2">
+                  <label htmlFor="email" className="text-sm font-semibold text-slate-300">Email Address</label>
+                  <input
                     id="email"
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder="you@ksrct.ac.in"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="h-12 text-base"
+                    className="w-full h-12 px-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-orange-400/60 focus:ring-2 focus:ring-orange-500/20 transition-all text-sm"
                   />
                 </div>
-                <div className="space-y-2 text-left">
-                  <Label htmlFor="password">Password</Label>
+                <div className="space-y-2">
+                  <label htmlFor="password" className="text-sm font-semibold text-slate-300">Password</label>
                   <div className="relative">
-                    <Input
+                    <input
                       id="password"
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      className="h-12 pr-10 text-base"
+                      placeholder="Enter your password"
+                      className="w-full h-12 px-4 pr-12 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-orange-400/60 focus:ring-2 focus:ring-orange-500/20 transition-all text-sm"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-orange-400 transition-colors"
                     >
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
                 </div>
-                <div className="flex items-center justify-end text-xs">
+
+                <div className="flex justify-end">
                   <button
                     type="button"
                     onClick={() => setShowForgotPassword(true)}
-                    className="text-primary hover:text-primary/80 hover:underline font-medium transition-colors"
+                    className="text-xs text-orange-400 hover:text-orange-300 hover:underline font-medium transition-colors"
                   >
                     Forgot Password?
                   </button>
                 </div>
-                <Button
+
+                <motion.button
                   type="submit"
-                  className="w-full h-12 font-semibold text-lg shadow-sm"
                   disabled={loading}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full h-12 rounded-xl font-bold text-base text-white bg-gradient-to-r from-orange-500 via-orange-400 to-yellow-500 shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {loading ? (
-                    <>
-                      <span className="animate-spin mr-2">⏳</span> Signing in...
-                    </>
-                  ) : "Login"}
-                </Button>
+                    <><span className="animate-spin">⏳</span> Signing in...</>
+                  ) : "Login →"}
+                </motion.button>
               </form>
 
-              <div className="relative">
+              {/* Divider */}
+              <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-border/60" />
+                  <span className="w-full border-t border-white/10" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white/80 dark:bg-slate-900/80 px-2 text-muted-foreground">Or continue with</span>
+                  <span className="bg-slate-900/70 px-3 text-slate-500 tracking-widest">Or continue with</span>
                 </div>
               </div>
 
-              {/* Google authentication */}
-              <Button
+              {/* Google Login */}
+              <motion.button
                 type="button"
-                variant="outline"
-                className="w-full gap-3 h-12 border-border/60 hover:bg-accent/50 text-base"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full h-12 rounded-xl border border-slate-600 bg-white hover:bg-slate-100 text-slate-800 font-semibold flex items-center justify-center gap-3 transition-all text-sm shadow-md"
                 onClick={() => {
                   try {
                     const apiBase = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
@@ -411,67 +449,77 @@ const Login = () => {
                 }}
               >
                 <svg className="w-5 h-5" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                  <path
-                    fill="#4285F4"
-                    d="M533.5 278.4c0-18.6-1.5-37.1-4.7-54.8H272v103.6h146.9c-6.3 34-25 62.8-53.5 82.1v68.1h86.3c50.6-46.6 81.8-115.5 81.8-199z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M272 544.3c72.4 0 133.2-24 177.6-65.1l-86.3-68.1c-24 16.1-54.7 25.6-91.3 25.6-70.2 0-129.7-47.4-151-111.1H34.6v69.8C78.6 483 167 544.3 272 544.3z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M121 323.7c-10.7-31.9-10.7-66.3 0-98.2V155.7H34.6c-38.5 75.6-38.5 164.7 0 240.3L121 323.7z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M272 107.7c39.4 0 74.9 13.6 102.8 40.3l77.1-77.1C405.2 24 344.4 0 272 0 167 0 78.6 61.3 34.6 155.7l86.4 69.8C142.3 155.1 201.8 107.7 272 107.7z"
-                  />
+                  <path fill="#4285F4" d="M533.5 278.4c0-18.6-1.5-37.1-4.7-54.8H272v103.6h146.9c-6.3 34-25 62.8-53.5 82.1v68.1h86.3c50.6-46.6 81.8-115.5 81.8-199z" />
+                  <path fill="#34A853" d="M272 544.3c72.4 0 133.2-24 177.6-65.1l-86.3-68.1c-24 16.1-54.7 25.6-91.3 25.6-70.2 0-129.7-47.4-151-111.1H34.6v69.8C78.6 483 167 544.3 272 544.3z" />
+                  <path fill="#FBBC05" d="M121 323.7c-10.7-31.9-10.7-66.3 0-98.2V155.7H34.6c-38.5 75.6-38.5 164.7 0 240.3L121 323.7z" />
+                  <path fill="#EA4335" d="M272 107.7c39.4 0 74.9 13.6 102.8 40.3l77.1-77.1C405.2 24 344.4 0 272 0 167 0 78.6 61.3 34.6 155.7l86.4 69.8C142.3 155.1 201.8 107.7 272 107.7z" />
                 </svg>
-                <span className="font-medium">Continue with Google</span>
-              </Button>
+                <span>Continue with Google</span>
+              </motion.button>
+
             </div>
-          </Card>
+          </div>
         </motion.div>
 
-        {/* Right Side - SM Logo */}
+        {/* RIGHT — Branding Panel */}
         <motion.div
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 1, ease: "easeOut" }}
-          className="hidden md:flex flex-col items-center justify-center p-16 rounded-3xl backdrop-blur-xl bg-white/60 dark:bg-slate-900/60 border border-white/40 shadow-2xl hover:bg-white/70 dark:hover:bg-slate-900/70 transition-all duration-500 group overflow-hidden"
+          className="hidden md:flex flex-col items-center justify-center gap-8 text-center"
         >
-          <div className="relative">
-            <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse"></div>
-            <motion.div
-              animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <img
-                src="/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
-                alt="SM Volunteers Logo"
-                className="w-80 h-80 object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)] relative z-10 group-hover:scale-105 transition-transform duration-500"
-                onError={(e) => {
-                  const fallback = '/images/Brand_logo.png';
-                  if (!e.currentTarget.src.includes(fallback)) {
-                    e.currentTarget.src = fallback;
-                  }
-                }}
-              />
-            </motion.div>
-          </div>
-          <div className="text-center mt-10 space-y-3">
-            <h2 className="text-5xl font-black bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent drop-shadow-sm">
-              SM Volunteers
+          {/* Logo floating */}
+          <motion.div
+            animate={{ y: [0, -12, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            className="relative"
+          >
+            <div className="absolute inset-0 bg-orange-500/30 blur-3xl rounded-full scale-150" />
+            <img
+              src="/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
+              alt="SM Volunteers Logo"
+              className="w-52 h-52 object-contain relative z-10 drop-shadow-[0_20px_60px_rgba(249,115,22,0.5)]"
+              onError={(e) => { e.currentTarget.src = '/images/Brand_logo.png'; }}
+            />
+          </motion.div>
+
+          {/* Text */}
+          <div className="space-y-3">
+            <h2 className="text-5xl font-black tracking-tight">
+              <span className="text-orange-600">SM</span>{" "}
+              <span className="bg-gradient-to-r from-orange-400 to-yellow-400 bg-clip-text text-transparent">Volunteers</span>
             </h2>
-            <p className="text-muted-foreground font-bold tracking-widest uppercase text-sm">
-              Fostering Society
+            <p className="text-slate-400 font-medium tracking-widest uppercase text-sm">
+              K.S.Rangasamy College of Technology
             </p>
-            <div className="pt-6">
-              <span className="text-sm px-6 py-2 rounded-full bg-primary/10 text-primary border border-primary/20 font-bold italic">
+            <div className="pt-2">
+              <span className="text-sm px-6 py-2.5 rounded-full bg-orange-500/10 text-orange-300 border border-orange-500/30 font-bold italic">
                 "Service above self"
               </span>
             </div>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-4 w-full max-w-sm">
+            {[
+              { value: '4+', label: 'Years' },
+              { value: '1000+', label: 'Volunteers' },
+              { value: '100+', label: 'Events' },
+            ].map((s) => (
+              <div key={s.label} className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-4 text-center">
+                <div className="text-2xl font-black bg-gradient-to-r from-orange-400 to-yellow-400 bg-clip-text text-transparent">{s.value}</div>
+                <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-1">{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* NGO pills */}
+          <div className="flex flex-wrap justify-center gap-2">
+            {['Bhumi', 'TQI', 'Atchayam Trust', 'Sittruli'].map(ngo => (
+              <span key={ngo} className="text-xs px-3 py-1 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/20 font-medium">
+                {ngo}
+              </span>
+            ))}
           </div>
         </motion.div>
       </div>
@@ -487,18 +535,8 @@ const Login = () => {
             <div className="space-y-2 text-left">
               <Label htmlFor="currentPassword">Current Password</Label>
               <div className="relative">
-                <Input
-                  id="currentPassword"
-                  type={showCurrentPassword ? "text" : "password"}
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                >
+                <Input id="currentPassword" type={showCurrentPassword ? "text" : "password"} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
+                <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                   {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
@@ -506,19 +544,8 @@ const Login = () => {
             <div className="space-y-2 text-left">
               <Label htmlFor="newPassword">New Password</Label>
               <div className="relative">
-                <Input
-                  id="newPassword"
-                  type={showNewPassword ? "text" : "password"}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  minLength={5}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                >
+                <Input id="newPassword" type={showNewPassword ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={5} />
+                <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                   {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
@@ -526,26 +553,13 @@ const Login = () => {
             <div className="space-y-2 text-left">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
               <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  minLength={5}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-                >
+                <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={5} />
+                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
                   {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Changing..." : "Change Password"}
-            </Button>
+            <Button type="submit" className="w-full" disabled={loading}>{loading ? "Changing..." : "Change Password"}</Button>
           </form>
         </DialogContent>
       </Dialog>
@@ -555,43 +569,17 @@ const Login = () => {
         <DialogContent className="sm:max-w-[450px]">
           <DialogHeader>
             <DialogTitle className="text-xl">Forgot Password?</DialogTitle>
-            <DialogDescription className="text-sm">
-              No worries! Enter your registered email address and we'll send you a 6-digit OTP to reset your password.
-            </DialogDescription>
+            <DialogDescription className="text-sm">Enter your registered email and we'll send you a 6-digit OTP.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleForgotPassword} className="space-y-5 mt-4">
             <div className="space-y-2 text-left">
               <Label htmlFor="forgotEmail" className="text-sm font-medium">Email Address</Label>
-              <Input
-                id="forgotEmail"
-                type="email"
-                placeholder="you@example.com"
-                value={forgotEmail}
-                onChange={(e) => setForgotEmail(e.target.value)}
-                required
-                className="h-11"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                We'll send a one-time password to this email
-              </p>
+              <Input id="forgotEmail" type="email" placeholder="you@example.com" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} required className="h-11" />
+              <p className="text-xs text-muted-foreground mt-1">We'll send a one-time password to this email</p>
             </div>
             <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1"
-                onClick={() => setShowForgotPassword(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" className="flex-1" disabled={loading}>
-                {loading ? (
-                  <>
-                    <span className="animate-spin mr-2">⏳</span>
-                    Sending...
-                  </>
-                ) : "Send OTP"}
-              </Button>
+              <Button type="button" variant="outline" className="flex-1" onClick={() => setShowForgotPassword(false)}>Cancel</Button>
+              <Button type="submit" className="flex-1" disabled={loading}>{loading ? (<><span className="animate-spin mr-2">⏳</span>Sending...</>) : "Send OTP"}</Button>
             </div>
           </form>
         </DialogContent>
@@ -602,128 +590,39 @@ const Login = () => {
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="text-xl">Reset Your Password</DialogTitle>
-            <DialogDescription className="text-sm">
-              We've sent a 6-digit OTP to <span className="font-semibold text-foreground">{maskEmail(resetEmail)}</span>
-            </DialogDescription>
+            <DialogDescription className="text-sm">We've sent a 6-digit OTP to <span className="font-semibold text-foreground">{maskEmail(resetEmail)}</span></DialogDescription>
           </DialogHeader>
           <form onSubmit={handleResetPassword} className="space-y-5 mt-4">
-            {/* Step Indicator */}
             <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-              <div className="flex items-center gap-2 text-sm">
-                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">
-                  1
-                </div>
-                <span className="font-medium">Enter OTP from your email</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <div className="flex items-center justify-center w-6 h-6 rounded-full border-2 border-border text-xs">
-                  2
-                </div>
-                <span>Set new password</span>
-              </div>
+              <div className="flex items-center gap-2 text-sm"><div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">1</div><span className="font-medium">Enter OTP from your email</span></div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground"><div className="flex items-center justify-center w-6 h-6 rounded-full border-2 border-border text-xs">2</div><span>Set new password</span></div>
             </div>
-
             <div className="space-y-2 text-left">
               <Label htmlFor="otp" className="text-sm font-medium">One-Time Password (OTP)</Label>
-              <Input
-                id="otp"
-                type="text"
-                placeholder="Enter 6-digit OTP"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                required
-                maxLength={6}
-                className="h-11 text-center text-lg tracking-widest font-mono"
-              />
+              <Input id="otp" type="text" placeholder="Enter 6-digit OTP" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} required maxLength={6} className="h-11 text-center text-lg tracking-widest font-mono" />
               <div className="flex items-center justify-between mt-2">
-                <p className="text-xs text-muted-foreground">
-                  OTP expires in 10 minutes
-                </p>
-                <Button
-                  type="button"
-                  variant="link"
-                  size="sm"
-                  onClick={handleResendOTP}
-                  disabled={resendCooldown > 0 || loading}
-                  className="h-auto p-0 text-xs"
-                >
-                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend OTP"}
-                </Button>
+                <p className="text-xs text-muted-foreground">OTP expires in 10 minutes</p>
+                <Button type="button" variant="link" size="sm" onClick={handleResendOTP} disabled={resendCooldown > 0 || loading} className="h-auto p-0 text-xs">{resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend OTP"}</Button>
               </div>
             </div>
-
             <div className="space-y-2 text-left">
               <Label htmlFor="newResetPassword" className="text-sm font-medium">New Password</Label>
               <div className="relative">
-                <Input
-                  id="newResetPassword"
-                  type={showNewResetPassword ? "text" : "password"}
-                  placeholder="Enter new password"
-                  value={newResetPassword}
-                  onChange={(e) => setNewResetPassword(e.target.value)}
-                  required
-                  minLength={5}
-                  className="h-11 pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNewResetPassword(!showNewResetPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showNewResetPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+                <Input id="newResetPassword" type={showNewResetPassword ? "text" : "password"} placeholder="Enter new password" value={newResetPassword} onChange={(e) => setNewResetPassword(e.target.value)} required minLength={5} className="h-11 pr-10" />
+                <button type="button" onClick={() => setShowNewResetPassword(!showNewResetPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">{showNewResetPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Must be at least 5 characters
-              </p>
+              <p className="text-xs text-muted-foreground">Must be at least 5 characters</p>
             </div>
-
             <div className="space-y-2 text-left">
               <Label htmlFor="confirmResetPassword" className="text-sm font-medium">Confirm New Password</Label>
               <div className="relative">
-                <Input
-                  id="confirmResetPassword"
-                  type={showConfirmResetPassword ? "text" : "password"}
-                  placeholder="Re-enter new password"
-                  value={confirmResetPassword}
-                  onChange={(e) => setConfirmResetPassword(e.target.value)}
-                  required
-                  minLength={5}
-                  className="h-11 pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmResetPassword(!showConfirmResetPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showConfirmResetPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+                <Input id="confirmResetPassword" type={showConfirmResetPassword ? "text" : "password"} placeholder="Re-enter new password" value={confirmResetPassword} onChange={(e) => setConfirmResetPassword(e.target.value)} required minLength={5} className="h-11 pr-10" />
+                <button type="button" onClick={() => setShowConfirmResetPassword(!showConfirmResetPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">{showConfirmResetPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
               </div>
             </div>
-
             <div className="flex gap-2 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1"
-                onClick={() => {
-                  setShowResetPassword(false);
-                  setOtp("");
-                  setNewResetPassword("");
-                  setConfirmResetPassword("");
-                  setResendCooldown(0);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" className="flex-1" disabled={loading}>
-                {loading ? (
-                  <>
-                    <span className="animate-spin mr-2">⏳</span>
-                    Resetting...
-                  </>
-                ) : "Reset Password"}
-              </Button>
+              <Button type="button" variant="outline" className="flex-1" onClick={() => { setShowResetPassword(false); setOtp(""); setNewResetPassword(""); setConfirmResetPassword(""); setResendCooldown(0); }}>Cancel</Button>
+              <Button type="submit" className="flex-1" disabled={loading}>{loading ? (<><span className="animate-spin mr-2">⏳</span>Resetting...</>) : "Reset Password"}</Button>
             </div>
           </form>
         </DialogContent>

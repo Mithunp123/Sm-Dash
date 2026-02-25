@@ -10,7 +10,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { api } from "@/lib/api";
 import { BackButton } from "@/components/BackButton";
 import DeveloperCredit from "@/components/DeveloperCredit";
-import { ArrowLeft, Trash2, FileText, Search, Printer, FileDown, XCircle } from "lucide-react";
+import { Trash2, FileText, Search, Printer, FileDown, XCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -424,19 +424,6 @@ const ManageVolunteers = () => {
     <div className="min-h-screen flex flex-col">
       <DeveloperCredit />
       <main className="flex-1 w-full bg-background overflow-x-hidden">
-        {/* Header Section */}
-        <div className="w-full border-b border-border/40 bg-background/95 backdrop-blur-sm sticky top-0 z-30">
-          <div className="w-full px-4 md:px-6 lg:px-8 py-4">
-            <Button
-              variant="ghost"
-              className="gap-2 font-semibold text-foreground hover:bg-primary/10 transition-colors pl-0"
-              onClick={() => navigate("/admin/teams")}
-            >
-              <ArrowLeft className="w-4 h-4" /> Back to Teams
-            </Button>
-          </div>
-        </div>
-
         <div className="w-full px-4 md:px-6 lg:px-8 py-8">
           {/* dev bypass banner ... preserved ... */}
           {(typeof window !== 'undefined' && window.location && window.location.hostname && window.location.hostname.includes('localhost')) && !(auth.isAuthenticated() && (auth.hasRole('admin') || permissions?.can_manage_volunteers)) && !devBypass && (

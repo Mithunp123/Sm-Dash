@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Users, Plus, ArrowLeft, Edit, Trash2, Search, Camera, FileText, Activity, FileSpreadsheet } from "lucide-react";
+import { Users, Plus, Edit, Trash2, Search, Camera, FileText, Activity, FileSpreadsheet } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -13,13 +13,40 @@ import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { BackButton } from "@/components/BackButton";
 import { usePermissions } from "@/hooks/usePermissions";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
 const ManageOfficeBearers = () => {
+  const POSITION_OPTIONS = [
+    "President",
+    "Vice President",
+    "Secretary",
+    "Joint - Secretary",
+    "Treasurer",
+    "Joint - Treasurer",
+    "Coordinator"
+  ];
+
+  const DEPARTMENT_OPTIONS = [
+    "Artificial Intelligence and Data Science",
+    "Artificial Intelligence and Machine Learning",
+    "Biotechnology",
+    "Civil Engineering",
+    "Computer Science and Engineering",
+    "Electronics and Communication Engineering",
+    "Electrical and Electronics Engineering",
+    "Mechanical Engineering",
+    "Mechatronics Engineering",
+    "Food Technology",
+    "Information Technology",
+    "Textile Technology",
+    "Very Large Scale Integration Technology",
+    "Computer Science and Business Systems",
+    "Master of Business Administration",
+    "Master of Computer Applications"
+  ];
   const navigate = useNavigate();
   const [officeBearers, setOfficeBearers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,10 +61,11 @@ const ManageOfficeBearers = () => {
   const [formData, setFormData] = useState({
     name: "",
     position: "",
+    department: "",
     contact: "",
     email: "",
     academic_year: new Date().getFullYear().toString(),
-    year: "IV Year",
+    student_year: "IV Year",
     photo: null as File | null
   });
 
@@ -91,10 +119,11 @@ const ManageOfficeBearers = () => {
     setFormData({
       name: "",
       position: "",
+      department: "",
       contact: "",
       email: "",
       academic_year: new Date().getFullYear().toString(),
-      year: "IV Year",
+      student_year: "IV Year",
       photo: null
     });
     setPhotoPreview(null);
@@ -109,8 +138,9 @@ const ManageOfficeBearers = () => {
       fData.append('position', formData.position);
       fData.append('contact', formData.contact);
       fData.append('email', formData.email);
+      fData.append('department', formData.department);
       fData.append('academic_year', formData.academic_year);
-      fData.append('year', formData.year);
+      fData.append('student_year', formData.student_year);
       if (formData.photo) {
         fData.append('photo', formData.photo);
       }
@@ -139,8 +169,9 @@ const ManageOfficeBearers = () => {
       fData.append('position', formData.position);
       fData.append('contact', formData.contact);
       fData.append('email', formData.email);
+      fData.append('department', formData.department);
       fData.append('academic_year', formData.academic_year);
-      fData.append('year', formData.year);
+      fData.append('student_year', formData.student_year);
       if (formData.photo) {
         fData.append('photo', formData.photo);
       }
@@ -184,10 +215,11 @@ const ManageOfficeBearers = () => {
     setFormData({
       name: ob.name,
       position: ob.position,
+      department: ob.department || "",
       contact: ob.contact || "",
       email: ob.email || "",
       academic_year: ob.academic_year || "",
-      year: ob.year || "IV Year",
+      student_year: ob.student_year || "IV Year",
       photo: null
     });
     setPhotoPreview(ob.photo_url ? `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${ob.photo_url}` : null);
@@ -210,8 +242,16 @@ const ManageOfficeBearers = () => {
 
     autoTable(doc, {
       startY: 45,
-      head: [['Name', 'Position', 'Contact', 'Email', 'Year']],
-      body: officeBearers.map(ob => [ob.name, ob.position, ob.contact || '-', ob.email || '-', ob.academic_year || '-']),
+      head: [['Name', 'Position', 'Department', 'Student Year', 'Contact', 'Email', 'Academic Year']],
+      body: officeBearers.map(ob => [
+        ob.name,
+        ob.position,
+        ob.department || '-',
+        ob.student_year || '-',
+        ob.contact || '-',
+        ob.email || '-',
+        ob.academic_year || '-'
+      ]),
       theme: 'striped',
       headStyles: { fillColor: [37, 99, 235], fontStyle: 'bold' },
       styles: { fontSize: 10, cellPadding: 5 }
@@ -241,9 +281,11 @@ const ManageOfficeBearers = () => {
       const obData = officeBearers.map(ob => ({
         Name: ob.name,
         Position: ob.position,
+        Department: ob.department || '-',
+        'Student Year': ob.student_year || '-',
         Contact: ob.contact || '-',
         Email: ob.email || '-',
-        Year: ob.academic_year || '-'
+        'Academic Year': ob.academic_year || '-'
       }));
       const wsOB = XLSX.utils.json_to_sheet(obData);
       XLSX.utils.book_append_sheet(wb, wsOB, "Office Bearers");
@@ -320,19 +362,6 @@ const ManageOfficeBearers = () => {
 
   return (
     <main className="flex-1 w-full bg-background overflow-x-hidden min-h-screen">
-      {/* Header Section */}
-      <div className="w-full border-b border-border/40 bg-background/95 backdrop-blur-sm sticky top-0 z-30">
-        <div className="w-full px-4 md:px-6 lg:px-8 py-4">
-          <Button
-            variant="ghost"
-            className="gap-2 font-semibold text-foreground hover:bg-primary/10 transition-colors pl-0"
-            onClick={() => navigate("/admin")}
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-          </Button>
-        </div>
-      </div>
-
       <div className="w-full px-4 md:px-6 lg:px-8 py-8">
 
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-6">
@@ -432,8 +461,13 @@ const ManageOfficeBearers = () => {
                           <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-2 py-0.5 font-bold text-[10px] uppercase tracking-wider">
                             {ob.position}
                           </Badge>
+                          {ob.department && (
+                            <Badge variant="outline" className="font-semibold border-primary/30 text-primary/80 text-[10px] px-2 py-0.5">
+                              {ob.department}
+                            </Badge>
+                          )}
                           <Badge variant="outline" className="font-bold border-primary/30 text-primary/70 text-[10px] px-2 py-0.5">
-                            {ob.year || 'IV Year'}
+                            {ob.student_year || 'IV Year'}
                           </Badge>
                         </div>
                       </div>
@@ -486,7 +520,7 @@ const ManageOfficeBearers = () => {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Student Year *</Label>
-                    <Select value={formData.year} onValueChange={val => setFormData({ ...formData, year: val })}>
+                    <Select value={formData.student_year} onValueChange={val => setFormData({ ...formData, student_year: val })}>
                       <SelectTrigger className="h-11 rounded-xl"><SelectValue placeholder="Select Year" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="I Year">I Year</SelectItem>
@@ -506,7 +540,39 @@ const ManageOfficeBearers = () => {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Position *</Label>
-                  <Input value={formData.position} onChange={e => setFormData({ ...formData, position: e.target.value })} required className="h-11 rounded-xl" placeholder="e.g. President, Secretary" />
+                  <Select
+                    value={formData.position}
+                    onValueChange={val => setFormData({ ...formData, position: val })}
+                  >
+                    <SelectTrigger className="h-11 rounded-xl">
+                      <SelectValue placeholder="Select position" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {POSITION_OPTIONS.map((pos) => (
+                        <SelectItem key={pos} value={pos}>
+                          {pos}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Department</Label>
+                  <Select
+                    value={formData.department}
+                    onValueChange={val => setFormData({ ...formData, department: val })}
+                  >
+                    <SelectTrigger className="h-11 rounded-xl">
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DEPARTMENT_OPTIONS.map((dept) => (
+                        <SelectItem key={dept} value={dept}>
+                          {dept}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Contact Number</Label>
@@ -556,7 +622,7 @@ const ManageOfficeBearers = () => {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Student Year *</Label>
-                    <Select value={formData.year} onValueChange={val => setFormData({ ...formData, year: val })}>
+                    <Select value={formData.student_year} onValueChange={val => setFormData({ ...formData, student_year: val })}>
                       <SelectTrigger className="h-11 rounded-xl"><SelectValue placeholder="Select Year" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="I Year">I Year</SelectItem>
@@ -576,7 +642,39 @@ const ManageOfficeBearers = () => {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Position *</Label>
-                  <Input value={formData.position} onChange={e => setFormData({ ...formData, position: e.target.value })} required className="h-11 rounded-xl" />
+                  <Select
+                    value={formData.position}
+                    onValueChange={val => setFormData({ ...formData, position: val })}
+                  >
+                    <SelectTrigger className="h-11 rounded-xl">
+                      <SelectValue placeholder="Select position" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {POSITION_OPTIONS.map((pos) => (
+                        <SelectItem key={pos} value={pos}>
+                          {pos}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Department</Label>
+                  <Select
+                    value={formData.department}
+                    onValueChange={val => setFormData({ ...formData, department: val })}
+                  >
+                    <SelectTrigger className="h-11 rounded-xl">
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DEPARTMENT_OPTIONS.map((dept) => (
+                        <SelectItem key={dept} value={dept}>
+                          {dept}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Contact Number</Label>

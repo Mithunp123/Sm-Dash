@@ -1473,12 +1473,18 @@ export const initDatabase = async () => {
         position TEXT NOT NULL,
         contact TEXT,
         email TEXT,
+        department TEXT,
+        student_year TEXT,
         photo_url TEXT,
         academic_year TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Ensure newer columns exist for older databases
+    await addColumnSafe(database, 'office_bearers', 'department', 'TEXT');
+    await addColumnSafe(database, 'office_bearers', 'student_year', 'TEXT');
 
     // Announcements table
     await run(database, `

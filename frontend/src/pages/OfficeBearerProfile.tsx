@@ -5,14 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import DeveloperCredit from "@/components/DeveloperCredit";
-import { ArrowLeft, Save, Upload, X, Camera, AlertCircle, Settings } from "lucide-react";
+import { Save, Upload, X, Camera, AlertCircle, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { BackButton } from "@/components/BackButton";
 
 // Common departments list (match student profile)
 const DEPARTMENTS = [
@@ -268,9 +267,9 @@ const OfficeBearerProfile = () => {
 
       <main className="flex-1 p-4 md:p-6 lg:p-8 bg-transparent overflow-y-auto">
         <div className="w-full">
-          {/* Back Button */}
+          {/* Back Button - match volunteer profile style */}
           <div className="mb-6">
-
+            <BackButton className="bg-background/80 dark:bg-slate-900/80 border-border/70" />
           </div>
 
           {/* Profile Card Frame - Like Image Design */}

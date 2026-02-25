@@ -35,7 +35,7 @@ export const BackButton = ({ to, label = "Back", className = "" }: BackButtonPro
       variant="outline"
       size="sm"
       onClick={handleBack}
-      className={`h-9 px-4 gap-2 rounded-lg border-border/60 bg-background hover:bg-accent text-muted-foreground hover:text-foreground font-medium transition-all ${className}`}
+      className={`h-9 px-4 gap-2 rounded-lg mr-2 transition-all duration-200 text-foreground dark:text-white border-border dark:border-white/40 hover:bg-foreground/5 dark:hover:bg-white/20 hover:border-foreground/70 dark:hover:border-white/60 font-medium ${className}`}
     >
       <ArrowLeft className="w-4 h-4" />
       {label}

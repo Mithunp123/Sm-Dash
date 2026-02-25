@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+﻿import { useState, useEffect, useCallback, useRef } from "react";
 import principalImg from "../../../Images/Dr.R. Gopalakrishnan.jpg";
 import palaniappanImg from "../../../Images/Dr.A.Palaniappan.jpg";
 import mythiliImg from "../../../Images/MYTHILI MAM.png";
@@ -127,6 +127,20 @@ const ngoPartners = [
   },
 ];
 
+// Canonical order for office bearer positions
+// Handles both hyphenated ("Vice - President") and plain ("Vice President") variants
+const POSITION_ORDER: Record<string, number> = {
+  "President": 1,
+  "Vice President": 2,
+  "Vice - President": 2,
+  "Secretary": 3,
+  "Joint - Secretary": 4,
+  "Joint Secretary": 4,
+  "Treasurer": 5,
+  "Joint - Treasurer": 6,
+  "Joint Treasurer": 6,
+};
+
 const LandingPage = () => {
   const navigate = useNavigate();
   // Fallback departments list (full forms to match profile values)
@@ -176,6 +190,12 @@ const LandingPage = () => {
 
   const [officeBearers, setOfficeBearers] = useState<any[]>([]);
   const [selectedOB, setSelectedOB] = useState<any>(null);
+
+  const sortedOfficeBearers = [...officeBearers].sort((a, b) => {
+    const orderA = POSITION_ORDER[a.position] ?? 99;
+    const orderB = POSITION_ORDER[b.position] ?? 99;
+    return orderA - orderB;
+  });
   const [showViewDialog, setShowViewDialog] = useState(false);
 
   useEffect(() => {
@@ -340,69 +360,132 @@ const LandingPage = () => {
     if (announcements.length === 0) {
       const defaultText = "Welcome to SM Volunteers! Join our mission to create social impact through student-led initiatives. • Register for upcoming events and contribute to the community. • Check the latest updates in your volunteer portal.";
       return (
-        <div className="w-full bg-primary/10 border-b border-primary/20 py-2 relative overflow-hidden whitespace-nowrap z-50">
-          <div className="inline-block animate-marquee whitespace-nowrap px-4">
-            <span className="text-[10px] md:text-xs font-black text-primary uppercase tracking-[0.3em]">
-              {defaultText} &nbsp; • &nbsp; {defaultText}
-            </span>
+        <div className="fixed top-[150px] left-0 right-0 z-[49] w-full overflow-hidden bg-black/70 backdrop-blur-sm border-b-2 border-orange-500 shadow-2xl">
+
+          <div className="relative py-2.5 px-4 md:px-8 flex items-center gap-4">
+            {/* Label pill */}
+            <div className="flex-shrink-0 flex items-center gap-2 bg-orange-500 text-white text-[10px] md:text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+              </span>
+              📢 Announcements
+            </div>
+
+            {/* Scrolling text */}
+            <div className="flex-1 overflow-hidden">
+              <div className="animate-marquee-smooth whitespace-nowrap">
+                <span className="text-sm md:text-sm font-semibold text-slate-800 leading-relaxed inline-block">
+                  {defaultText} &nbsp; • &nbsp; {defaultText}
+                </span>
+              </div>
+            </div>
           </div>
+
+          <style dangerouslySetInnerHTML={{
+            __html: `
+            @keyframes marquee-smooth {
+              0% { transform: translateX(0); }
+              100% { transform: translateX(-50%); }
+            }
+            .animate-marquee-smooth {
+              display: inline-block;
+              white-space: nowrap;
+              animation: marquee-smooth 50s linear infinite;
+            }
+            .animate-marquee-smooth:hover {
+              animation-play-state: paused;
+            }
+          `}} />
         </div>
       );
     }
     const showMarquee = announcements.length > 3;
 
     return (
-      <div className="w-full bg-primary/10 border-b border-primary/20 py-2 relative overflow-hidden z-50">
-        <div className={`px-4 ${showMarquee ? 'inline-block animate-marquee hover:pause whitespace-nowrap' : 'flex justify-center flex-wrap gap-8'}`}>
-          <div className={`${showMarquee ? 'flex gap-12 items-center' : 'flex flex-wrap gap-x-12 gap-y-2 items-center justify-center'}`}>
-            {(showMarquee ? [...announcements, ...announcements] : announcements).map((a, i) => (
-              <div key={`${a.id}-${i}`} className="flex items-center gap-3">
-                {a.priority === 'important' && (
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
-                  </span>
-                )}
-                <span className={`text-[10px] md:text-sm font-black uppercase tracking-widest ${a.priority === 'important' ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-primary'}`}>
-                  {a.title}: <span className="font-medium normal-case tracking-normal opacity-90">{a.content}</span>
-                </span>
-                {a.link_url && (
-                  a.link_url.startsWith('http') ? (
-                    <a
-                      href={a.link_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="ml-1 px-3 py-1 bg-primary text-white text-[9px] rounded-full font-black hover:bg-primary/80 transition-all transform hover:scale-110 shadow-lg"
-                    >
-                      GO TO LINK
-                    </a>
-                  ) : (
-                    <button
-                      onClick={() => navigate(a.link_url)}
-                      className="ml-1 px-3 py-1 bg-primary text-white text-[9px] rounded-full font-black hover:bg-primary/80 transition-all transform hover:scale-110 shadow-lg"
-                    >
-                      VIEW DETAIL
-                    </button>
-                  )
-                )}
-                {showMarquee && <span className="text-muted-foreground/30 px-2">•</span>}
+      <div className="fixed top-[140px] left-0 right-0 z-[49] w-full overflow-hidden bg-black/70 backdrop-blur-sm border-b-2 border-orange-500 shadow-2xl">
+
+        <div className="relative py-2.5 px-4 md:px-8 flex items-center gap-4">
+          {/* Label pill */}
+          <div className="flex-shrink-0 flex items-center gap-2 bg-orange-500 text-white text-[10px] md:text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+            </span>
+            📢 Updates
+          </div>
+
+          {/* Content Container */}
+          <div className={`flex-1 ${showMarquee ? 'overflow-hidden' : ''}`}>
+            <div className={`${showMarquee ? 'inline-block animate-marquee-smooth whitespace-nowrap w-max' : 'flex justify-start flex-wrap gap-6'}`}>
+              <div className={`${showMarquee ? 'flex gap-12 items-center' : 'flex flex-wrap gap-x-8 gap-y-2 items-center'}`}>
+                {(showMarquee ? [...announcements, ...announcements] : announcements).map((a, i) => (
+                  <div key={`${a.id}-${i}`} className="flex items-center gap-3 whitespace-nowrap">
+                    {/* Priority Badge */}
+                    {a.priority === 'important' && (
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-black uppercase tracking-wide">
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
+                        </span>
+                        Urgent
+                      </span>
+                    )}
+
+                    {/* Announcement Content */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs md:text-sm font-black text-orange-300 uppercase tracking-wide">
+                        {a.title}:
+                      </span>
+                      <span className="text-xs md:text-sm font-medium text-slate-700 normal-case">
+                        {a.content}
+                      </span>
+                    </div>
+
+                    {/* CTA Button */}
+                    {a.link_url && (
+                      a.link_url.startsWith('http') ? (
+                        <a
+                          href={a.link_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-1 px-2.5 py-1 bg-orange-500 text-white text-[10px] rounded-md font-bold uppercase tracking-wide hover:bg-orange-400 transition-colors flex-shrink-0"
+                        >
+                          View
+                        </a>
+                      ) : (
+                        <button
+                          onClick={() => navigate(a.link_url)}
+                          className="ml-1 px-2.5 py-1 bg-orange-500 text-white text-[10px] rounded-md font-bold uppercase tracking-wide hover:bg-orange-400 transition-colors flex-shrink-0"
+                        >
+                          View
+                        </button>
+                      )
+                    )}
+
+                    {/* Separator */}
+                    {showMarquee && <span className="text-white/30 px-2 text-base font-light">|</span>}
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         </div>
+
         <style dangerouslySetInnerHTML={{
           __html: `
-          @keyframes marquee {
+          @keyframes marquee-smooth {
             0% { transform: translateX(0); }
             100% { transform: translateX(-50%); }
           }
-          .animate-marquee {
+          .animate-marquee-smooth {
             display: inline-block;
             white-space: nowrap;
-            animation: marquee 40s linear infinite;
+            animation: marquee-smooth 50s linear infinite;
           }
-          .animate-marquee:hover {
+          .animate-marquee-smooth:hover {
             animation-play-state: paused;
+            cursor: pointer;
           }
         `}} />
       </div>
@@ -550,22 +633,36 @@ const LandingPage = () => {
         )}
       </AnimatePresence>
 
+      {/* ANNOUNCEMENT BAR - Top Position */}
+      <RunningNotification />
+
+      <br>
+      </br>
+
+      <br>
+
+      </br>
+      <br>
+
+      </br>
+      <br>
+
+      </br>
+      <br>
+
+      </br>
+
       {/* Hero Section - Ultra Modern */}
-      <section className="relative w-full min-h-[500px] md:min-h-[700px] overflow-hidden z-10 flex items-center justify-center pt-32 md:pt-40 pb-12">
-        {/* Dynamic Gradient Background */}
+      <section className="relative w-full min-h-[900px] md:min-h-[900px] overflow-hidden z-10 flex items-center justify-center pt-32 md:pt-0 pb-12">
+        {/* Background Image — 100% opacity, no overlays */}
         <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-950"></div>
           <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000 md:bg-[center_35%]"
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat md:bg-[center_50%]"
             style={{
               backgroundImage: 'url("/images/Home.jpg")',
               opacity: 1,
             }}
           />
-          {/* Enhanced overlay with gradient */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-blue-950/40 to-slate-950/50"></div>
-          {/* Animated accent overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-transparent to-orange-600/20"></div>
         </div>
 
         {/* Content */}
@@ -579,27 +676,24 @@ const LandingPage = () => {
           >
             <motion.h1
               variants={fadeInUp}
-              className="text-5xl sm:text-6xl md:text-8xl font-black drop-shadow-2xl tracking-tighter leading-tight"
-            > <br></br> <br></br> <br></br>
-              <span className="text-white font-black drop-shadow-[0_0_40px_rgba(255,255,255,0.6)]">SM</span>{" "}
+              className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tighter leading-tight drop-shadow-[0_4px_32px_rgba(0,0,0,0.9)]"
+            >        <br></br>   <span className="text-orange-500 font-black">SM</span>{" "}
               <br className="sm:hidden" />
-              <span className="text-white font-black drop-shadow-[0_0_30px_rgba(255,255,255,0.6)]">
-                VOLUNTEERS
-              </span>
+              <span className="text-orange-500 font-black">VOLUNTEERS</span>
             </motion.h1>
 
             <motion.div
               variants={fadeInUp}
               className="relative px-2 md:px-6"
             >
-              <span className="block text-2xl md:text-4xl font-black italic tracking-wide md:tracking-[0.08em] text-white drop-shadow-2xl uppercase leading-tight">
-                To build the ministry of <br className="hidden sm:block" /> socially responsible volunteers
+              <span className="block text-lg md:text-2xl font-bold italic text-orange-100 drop-shadow-[0_2px_12px_rgba(0,0,0,1)] uppercase tracking-wide">
+                To build the ministry of socially responsible volunteers
               </span>
               <motion.div
                 initial={{ width: 0, opacity: 0 }}
-                animate={{ width: "70%", opacity: 1 }}
+                animate={{ width: "80%", opacity: 1 }}
                 transition={{ duration: 1.5, delay: 0.8 }}
-                className="h-1.5 bg-gradient-to-r from-transparent orange-500 to-transparent mx-auto mt-6 rounded-full shadow-lg shadow-orange-500/50"
+                className="h-1 bg-gradient-to-r from-transparent via-orange-500 to-transparent mx-auto mt-4 rounded-full"
               />
             </motion.div>
 
@@ -622,13 +716,13 @@ const LandingPage = () => {
         </div>
       </section>
 
-      <RunningNotification />
-
       {/* About Section - SM Volunteers Only */}
+
       <section
         id="about-section"
         className="py-32 relative overflow-hidden z-10 bg-gradient-to-b from-slate-50 via-blue-50 to-white dark:from-slate-950 dark:via-blue-950 dark:to-slate-900"
       >
+
         {/* Animated background pattern */}
         <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
           <div className="absolute inset-0" style={{
@@ -645,6 +739,33 @@ const LandingPage = () => {
             </h2>
             <div className="w-24 h-3 bg-gradient-to-r from-blue-600 to-orange-500 mx-auto rounded-full shadow-lg shadow-blue-500/30"></div>
           </div>
+
+          {/* Stats Grid */}
+          <motion.div
+            variants={staggerContainer}
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true }}
+            className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-16"
+          >
+            {[
+              { label: 'Years of Excellence', value: '4+' },
+              { label: 'NGOs', value: '4+' },
+              { label: 'Events', value: '100+' },
+              { label: 'Volunteers', value: '1500+' },
+            ].map((stat, index) => (
+              <motion.div
+                key={index}
+                variants={fadeInUp}
+                className="bg-gradient-to-br from-white to-blue-50 dark:from-slate-800 dark:to-slate-900 border border-blue-200 dark:border-blue-900/50 p-6 rounded-2xl text-center hover:scale-105 transition-transform shadow-lg hover:shadow-xl hover:shadow-blue-500/20"
+              >
+                <div className="text-3xl md:text-4xl font-black bg-gradient-to-r from-blue-600 to-orange-500 bg-clip-text text-transparent mb-2 tracking-tighter">
+                  <RunningNumber value={stat.value} />
+                </div>
+                <div className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest">{stat.label}</div>
+              </motion.div>
+            ))}
+          </motion.div>
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -666,10 +787,13 @@ const LandingPage = () => {
                 </h3>
                 <div className="space-y-4">
                   <p className="text-slate-700 dark:text-slate-200 leading-relaxed text-sm md:text-lg text-justify font-medium">
-                    Service Motto volunteers (SM Volunteers) started their journey on <strong className="text-blue-600 dark:text-blue-400">October 5, 2021</strong>. What began as a small group of passionate students has grown into a powerful movement within the KSRCT campus. Our primary objective is to bridge the gap between students and social service, fostering a sense of responsibility and compassion.
+                    Service Motto Volunteers (SM Volunteers) began their journey on <strong className="text-blue-600 dark:text-blue-400">October 5, 2021</strong>. What started as a small group of passionate students has grown into a strong and inspiring movement within the KSRCT campus. Our core objective is to bridge the gap between students and social service, nurturing responsibility, compassion, and leadership among young minds.
                   </p>
                   <p className="text-slate-700 dark:text-slate-200 leading-relaxed text-sm md:text-lg text-justify font-medium">
-                    Through strategic collaborations with NGOs like <strong className="text-blue-600 dark:text-blue-400">Bhumi</strong>, we engage in diverse activities including education support, women empowerment, environmental protection, and community health. We don't just volunteer; we build leadership, empathy, and lifelong skills.
+                    Through meaningful collaborations with organizations such as <strong className="text-blue-600 dark:text-blue-400">Bhumi</strong>, <strong className="text-blue-600 dark:text-blue-400">Talent Quest for India</strong>, <strong className="text-blue-600 dark:text-blue-400">Atchayam Trust</strong>, and <strong className="text-blue-600 dark:text-blue-400">Sittruli Foundation</strong>, we actively contribute to education support, women empowerment, environmental protection, and community health initiatives.
+                  </p>
+                  <p className="text-slate-700 dark:text-slate-200 leading-relaxed text-sm md:text-lg text-justify font-medium">
+                    At SM Volunteers, we believe volunteering is more than an activity — it is a pathway to developing <strong className="text-orange-500">empathy</strong>, <strong className="text-orange-500">teamwork</strong>, <strong className="text-orange-500">leadership</strong>, and lifelong values that shape socially responsible citizens.
                   </p>
                 </div>
               </motion.div>
@@ -1171,8 +1295,8 @@ const LandingPage = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {officeBearers.map((ob, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {sortedOfficeBearers.map((ob, i) => (
               <motion.div
                 key={ob.id || i}
                 layout
@@ -1180,10 +1304,10 @@ const LandingPage = () => {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.05 }}
-                className="group relative overflow-hidden rounded-2xl border border-white/30 dark:border-white/15 bg-white/60 dark:bg-slate-800/50 backdrop-blur-xl shadow-xl hover:shadow-2xl hover:shadow-orange-200/30 dark:hover:shadow-orange-500/20 transition-all duration-300 flex flex-col h-full"
+                className="group relative overflow-hidden rounded-3xl border-2 border-cyan-400/40 dark:border-cyan-300/30 bg-gradient-to-br from-white/80 to-cyan-50/60 dark:from-slate-800/80 dark:to-slate-700/60 backdrop-blur-xl shadow-2xl hover:shadow-3xl hover:shadow-cyan-400/30 dark:hover:shadow-cyan-500/20 hover:border-cyan-400/70 dark:hover:border-cyan-500/50 transition-all duration-300 flex flex-col h-full"
               >
-                {/* Photo Section - Standard Aspect Ratio */}
-                <div className="relative w-full aspect-[3/4] overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700">
+                {/* Photo Section - Compact Aspect Ratio */}
+                <div className="relative w-full aspect-square overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700">
                   {ob.photo_url ? (
                     <img
                       src={buildImageUrl(ob.photo_url)}
@@ -1204,21 +1328,24 @@ const LandingPage = () => {
                 </div>
 
                 {/* Content Section */}
-                <div className="p-3 flex flex-col flex-1 relative bg-white/50 dark:bg-slate-800/60 backdrop-blur-sm">
-                  <div className="mb-2">
-                    <span className="inline-block px-2 py-1 rounded-full bg-gradient-to-r from-blue-100 to-orange-100 dark:from-blue-900/30 dark:to-orange-900/30 border border-blue-200 dark:border-blue-600/30 text-[7px] font-black uppercase tracking-widest text-blue-700 dark:text-blue-300 truncate max-w-full">
+                <div className="p-4 flex flex-row items-center justify-between gap-4 relative bg-gradient-to-br from-slate-900/50 to-slate-800/40 dark:from-slate-900/60 dark:to-slate-800/50 backdrop-blur-sm border-t border-white/10">
+                  {/* Left Side - Position & Name */}
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <span className="inline-block px-2.5 py-0.5 rounded-full bg-gradient-to-r from-cyan-100 to-blue-100 dark:from-cyan-900/40 dark:to-blue-900/40 border border-cyan-300 dark:border-cyan-600/50 text-[9px] font-black uppercase tracking-widest text-cyan-700 dark:text-cyan-300 w-fit mb-1.5">
                       {ob.position}
                     </span>
+                    <h3 className="text-base font-black bg-gradient-to-r from-cyan-300 to-blue-300 dark:from-cyan-200 dark:to-blue-200 bg-clip-text text-transparent leading-tight line-clamp-2" title={ob.name}>
+                      {ob.name}
+                    </h3>
                   </div>
 
-                  <h3 className="text-xs font-bold text-slate-900 dark:text-white leading-tight line-clamp-1 mb-1" title={ob.name}>
-                    {ob.name}
-                  </h3>
-
-                  <p className="text-[8px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                    <Phone className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                    <span className="truncate">{ob.contact || 'N/A'}</span>
-                  </p>
+                  {/* Right Side - Phone */}
+                  <div className="flex flex-col items-end">
+                    <a href={`tel:${ob.contact}`} className="text-xs font-semibold text-cyan-200 dark:text-cyan-300 flex items-center gap-1.5 hover:text-cyan-100 transition-colors cursor-pointer">
+                      <Phone className="w-3.5 h-3.5 text-cyan-400 dark:text-cyan-300 flex-shrink-0" />
+                      <span className="truncate text-right">{ob.contact || 'N/A'}</span>
+                    </a>
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -1367,16 +1494,16 @@ const LandingPage = () => {
       {/* Contact Dialog */}
       <Dialog open={contactOpen} onOpenChange={setContactOpen}>
         <DialogContent className="max-w-lg bg-card border-border">
-          <DialogHeader>
-            <DialogTitle className="text-foreground">Contact Admin</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Send a message to the SM Volunteers administrative team.
+          <DialogHeader className="space-y-3 pb-6 border-b border-border/50">
+            <DialogTitle className="text-2xl font-black text-foreground uppercase tracking-tight">Contact Admin</DialogTitle>
+            <DialogDescription className="text-base font-semibold text-muted-foreground">
+              Send us a message or share your feedback with the SM Volunteers team.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2 py-2">
+          <div className="space-y-6 py-6">
+            <div className="flex items-center space-x-3 p-4 rounded-xl bg-primary/10 border border-primary/20">
               <Switch id="anonymous-mode" checked={isAnonymous} onCheckedChange={setIsAnonymous} />
-              <Label htmlFor="anonymous-mode" className="text-sm font-medium cursor-pointer">Send Feedback Anonymously</Label>
+              <Label htmlFor="anonymous-mode" className="text-base font-bold cursor-pointer text-foreground">Send Feedback Anonymously</Label>
             </div>
 
             <AnimatePresence>
@@ -1388,27 +1515,27 @@ const LandingPage = () => {
                   className="space-y-4 overflow-hidden"
                 >
                   <div>
-                    <label className="block text-sm font-medium text-foreground">Name</label>
-                    <input value={contactName} onChange={(e) => setContactName(e.target.value)} className="w-full mt-2 p-2 rounded-md border border-input bg-background text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none" />
+                    <label className="block text-sm font-black text-foreground uppercase tracking-wider mb-2">Name</label>
+                    <input value={contactName} onChange={(e) => setContactName(e.target.value)} className="w-full px-4 py-3 rounded-lg border-2 border-input bg-background text-base font-semibold text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground">Email</label>
-                    <input value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} className="w-full mt-2 p-2 rounded-md border border-input bg-background text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none" />
+                    <label className="block text-sm font-black text-foreground uppercase tracking-wider mb-2">Email</label>
+                    <input value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} className="w-full px-4 py-3 rounded-lg border-2 border-input bg-background text-base font-semibold text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground">Contact No</label>
-                    <input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} className="w-full mt-2 p-2 rounded-md border border-input bg-background text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none" placeholder="+91-" />
+                    <label className="block text-sm font-black text-foreground uppercase tracking-wider mb-2">Contact No</label>
+                    <input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} className="w-full px-4 py-3 rounded-lg border-2 border-input bg-background text-base font-semibold text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all" placeholder="+91-" />
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
             <div>
-              <label className="block text-sm font-medium text-foreground">Message</label>
-              <textarea value={contactMessage} onChange={(e) => setContactMessage(e.target.value)} className="w-full mt-2 p-2 rounded-md border border-input bg-background text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none" rows={5} placeholder={isAnonymous ? "Share your anonymous feedback or suggestion..." : "How can we help you?"} />
+              <label className="block text-sm font-black text-foreground uppercase tracking-wider mb-2">Message</label>
+              <textarea value={contactMessage} onChange={(e) => setContactMessage(e.target.value)} className="w-full px-4 py-3 rounded-lg border-2 border-input bg-background text-base font-semibold text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all resize-none" rows={6} placeholder={isAnonymous ? "Share your anonymous feedback or suggestion..." : "How can we help you?"} />
             </div>
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setContactOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setContactOpen(false)} className="font-bold text-base px-6 py-2 h-auto rounded-lg">Cancel</Button>
               <Button onClick={() => {
                 const store = localStorage.getItem('admin_messages');
                 const arr = store ? JSON.parse(store) : [];
@@ -1427,7 +1554,7 @@ const LandingPage = () => {
                 window.dispatchEvent(new Event('adminMessage'));
                 toast.success(isAnonymous ? 'Feedback sent anonymously' : 'Message sent to admin');
                 setContactName(''); setContactEmail(''); setContactPhone(''); setContactMessage(''); setIsAnonymous(false); setContactOpen(false);
-              }}>Send</Button>
+              }} className="font-bold text-base px-6 py-2 h-auto rounded-lg">Send</Button>
             </div>
           </div>
         </DialogContent>
@@ -1754,3 +1881,10 @@ const LandingPage = () => {
 
 
 export default LandingPage;
+
+
+
+
+
+
+

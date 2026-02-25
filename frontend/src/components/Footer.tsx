@@ -29,11 +29,11 @@ const Footer = ({ className }: { className?: string }) => {
 
           {/* Col 2: Address */}
           <div className="space-y-4">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <span className="w-1 h-6 bg-blue-500/50 rounded-full"></span>
+            <h3 className="text-lg font-white text- flex items-center gap-2">
+              <span className="w-1 h-6 bg-white-500/50 rounded-full"></span>
               Address
             </h3>
-            <div className="flex items-start gap-3 text-slate-400 group pt-2">
+            <div className="flex items-start gap-3 text-white group pt-2">
               <div className="p-2 rounded-lg bg-slate-900 group-hover:bg-primary/20 group-hover:text-primary transition-colors shrink-0">
                 <MapPin className="w-5 h-5" />
               </div>
@@ -53,7 +53,7 @@ const Footer = ({ className }: { className?: string }) => {
                 className="h-14 w-auto object-contain drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]"
               />
               <div>
-                <h3 className="font-black text-2xl tracking-tighter text-white">SM <span className="text-primary">VOLUNTEERS</span></h3>
+                <h3 className="font-black text-2xl tracking-tighter text">SM <span className="text">VOLUNTEERS</span></h3>
                 <p className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded inline-block font-bold uppercase tracking-wider">Est. 2021</p>
               </div>
             </div>
@@ -69,7 +69,7 @@ const Footer = ({ className }: { className?: string }) => {
           {/* Col 3: Connect & Actions */}
           <div className="space-y-6 flex flex-col justify-between">
             <div>
-              <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+              <h3 className="text-lg font white text mb-6 flex items-center gap-2">
                 <span className="w-1 h-6 bg-primary rounded-full"></span>
                 Connect With Us
               </h3>

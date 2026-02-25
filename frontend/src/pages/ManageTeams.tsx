@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { auth } from "@/lib/auth";
 import { useNavigate } from "react-router-dom";
+import { BackButton } from "@/components/BackButton";
 import {
   Users,
   Plus,
@@ -23,8 +24,7 @@ import {
   AlertCircle,
   Bell,
   Check,
-  X,
-  ArrowLeft
+  X
 } from "lucide-react";
 import { api } from "@/lib/api";
 
@@ -429,19 +429,6 @@ const ManageTeams = () => {
     <div className="min-h-screen flex flex-col">
       <DeveloperCredit />
       <main className="flex-1 w-full bg-background overflow-x-hidden">
-        {/* Header Section */}
-        <div className="w-full border-b border-border/40 bg-background/95 backdrop-blur-sm sticky top-0 z-30">
-          <div className="w-full px-4 md:px-6 lg:px-8 py-4">
-            <Button
-              variant="ghost"
-              className="gap-2 font-semibold text-foreground hover:bg-primary/10 transition-colors pl-0"
-              onClick={() => navigate("/admin/office-bearers")}
-            >
-              <ArrowLeft className="w-4 h-4" /> Back to Office Bearers
-            </Button>
-          </div>
-        </div>
-
         <div className="w-full px-4 md:px-6 lg:px-8 py-8">
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">

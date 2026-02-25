@@ -19,10 +19,9 @@ const MainLayout = ({ showSidebar = true, showBackButton: backButtonProp }: Main
     // const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); 
     const location = useLocation();
 
-    // Show back button on all pages except dashboard and certain management pages
+    // Show back button on all pages except the main dashboards
     const isDashboard = location.pathname.match(/^\/admin\/?$|^\/student\/?$|^\/office-bearer\/?$/);
-    const isManagementPage = location.pathname.match(/^\/admin\/(office-bearers|teams)\/?$/);
-    const showBackButton = backButtonProp !== undefined ? backButtonProp : (!isDashboard && !isManagementPage);
+    const showBackButton = backButtonProp !== undefined ? backButtonProp : !isDashboard;
 
     return (
         <div className="flex min-h-screen w-full flex-col bg-background text-foreground relative selection:bg-primary/20 overflow-x-hidden">
