@@ -5,7 +5,27 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-import { Search, Upload, Plus, Edit2, UserCheck, UserX, CheckCircle2, Clock } from "lucide-react";
+import {
+    Users,
+    UserCheck,
+    UserX,
+    Search,
+    Plus,
+    Mail,
+    Download,
+    Upload,
+    Filter,
+    MoreVertical,
+    FileSpreadsheet,
+    Edit2,
+    Trash2,
+    Send,
+    Activity,
+    GraduationCap,
+    PhoneCall,
+    Clock,
+    CheckCircle2
+} from "lucide-react";
 import MailSender from "@/components/MailSender";
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
@@ -16,6 +36,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import * as XLSX from 'xlsx';
+import { cn } from "@/lib/utils";
 
 const ManageInterviews = () => {
     const navigate = useNavigate();
@@ -106,7 +127,7 @@ const ManageInterviews = () => {
             const selectedMentor = officeBearers.find(ob => ob.id.toString() === assignFormData.mentor_id);
             const mentorName = selectedMentor?.name || assignFormData.mentor_name;
             const mentorEmail = selectedMentor?.email || '';
-            
+
             const response = await api.updateCandidate(selectedCandidate.id, {
                 interviewer: mentorName,
                 interviewer_email: mentorEmail, // Add email for better matching
@@ -168,7 +189,7 @@ const ManageInterviews = () => {
     };
 
     const filteredCandidates = candidates.filter((c) => {
-        const matchesSearch = 
+        const matchesSearch =
             c.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             c.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             c.register_no?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -218,47 +239,47 @@ const ManageInterviews = () => {
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    <Card className="border-border/40 bg-card shadow-sm rounded-md">
+                    <Card className="border-border/40 bg-card shadow-sm rounded-md hover:border-primary/20 transition-all">
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-muted-foreground font-medium">Total Candidates</p>
-                                    <p className="text-3xl font-black text-primary-foreground tracking-tight mt-2">{candidates.length}</p>
+                                    <p className="text-3xl font-black text-foreground tracking-tight mt-2">{candidates.length}</p>
                                 </div>
-                                <UserX className="w-8 h-8 text-slate-500 opacity-60" />
+                                <Activity className="w-8 h-8 text-primary opacity-20" />
                             </div>
                         </CardContent>
                     </Card>
-                    <Card className="border-border/40 bg-card shadow-sm rounded-md">
+                    <Card className="border-border/40 bg-card shadow-sm rounded-md hover:border-orange-500/20 transition-all">
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-muted-foreground font-medium">Unassigned</p>
-                                    <p className="text-3xl font-black text-primary-foreground tracking-tight mt-2">{unassignedCount}</p>
+                                    <p className="text-3xl font-black text-foreground tracking-tight mt-2">{unassignedCount}</p>
                                 </div>
-                                <UserX className="w-8 h-8 text-orange-500 opacity-60" />
+                                <UserX className="w-8 h-8 text-orange-500 opacity-30" />
                             </div>
                         </CardContent>
                     </Card>
-                    <Card className="border-border/40 bg-card shadow-sm rounded-md">
+                    <Card className="border-border/40 bg-card shadow-sm rounded-md hover:border-yellow-500/20 transition-all">
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-muted-foreground font-medium">Assigned / Pending</p>
-                                    <p className="text-3xl font-black text-primary-foreground tracking-tight mt-2">{assignedCount}</p>
+                                    <p className="text-3xl font-black text-foreground tracking-tight mt-2">{assignedCount}</p>
                                 </div>
-                                <Clock className="w-8 h-8 text-yellow-500 opacity-60" />
+                                <Clock className="w-8 h-8 text-yellow-500 opacity-30" />
                             </div>
                         </CardContent>
                     </Card>
-                    <Card className="border-border/40 bg-card shadow-sm rounded-md">
+                    <Card className="border-border/40 bg-card shadow-sm rounded-md hover:border-green-500/20 transition-all">
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-muted-foreground font-medium">Completed</p>
-                                    <p className="text-3xl font-black text-primary-foreground tracking-tight mt-2">{completedCount}</p>
+                                    <p className="text-3xl font-black text-foreground tracking-tight mt-2">{completedCount}</p>
                                 </div>
-                                <CheckCircle2 className="w-8 h-8 text-green-500 opacity-60" />
+                                <CheckCircle2 className="w-8 h-8 text-green-500 opacity-30" />
                             </div>
                         </CardContent>
                     </Card>
@@ -333,84 +354,117 @@ const ManageInterviews = () => {
                 </Card>
 
                 {/* Candidates Table */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Candidates List</CardTitle>
-                        <CardDescription>Total: {filteredCandidates.length}</CardDescription>
+                <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-xl rounded-[1.5rem] overflow-hidden">
+                    <CardHeader className="border-b border-border/10 pb-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <CardTitle className="text-2xl font-black tracking-tight text-foreground">Candidates List</CardTitle>
+                                <CardDescription className="text-muted-foreground font-medium">Total: {filteredCandidates.length} Active Candidates</CardDescription>
+                            </div>
+                            <Badge variant="outline" className="px-3 py-1 bg-primary/5 text-primary border-primary/20 font-bold">
+                                Interview Phase
+                            </Badge>
+                        </div>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-0">
                         {loading ? (
-                            <div className="text-center py-8 text-muted-foreground">Loading...</div>
+                            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                                <Activity className="w-10 h-10 animate-spin mb-4 text-primary opacity-50" />
+                                <p className="font-bold tracking-widest uppercase text-xs">Loading Candidates...</p>
+                            </div>
                         ) : filteredCandidates.length === 0 ? (
-                            <div className="text-center py-8 text-muted-foreground">No candidates found</div>
+                            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                                <Users className="w-12 h-12 mb-4 opacity-20" />
+                                <p className="font-medium text-lg italic">No candidates found</p>
+                            </div>
                         ) : (
                             <div className="overflow-x-auto">
                                 <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Register No</TableHead>
-                                            <TableHead>Name</TableHead>
-                                            <TableHead>Contact</TableHead>
-                                            <TableHead>Department & Year</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Assigned Mentor</TableHead>
-                                            <TableHead>Marks</TableHead>
-                                            <TableHead className="text-right">Actions</TableHead>
+                                    <TableHeader className="bg-muted/30">
+                                        <TableRow className="hover:bg-transparent border-border/10">
+                                            <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground pl-6">Register No</TableHead>
+                                            <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground">Candidate Info</TableHead>
+                                            <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground">Contact</TableHead>
+                                            <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground">Status</TableHead>
+                                            <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground">Assigned Mentor</TableHead>
+                                            <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground">Marks</TableHead>
+                                            <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground text-right pr-6">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {filteredCandidates.map((c) => (
-                                            <TableRow key={c.id}>
-                                                <TableCell className="font-mono text-xs text-foreground">{c.register_no || '-'}</TableCell>
-                                                <TableCell>
-                                                    <div className="font-medium text-foreground">{c.name}</div>
-                                                    <div className="text-xs text-muted-foreground">{c.email}</div>
+                                            <TableRow key={c.id} className="group hover:bg-primary/5 transition-all duration-200 border-border/5">
+                                                <TableCell className="pl-6">
+                                                    <span className="font-mono text-xs font-bold text-muted-foreground bg-muted/30 px-2 py-1 rounded-md border border-border/10">
+                                                        {c.register_no || 'N/A'}
+                                                    </span>
                                                 </TableCell>
-                                                <TableCell className="text-sm text-foreground">{c.phone || '-'}</TableCell>
                                                 <TableCell>
-                                                    <div className="text-sm">
-                                                        <span className="font-semibold text-foreground">{c.dept || '-'}</span>
-                                                        {c.year && <span className="text-muted-foreground"> • {c.year}</span>}
+                                                    <div className="flex flex-col">
+                                                        <span className="font-black text-sm tracking-tight text-foreground group-hover:text-primary transition-colors">{c.name}</span>
+                                                        <span className="text-[10px] font-bold text-muted-foreground dark:text-slate-300 uppercase tracking-widest items-center flex gap-1.5 mt-0.5">
+                                                            <GraduationCap className="w-3 h-3" />
+                                                            {c.dept || '-'} • {c.year} Year
+                                                        </span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                                            <PhoneCall className="w-3 h-3 text-muted-foreground" />
+                                                            {c.phone || '-'}
+                                                        </span>
+                                                        <span className="text-[10px] font-medium text-muted-foreground italic truncate max-w-[150px]">{c.email}</span>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>{getStatusBadge(c.status || '')}</TableCell>
                                                 <TableCell>
                                                     {c.interviewer ? (
-                                                        <div className="flex items-center gap-2">
-                                                            <UserCheck className="w-4 h-4 text-green-500" />
-                                                            <span className="text-sm font-medium text-foreground">{c.interviewer}</span>
+                                                        <div className="flex items-center gap-2.5 bg-green-500/5 border border-green-500/10 px-3 py-1.5 rounded-full w-fit">
+                                                            <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center">
+                                                                <UserCheck className="w-3 h-3 text-green-600" />
+                                                            </div>
+                                                            <span className="text-xs font-black text-green-700 tracking-tight">{c.interviewer}</span>
                                                         </div>
                                                     ) : (
-                                                        <div className="flex items-center gap-2">
-                                                            <UserX className="w-4 h-4 text-muted-foreground" />
-                                                            <span className="text-xs text-muted-foreground italic">Unassigned</span>
+                                                        <div className="flex items-center gap-2.5 bg-muted/30 border border-border/10 px-3 py-1.5 rounded-full w-fit opacity-60">
+                                                            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
+                                                                <UserX className="w-3 h-3 text-muted-foreground" />
+                                                            </div>
+                                                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Unassigned</span>
                                                         </div>
                                                     )}
                                                 </TableCell>
                                                 <TableCell>
                                                     {c.status === 'completed' && c.marks !== null ? (
-                                                        <div className="flex flex-col">
-                                                            <span className="font-semibold text-foreground">{c.marks}</span>
+                                                        <div className="flex flex-col gap-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-lg font-black text-foreground">{c.marks}</span>
+                                                                <span className="text-[10px] font-bold text-muted-foreground uppercase">/ 10</span>
+                                                            </div>
                                                             {c.remarks && (
-                                                                <span className="text-xs text-muted-foreground truncate max-w-[200px]" title={c.remarks}>
-                                                                    {c.remarks}
+                                                                <span className="text-[10px] text-muted-foreground font-medium italic border-l-2 border-primary/20 pl-2 leading-tight max-w-[150px] line-clamp-1" title={c.remarks}>
+                                                                    "{c.remarks}"
                                                                 </span>
                                                             )}
                                                         </div>
                                                     ) : (
-                                                        <span className="text-muted-foreground text-sm">-</span>
+                                                        <div className="w-8 h-1 bg-muted rounded-full opacity-20" />
                                                     )}
                                                 </TableCell>
-                                                <TableCell className="text-right">
+                                                <TableCell className="text-right pr-6">
                                                     <Button
                                                         size="sm"
-                                                        variant="ghost"
+                                                        variant={c.interviewer ? "ghost" : "default"}
                                                         onClick={() => handleOpenAssignDialog(c)}
                                                         disabled={c.status === 'completed'}
-                                                        className="h-10 rounded-md font-semibold text-sm px-4"
+                                                        className={cn(
+                                                            "h-9 px-4 rounded-xl font-bold text-xs gap-2 transition-all duration-300",
+                                                            !c.interviewer ? "shadow-lg shadow-primary/20 hover:scale-105" : "hover:bg-primary/10 hover:text-primary"
+                                                        )}
                                                     >
-                                                        {c.interviewer ? <Edit2 className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-                                                        {c.interviewer ? ' Reassign' : ' Assign'}
+                                                        {c.interviewer ? <Edit2 className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
+                                                        {c.interviewer ? 'Reassign' : 'Assign'}
                                                     </Button>
                                                 </TableCell>
                                             </TableRow>

@@ -521,6 +521,18 @@ class ApiClient {
     });
   }
 
+  // Backup & Restore
+  async exportBackup() {
+    return this.request('/settings/backup/export');
+  }
+
+  async restoreBackup(backupData: any) {
+    return this.request('/settings/backup/restore', {
+      method: 'POST',
+      body: JSON.stringify({ backup: backupData })
+    });
+  }
+
   // Role-level profile field permissions
   async getRoleProfileFieldSettings() {
     return this.request('/settings/role-profile-fields');

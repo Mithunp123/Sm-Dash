@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Outlet, useLocation } from "react-router-dom";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import Footer from "@/components/Footer";
@@ -16,7 +16,7 @@ interface MainLayoutProps {
 
 const MainLayout = ({ showSidebar = true, showBackButton: backButtonProp }: MainLayoutProps) => {
     // Mobile menu state removed as we are using BottomNavbar
-    // const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); 
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const location = useLocation();
 
     // Show back button on all pages except the main dashboards
@@ -35,6 +35,17 @@ const MainLayout = ({ showSidebar = true, showBackButton: backButtonProp }: Main
                 </aside>
             )}
 
+            {/* Mobile Sidebar (Drawer) */}
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetContent side="left" className="p-0 w-72 bg-sidebar border-r-border/40">
+                    <SheetHeader className="sr-only">
+                        <SheetTitle>Navigation Menu</SheetTitle>
+                        <SheetDescription>Main application navigation links</SheetDescription>
+                    </SheetHeader>
+                    <Sidebar className="border-none" onItemClick={() => setIsMobileMenuOpen(false)} />
+                </SheetContent>
+            </Sheet>
+
             {/* Mobile Bottom Navigation - Only if showSidebar is true */}
             {showSidebar && <BottomNavbar />}
 
@@ -44,8 +55,8 @@ const MainLayout = ({ showSidebar = true, showBackButton: backButtonProp }: Main
                 showSidebar ? "md:pl-64" : ""
             )}>
                 <Header
-                    onMenuClick={() => { }} // No-op since we removed the menu trigger
-                    showMenuTrigger={false} // Hide hamburger on mobile as we have bottom nav
+                    onMenuClick={() => setIsMobileMenuOpen(true)}
+                    showMenuTrigger={showSidebar}
                     showSidebar={showSidebar}
                     showBackButton={showBackButton}
                 />

@@ -811,40 +811,36 @@ const ManageEvents = () => {
                     const imageUrl = buildImageUrl(event.image_url);
 
                     return (
-                      <div key={event.id} className="group flex flex-col bg-card rounded-md border transition-all duration-200 overflow-hidden border-border hover:shadow-md hover:border-primary/30">
+                      <Card key={event.id} className="group relative overflow-hidden rounded-[2.5rem] border-border/30 bg-card/40 backdrop-blur-md shadow-lg hover:shadow-2xl transition-all duration-500 flex flex-col h-full border hover:border-primary/40">
                         {/* Image Section */}
-                        <div className="relative h-48 w-full overflow-hidden bg-muted">
+                        <div className="relative h-56 w-full overflow-hidden">
                           {imageUrl ? (
                             <img
                               src={imageUrl}
                               alt={event.title}
-                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                               onError={(e) => {
                                 e.currentTarget.style.display = 'none';
                               }}
                             />
                           ) : (
-                            <img
-                              src="/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
-                              alt="Default Event"
-                              className="w-full h-full object-contain p-8 bg-slate-900/50"
-                            />
+                            <div className="w-full h-full bg-primary/10 flex items-center justify-center">
+                              <ImageIcon className="w-16 h-16 text-primary/20" />
+                            </div>
                           )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-300" />
 
                           {/* Date Badge */}
-                          <div className="absolute bottom-3 right-3">
-                            <div className="bg-background/90 backdrop-blur-md text-foreground text-xs font-semibold px-2.5 py-1 rounded-md border border-border/50 flex items-center gap-1.5 shadow-sm">
-                              <Calendar className="w-3 h-3 text-primary" />
-                              {new Date(event.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          <div className="absolute bottom-4 left-4">
+                            <div className="bg-background/90 backdrop-blur-md text-foreground text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full border border-border/50 flex items-center gap-2 shadow-lg">
+                              <Calendar className="w-3.5 h-3.5 text-primary" />
+                              {new Date(event.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                             </div>
                           </div>
 
                           {event.is_special_day && (
-                            <div className="absolute top-3 right-3">
-                              <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-0 font-bold shadow-lg animate-pulse">
+                            <div className="absolute top-4 right-4">
+                              <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-0 font-black text-[10px] uppercase tracking-widest px-3 py-1 rounded-full shadow-lg animate-pulse">
                                 Special Day
                               </Badge>
                             </div>
@@ -852,72 +848,68 @@ const ManageEvents = () => {
                         </div>
 
                         {/* Content Section */}
-                        <div className="flex-1 p-5 flex flex-col gap-4">
-                          <div className="space-y-2">
-                            <div className="flex items-start justify-between gap-2">
-                              <h3 className="font-bold text-lg text-foreground line-clamp-2 leading-tight group-hover:text-primary transition-colors" title={event.title}>
-                                {event.title}
-                              </h3>
-                            </div>
+                        <CardContent className="flex-1 p-6 flex flex-col relative">
+                          <div className="mb-4">
+                            <h3 className="font-black text-xl text-foreground uppercase tracking-tight line-clamp-2 leading-tight mb-3 min-h-[3rem]" title={event.title}>
+                              {event.title}
+                            </h3>
 
                             <div className="flex flex-wrap items-center gap-2">
-                              <Badge variant="secondary" className="bg-secondary/50 font-semibold text-xs border-secondary-foreground/10">
+                              <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 font-black text-[9px] uppercase tracking-widest border-0 px-3 py-1 rounded-full">
                                 Batch {event.year}
                               </Badge>
-                              <div className="flex items-center gap-1.5 text-xs font-medium text-foreground bg-muted/50 px-2 py-1 rounded-md border border-border/50">
+                              <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-muted-foreground bg-muted/40 px-3 py-1 rounded-full border border-border/10">
                                 <Users className="w-3.5 h-3.5 text-primary" />
-                                {volunteerCounts[event.id] || 0} Volunteers
+                                {volunteerCounts[event.id] || 0} Vols
                               </div>
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-[1fr,auto,auto] gap-2 mt-auto pt-2">
+                          <div className="mt-auto space-y-3 pt-4 border-t border-border/10">
                             <Button
                               onClick={() => navigate(`/admin/events/${event.id}`)}
-                              className="h-10 rounded-md font-semibold text-sm bg-primary text-primary-foreground hover:bg-primary/90 px-4"
+                              className="w-full h-11 rounded-2xl font-black text-[11px] uppercase tracking-widest bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all active:scale-95"
                             >
                               Manage Records
                             </Button>
 
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => {
-                                setSelectedEvent(event);
-                                setFormData({
-                                  title: event.title,
-                                  description: event.description || "",
-                                  date: event.date ? event.date.split('T')[0] : "",
-                                  year: event.year || new Date().getFullYear().toString(),
-                                  is_special_day: event.is_special_day || false,
-                                  image_url: event.image_url || "",
-                                  max_volunteers: event.max_volunteers?.toString() || "",
-                                  volunteer_registration_deadline: event.volunteer_registration_deadline ? event.volunteer_registration_deadline.slice(0, 16) : ""
-                                });
-                                setEventImageFile(null);
-                                setShowEditDialog(true);
-                              }}
-                              className="h-10 w-10 rounded-md border-border hover:bg-muted hover:border-primary/30"
-                              title="Edit Event"
-                            >
-                              <Edit className="w-4 h-4 text-foreground" />
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedEvent(event);
+                                  setFormData({
+                                    title: event.title,
+                                    description: event.description || "",
+                                    date: event.date ? event.date.split('T')[0] : "",
+                                    year: event.year || new Date().getFullYear().toString(),
+                                    is_special_day: event.is_special_day || false,
+                                    image_url: event.image_url || "",
+                                    max_volunteers: event.max_volunteers?.toString() || "",
+                                    volunteer_registration_deadline: event.volunteer_registration_deadline ? event.volunteer_registration_deadline.slice(0, 16) : ""
+                                  });
+                                  setEventImageFile(null);
+                                  setShowEditDialog(true);
+                                }}
+                                className="flex-1 h-11 rounded-2xl border-2 font-black text-[10px] uppercase tracking-widest hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
+                              >
+                                <Edit className="w-4 h-4 mr-2" /> Edit
+                              </Button>
 
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-10 w-10 rounded-md border-border hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive"
-                              onClick={() => {
-                                setSelectedEvent(event);
-                                setShowDeleteDialog(true);
-                              }}
-                              title="Delete Event"
-                            >
-                              <Trash2 className="w-4 h-4 text-foreground" />
-                            </Button>
+                              <Button
+                                variant="outline"
+                                className="h-11 w-11 rounded-2xl border-2 flex items-center justify-center p-0 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 hover:border-rose-500/30 transition-all active:scale-90"
+                                onClick={() => {
+                                  setSelectedEvent(event);
+                                  setShowDeleteDialog(true);
+                                }}
+                              >
+                                <Trash2 className="w-5 h-5" />
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                      </div>
+                        </CardContent>
+                      </Card>
                     );
                   })}
                 </div>
@@ -928,7 +920,7 @@ const ManageEvents = () => {
       </main>
 
       {/* Add Event Dialog */}
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+      < Dialog open={showAddDialog} onOpenChange={setShowAddDialog} >
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Add Event</DialogTitle>
@@ -1049,10 +1041,10 @@ const ManageEvents = () => {
             </div>
           </form>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Edit Event Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+      < Dialog open={showEditDialog} onOpenChange={setShowEditDialog} >
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Edit Event</DialogTitle>
@@ -1173,10 +1165,10 @@ const ManageEvents = () => {
             </div>
           </form>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Mark OD Dialog */}
-      <Dialog open={showODDialog} onOpenChange={setShowODDialog}>
+      < Dialog open={showODDialog} onOpenChange={setShowODDialog} >
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Manage Event - {selectedEvent?.title}</DialogTitle>
@@ -1320,10 +1312,10 @@ const ManageEvents = () => {
             </div>
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      < Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog} >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Event</DialogTitle>
@@ -1340,10 +1332,10 @@ const ManageEvents = () => {
             </Button>
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Volunteers Dialog */}
-      <Dialog open={showVolunteersDialog} onOpenChange={setShowVolunteersDialog}>
+      < Dialog open={showVolunteersDialog} onOpenChange={setShowVolunteersDialog} >
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-slate-900">
@@ -1484,10 +1476,10 @@ const ManageEvents = () => {
             </Button>
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Edit Volunteer Dialog */}
-      <Dialog open={showEditVolunteerDialog} onOpenChange={setShowEditVolunteerDialog}>
+      < Dialog open={showEditVolunteerDialog} onOpenChange={setShowEditVolunteerDialog} >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Volunteer</DialogTitle>
@@ -1566,10 +1558,10 @@ const ManageEvents = () => {
             </div>
           </form>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Delete Volunteer Dialog */}
-      <Dialog open={showDeleteVolunteerDialog} onOpenChange={setShowDeleteVolunteerDialog}>
+      < Dialog open={showDeleteVolunteerDialog} onOpenChange={setShowDeleteVolunteerDialog} >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Delete Volunteer</DialogTitle>
@@ -1623,10 +1615,10 @@ const ManageEvents = () => {
             </Button>
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
 
-    </div>
+    </div >
   );
 };
 

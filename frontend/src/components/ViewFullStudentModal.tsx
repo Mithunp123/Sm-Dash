@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -118,6 +118,9 @@ const ViewFullStudentModal = ({
         <DialogHeader className="px-6 py-4 border-b">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-2xl font-bold">Student Details</DialogTitle>
+            <DialogDescription className="sr-only">
+              Comprehensive information and attendance history for the selected student
+            </DialogDescription>
             <Button
               variant="ghost"
               size="icon"
@@ -232,10 +235,10 @@ const ViewFullStudentModal = ({
 
               {(!studentDetails.status_history ||
                 studentDetails.status_history.length === 0) && (
-                <div className="bg-white rounded-lg border p-6 text-center text-gray-500">
-                  <p>No attendance history available</p>
-                </div>
-              )}
+                  <div className="bg-white rounded-lg border p-6 text-center text-gray-500">
+                    <p>No attendance history available</p>
+                  </div>
+                )}
             </div>
           )}
         </div>

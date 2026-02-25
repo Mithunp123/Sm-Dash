@@ -82,14 +82,66 @@ const Settings = () => {
     }
   };
 
-  const handleBackup = () => {
-    toast.info("Backup functionality will be implemented soon");
-    // TODO: Implement backup functionality
+  const handleBackup = async () => {
+    try {
+      const response = await api.exportBackup();
+      if (response.success && response.backup) {
+        const dataStr = JSON.stringify(response.backup, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+
+        const exportFileDefaultName = `sm_volunteers_backup_${new Date().toISOString().split('T')[0]}.json`;
+
+        const linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', exportFileDefaultName);
+        linkElement.click();
+
+        toast.success("Backup downloaded successfully!");
+      } else {
+        toast.error("Failed to export backup: " + response.message);
+      }
+    } catch (error: any) {
+      toast.error("Error creating backup: " + error.message);
+    }
   };
 
   const handleRestore = () => {
-    toast.info("Restore functionality will be implemented soon");
-    // TODO: Implement restore functionality
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e: any) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (event: any) => {
+        try {
+          const backupData = JSON.parse(event.target.result);
+          if (!backupData.data) {
+            toast.error("Invalid backup file format");
+            return;
+          }
+
+          if (!window.confirm("Are you sure you want to restore? This will merge data from the backup into your existing database. Duplicate records will be skipped.")) {
+            return;
+          }
+
+          toast.loading("Restoring data...", { id: 'restore' });
+          const response = await api.restoreBackup(backupData);
+          if (response.success) {
+            toast.success("Database restored successfully!", { id: 'restore' });
+            // Optionally reload page to reflect changes
+            setTimeout(() => window.location.reload(), 2000);
+          } else {
+            toast.error("Restore failed: " + response.message, { id: 'restore' });
+          }
+        } catch (err) {
+          toast.error("Error parsing backup file", { id: 'restore' });
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
   };
 
   const handleSaveCollege = () => {
@@ -103,165 +155,163 @@ const Settings = () => {
 
       <div className="w-full flex-1">
         <div className="w-full p-4 md:p-8">
-            {/* Back Button */}
-            <div className="mb-6">
+          {/* Back Button */}
+          <div className="mb-6">
 
-            </div>
+          </div>
 
-            {/* Header */}
-            <div className="mb-8">
-              <h1 className="page-title">Settings</h1>
-              <p className="page-subtitle mt-2">Manage your account settings and preferences</p>
-            </div>
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="page-title">Settings</h1>
+            <p className="page-subtitle mt-2">Manage your account settings and preferences</p>
+          </div>
 
-            {/* Settings Sections */}
-            <div className="grid gap-6">
-              {/* Profile Information */}
-              <Card className="border-border/40 bg-card shadow-sm rounded-md">
-                <CardHeader>
-                  <CardTitle className="text-foreground">Profile Information</CardTitle>
-                  <CardDescription>Your account details</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-foreground">Name</Label>
-                    <Input 
-                      value={user?.name || ""} 
-                      disabled 
-                      className="h-10 rounded-md bg-muted text-foreground"
+          {/* Settings Sections */}
+          <div className="grid gap-6">
+            {/* Profile Information */}
+            <Card className="border-border/40 bg-card shadow-sm rounded-md">
+              <CardHeader>
+                <CardTitle className="text-foreground">Profile Information</CardTitle>
+                <CardDescription>Your account details</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-foreground">Name</Label>
+                  <Input
+                    value={user?.name || ""}
+                    disabled
+                    className="h-10 rounded-md bg-muted text-foreground"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-foreground">Role</Label>
+                  <Input
+                    value={user?.role?.replace('_', ' ').toUpperCase() || ""}
+                    disabled
+                    className="h-10 rounded-md bg-muted text-foreground"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-foreground">College</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={collegeName}
+                      onChange={(e) => setCollegeName(e.target.value)}
+                      className="h-10 rounded-md"
+                      placeholder="Enter college name"
                     />
+                    <Button
+                      onClick={handleSaveCollege}
+                      className="h-10 rounded-md font-semibold text-sm px-4 gap-2"
+                    >
+                      <Save className="w-4 h-4" />
+                      Save
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-foreground">Role</Label>
-                    <Input 
-                      value={user?.role?.replace('_', ' ').toUpperCase() || ""} 
-                      disabled 
-                      className="h-10 rounded-md bg-muted text-foreground"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-foreground">College</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={collegeName}
-                        onChange={(e) => setCollegeName(e.target.value)}
-                        className="h-10 rounded-md"
-                        placeholder="Enter college name"
-                      />
-                      <Button
-                        onClick={handleSaveCollege}
-                        className="h-10 rounded-md font-semibold text-sm px-4 gap-2"
-                      >
-                        <Save className="w-4 h-4" />
-                        Save
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </CardContent>
+            </Card>
 
-              {/* Change Password */}
-              <Card className="border-border/40 bg-card shadow-sm rounded-md">
-                <CardHeader>
-                  <CardTitle className="text-foreground">Change Password</CardTitle>
-                  <CardDescription>Update your account password</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button 
-                    onClick={() => setShowChangePassword(true)} 
-                    className="gap-2 h-10 rounded-md font-semibold text-sm px-4"
+            {/* Change Password */}
+            <Card className="border-border/40 bg-card shadow-sm rounded-md">
+              <CardHeader>
+                <CardTitle className="text-foreground">Change Password</CardTitle>
+                <CardDescription>Update your account password</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={() => setShowChangePassword(true)}
+                  className="gap-2 h-10 rounded-md font-semibold text-sm px-4"
+                >
+                  <Key className="w-4 h-4" />
+                  Change Password
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Backup & Restore */}
+            <Card className="border-border/40 bg-card shadow-sm rounded-md">
+              <CardHeader>
+                <CardTitle className="text-foreground">Backup & Restore</CardTitle>
+                <CardDescription>Manage data backups and restoration</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handleBackup}
+                    variant="outline"
+                    className="gap-2 h-10 rounded-md font-semibold text-sm px-4 flex-1"
                   >
-                    <Key className="w-4 h-4" />
-                    Change Password
+                    <Download className="w-4 h-4" />
+                    Create Backup
                   </Button>
-                </CardContent>
-              </Card>
+                  <Button
+                    onClick={handleRestore}
+                    variant="outline"
+                    className="gap-2 h-10 rounded-md font-semibold text-sm px-4 flex-1"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Restore Backup
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
-              {/* Backup & Restore */}
-              <Card className="border-border/40 bg-card shadow-sm rounded-md">
-                <CardHeader>
-                  <CardTitle className="text-foreground">Backup & Restore</CardTitle>
-                  <CardDescription>Manage data backups and restoration</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={handleBackup}
-                      variant="outline"
-                      className="gap-2 h-10 rounded-md font-semibold text-sm px-4 flex-1"
-                    >
-                      <Download className="w-4 h-4" />
-                      Create Backup
-                    </Button>
-                    <Button
-                      onClick={handleRestore}
-                      variant="outline"
-                      className="gap-2 h-10 rounded-md font-semibold text-sm px-4 flex-1"
-                    >
-                      <Upload className="w-4 h-4" />
-                      Restore Backup
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Theme Settings */}
-              <Card className="border-border/40 bg-card shadow-sm rounded-md">
-                <CardHeader>
-                  <CardTitle className="text-foreground">Theme</CardTitle>
-                  <CardDescription>Choose your preferred color theme</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between p-4 rounded-md border border-border/50 bg-muted/30">
-                    <div className="flex items-center gap-3">
-                      {theme === 'dark' ? (
-                        <Moon className="w-5 h-5 text-primary" />
-                      ) : (
-                        <Sun className="w-5 h-5 text-primary" />
-                      )}
-                      <div>
-                        <p className="font-medium text-foreground">Current Theme</p>
-                        <p className="text-sm text-muted-foreground capitalize">{theme} Mode</p>
-                      </div>
+            {/* Theme Settings */}
+            <Card className="border-border/40 bg-card shadow-sm rounded-md">
+              <CardHeader>
+                <CardTitle className="text-foreground">Theme</CardTitle>
+                <CardDescription>Choose your preferred color theme</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-4 rounded-md border border-border/50 bg-muted/30">
+                  <div className="flex items-center gap-3">
+                    {theme === 'dark' ? (
+                      <Moon className="w-5 h-5 text-primary" />
+                    ) : (
+                      <Sun className="w-5 h-5 text-primary" />
+                    )}
+                    <div>
+                      <p className="font-medium text-foreground">Current Theme</p>
+                      <p className="text-sm text-muted-foreground capitalize">{theme} Mode</p>
                     </div>
-                    <Switch
-                      checked={theme === 'dark'}
-                      onCheckedChange={toggleTheme}
-                    />
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <button
-                      onClick={() => {
-                        setTheme('light');
-                        toast.success('Switched to light mode');
-                      }}
-                      className={`p-4 rounded-md border-2 transition-all ${
-                        theme === 'light'
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/50'
+                  <Switch
+                    checked={theme === 'dark'}
+                    onCheckedChange={toggleTheme}
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <button
+                    onClick={() => {
+                      setTheme('light');
+                      toast.success('Switched to light mode');
+                    }}
+                    className={`p-4 rounded-md border-2 transition-all ${theme === 'light'
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-primary/50'
                       }`}
-                    >
-                      <Sun className="w-6 h-6 mx-auto mb-2 text-foreground" />
-                      <p className="text-sm font-medium text-foreground">Light</p>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setTheme('dark');
-                        toast.success('Switched to dark mode');
-                      }}
-                      className={`p-4 rounded-md border-2 transition-all ${
-                        theme === 'dark'
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/50'
+                  >
+                    <Sun className="w-6 h-6 mx-auto mb-2 text-foreground" />
+                    <p className="text-sm font-medium text-foreground">Light</p>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTheme('dark');
+                      toast.success('Switched to dark mode');
+                    }}
+                    className={`p-4 rounded-md border-2 transition-all ${theme === 'dark'
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-primary/50'
                       }`}
-                    >
-                      <Moon className="w-6 h-6 mx-auto mb-2 text-foreground" />
-                      <p className="text-sm font-medium text-foreground">Dark</p>
-                    </button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                  >
+                    <Moon className="w-6 h-6 mx-auto mb-2 text-foreground" />
+                    <p className="text-sm font-medium text-foreground">Dark</p>
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 

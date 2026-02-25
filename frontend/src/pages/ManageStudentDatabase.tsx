@@ -472,61 +472,71 @@ const ManageStudentDatabase = () => {
                         </div>
                       )}
 
-                      {/* Mobile Card View */}
+                      {/* Mobile Card View - Refined Design */}
                       <div className="grid grid-cols-1 gap-4 px-4 sm:hidden">
                         {filtered.map((u, i) => (
-                          <Card key={u.id} className="rounded-3xl border-border/40 overflow-hidden bg-white shadow-md active:scale-[0.98] transition-all">
-                            <CardContent className="p-5">
-                              <div className="flex items-center gap-4 mb-4">
-                                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black uppercase text-base">
+                          <Card key={u.id} className="rounded-[2rem] border-border/30 overflow-hidden bg-card/40 backdrop-blur-md shadow-lg active:scale-[0.98] transition-all duration-300 relative group">
+                            {/* Decorative Background Element */}
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-primary/10 transition-colors" />
+
+                            <CardContent className="p-6 relative z-10">
+                              <div className="flex items-start gap-4 mb-6">
+                                <div className="shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary font-black uppercase text-xl shadow-inner">
                                   {u.name.charAt(0)}
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                  <h3 className="font-black text-foreground uppercase tracking-tight truncate pr-2">{u.name}</h3>
-                                  <div className="flex gap-2 mt-1">
-                                    <Badge className="bg-primary/10 text-primary border-none font-bold text-[9px] uppercase tracking-wider px-2 py-0.5">
+                                <div className="flex-1 min-w-0 pt-1">
+                                  <h3 className="font-extrabold text-foreground uppercase tracking-tight truncate text-lg">
+                                    {u.name}
+                                  </h3>
+                                  <div className="flex flex-wrap gap-2 mt-1.5">
+                                    <Badge className="bg-primary text-primary-foreground border-none font-black text-[9px] uppercase tracking-widest px-2.5 py-1 rounded-full shadow-sm">
                                       {roleLabels[u.role] || u.role}
                                     </Badge>
-                                    <Badge variant="outline" className="font-bold border-primary/30 text-primary/70 text-[9px] px-2 py-0.5">
-                                      {u.profile?.dept || "N/A"}
+                                    <Badge variant="outline" className="font-bold border-primary/20 bg-primary/5 text-primary/80 text-[9px] px-2.5 py-1 rounded-full">
+                                      {u.profile?.dept?.split(' ').map((w: string) => w[0]).join('') || "N/A"}
                                     </Badge>
                                   </div>
                                 </div>
                               </div>
 
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
-                                <div className="bg-muted/30 p-2 rounded-xl">
-                                  <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Reg No</p>
-                                  <p className="text-xs font-bold text-foreground truncate">{u.profile?.register_no || "-"}</p>
+                              <div className="grid grid-cols-2 gap-3 mb-6">
+                                <div className="bg-muted/40 p-3 rounded-2xl border border-border/20">
+                                  <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1 opacity-60">Reg No</p>
+                                  <p className="text-xs font-bold text-foreground overflow-hidden text-ellipsis whitespace-nowrap">{u.profile?.register_no || "-"}</p>
                                 </div>
-                                <div className="bg-muted/30 p-2 rounded-xl">
-                                  <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Year</p>
-                                  <p className="text-xs font-bold text-foreground truncate">{u.profile?.year || "-"}</p>
+                                <div className="bg-muted/40 p-3 rounded-2xl border border-border/20">
+                                  <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1 opacity-60">Year</p>
+                                  <p className="text-xs font-bold text-foreground">{u.profile?.year || "-"}</p>
                                 </div>
                               </div>
 
-                              <p className="text-[10px] font-medium text-muted-foreground mb-4 italic truncate">{u.email}</p>
-
-                              {canEdit && (
-                                <div className="flex gap-2 pt-4 border-t border-border/50">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleEdit(u)}
-                                    className="flex-1 h-9 rounded-xl font-bold text-[10px] uppercase tracking-widest border-2"
-                                  >
-                                    Edit
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => handleDelete(u)}
-                                    className="h-9 w-9 rounded-xl flex items-center justify-center p-0"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
+                              <div className="space-y-3">
+                                <div className="flex items-center gap-2 text-muted-foreground bg-muted/20 p-2 rounded-xl border border-border/10">
+                                  <Search className="w-3.5 h-3.5 opacity-50" />
+                                  <p className="text-[11px] font-medium truncate">{u.email}</p>
                                 </div>
-                              )}
+
+                                {canEdit && (
+                                  <div className="flex gap-2 pt-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleEdit(u)}
+                                      className="flex-1 h-11 rounded-2xl font-black text-[11px] uppercase tracking-widest border-2 bg-background/50 hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
+                                    >
+                                      Edit Record
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleDelete(u)}
+                                      className="h-11 w-11 rounded-2xl flex items-center justify-center p-0 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-all active:scale-90"
+                                    >
+                                      <Trash2 className="w-5 h-5" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
                             </CardContent>
                           </Card>
                         ))}

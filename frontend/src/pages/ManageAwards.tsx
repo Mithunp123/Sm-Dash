@@ -199,78 +199,73 @@ const ManageAwards = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {awards.map((award) => (
-              <Card key={award.id} className="group relative overflow-hidden rounded-md border-border/40 bg-card shadow-sm hover:shadow-lg transition-all duration-300">
-                <div className="relative h-48 overflow-hidden bg-muted">
+              <Card key={award.id} className="group relative overflow-hidden rounded-[2.5rem] border-border/30 bg-card/40 backdrop-blur-md shadow-lg hover:shadow-2xl transition-all duration-500 flex flex-col h-full border hover:border-primary/40">
+                <div className="relative h-56 overflow-hidden">
                   {imgUrl(award) ? (
                     <img
                       src={imgUrl(award)!}
                       alt={award.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-primary/5">
                       <Trophy className="w-16 h-16 text-primary/20" />
                     </div>
                   )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-300" />
+
                   <div className="absolute top-4 left-4">
-                    <Badge className="bg-primary text-primary-foreground font-bold text-[9px] uppercase tracking-widest px-3 py-1 rounded-lg shadow-lg">
+                    <Badge className="bg-primary hover:bg-primary/90 text-primary-foreground font-black text-[9px] uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg border-0">
                       {award.category || "General"}
                     </Badge>
                   </div>
-                </div>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-xl font-black text-foreground uppercase tracking-tight line-clamp-1">{award.title}</CardTitle>
-                  {award.recipient_name && (
-                    <CardDescription className="font-bold text-foreground flex items-center gap-1 mt-1">
-                      <Trophy className="w-3 h-3" />
-                      {award.recipient_name}
-                    </CardDescription>
-                  )}
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-[11px] text-foreground line-clamp-2 leading-relaxed h-8">
-                    {award.description || "No description provided."}
-                  </p>
-                  <div className="flex items-center gap-4 text-[10px] font-black uppercase text-muted-foreground tracking-widest bg-muted/30 p-2 rounded-xl">
-                    <div className="flex items-center gap-1 text-primary">
-                      <CalendarIcon className="w-3 h-3" />
+
+                  <div className="absolute bottom-4 left-4">
+                    <div className="bg-background/90 backdrop-blur-md text-foreground text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full border border-border/50 flex items-center gap-2 shadow-lg">
+                      <CalendarIcon className="w-3.5 h-3.5 text-primary" />
                       {award.award_date ? new Date(award.award_date).toLocaleDateString() : award.year || "N/A"}
                     </div>
                   </div>
-                  <div className="flex gap-2 pt-2 border-t border-border/50">
+                </div>
+
+                <CardContent className="flex-1 p-6 flex flex-col relative">
+                  <div className="mb-4">
+                    <h3 className="font-black text-xl text-foreground uppercase tracking-tight line-clamp-2 leading-tight mb-2 min-h-[3rem]" title={award.title}>
+                      {award.title}
+                    </h3>
+
+                    {award.recipient_name && (
+                      <div className="flex items-center gap-2 text-primary font-black text-[11px] uppercase tracking-widest bg-primary/10 w-fit px-3 py-1 rounded-full mb-3">
+                        <Trophy className="w-3.5 h-3.5" />
+                        {award.recipient_name}
+                      </div>
+                    )}
+
+                    <p className="text-[12px] text-muted-foreground font-medium line-clamp-3 leading-relaxed">
+                      {award.description || "In recognition of outstanding contribution and excellence in community service."}
+                    </p>
+                  </div>
+
+                  <div className="mt-auto flex gap-2 pt-6 border-t border-border/10">
                     <Button
                       variant="outline"
-                      size="sm"
-                      className="flex-1 h-10 rounded-md font-semibold text-sm text-foreground"
-                      onClick={() => {
-                        setEditingAward(award);
-                        setForm({
-                          title: award.title,
-                          description: award.description || "",
-                          recipient_name: award.recipient_name || "",
-                          award_date: award.award_date || "",
-                          year: award.year || "",
-                          category: award.category || "",
-                          award_type: "individual"
-                        });
-                        setShowForm(true);
-                      }}
+                      onClick={() => openEdit(award)}
+                      className="flex-1 h-11 rounded-2xl border-2 font-black text-[10px] uppercase tracking-widest hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
                     >
-                      Edit
+                      <Pencil className="w-4 h-4 mr-2" /> Edit
                     </Button>
                     <Button
-                      variant="destructive"
-                      size="sm"
-                      className="h-10 w-10 rounded-md p-0 flex items-center justify-center"
+                      variant="outline"
+                      className="h-11 w-11 rounded-2xl border-2 flex items-center justify-center p-0 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 hover:border-rose-500/30 transition-all active:scale-90"
                       onClick={() => handleDelete(award)}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-5 h-5" />
                     </Button>
                   </div>
                 </CardContent>
               </Card>
             ))}
-          </div >
+          </div>
         )}
       </div >
 

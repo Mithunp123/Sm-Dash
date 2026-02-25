@@ -254,23 +254,23 @@ const ManageMeetings = () => {
             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto items-stretch sm:items-center">
               <Button
                 onClick={() => setShowCalendar(!showCalendar)}
-                variant="secondary"
-                className="gap-2 h-10 rounded-md font-semibold text-sm px-4 w-full sm:w-auto"
+                variant="outline"
+                className="gap-2 h-11 rounded-2xl font-black text-[11px] uppercase tracking-widest border-2 bg-background shadow-sm hover:bg-primary hover:text-primary-foreground transition-all duration-300 w-full sm:w-auto sm:h-10 sm:rounded-md"
               >
                 <Calendar className="w-4 h-4" />
                 {showCalendar ? "Switch to List" : "Switch to Calendar"}
               </Button>
               <Button
                 onClick={() => setShowAddDialog(true)}
-                className="gap-2 h-10 rounded-md font-semibold text-sm px-4 bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto"
+                className="gap-2 h-11 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 w-full sm:w-auto sm:h-10 sm:rounded-md sm:text-xs"
               >
                 <Plus className="w-4 h-4" />
                 Add Meeting
               </Button>
               <Button
                 onClick={() => setShowImportantDayDialog(true)}
-                variant="default"
-                className="gap-2 h-10 rounded-md font-semibold text-sm px-4 w-full sm:w-auto"
+                variant="outline"
+                className="gap-2 h-11 rounded-2xl font-black text-[10px] uppercase tracking-widest border-2 border-primary/20 text-primary hover:bg-primary/5 w-full sm:w-auto sm:h-10 sm:rounded-md sm:text-xs"
               >
                 <Plus className="w-4 h-4" />
                 Add Imp Day
@@ -427,51 +427,58 @@ const ManageMeetings = () => {
                         </Table>
                       </div>
 
-                      {/* Mobile Card View */}
+                      {/* Mobile Card View - Refined Design */}
                       <div className="md:hidden grid grid-cols-1 gap-4 p-4 mb-4">
                         {meetings.map((meeting) => (
-                          <Card key={meeting.id} className="group relative overflow-hidden rounded-3xl border-border/40 bg-card shadow-md active:scale-[0.98] transition-all">
-                            <CardContent className="p-5">
-                              <div className="flex justify-between items-start mb-4">
+                          <Card key={meeting.id} className="rounded-[2rem] border-border/30 overflow-hidden bg-card/40 backdrop-blur-md shadow-lg active:scale-[0.98] transition-all duration-300 relative group">
+                            {/* Decorative Background Element */}
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-primary/10 transition-colors" />
+
+                            <CardContent className="p-6 relative z-10">
+                              <div className="flex justify-between items-start mb-6">
                                 <div className="flex-1 pr-4">
-                                  <h4 className="font-black text-lg text-foreground uppercase tracking-tight leading-tight mb-1">{meeting.title}</h4>
-                                  <div className="flex items-center gap-2 text-primary font-bold text-[10px] uppercase tracking-widest">
-                                    <Calendar className="w-3 h-3" />
+                                  <h4 className="font-extrabold text-lg text-foreground uppercase tracking-tight leading-tight mb-2">
+                                    {meeting.title}
+                                  </h4>
+                                  <div className="flex items-center gap-2 text-primary font-black text-[10px] uppercase tracking-widest bg-primary/10 w-fit px-3 py-1 rounded-full">
+                                    <Calendar className="w-3.5 h-3.5" />
                                     {new Date(meeting.date).toLocaleString('en-IN', {
                                       day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
                                     })}
                                   </div>
                                 </div>
-                                <div className="shrink-0">{getStatusBadge(meeting.status)}</div>
-                              </div>
-
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
-                                <div className="bg-muted/30 p-2 rounded-xl">
-                                  <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Location</p>
-                                  <p className="text-[10px] font-bold text-foreground truncate">{meeting.location || "N/A"}</p>
-                                </div>
-                                <div className="bg-muted/30 p-2 rounded-xl">
-                                  <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">By</p>
-                                  <p className="text-[10px] font-bold text-foreground truncate">{meeting.organizer_name || "N/A"}</p>
+                                <div className="shrink-0 pt-1">
+                                  {getStatusBadge(meeting.status)}
                                 </div>
                               </div>
 
-                              <div className="flex gap-2 pt-4 border-t border-border/50">
+                              <div className="grid grid-cols-2 gap-3 mb-6">
+                                <div className="bg-muted/40 p-3 rounded-2xl border border-border/20">
+                                  <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1 opacity-60">Location</p>
+                                  <p className="text-xs font-bold text-foreground overflow-hidden text-ellipsis whitespace-nowrap">{meeting.location || "N/A"}</p>
+                                </div>
+                                <div className="bg-muted/40 p-3 rounded-2xl border border-border/20">
+                                  <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1 opacity-60">Organizer</p>
+                                  <p className="text-xs font-bold text-foreground overflow-hidden text-ellipsis whitespace-nowrap">{meeting.organizer_name || "N/A"}</p>
+                                </div>
+                              </div>
+
+                              <div className="flex gap-2">
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => handleEditMeeting(meeting)}
-                                  className="flex-1 h-9 rounded-xl font-bold text-[10px] uppercase tracking-widest border-2"
+                                  className="flex-1 h-11 rounded-2xl font-black text-[11px] uppercase tracking-widest border-2 bg-background/50 hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
                                 >
-                                  Edit
+                                  Edit Meeting
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => handleDeleteMeeting(meeting.id)}
-                                  className="h-9 w-9 rounded-xl flex items-center justify-center p-0 text-destructive hover:bg-destructive/10"
+                                  className="h-11 w-11 rounded-2xl flex items-center justify-center p-0 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-all active:scale-90"
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  <Trash2 className="w-5 h-5" />
                                 </Button>
                               </div>
                             </CardContent>

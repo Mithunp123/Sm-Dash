@@ -204,69 +204,74 @@ const ManageProjects = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {projects.map((project) => (
-                  <Card key={project.id} className="group relative overflow-hidden rounded-3xl border-border/40 bg-card/60 backdrop-blur-md shadow-md hover:shadow-xl hover:translate-y-[-4px] transition-all duration-300 flex flex-col h-full">
-                    <div className={`absolute top-0 right-0 w-32 h-32 -mr-12 -mt-12 rounded-full opacity-10 blur-2xl ${project.status === 'active' ? 'bg-green-500' : 'bg-primary'}`} />
-                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${project.status === 'active' ? 'bg-green-500' : 'bg-primary'}`} />
+                  <Card key={project.id} className="group relative overflow-hidden rounded-[2.5rem] border-border/30 bg-card/40 backdrop-blur-md shadow-lg hover:shadow-2xl transition-all duration-500 flex flex-col h-full border hover:border-primary/40">
+                    <div className={`absolute top-0 right-0 w-32 h-32 -mr-12 -mt-12 rounded-full opacity-10 blur-3xl transition-colors duration-500 ${project.status === 'active' ? 'bg-green-500 group-hover:bg-green-400' : 'bg-primary group-hover:bg-primary/80'}`} />
 
-                    <CardHeader className="pb-4 px-6 pt-6">
-                      <div className="flex justify-between items-start mb-3">
-                        <Badge variant="outline" className="px-2 py-0.5 rounded-lg border-primary/20 bg-primary/5 text-[9px] font-black uppercase tracking-widest truncate max-w-[140px]">
-                          {project.ngo_name || 'Individual'}
-                        </Badge>
-                        <Badge className={`${project.status === 'active' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-primary/10 text-primary border-primary/20'} font-black border px-2 py-0.5 rounded-lg text-[9px] uppercase tracking-widest`}>
+                    <CardHeader className="pb-4 px-8 pt-8 relative z-10">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="outline" className="w-fit px-3 py-1 rounded-full border-primary/20 bg-primary/5 text-[9px] font-black uppercase tracking-widest text-primary">
+                            {project.ngo_name || 'Individual Initiative'}
+                          </Badge>
+                        </div>
+                        <Badge className={`${project.status === 'active' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-primary/10 text-primary border-primary/20'} font-black border px-3 py-1 rounded-full text-[9px] uppercase tracking-widest`}>
                           {project.status}
                         </Badge>
                       </div>
-                      <CardTitle className="text-2xl font-black uppercase tracking-tight line-clamp-1 leading-tight mb-2">
+                      <CardTitle className="text-2xl font-black uppercase tracking-tight line-clamp-2 leading-tight mb-3 min-h-[3.5rem] group-hover:text-primary transition-colors">
                         {project.title}
                       </CardTitle>
-                      <CardDescription className="line-clamp-2 min-h-[40px] text-[11px] font-bold text-muted-foreground uppercase tracking-wide leading-relaxed">
-                        {project.description || "No description provided."}
+                      <CardDescription className="line-clamp-2 text-[12px] font-medium text-muted-foreground leading-relaxed h-10">
+                        {project.description || "Leading transformation through dedicated community engagement and sustainable project goals."}
                       </CardDescription>
                     </CardHeader>
 
-                    <CardContent className="px-6 pb-6 flex-grow flex flex-col justify-end">
-                      <div className="flex items-center gap-4 text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-6">
-                        <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/5 rounded-lg border border-primary/10">
-                          <Users className="w-3.5 h-3.5 text-primary" />
-                          <span>Students: {project.student_count || 0}</span>
+                    <CardContent className="px-8 pb-8 flex-grow flex flex-col justify-end relative z-10">
+                      <div className="flex items-center gap-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-8 bg-muted/30 p-3 rounded-[1.5rem] border border-border/10">
+                        <div className="flex items-center gap-1.5 flex-1">
+                          <Users className="w-4 h-4 text-primary" />
+                          <span>{project.student_count || 0} Members</span>
                         </div>
-                        <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/30 rounded-lg border border-border/50">
-                          <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span>{project.start_date ? new Date(project.start_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : "N/A"}</span>
+                        <div className="w-px h-4 bg-border/50" />
+                        <div className="flex items-center gap-1.5 flex-1 justify-end">
+                          <Calendar className="w-4 h-4 text-primary" />
+                          <span>{project.start_date ? new Date(project.start_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : "Planned"}</span>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
-                        <Button
-                          onClick={() => navigate(`${basePath}/projects/${project.id}/assign`)}
-                          className="h-10 rounded-md bg-primary font-semibold text-sm gap-2 px-3"
-                        >
-                          <Users className="w-4 h-4" /> Assign
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => navigate(`${basePath}/projects/${project.id}`)}
-                          className="h-10 rounded-md font-semibold text-sm hover:bg-primary/5 hover:text-primary gap-2 px-3"
-                        >
-                          <Eye className="w-4 h-4" /> View
-                        </Button>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          onClick={() => openEdit(project)}
-                          className="flex-1 h-10 rounded-md font-semibold text-sm text-primary hover:bg-primary/10 gap-2 px-3"
-                        >
-                          <Edit className="w-4 h-4" /> Edit
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          onClick={() => openDelete(project)}
-                          className="h-10 w-10 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all p-0 flex items-center justify-center"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <Button
+                            onClick={() => navigate(`${basePath}/projects/${project.id}/assign`)}
+                            className="h-11 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-black text-[11px] uppercase tracking-widest shadow-lg shadow-primary/20 transition-all active:scale-95"
+                          >
+                            <Users className="w-4 h-4 mr-2" /> Assign
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => navigate(`${basePath}/projects/${project.id}`)}
+                            className="h-11 rounded-2xl border-2 font-black text-[11px] uppercase tracking-widest hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
+                          >
+                            <Eye className="w-4 h-4 mr-2" /> View
+                          </Button>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            onClick={() => openEdit(project)}
+                            className="flex-1 h-11 rounded-2xl font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all"
+                          >
+                            <Edit className="w-4 h-4 mr-2" /> Quick Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            onClick={() => openDelete(project)}
+                            className="h-11 w-11 rounded-2xl text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-all p-0 flex items-center justify-center active:scale-90"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

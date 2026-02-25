@@ -520,50 +520,69 @@ const ManageVolunteers = () => {
 
           {showApproved ? (
             <div className="space-y-4">
-              {/* Mobile View */}
+              {/* Mobile View - Refined Design */}
               <div className="grid grid-cols-1 gap-4 md:hidden">
                 {filteredApproved.length === 0 ? (
                   <div className="py-20 text-center font-bold text-muted-foreground italic bg-card/40 rounded-3xl border-2 border-dashed border-border/30">No approved volunteers found</div>
                 ) : (
                   filteredApproved.map((v) => (
-                    <Card key={v.id} className="rounded-3xl border-border/40 overflow-hidden bg-card/60 backdrop-blur-sm shadow-md active:scale-[0.98] transition-all">
-                      <CardContent className="p-5">
-                        <div className="flex items-center gap-4 mb-4">
-                          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black text-lg">
+                    <Card key={v.id} className="rounded-[2rem] border-border/30 overflow-hidden bg-card/40 backdrop-blur-md shadow-lg active:scale-[0.98] transition-all duration-300 relative group">
+                      {/* Decorative Background Element */}
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-primary/10 transition-colors" />
+
+                      <CardContent className="p-6 relative z-10">
+                        <div className="flex items-start gap-4 mb-6">
+                          <div className="shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary font-black uppercase text-xl shadow-inner">
                             {v.name.charAt(0)}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-black text-foreground uppercase tracking-tight truncate">{v.name}</h3>
-                            <p className="text-[10px] font-bold text-muted-foreground truncate">{v.email}</p>
+                          <div className="flex-1 min-w-0 pt-1">
+                            <h3 className="font-extrabold text-foreground uppercase tracking-tight truncate text-lg">{v.name}</h3>
+                            <div className="flex flex-wrap gap-2 mt-1.5">
+                              <Badge className="bg-primary text-primary-foreground border-none font-black text-[9px] uppercase tracking-widest px-2.5 py-1 rounded-full shadow-sm">
+                                {v.category || 'Volunteer'}
+                              </Badge>
+                              <Badge variant="outline" className="font-bold border-primary/20 bg-primary/5 text-primary/80 text-[9px] px-2.5 py-1 rounded-full">
+                                {v.department?.split(' ').map((w: string) => w[0]).join('') || "N/A"}
+                              </Badge>
+                            </div>
                           </div>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
-                          <div className="bg-muted/30 p-2 rounded-xl">
-                            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Dept</p>
-                            <p className="text-[10px] font-bold text-foreground truncate">{v.department}</p>
+
+                        <div className="grid grid-cols-2 gap-3 mb-6">
+                          <div className="bg-muted/40 p-3 rounded-2xl border border-border/20">
+                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1 opacity-60">Reg No</p>
+                            <p className="text-xs font-bold text-foreground overflow-hidden text-ellipsis whitespace-nowrap">{v.register_no || "-"}</p>
                           </div>
-                          <div className="bg-muted/30 p-2 rounded-xl">
-                            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Category</p>
-                            <p className="text-[10px] font-bold text-foreground truncate">{v.category || 'Volunteer'}</p>
+                          <div className="bg-muted/40 p-3 rounded-2xl border border-border/20">
+                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1 opacity-60">Year</p>
+                            <p className="text-xs font-bold text-foreground">{v.year || "-"}</p>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 h-9 rounded-xl font-bold text-[10px] uppercase tracking-widest border-2"
-                            onClick={() => { setDetailItem(v); setDetailOpen(true); }}
-                          >
-                            Form
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="h-9 w-9 rounded-xl"
-                            onClick={() => removeApproved(v.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2 text-muted-foreground bg-muted/20 p-2 rounded-xl border border-border/10">
+                            <FileText className="w-3.5 h-3.5 opacity-50" />
+                            <p className="text-[11px] font-medium truncate">{v.email}</p>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 h-11 rounded-2xl font-black text-[11px] uppercase tracking-widest border-2 bg-background/50 hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
+                              onClick={() => { setDetailItem(v); setDetailOpen(true); }}
+                            >
+                              Undertaking Form
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-11 w-11 rounded-2xl flex items-center justify-center p-0 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-all active:scale-90"
+                              onClick={() => removeApproved(v.id)}
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -641,7 +660,7 @@ const ManageVolunteers = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Mobile Card View */}
+              {/* Mobile Card View - Refined Design */}
               <div className="grid grid-cols-1 gap-4 md:hidden">
                 {filteredSubs.length === 0 ? (
                   <div className="py-20 text-center font-bold text-muted-foreground italic bg-card/40 rounded-3xl border-2 border-dashed border-border/30">
@@ -649,56 +668,64 @@ const ManageVolunteers = () => {
                   </div>
                 ) : (
                   filteredSubs.map((s) => (
-                    <Card key={s.id} className="rounded-3xl border-border/40 overflow-hidden bg-card/60 backdrop-blur-sm shadow-md active:scale-[0.98] transition-all">
-                      <CardContent className="p-5">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black text-base">
+                    <Card key={s.id} className="rounded-[2rem] border-border/30 overflow-hidden bg-card/40 backdrop-blur-md shadow-lg active:scale-[0.98] transition-all duration-300 relative group">
+                      {/* Decorative Background Element */}
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-primary/10 transition-colors" />
+
+                      <CardContent className="p-6 relative z-10">
+                        <div className="flex items-start justify-between mb-6">
+                          <div className="flex items-start gap-4">
+                            <div className="shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary font-black uppercase text-xl shadow-inner">
                               {s.name.charAt(0)}
                             </div>
-                            <div className="min-w-0">
-                              <h3 className="font-black text-foreground uppercase tracking-tight truncate max-w-[150px]">{s.name}</h3>
-                              <p className="text-[9px] font-bold text-muted-foreground truncate">{s.email}</p>
+                            <div className="min-w-0 pt-1">
+                              <h3 className="font-extrabold text-foreground uppercase tracking-tight truncate text-lg max-w-[140px]">{s.name}</h3>
+                              <p className="text-[10px] font-bold text-muted-foreground truncate max-w-[140px] opacity-70">{s.email}</p>
                             </div>
                           </div>
-                          <Badge className={`capitalize font-bold text-[9px] px-2 py-0.5 ${s.status === 'approved' ? 'bg-green-500/10 text-green-500' : s.status === 'rejected' ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-500'}`}>
+                          <Badge className={`capitalize font-black text-[9px] px-3 py-1 rounded-full shadow-sm tracking-widest ${s.status === 'approved' ? 'bg-green-500 text-white' : s.status === 'rejected' ? 'bg-rose-500 text-white' : 'bg-blue-500 text-white'}`}>
                             {s.status || 'pending'}
                           </Badge>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
-                          <div className="bg-muted/30 p-2 rounded-xl">
-                            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Submitted</p>
-                            <p className="text-[10px] font-bold text-foreground truncate">{new Date(s.created_at).toLocaleDateString()}</p>
+
+                        <div className="grid grid-cols-2 gap-3 mb-6">
+                          <div className="bg-muted/40 p-3 rounded-2xl border border-border/20">
+                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1 opacity-60">Submitted</p>
+                            <p className="text-xs font-bold text-foreground truncate">{new Date(s.created_at).toLocaleDateString()}</p>
                           </div>
-                          <div className="bg-muted/30 p-2 rounded-xl">
-                            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Category</p>
-                            <p className="text-[10px] font-bold text-foreground truncate">{s.category || 'Volunteer'}</p>
+                          <div className="bg-muted/40 p-3 rounded-2xl border border-border/20">
+                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1 opacity-60">Category</p>
+                            <p className="text-xs font-bold text-foreground truncate">{s.category || 'Volunteer'}</p>
                           </div>
                         </div>
-                        <div className="flex gap-2">
+
+                        <div className="space-y-3">
                           <Button
                             variant="outline"
                             size="sm"
-                            className="flex-1 h-9 rounded-xl font-bold text-[10px] uppercase tracking-widest border-2"
+                            className="w-full h-11 rounded-2xl font-black text-[11px] uppercase tracking-widest border-2 bg-background/50"
                             onClick={() => { setDetailItem(s); setDetailOpen(true); }}
                           >
-                            Details
+                            View Submission Details
                           </Button>
-                          <Button
-                            size="sm"
-                            className="flex-1 h-9 rounded-xl font-bold text-[10px] uppercase tracking-widest bg-green-500 hover:bg-green-600 shadow-lg shadow-green-500/20"
-                            onClick={() => updateStatus(s.id, 2)}
-                          >
-                            Approve
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="h-9 w-9 rounded-xl"
-                            onClick={() => updateStatus(s.id, 3)}
-                          >
-                            <XCircle className="w-4 h-4" />
-                          </Button>
+
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              className="flex-1 h-11 rounded-2xl font-black text-[11px] uppercase tracking-widest bg-green-500 hover:bg-green-600 text-white shadow-lg shadow-green-500/20 active:scale-95 transition-all"
+                              onClick={() => updateStatus(s.id, 2)}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-11 w-11 rounded-2xl flex items-center justify-center p-0 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-all active:scale-90"
+                              onClick={() => updateStatus(s.id, 3)}
+                            >
+                              <XCircle className="w-5 h-5" />
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>

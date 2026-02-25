@@ -458,15 +458,15 @@ const ManageOfficeBearers = () => {
                         </div>
                         <p className="text-xs text-muted-foreground truncate font-medium">{ob.email || 'No Email'}</p>
                         <div className="flex flex-wrap gap-2 mt-2">
-                          <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-2 py-0.5 font-bold text-[10px] uppercase tracking-wider">
+                          <Badge className="bg-primary/20 text-primary dark:text-blue-300 hover:bg-primary/30 border-none px-2 py-0.5 font-bold text-[10px] uppercase tracking-wider">
                             {ob.position}
                           </Badge>
                           {ob.department && (
-                            <Badge variant="outline" className="font-semibold border-primary/30 text-primary/80 text-[10px] px-2 py-0.5">
+                            <Badge variant="outline" className="font-semibold border-primary/40 text-primary/80 dark:text-slate-200 text-[10px] px-2 py-0.5">
                               {ob.department}
                             </Badge>
                           )}
-                          <Badge variant="outline" className="font-bold border-primary/30 text-primary/70 text-[10px] px-2 py-0.5">
+                          <Badge variant="outline" className="font-bold border-primary/40 text-primary/70 dark:text-slate-300 text-[10px] px-2 py-0.5">
                             {ob.student_year || 'IV Year'}
                           </Badge>
                         </div>

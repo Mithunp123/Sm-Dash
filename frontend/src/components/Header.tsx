@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import NotificationBell from "./NotificationBell";
 import { motion } from "framer-motion";
 import { buildImageUrl } from "@/utils/imageUtils";
@@ -186,6 +186,10 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="right" className="bg-gradient-to-b from-slate-900 to-slate-800 border-slate-700/50 text-white p-0 w-80">
+                  <SheetHeader className="sr-only">
+                    <SheetTitle>Mobile Navigation</SheetTitle>
+                    <SheetDescription>Access sections of the landing page</SheetDescription>
+                  </SheetHeader>
                   <div className="flex flex-col h-full pt-6 px-6">
                     <div className="mb-8 pl-2">
                       <img src="/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png" alt="SM" className="h-16 w-auto mb-4" />
@@ -303,6 +307,10 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="right" className="bg-gradient-to-b from-slate-900 to-slate-800 border-slate-700/50 text-white p-0 w-80">
+                  <SheetHeader className="sr-only">
+                    <SheetTitle>Mobile Navigation</SheetTitle>
+                    <SheetDescription>Access sections of the landing page</SheetDescription>
+                  </SheetHeader>
                   <div className="flex flex-col h-full pt-6 px-6">
                     <nav className="flex flex-col gap-3">
                       {[
@@ -366,11 +374,11 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
               <Button
                 variant="ghost"
                 size="icon"
-                className="mr-4 md:hidden text-white"
+                className="mr-2 md:hidden hover:bg-white/10"
                 onClick={onMenuClick}
                 aria-label="Toggle Menu"
               >
-                <Menu className="h-5 w-5" />
+                <Menu className="h-6 w-6 text-foreground dark:text-white" />
               </Button>
             )}
 
@@ -389,11 +397,7 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
               </Button>
             )}
 
-            <div className="flex-1 flex items-center gap-4 text-foreground dark:text-white">
-              <div className="font-semibold tracking-tight drop-shadow-sm">
-                SM Volunteers
-              </div>
-            </div>
+            <div className="flex-1" />
 
             <div className="flex items-center gap-3">
               <NotificationBell />

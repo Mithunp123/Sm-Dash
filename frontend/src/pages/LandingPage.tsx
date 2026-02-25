@@ -1566,6 +1566,10 @@ const LandingPage = () => {
       {/* View Office Bearer Details Dialog */}
       <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
         <DialogContent className="max-w-sm p-0 overflow-hidden border-none shadow-2xl bg-card">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Office Bearer Details</DialogTitle>
+            <DialogDescription>Viewing details for {selectedOB?.name}</DialogDescription>
+          </DialogHeader>
           <div className="relative w-full aspect-[4/5] bg-muted">
             {selectedOB?.photo_url ? (
               <img

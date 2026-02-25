@@ -179,4 +179,84 @@ router.put('/role-profile-fields', authenticateToken, requireRole('admin'), asyn
   }
 });
 
+// Database Backup (Admin only)
+router.get('/backup/export', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const db = getDatabase();
+    const tables = await all(db, "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'activity_logs' ORDER BY name");
+    // If MySQL, we get tables differently
+    let tableNames = [];
+    if (process.env.DB_TYPE === 'mysql') {
+      const rows = await all(db, "SHOW TABLES");
+      const dbName = process.env.DB_NAME;
+      tableNames = rows.map(r => r[`Tables_in_${dbName}`]).filter(name => name !== 'activity_logs');
+    } else {
+      tableNames = tables.map(t => t.name);
+    }
+
+    const backupData = {
+      timestamp: new Date().toISOString(),
+      version: '1.0',
+      data: {}
+    };
+
+    for (const tableName of tableNames) {
+      backupData.data[tableName] = await all(db, `SELECT * FROM ${tableName}`);
+    }
+
+    await logActivity(req.user.id, 'DATABASE_BACKUP_EXPORT', {}, req, {
+      action_type: 'EXPORT',
+      module_name: 'settings',
+      action_description: 'Exported database backup'
+    });
+
+    res.json({ success: true, backup: backupData });
+  } catch (error) {
+    console.error('Backup export error:', error);
+    res.status(500).json({ success: false, message: 'Backup failed: ' + error.message });
+  }
+});
+
+// Database Restore (Admin only)
+router.post('/backup/restore', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const { backup } = req.body;
+    if (!backup || !backup.data) {
+      return res.status(400).json({ success: false, message: 'Invalid backup data' });
+    }
+
+    const db = getDatabase();
+    const tableNames = Object.keys(backup.data);
+
+    // Process each table
+    for (const tableName of tableNames) {
+      const rows = backup.data[tableName];
+      if (!rows || rows.length === 0) continue;
+
+      const columns = Object.keys(rows[0]);
+      const placeholders = columns.map(() => '?').join(', ');
+
+      // Note: We use INSERT IGNORE for MySQL and INSERT OR IGNORE for SQLite
+      const prefix = process.env.DB_TYPE === 'mysql' ? 'INSERT IGNORE' : 'INSERT OR IGNORE';
+      const query = `${prefix} INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders})`;
+
+      for (const row of rows) {
+        const values = columns.map(col => row[col]);
+        await run(db, query, values);
+      }
+    }
+
+    await logActivity(req.user.id, 'DATABASE_BACKUP_RESTORE', { tables: tableNames }, req, {
+      action_type: 'IMPORT',
+      module_name: 'settings',
+      action_description: 'Restored database from backup'
+    });
+
+    res.json({ success: true, message: 'Restore completed successfully' });
+  } catch (error) {
+    console.error('Backup restore error:', error);
+    res.status(500).json({ success: false, message: 'Restore failed: ' + error.message });
+  }
+});
+
 export default router;
