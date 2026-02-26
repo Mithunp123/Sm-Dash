@@ -276,7 +276,7 @@ const OfficeBearerProfile = () => {
           <div className="mb-6 relative">
             <Card className="border border-border bg-card dark:bg-slate-900 overflow-hidden rounded-md shadow-lg">
               {/* Upper Section - Portrait with Overlays */}
-              <div className="relative h-64 md:h-80 bg-gradient-to-br from-slate-800 to-slate-900 dark:from-slate-950 dark:to-slate-900">
+              <div className="relative h-40 md:h-56 bg-muted/50">
                 <input
                   type="file"
                   id="profile-photo-upload"
@@ -295,7 +295,7 @@ const OfficeBearerProfile = () => {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-primary/10">
-                      <span className="text-6xl md:text-8xl font-bold text-primary/30">
+                      <span className="text-4xl md:text-6xl font-bold text-primary/30">
                         {profileData.name ? profileData.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) : 'OB'}
                       </span>
                     </div>
@@ -344,20 +344,19 @@ const OfficeBearerProfile = () => {
               </div>
 
               {/* Lower Section - Text Information */}
-              <CardContent className="p-6 bg-card dark:bg-slate-900">
+              <CardContent className="p-6 bg-background dark:bg-slate-900">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div className="flex-1">
-                    {/* Role/Title */}
-                    <div className="mb-2">
-                      <span className="text-primary text-xs md:text-sm font-semibold uppercase tracking-wider">
-                        — {profileData.position || 'Office Bearer'} {profileData.dept ? `• ${profileData.dept}` : ''}
-                      </span>
-                    </div>
-                    
                     {/* Name */}
                     <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
                       {profileData.name || 'Office Bearer'}
                     </h1>
+                    
+                    {/* Email */}
+                    <p className="text-sm text-muted-foreground">
+                      {profileData.email}
+                    </p>
+                  </div>
                     
                     {/* Organization/College */}
                     <div className="flex items-center justify-between">

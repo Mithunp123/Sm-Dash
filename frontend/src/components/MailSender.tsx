@@ -1,193 +1,185 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Send, FileText, Users, Calendar, X, Code, Eye } from "lucide-react";
+import { Mail, Send, FileText, Users, Calendar, X, Code, Eye, Search, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Slider } from "@/components/ui/slider";
 
-type DraftType = 'interview' | 'meeting' | 'other';
+type DraftType = 'volunteer' | 'office_bearer';
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+}
 
 const MailSender = () => {
     const [isOpen, setIsOpen] = useState(false);
-    const [draftType, setDraftType] = useState<DraftType>('interview');
+    const [draftType, setDraftType] = useState<DraftType>('volunteer');
     const [subject, setSubject] = useState("");
-    const [body, setBody] = useState("");
     const [htmlBody, setHtmlBody] = useState("");
-    const [recipients, setRecipients] = useState<string[]>([]);
-    const [recipientInput, setRecipientInput] = useState("");
+    const [selectedRecipients, setSelectedRecipients] = useState<User[]>([]);
     const [sending, setSending] = useState(false);
-    const [sliderValue, setSliderValue] = useState([50]); // For priority/urgency slider
-    const [useHtml, setUseHtml] = useState(false);
+    const [sliderValue, setSliderValue] = useState([50]);
     const [previewMode, setPreviewMode] = useState(false);
+    const [showUserSelector, setShowUserSelector] = useState(true);
+    const [allUsers, setAllUsers] = useState<User[]>([]);
+    const [loadingUsers, setLoadingUsers] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [templates, setTemplates] = useState<Record<string, any>>({});
+    const [selectedRoleTemplate, setSelectedRoleTemplate] = useState<string>('volunteer');
 
-    // Pre-defined drafts with HTML support
-    const drafts: Record<DraftType, { subject: string; body: string; html: string }> = {
-        interview: {
-            subject: "Interview Schedule - SM Volunteers",
-            body: `Dear Candidate,
+    // Load users and templates on mount
+    useEffect(() => {
+        if (isOpen) {
+            loadUsers();
+            loadTemplates();
+        }
+    }, [isOpen]);
 
-We are pleased to inform you that you have been selected for an interview with SM Volunteers.
-
-Interview Details:
-- Date: [Date]
-- Time: [Time]
-- Venue: [Location]
-- Interviewer: [Name]
-
-Please arrive 10 minutes early and bring all necessary documents.
-
-Best regards,
-SM Volunteers Team`,
-            html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <h2 style="color: #1E3A8A; border-bottom: 2px solid #1E3A8A; padding-bottom: 10px;">Interview Schedule - SM Volunteers</h2>
-  <p>Dear Candidate,</p>
-  <p>We are pleased to inform you that you have been selected for an interview with SM Volunteers.</p>
-  <div style="background-color: #F8FAFC; padding: 15px; border-left: 4px solid #1E3A8A; margin: 20px 0;">
-    <h3 style="color: #334155; margin-top: 0;">Interview Details:</h3>
-    <ul style="color: #0F172A;">
-      <li><strong>Date:</strong> [Date]</li>
-      <li><strong>Time:</strong> [Time]</li>
-      <li><strong>Venue:</strong> [Location]</li>
-      <li><strong>Interviewer:</strong> [Name]</li>
-    </ul>
-  </div>
-  <p>Please arrive 10 minutes early and bring all necessary documents.</p>
-  <p>Best regards,<br><strong>SM Volunteers Team</strong></p>
-</div>`
-        },
-        meeting: {
-            subject: "Meeting Invitation - SM Volunteers",
-            body: `Dear Team Member,
-
-You are cordially invited to attend our upcoming meeting.
-
-Meeting Details:
-- Date: [Date]
-- Time: [Time]
-- Venue: [Location]
-- Agenda: [Agenda Items]
-
-Your presence is important for the success of this meeting.
-
-Best regards,
-SM Volunteers Team`,
-            html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <h2 style="color: #1E3A8A; border-bottom: 2px solid #1E3A8A; padding-bottom: 10px;">Meeting Invitation - SM Volunteers</h2>
-  <p>Dear Team Member,</p>
-  <p>You are cordially invited to attend our upcoming meeting.</p>
-  <div style="background-color: #F8FAFC; padding: 15px; border-left: 4px solid #1E3A8A; margin: 20px 0;">
-    <h3 style="color: #334155; margin-top: 0;">Meeting Details:</h3>
-    <ul style="color: #0F172A;">
-      <li><strong>Date:</strong> [Date]</li>
-      <li><strong>Time:</strong> [Time]</li>
-      <li><strong>Venue:</strong> [Location]</li>
-      <li><strong>Agenda:</strong> [Agenda Items]</li>
-    </ul>
-  </div>
-  <p>Your presence is important for the success of this meeting.</p>
-  <p>Best regards,<br><strong>SM Volunteers Team</strong></p>
-</div>`
-        },
-        other: {
-            subject: "Notification - SM Volunteers",
-            body: `Dear Member,
-
-This is to inform you about an important update from SM Volunteers.
-
-[Your message here]
-
-Thank you for your continued support.
-
-Best regards,
-SM Volunteers Team`,
-            html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <h2 style="color: #1E3A8A; border-bottom: 2px solid #1E3A8A; padding-bottom: 10px;">Notification - SM Volunteers</h2>
-  <p>Dear Member,</p>
-  <p>This is to inform you about an important update from SM Volunteers.</p>
-  <div style="background-color: #F8FAFC; padding: 15px; margin: 20px 0;">
-    <p style="color: #0F172A;">[Your message here]</p>
-  </div>
-  <p>Thank you for your continued support.</p>
-  <p>Best regards,<br><strong>SM Volunteers Team</strong></p>
-</div>`
+    // Load templates
+    const loadTemplates = async () => {
+        try {
+            const response = await api.getEmailTemplates();
+            if (response.success) {
+                setTemplates(response.templates);
+            }
+        } catch (error) {
+            console.error('Error loading templates:', error);
         }
     };
 
+    // Load users for selection
+    const loadUsers = async () => {
+        try {
+            setLoadingUsers(true);
+            const response = await api.getMailUsersList();
+            if (response.success) {
+                setAllUsers(response.users || []);
+            }
+        } catch (error) {
+            console.error('Error loading users:', error);
+            toast.error('Failed to load users');
+        } finally {
+            setLoadingUsers(false);
+        }
+    };
+
+    // Filter users based on search
+    const filteredUsers = searchQuery.trim() === '' 
+        ? allUsers 
+        : allUsers.filter(u => 
+            u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            u.email.toLowerCase().includes(searchQuery.toLowerCase())
+          );
+
+    // Load draft template
     const loadDraft = (type: DraftType) => {
         setDraftType(type);
-        const draft = drafts[type];
-        setSubject(draft.subject);
-        setBody(draft.body);
-        setHtmlBody(draft.html);
-    };
-
-    const handleAddRecipient = () => {
-        const email = recipientInput.trim();
-        if (email && email.includes('@')) {
-            if (!recipients.includes(email)) {
-                setRecipients([...recipients, email]);
-                setRecipientInput("");
-            } else {
-                toast.error("Email already added");
-            }
-        } else {
-            toast.error("Please enter a valid email address");
+        setSelectedRoleTemplate(type);
+        if (templates[type]) {
+            setSubject(templates[type].subject);
+            setHtmlBody(templates[type].html);
         }
     };
 
-    const handleRemoveRecipient = (email: string) => {
-        setRecipients(recipients.filter(e => e !== email));
+    // Toggle user selection - auto-load template based on user role
+    const toggleUserSelection = (user: User) => {
+        if (selectedRecipients.find(r => r.id === user.id)) {
+            setSelectedRecipients(selectedRecipients.filter(r => r.id !== user.id));
+        } else {
+            // Auto-load template based on user's role
+            const roleTemplate = user.role === 'office_bearer' ? 'office_bearer' : 'volunteer';
+            setSelectedRoleTemplate(roleTemplate);
+            loadDraft(roleTemplate as DraftType);
+            
+            setSelectedRecipients([...selectedRecipients, user]);
+        }
     };
 
+    // Select all filtered users
+    const selectAllFiltered = () => {
+        const newSelections = [...selectedRecipients];
+        filteredUsers.forEach(user => {
+            if (!newSelections.find(r => r.id === user.id)) {
+                newSelections.push(user);
+            }
+        });
+        setSelectedRecipients(newSelections);
+    };
+
+    // Remove selected recipient
+    const removeRecipient = (id: number) => {
+        setSelectedRecipients(selectedRecipients.filter(r => r.id !== id));
+    };
+
+    // Generate preview with personalization
+    const getPersonalizedPreview = (sampleName: string = "John Doe") => {
+        const previewHtml = htmlBody
+            .replace(/\[Name\]/g, sampleName)
+            .replace(/\[name\]/g, sampleName)
+            .replace(/\{name\}/g, sampleName)
+            .replace(/{{name}}/g, sampleName);
+        return previewHtml;
+    };
+
+    // Handle send
     const handleSend = async () => {
         if (!subject.trim()) {
             toast.error("Please fill in subject");
             return;
         }
 
-        if (useHtml && !htmlBody.trim()) {
-            toast.error("Please fill in HTML body");
+        if (!htmlBody.trim()) {
+            toast.error("Please fill in email body");
             return;
         }
 
-        if (!useHtml && !body.trim()) {
-            toast.error("Please fill in body");
-            return;
-        }
-
-        if (recipients.length === 0) {
-            toast.error("Please add at least one recipient");
+        if (selectedRecipients.length === 0) {
+            toast.error("Please select at least one recipient");
             return;
         }
 
         try {
             setSending(true);
+            
+            // Prepare recipients data (include name for personalization)
+            const recipientData = selectedRecipients.map(r => ({
+                email: r.email,
+                name: r.name
+            }));
+
             const response = await api.sendBulkEmail({
-                recipients,
+                recipients: recipientData,
                 subject,
-                body: useHtml ? htmlBody : body,
-                html: useHtml,
+                body: htmlBody,
+                html: true,
                 priority: sliderValue[0],
                 type: draftType
             });
 
             if (response.success) {
-                toast.success(`Email sent successfully to ${recipients.length} recipient(s)`);
+                toast.success(`✅ Email sent successfully to ${selectedRecipients.length} recipient(s)`);
+                if (response.stats?.failedRecipients?.length > 0) {
+                    toast.warning(`⚠️ ${response.stats.failedRecipients.length} emails failed to send`);
+                }
+                
+                // Reset form
                 setIsOpen(false);
-                setRecipients([]);
+                setSelectedRecipients([]);
                 setSubject("");
-                setBody("");
                 setHtmlBody("");
-                setRecipientInput("");
+                setSearchQuery("");
                 setSliderValue([50]);
-                setUseHtml(false);
+                setShowUserSelector(true);
             } else {
                 toast.error(response.message || "Failed to send email");
             }
@@ -209,195 +201,218 @@ SM Volunteers Team`,
             </Button>
 
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
+                        <DialogTitle className="flex items-center gap-2 text-lg">
                             <Mail className="w-5 h-5" />
-                            Mail Sender - SMTP
+                            Send Emails
                         </DialogTitle>
                         <DialogDescription>
-                            Send emails using SMTP. Select a draft template or create your own with HTML customization.
+                            Select recipients and send personalized emails
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-6 py-4">
-                        {/* Draft Type Selector */}
-                        <div className="space-y-2">
-                            <Label className="text-sm font-semibold text-foreground">Select Draft Type</Label>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <Button
-                                    type="button"
-                                    variant={draftType === 'interview' ? 'default' : 'outline'}
-                                    onClick={() => loadDraft('interview')}
-                                    className="h-12 rounded-md font-semibold text-sm flex flex-col items-center gap-1"
-                                >
-                                    <Users className="w-4 h-4" />
-                                    Interview
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant={draftType === 'meeting' ? 'default' : 'outline'}
-                                    onClick={() => loadDraft('meeting')}
-                                    className="h-12 rounded-md font-semibold text-sm flex flex-col items-center gap-1"
-                                >
-                                    <Calendar className="w-4 h-4" />
-                                    Meeting
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant={draftType === 'other' ? 'default' : 'outline'}
-                                    onClick={() => loadDraft('other')}
-                                    className="h-12 rounded-md font-semibold text-sm flex flex-col items-center gap-1"
-                                >
-                                    <FileText className="w-4 h-4" />
-                                    Other
-                                </Button>
-                            </div>
-                        </div>
-
-                        {/* Priority Slider */}
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <Label className="text-sm font-semibold text-foreground">Priority / Urgency</Label>
-                                <span className="text-sm text-muted-foreground font-medium">{sliderValue[0]}%</span>
-                            </div>
-                            <Slider
-                                value={sliderValue}
-                                onValueChange={setSliderValue}
-                                max={100}
-                                step={1}
-                                className="w-full"
-                            />
-                            <div className="flex justify-between text-xs text-muted-foreground">
-                                <span>Low</span>
-                                <span>Medium</span>
-                                <span>High</span>
-                            </div>
-                        </div>
-
-                        {/* Recipients */}
-                        <div className="space-y-2">
-                            <Label className="text-sm font-semibold text-foreground">Recipients *</Label>
-                            <div className="flex gap-2">
-                                <Input
-                                    type="email"
-                                    placeholder="Enter email address"
-                                    value={recipientInput}
-                                    onChange={(e) => setRecipientInput(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && handleAddRecipient()}
-                                    className="h-10 rounded-md"
-                                />
-                                <Button
-                                    type="button"
-                                    onClick={handleAddRecipient}
-                                    className="h-10 rounded-md font-semibold text-sm px-4"
-                                >
-                                    Add
-                                </Button>
-                            </div>
-                            {recipients.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mt-2">
-                                    {recipients.map((email) => (
-                                        <div
-                                            key={email}
-                                            className="flex items-center gap-1 bg-primary/10 text-primary px-3 py-1 rounded-md text-sm"
-                                        >
-                                            <span>{email}</span>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleRemoveRecipient(email)}
-                                                className="hover:bg-primary/20 rounded p-0.5"
-                                            >
-                                                <X className="w-3 h-3" />
-                                            </button>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            {/* LEFT: User Selection */}
+                            {showUserSelector && (
+                                <div className="space-y-4 lg:col-span-1 border-r pr-4">
+                                    <div className="space-y-2">
+                                        <h3 className="font-semibold text-sm">📋 Select Recipients</h3>
+                                        <div className="relative">
+                                            <Search className="absolute left-2 top-2.5 w-4 h-4 text-muted-foreground" />
+                                            <Input
+                                                placeholder="Search by name or email..."
+                                                value={searchQuery}
+                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                                className="pl-8 h-9"
+                                            />
                                         </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                                    </div>
 
-                        {/* Subject */}
-                        <div className="space-y-2">
-                            <Label className="text-sm font-semibold text-foreground">Subject *</Label>
-                            <Input
-                                value={subject}
-                                onChange={(e) => setSubject(e.target.value)}
-                                placeholder="Email subject"
-                                className="h-10 rounded-md"
-                            />
-                        </div>
-
-                        {/* Body - Plain Text or HTML */}
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <Label className="text-sm font-semibold text-foreground">Body *</Label>
-                                <div className="flex items-center gap-2">
-                                    <Button
-                                        type="button"
-                                        variant={!useHtml ? "default" : "outline"}
-                                        size="sm"
-                                        onClick={() => setUseHtml(false)}
-                                        className="h-8 rounded-md text-xs"
-                                    >
-                                        Plain Text
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        variant={useHtml ? "default" : "outline"}
-                                        size="sm"
-                                        onClick={() => setUseHtml(true)}
-                                        className="h-8 rounded-md text-xs gap-1"
-                                    >
-                                        <Code className="w-3 h-3" />
-                                        HTML
-                                    </Button>
-                                    {useHtml && (
+                                    {/* Selected count and quick actions */}
+                                    <div className="space-y-2">
+                                        <div className="text-xs text-foreground/70">
+                                            {selectedRecipients.length} of {allUsers.length} selected
+                                        </div>
                                         <Button
-                                            type="button"
-                                            variant="outline"
                                             size="sm"
-                                            onClick={() => setPreviewMode(!previewMode)}
-                                            className="h-8 rounded-md text-xs gap-1"
+                                            variant="outline"
+                                            onClick={selectAllFiltered}
+                                            className="w-full text-xs h-8"
+                                            disabled={loadingUsers}
                                         >
-                                            <Eye className="w-3 h-3" />
-                                            {previewMode ? "Edit" : "Preview"}
+                                            Select All
                                         </Button>
+                                    </div>
+
+                                    {/* User list */}
+                                    {loadingUsers ? (
+                                        <div className="flex items-center justify-center p-8 text-muted-foreground">
+                                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                            Loading users...
+                                        </div>
+                                    ) : (
+                                        <ScrollArea className="h-[400px] border rounded-lg p-2">
+                                            <div className="space-y-1">
+                                                {filteredUsers.length > 0 ? (
+                                                    filteredUsers.map((user) => {
+                                                        const isSelected = selectedRecipients.some(r => r.id === user.id);
+                                                        return (
+                                                            <div
+                                                                key={user.id}
+                                                                className={`p-2 rounded cursor-pointer transition-colors ${
+                                                                    isSelected 
+                                                                        ? 'bg-primary/20 border border-primary/50' 
+                                                                        : 'hover:bg-muted'
+                                                                }`}
+                                                                onClick={() => toggleUserSelection(user)}
+                                                            >
+                                                                <div className="flex items-center gap-2">
+                                                                    <Checkbox
+                                                                        checked={isSelected}
+                                                                        onChange={() => toggleUserSelection(user)}
+                                                                        className="w-4 h-4"
+                                                                    />
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <p className="text-xs font-medium truncate">{user.name}</p>
+                                                                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                                                                    </div>
+                                                                    {isSelected && <Check className="w-4 h-4 text-primary shrink-0" />}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })
+                                                ) : (
+                                                    <div className="text-center py-8 text-muted-foreground text-xs">
+                                                        No users found
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </ScrollArea>
+                                    )}
+
+                                    {/* Selected recipients preview */}
+                                    {selectedRecipients.length > 0 && (
+                                        <div className="space-y-2">
+                                            <p className="text-xs font-semibold">Selected Recipients:</p>
+                                            <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                                                {selectedRecipients.map((r) => (
+                                                    <div
+                                                        key={r.id}
+                                                        className="flex items-center gap-1 bg-primary/20 text-primary px-2 py-1 rounded text-xs"
+                                                    >
+                                                        <span className="truncate max-w-[100px]">{r.name}</span>
+                                                        <button
+                                                            onClick={() => removeRecipient(r.id)}
+                                                            className="hover:text-destructive"
+                                                        >
+                                                            <X className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
-                            </div>
+                            )}
 
-                            {useHtml ? (
-                                previewMode ? (
-                                    <Card className="p-4 border-border/50">
-                                        <div 
-                                            className="prose prose-sm max-w-none"
-                                            dangerouslySetInnerHTML={{ __html: htmlBody }}
+                            {/* RIGHT: Email Composer */}
+                            <div className={showUserSelector ? "lg:col-span-2" : "lg:col-span-3"}>
+                                <div className="space-y-4">
+                                    {/* Template Selection - Role Based */}
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-semibold">Template</Label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {Object.keys(templates).map((key) => (
+                                                <Button
+                                                    key={key}
+                                                    type="button"
+                                                    variant={selectedRoleTemplate === key ? 'default' : 'outline'}
+                                                    onClick={() => loadDraft(key as DraftType)}
+                                                    className="text-xs h-9"
+                                                >
+                                                    {templates[key].name}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                        {selectedRecipients.length > 0 && (
+                                            <p className="text-xs text-muted-foreground mt-2">
+                                                💡 Templates auto-load based on recipient role
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {/* Priority Slider */}
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <Label className="text-xs font-semibold">Priority</Label>
+                                            <span className="text-xs text-muted-foreground">{sliderValue[0]}%</span>
+                                        </div>
+                                        <Slider
+                                            value={sliderValue}
+                                            onValueChange={setSliderValue}
+                                            max={100}
+                                            step={1}
+                                            className="w-full"
                                         />
-                                    </Card>
-                                ) : (
-                                    <Textarea
-                                        value={htmlBody}
-                                        onChange={(e) => setHtmlBody(e.target.value)}
-                                        placeholder="Enter HTML code for email body..."
-                                        rows={15}
-                                        className="resize-none rounded-md font-mono text-sm"
-                                    />
-                                )
-                            ) : (
-                                <Textarea
-                                    value={body}
-                                    onChange={(e) => setBody(e.target.value)}
-                                    placeholder="Email body (plain text)"
-                                    rows={10}
-                                    className="resize-none rounded-md"
-                                />
-                            )}
+                                        <div className="flex justify-between text-xs text-muted-foreground">
+                                            <span>Low</span>
+                                            <span>Medium</span>
+                                            <span>High</span>
+                                        </div>
+                                    </div>
 
-                            {useHtml && (
-                                <p className="text-xs text-muted-foreground">
-                                    💡 Tip: Use HTML to create professional email templates with colors, formatting, and styling.
-                                </p>
-                            )}
+                                    {/* Subject */}
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-semibold">Subject *</Label>
+                                        <Input
+                                            value={subject}
+                                            onChange={(e) => setSubject(e.target.value)}
+                                            placeholder="Email subject (use [Name] for personalization)"
+                                            className="h-9 text-sm"
+                                        />
+                                    </div>
+
+                                    {/* Body */}
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <Label className="text-xs font-semibold">Body (HTML) *</Label>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setPreviewMode(!previewMode)}
+                                                className="h-7 text-xs gap-1"
+                                            >
+                                                <Eye className="w-3 h-3" />
+                                                {previewMode ? "Edit" : "Preview"}
+                                            </Button>
+                                        </div>
+
+                                        {previewMode ? (
+                                            <div className="border rounded-lg p-4 bg-muted/50 min-h-[300px]">
+                                                <div 
+                                                    className="prose prose-sm max-w-none text-foreground"
+                                                    dangerouslySetInnerHTML={{ __html: getPersonalizedPreview() }}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <Textarea
+                                                value={htmlBody}
+                                                onChange={(e) => setHtmlBody(e.target.value)}
+                                                placeholder="Enter HTML email body... Use [Name] for personalization"
+                                                rows={12}
+                                                className="resize-none font-mono text-xs"
+                                            />
+                                        )}
+                                        
+                                        <p className="text-xs text-muted-foreground">
+                                            Use <code className="bg-muted px-1 py-0.5 rounded">[Name]</code> to personalize with recipient names
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -406,7 +421,7 @@ SM Volunteers Team`,
                             type="button"
                             variant="outline"
                             onClick={() => setIsOpen(false)}
-                            className="h-10 rounded-md font-semibold text-sm px-4"
+                            className="font-semibold text-sm"
                             disabled={sending}
                         >
                             Cancel
@@ -414,11 +429,20 @@ SM Volunteers Team`,
                         <Button
                             type="button"
                             onClick={handleSend}
-                            disabled={sending}
-                            className="h-10 rounded-md font-semibold text-sm px-4 gap-2"
+                            disabled={sending || selectedRecipients.length === 0}
+                            className="gap-2 font-semibold text-sm"
                         >
-                            <Send className="w-4 h-4" />
-                            {sending ? "Sending..." : "Send Email"}
+                            {sending ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Sending to {selectedRecipients.length}...
+                                </>
+                            ) : (
+                                <>
+                                    <Send className="w-4 h-4" />
+                                    Send to {selectedRecipients.length} Recipient{selectedRecipients.length !== 1 ? 's' : ''}
+                                </>
+                            )}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

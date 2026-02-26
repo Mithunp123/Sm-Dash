@@ -887,11 +887,21 @@ class ApiClient {
   }
 
   // Send bulk email via SMTP
-  async sendBulkEmail(data: { recipients: string[]; subject: string; body: string; html?: boolean; priority?: number; type: string }) {
+  async sendBulkEmail(data: { recipients: Array<{email: string; name: string}> | string[]; subject: string; body: string; html?: boolean; priority?: number; type: string }) {
     return this.request('/mail/send-bulk', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  // Get users for email recipient selection
+  async getMailUsersList() {
+    return this.request('/mail/users');
+  }
+
+  // Get email templates
+  async getEmailTemplates() {
+    return this.request('/mail/templates');
   }
 
   // Chat message methods

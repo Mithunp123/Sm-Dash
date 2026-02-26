@@ -31,6 +31,7 @@ import officeBearersRoutes from './routes/office_bearers.js';
 import announcementRoutes from './routes/announcements.js';
 import activityRoutes from './routes/activity.js';
 import messageRoutes from './routes/messages.js';
+import mailRoutes from './routes/mail.js';
 import { initDatabase } from './database/init.js';
 
 // Load .env from backend directory first, then fallback to root directory
@@ -125,6 +126,7 @@ app.use('/api/spoc', spocRoutes);
 app.use('/api/office-bearers', officeBearersRoutes);
 app.use('/api/announcements', announcementRoutes);
 app.use('/api/activity', activityRoutes);
+app.use('/api/mail', mailRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
