@@ -6,6 +6,18 @@ import { authenticateToken } from '../middleware/auth.js';
 const router = express.Router();
 
 /**
+ * GET /api/mail/health
+ * Test endpoint to verify server is running
+ */
+router.get('/health', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Mail service is running',
+        timestamp: new Date().toISOString()
+    });
+});
+
+/**
  * GET /api/mail/users
  * Get list of all users for recipient selection
  */
@@ -44,13 +56,25 @@ router.get('/users', authenticateToken, (req, res) => {
  * POST /api/mail/send-bulk
  * Send bulk emails to multiple recipients with template personalization
  */
-router.post('/send-bulk', authenticateToken, (req, res) => {
+router.post('/send-bulk', authenticateToken, async (req, res) => {
+    console.log('📧 [MAIL] send-bulk endpoint called');
+    console.log('👤 [MAIL] User ID:', req.user?.id, 'Email:', req.user?.email);
+    
     try {
         const db = getDatabase();
         const { recipients, subject, body, html = false, type = 'other' } = req.body;
 
+        console.log('📋 [MAIL] Request params:', { 
+            recipientsCount: recipients?.length, 
+            subject: subject?.substring(0, 50), 
+            hasBody: !!body,
+            html,
+            type
+        });
+
         // Validation
         if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
+            console.warn('⚠️ [MAIL] No recipients provided');
             return res.status(400).json({
                 success: false,
                 message: 'Recipients list is required'
@@ -58,6 +82,7 @@ router.post('/send-bulk', authenticateToken, (req, res) => {
         }
 
         if (!subject || !subject.trim()) {
+            console.warn('⚠️ [MAIL] No subject provided');
             return res.status(400).json({
                 success: false,
                 message: 'Subject is required'
@@ -65,119 +90,151 @@ router.post('/send-bulk', authenticateToken, (req, res) => {
         }
 
         if (!body || !body.trim()) {
+            console.warn('⚠️ [MAIL] No body provided');
             return res.status(400).json({
                 success: false,
                 message: 'Email body is required'
             });
         }
 
+        // Promisify database get operation
+        const dbGet = (query, params) => {
+            return new Promise((resolve, reject) => {
+                db.get(query, params, (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
+                });
+            });
+        };
+
+        // Promisify database run operation
+        const dbRun = (query, params) => {
+            return new Promise((resolve, reject) => {
+                db.run(query, params, function(err) {
+                    if (err) reject(err);
+                    else resolve(this.lastID);
+                });
+            });
+        };
+
         // Check if user has admin privilege to send emails
-        db.get('SELECT role FROM users WHERE id = ?', [req.user.userId], (err, currentUser) => {
-            if (err) {
-                console.error('Error checking user role:', err);
-                return res.status(500).json({
-                    success: false,
-                    message: 'Failed to verify permissions'
-                });
-            }
+        console.log('🔍 [MAIL] Checking user role for user ID:', req.user.id);
+        const currentUser = await dbGet('SELECT role FROM users WHERE id = ?', [req.user.id]);
+        
+        if (!currentUser) {
+            console.error('❌ [MAIL] User not found in database:', req.user.id);
+            return res.status(401).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
 
-            if (currentUser?.role !== 'admin') {
-                return res.status(403).json({
-                    success: false,
-                    message: 'Only admins can send bulk emails'
-                });
-            }
+        console.log('✅ [MAIL] User found with role:', currentUser.role);
 
-            let successful = 0;
-            let failed = 0;
-            const failedRecipients = [];
+        if (currentUser.role !== 'admin') {
+            console.warn(`⚠️ [MAIL] Non-admin user ${req.user.id} attempted to send bulk email. Role: ${currentUser.role}`);
+            return res.status(403).json({
+                success: false,
+                message: 'Only admins can send bulk emails'
+            });
+        }
 
-            // Send emails to each recipient
-            (async () => {
-                for (const recipientData of recipients) {
-                    try {
-                        // Handle both email string and user object
-                        const email = typeof recipientData === 'string' ? 
-                            recipientData : 
-                            recipientData.email;
+        console.log('✅ [MAIL] Admin permission verified. Starting email send...');
 
-                        const name = typeof recipientData === 'string' ? 
-                            'User' : 
-                            (recipientData.name || 'User');
+        let successful = 0;
+        let failed = 0;
+        const failedRecipients = [];
 
-                        // Personalize email content
-                        let personalizedBody = body
-                            .replace(/\[Name\]/g, name)
-                            .replace(/\[name\]/g, name)
-                            .replace(/\{name\}/g, name)
-                            .replace(/{{name}}/g, name);
+        // Send emails to each recipient
+        for (const recipientData of recipients) {
+            try {
+                // Handle both email string and user object
+                const email = typeof recipientData === 'string' ? 
+                    recipientData : 
+                    recipientData.email;
 
-                        let personalizedSubject = subject
-                            .replace(/\[Name\]/g, name)
-                            .replace(/\[name\]/g, name)
-                            .replace(/\{name\}/g, name)
-                            .replace(/{{name}}/g, name);
+                const name = typeof recipientData === 'string' ? 
+                    'User' : 
+                    (recipientData.name || 'User');
 
-                        const emailContent = html ? personalizedBody : `<p>${personalizedBody.replace(/\n/g, '</p><p>')}</p>`;
+                console.log(`📧 [MAIL] Sending to ${email}...`);
 
-                        const success = await sendEmail(email, personalizedSubject, emailContent);
+                // Personalize email content
+                let personalizedBody = body
+                    .replace(/\[Name\]/g, name)
+                    .replace(/\[name\]/g, name)
+                    .replace(/\{name\}/g, name)
+                    .replace(/{{name}}/g, name);
 
-                        if (success) {
-                            successful++;
-                        } else {
-                            failed++;
-                            failedRecipients.push({
-                                email,
-                                name,
-                                reason: 'SMTP error'
-                            });
-                        }
+                let personalizedSubject = subject
+                    .replace(/\[Name\]/g, name)
+                    .replace(/\[name\]/g, name)
+                    .replace(/\{name\}/g, name)
+                    .replace(/{{name}}/g, name);
 
-                        // Small delay to avoid rate limiting
-                        await new Promise(resolve => setTimeout(resolve, 500));
+                const emailContent = html ? personalizedBody : `<p>${personalizedBody.replace(/\n/g, '</p><p>')}</p>`;
 
-                    } catch (error) {
-                        console.error(`Error sending email to recipient:`, error);
-                        failed++;
-                        failedRecipients.push({
-                            email: recipientData.email || recipientData,
-                            name: recipientData.name || 'Unknown',
-                            reason: error.message
-                        });
-                    }
+                const success = await sendEmail(email, personalizedSubject, emailContent);
+
+                if (success) {
+                    successful++;
+                    console.log(`✅ [MAIL] Email sent to ${email}`);
+                } else {
+                    failed++;
+                    failedRecipients.push({
+                        email,
+                        name,
+                        reason: 'SMTP error'
+                    });
+                    console.log(`❌ [MAIL] Failed to send to ${email}`);
                 }
 
-                // Log email sending activity
-                db.run(
-                    `INSERT INTO activity_logs (user_id, action, details, timestamp) 
-                     VALUES (?, ?, ?, ?)`,
-                    [
-                        req.user.userId,
-                        'SEND_BULK_EMAIL',
-                        `Sent ${successful} emails, ${failed} failed. Type: ${type}`,
-                        new Date().toISOString()
-                    ],
-                    (logErr) => {
-                        if (logErr) {
-                            console.warn('Failed to log email activity:', logErr);
-                        }
+                // Small delay to avoid rate limiting
+                await new Promise(resolve => setTimeout(resolve, 500));
 
-                        res.json({
-                            success: true,
-                            message: `Email campaign completed. Sent: ${successful}, Failed: ${failed}`,
-                            stats: {
-                                successful,
-                                failed,
-                                total: recipients.length,
-                                failedRecipients: failed > 0 ? failedRecipients : []
-                            }
-                        });
-                    }
-                );
-            })();
+            } catch (error) {
+                console.error(`❌ [MAIL] Error sending email to recipient:`, error.message);
+                failed++;
+                failedRecipients.push({
+                    email: recipientData.email || recipientData,
+                    name: recipientData.name || 'Unknown',
+                    reason: error.message
+                });
+            }
+        }
+
+        console.log(`📊 [MAIL] Campaign completed: ${successful} sent, ${failed} failed`);
+
+        // Log email sending activity
+        try {
+            await dbRun(
+                `INSERT INTO activity_logs (user_id, action, details) 
+                 VALUES (?, ?, ?)`,
+                [
+                    req.user.id,
+                    'SEND_BULK_EMAIL',
+                    `Sent ${successful} emails, ${failed} failed. Type: ${type}`
+                ]
+            );
+            console.log('✅ [MAIL] Activity logged');
+        } catch (logErr) {
+            console.warn('⚠️ [MAIL] Failed to log email activity:', logErr.message);
+            // Don't fail the response if logging fails
+        }
+
+        res.json({
+            success: true,
+            message: `Email campaign completed. Sent: ${successful}, Failed: ${failed}`,
+            stats: {
+                successful,
+                failed,
+                total: recipients.length,
+                failedRecipients: failed > 0 ? failedRecipients : []
+            }
         });
     } catch (error) {
-        console.error('Error sending bulk emails:', error);
+        console.error('❌ [MAIL] Error in send-bulk endpoint:', error.message);
+        console.error('❌ [MAIL] Stack trace:', error.stack);
         res.status(500).json({
             success: false,
             message: 'Failed to send bulk emails',

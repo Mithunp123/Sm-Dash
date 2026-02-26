@@ -33,24 +33,35 @@ export const sendEmail = async (to, subject, html) => {
     const transporter = createTransporter();
 
     if (!transporter) {
-        console.warn('⚠ SMTP not configured. Please set SMTP_HOST, SMTP_USER, and SMTP_PASS.');
+        console.error('❌ SMTP not configured! Missing env variables:');
+        console.error('   - SMTP_HOST:', process.env.SMTP_HOST ? '✓' : '✗');
+        console.error('   - SMTP_USER:', process.env.SMTP_USER ? '✓' : '✗');
+        console.error('   - SMTP_PASS:', process.env.SMTP_PASS ? '✓' : '✗');
+        console.error('   - SMTP_PORT:', process.env.SMTP_PORT ? '✓' : '✗');
         return false;
     }
 
     try {
+        // Verify connection before sending
         await transporter.verify();
+        console.log('✓ SMTP connection verified');
 
-        await transporter.sendMail({
+        const result = await transporter.sendMail({
             from: process.env.SMTP_FROM || process.env.SMTP_USER,
             to,
             subject,
             html,
         });
 
-        console.log(`✓ Email sent successfully to ${to}`);
+        console.log(`✓ Email sent successfully to ${to} (Message ID: ${result.messageId})`);
         return true;
     } catch (error) {
-        console.error(`✗ Failed to send email to ${to}:`, error.message);
+        console.error(`✗ Failed to send email to ${to}:`);
+        console.error(`   Error: ${error.message}`);
+        console.error(`   Code: ${error.code}`);
+        if (error.response) {
+            console.error(`   Response: ${error.response}`);
+        }
         return false;
     }
 };

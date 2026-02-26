@@ -357,24 +357,23 @@ const OfficeBearerProfile = () => {
                       {profileData.email}
                     </p>
                   </div>
-                    
-                    {/* Organization/College */}
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-muted-foreground">
-                        {profileData.email || 'Update your profile'}
-                      </p>
-                      {!isEditing && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setIsEditing(true)}
-                          className="h-8 w-8 rounded-full"
-                          title="Edit Profile"
-                        >
-                          <Settings className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
+                  
+                  {/* Organization/College */}
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                      {profileData.email || 'Update your profile'}
+                    </p>
+                    {!isEditing && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setIsEditing(true)}
+                        className="h-8 w-8 rounded-full"
+                        title="Edit Profile"
+                      >
+                        <Settings className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>
