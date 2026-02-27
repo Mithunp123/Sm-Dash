@@ -72,13 +72,50 @@ const run = (db, query, params = []) => {
 router.get('/', authenticateToken, requireRole('admin'), async (req, res) => {
   try {
     const db = getDatabase();
-    const users = await all(db, 'SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC');
+    const users = await all(db, 'SELECT id, name, email, role, is_interviewer, created_at FROM users ORDER BY created_at DESC');
     res.json({ success: true, users });
   } catch (error) {
     console.error('Get users error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
+// Get only users marked as interviewers (for mentor assignment dropdown)
+router.get('/interviewers', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const db = getDatabase();
+    const interviewers = await all(db, `
+      SELECT u.id, u.name, u.email, u.role, u.is_interviewer,
+             p.dept, p.phone
+      FROM users u
+      LEFT JOIN profiles p ON u.id = p.user_id
+      WHERE u.is_interviewer = 1
+      ORDER BY u.name ASC
+    `);
+    res.json({ success: true, users: interviewers });
+  } catch (error) {
+    console.error('Get interviewers error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Toggle interviewer flag (Admin only)
+router.patch('/:id/toggle-interviewer', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = getDatabase();
+    const user = await get(db, 'SELECT id, name, is_interviewer FROM users WHERE id = ?', [id]);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    const newValue = user.is_interviewer ? 0 : 1;
+    await run(db, 'UPDATE users SET is_interviewer = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [newValue, id]);
+    res.json({ success: true, is_interviewer: newValue, message: newValue ? `${user.name} marked as interviewer` : `${user.name} removed from interviewers` });
+  } catch (error) {
+    console.error('Toggle interviewer error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 
 // Get contacts (admins and office bearers) - accessible by any authenticated user
 // This allows students to see who they can message
@@ -204,10 +241,18 @@ router.put('/:id', authenticateToken, [
       }
     }
 
-    // If role change requested, ensure requester is admin
+    // If role change requested, ensure requester has permission.
+    // Admins can set any role. Office bearers may promote students to 'office_bearer' only.
     if (role !== undefined) {
-      if (req.user.role !== 'admin') {
-        return res.status(403).json({ success: false, message: 'Only admins can change roles' });
+      if (req.user.role === 'admin') {
+        // allowed
+      } else if (req.user.role === 'office_bearer') {
+        // allow only promoting a student to office_bearer
+        if (role !== 'office_bearer') {
+          return res.status(403).json({ success: false, message: 'Office bearers can only promote users to office_bearer' });
+        }
+      } else {
+        return res.status(403).json({ success: false, message: 'Only admins or office bearers can change roles' });
       }
     }
 

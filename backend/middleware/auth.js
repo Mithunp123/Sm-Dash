@@ -15,8 +15,15 @@ const get = (db, query, params = []) => {
 
 export const authenticateToken = async (req, res, next) => {
   try {
+    // allow token in header or query parameter for file downloads
+    let token = null;
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    if (authHeader) {
+      token = authHeader.split(' ')[1];
+    }
+    if (!token && req.query && req.query.token) {
+      token = req.query.token;
+    }
 
     if (!token) {
       return res.status(401).json({ success: false, message: 'Access token required' });

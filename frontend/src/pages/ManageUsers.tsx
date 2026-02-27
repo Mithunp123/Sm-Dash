@@ -50,10 +50,10 @@ const ManageUsers = () => {
 
   const { permissions, loading: permissionsLoading } = usePermissions();
   const userIsAdmin = auth.hasRole('admin');
-  // Check for _edit permission specifically for edit operations
-  const canEdit = userIsAdmin || permissions?.can_manage_users_edit;
-  // Allow view if user has view OR edit permission
-  const canView = userIsAdmin || permissions?.can_manage_users_view || permissions?.can_manage_users_edit || permissions?.can_manage_users;
+  // Only admins can edit
+  const canEdit = userIsAdmin;
+  // Only admins may view
+  const canView = userIsAdmin;
 
   useEffect(() => {
     if (!auth.isAuthenticated()) {
@@ -63,7 +63,7 @@ const ManageUsers = () => {
 
     if (permissionsLoading) return;
 
-    if (!userIsAdmin) {
+    if (!canView) {
       toast.error("Access denied. Management access required.");
       const userRole = auth.getRole();
       navigate(userRole === 'office_bearer' ? "/office-bearer" : "/login");
@@ -148,7 +148,8 @@ const ManageUsers = () => {
         },
         body: JSON.stringify({
           name: formData.name,
-          email: formData.email
+          email: formData.email,
+          role: formData.role
         })
       });
 
@@ -300,6 +301,23 @@ const ManageUsers = () => {
     }
   };
 
+  const handleToggleInterviewer = async (user: any) => {
+    try {
+      const response = await api.toggleInterviewer(user.id);
+      if (response.success) {
+        toast.success(response.message);
+        // Update local state immediately
+        setUsers((prev: any[]) => prev.map((u: any) =>
+          u.id === user.id ? { ...u, is_interviewer: response.is_interviewer } : u
+        ));
+      } else {
+        toast.error(response.message || 'Failed to toggle interviewer status');
+      }
+    } catch (error: any) {
+      toast.error('Error: ' + error.message);
+    }
+  };
+
   const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -386,20 +404,24 @@ const ManageUsers = () => {
                 <p className="page-subtitle border-l-4 border-primary/30 pl-3 mt-2">Manage platform access and permissions</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto items-stretch sm:items-center">
-                <Button onClick={() => setShowAddDialog(true)} className="gap-2 h-10 px-4 rounded-md font-semibold bg-primary text-sm">
-                  <Plus className="w-4 h-4" />
-                  Add User
-                </Button>
-                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                  <Button onClick={downloadTemplate} variant="outline" className="flex-1 sm:flex-none gap-2 h-10 rounded-md font-semibold text-sm px-4">
-                    <Upload className="w-4 h-4" />
-                    Template
-                  </Button>
-                  <Button onClick={() => setShowImportDialog(true)} variant="outline" className="flex-1 sm:flex-none gap-2 h-10 rounded-md font-semibold text-sm px-4">
-                    <Upload className="w-4 h-4" />
-                    Import Users
-                  </Button>
-                </div>
+                {canEdit && (
+                  <>
+                    <Button onClick={() => setShowAddDialog(true)} className="gap-2 h-10 px-4 rounded-md font-semibold bg-primary text-sm">
+                      <Plus className="w-4 h-4" />
+                      Add User
+                    </Button>
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                      <Button onClick={downloadTemplate} variant="outline" className="flex-1 sm:flex-none gap-2 h-10 rounded-md font-semibold text-sm px-4">
+                        <Upload className="w-4 h-4" />
+                        Template
+                      </Button>
+                      <Button onClick={() => setShowImportDialog(true)} variant="outline" className="flex-1 sm:flex-none gap-2 h-10 rounded-md font-semibold text-sm px-4">
+                        <Upload className="w-4 h-4" />
+                        Import Users
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -466,7 +488,7 @@ const ManageUsers = () => {
                     </CardHeader>
 
                     <CardContent className="flex flex-col flex-1 justify-end">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
                         <Button
                           variant="outline"
                           size="sm"
@@ -491,35 +513,52 @@ const ManageUsers = () => {
                           <RefreshCw className="w-3 h-3" />
                           Reset
                         </Button>
+                        {/* Interviewer toggle */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleToggleInterviewer(user)}
+                          title={user.is_interviewer ? 'Remove from interviewers' : 'Mark as interviewer'}
+                          className={`h-8 rounded-xl font-black text-[9px] uppercase tracking-widest border-2 transition-all gap-1.5 ${user.is_interviewer
+                              ? 'bg-cyan-500/15 border-cyan-500 text-cyan-500 hover:bg-cyan-500/25'
+                              : 'hover:bg-cyan-500/10 hover:text-cyan-500 hover:border-cyan-500/50'
+                            }`}
+                        >
+                          🎤 {user.is_interviewer ? 'Interviewer ✓' : 'Interviewer'}
+                        </Button>
                       </div>
 
                       <div className="flex gap-2 pt-4 border-t border-border/50 mt-auto">
-                        <Button
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setFormData({
-                              name: user.name,
-                              email: user.email,
-                              role: user.role,
-                              password: ""
-                            });
-                            setShowEditDialog(true);
-                          }}
-                          className="flex-1 h-9 rounded-xl font-black text-[10px] uppercase tracking-widest bg-primary hover:bg-primary/90 transition-all"
-                        >
-                          Edit Profile
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setShowDeleteDialog(true);
-                          }}
-                          className="h-9 w-9 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        {canEdit && (
+                          <>
+                            <Button
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setFormData({
+                                  name: user.name,
+                                  email: user.email,
+                                  role: user.role,
+                                  password: ""
+                                });
+                                setShowEditDialog(true);
+                              }}
+                              className="flex-1 h-9 rounded-xl font-black text-[10px] uppercase tracking-widest bg-primary hover:bg-primary/90 transition-all"
+                            >
+                              Edit Profile
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setShowDeleteDialog(true);
+                              }}
+                              className="h-9 w-9 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -720,11 +759,17 @@ const ManageUsers = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label>Role</Label>
-              <Badge variant={getRoleBadgeColor(selectedUser?.role)}>
-                {selectedUser?.role?.replace('_', ' ').toUpperCase()}
-              </Badge>
-              <p className="text-xs text-muted-foreground">Role cannot be changed</p>
+              <Label htmlFor="edit-role">Role</Label>
+              <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+                <SelectTrigger id="edit-role">
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="office_bearer">Office Bearer</SelectItem>
+                  <SelectItem value="student">Student</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex gap-2 justify-end">
               <Button type="button" variant="outline" onClick={() => {

@@ -247,9 +247,12 @@ const ManageMeetings = () => {
 
           {/* Page Header */}
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 px-2">
-            <div>
-              <h1 className="page-title">Meetings & Days</h1>
-              <p className="page-subtitle border-l-4 border-primary/30 pl-3 mt-2">Schedule community gatherings and observe special occasions</p>
+            <div className="flex items-center gap-4">
+              <img src="/Images/Brand_logo.png" alt="SM Logo" className="h-12 w-auto" />
+              <div>
+                <h1 className="page-title">Meetings & Days</h1>
+                <p className="page-subtitle border-l-4 border-primary/30 pl-3 mt-2">Schedule community gatherings and observe special occasions</p>
+              </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto items-stretch sm:items-center">
               <Button

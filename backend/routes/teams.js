@@ -265,13 +265,19 @@ router.get('/:id', authenticateToken, requirePermission('can_manage_teams', { al
   }
 });
 
-// Create team (management only)
-router.post('/', authenticateToken, requirePermission('can_manage_teams', { requireEdit: true }), async (req, res) => {
+// Create team - only allow admin or office_bearer to create teams (students removed)
+router.post('/', authenticateToken, async (req, res) => {
   try {
     const db = getDatabase();
     const { name, description } = req.body;
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, message: 'Team name is required' });
+    }
+
+    const user = req.user;
+    // Only admin and office_bearer may create teams now
+    if (!user || !['admin', 'office_bearer'].includes(user.role)) {
+      return res.status(403).json({ success: false, message: 'Permission denied' });
     }
 
     const result = await run(db,
@@ -280,6 +286,25 @@ router.post('/', authenticateToken, requirePermission('can_manage_teams', { requ
     );
 
     const team = await get(db, 'SELECT * FROM teams WHERE id = ?', [result.lastID]);
+
+    // If a student created the team, automatically add them as the team leader
+    try {
+      if (user.role === 'student') {
+        await run(db,
+          'INSERT INTO team_members (team_id, user_id, role) VALUES (?, ?, ?)',
+          [result.lastID, user.id, 'leader']
+        );
+      } else if (user.role === 'admin' || user.role === 'office_bearer') {
+        // For management creators, also add as leader by default
+        await run(db,
+          'INSERT INTO team_members (team_id, user_id, role) VALUES (?, ?, ?)',
+          [result.lastID, user.id, 'leader']
+        );
+      }
+    } catch (memberErr) {
+      console.warn('Failed to add creator as team leader:', memberErr);
+    }
+
     res.json({ success: true, team });
   } catch (error) {
     console.error('Create team error:', error);

@@ -55,7 +55,16 @@ const AssignProjectStudents = () => {
             }
 
             if (allStudentsRes.success) {
-                const all = allStudentsRes.users || allStudentsRes.students || [];
+                let all = allStudentsRes.users || allStudentsRes.students || [];
+                // If scoped call returned empty (sometimes session info missing), try a broader users call
+                if ((!all || all.length === 0) && typeof api.getUsers === 'function') {
+                    try {
+                        const usersFallback = await api.getUsers();
+                        all = usersFallback.users || usersFallback.students || [];
+                    } catch (e) {
+                        // ignore fallback failures - we'll continue with whatever we have
+                    }
+                }
                 // Filter only students
                 setStudents(all.filter((u: any) => u.role === 'student'));
             }

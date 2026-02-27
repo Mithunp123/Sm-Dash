@@ -244,6 +244,17 @@ class ApiClient {
     return { success: true, users: [] };
   }
 
+  // Get only users flagged as interviewers (for mentor assignment dropdown)
+  async getInterviewers() {
+    return this.request('/users/interviewers');
+  }
+
+  // Toggle the is_interviewer flag for a user
+  async toggleInterviewer(userId: number) {
+    return this.request(`/users/${userId}/toggle-interviewer`, { method: 'PATCH' });
+  }
+
+
   async getPermissionUsers() {
     if (!this.token) {
       console.warn('Skipping /permissions/users call: no auth token present');
@@ -871,11 +882,15 @@ class ApiClient {
   }
 
   // Submit interview marks (mentor only, one-time submission)
-  async submitInterviewMarks(candidateId: number, data: { marks: number; remarks?: string }) {
+  async submitInterviewMarks(candidateId: number, data: { marks: number; remarks?: string; decision?: string }) {
     return this.request(`/interviews/${candidateId}/submit-marks`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  async deleteCandidate(id: number) {
+    return this.request(`/interviews/${id}`, { method: 'DELETE' });
   }
 
   // Assign mentor to candidate (admin only)
@@ -887,7 +902,7 @@ class ApiClient {
   }
 
   // Send bulk email via SMTP
-  async sendBulkEmail(data: { recipients: Array<{email: string; name: string}> | string[]; subject: string; body: string; html?: boolean; priority?: number; type: string }) {
+  async sendBulkEmail(data: { recipients: Array<{ email: string; name: string }> | string[]; subject: string; body: string; html?: boolean; priority?: number; type: string }) {
     return this.request('/mail/send-bulk', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -1355,6 +1370,10 @@ class ApiClient {
   // Office Bearers endpoints
   async getOfficeBearers() {
     return this.request('/office-bearers');
+  }
+
+  async getAssignedMentors() {
+    return this.request('/interviews/mentors');
   }
 
   async getPublicOfficeBearers() {

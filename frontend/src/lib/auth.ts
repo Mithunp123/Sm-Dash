@@ -5,10 +5,12 @@ export interface User {
   name: string;
   email: string;
   role: 'admin' | 'office_bearer' | 'student';
+  is_interviewer?: boolean;
   mustChangePassword?: boolean;
   // Optional profile photo URL used for avatars/header
   photo_url?: string | null;
 }
+
 
 export const auth = {
   getUser(): User | null {
@@ -46,6 +48,18 @@ export const auth = {
   logout() {
     api.logout();
     sessionStorage.removeItem('auth_user');
+
+    try {
+      // Notify any listeners that auth changed
+      window.dispatchEvent(new Event('authChanged'));
+      // Ensure the app lands on a fresh login page after logout
+      const loginUrl = `${window.location.origin}/login`;
+      // Use replace to avoid adding a history entry for the protected page
+      window.location.replace(loginUrl);
+    } catch (err) {
+      // If running in a non-browser environment or any error occurs, ignore
+      console.warn('auth.logout: unable to navigate to login', err);
+    }
   },
 
   getRole(): User['role'] | null {

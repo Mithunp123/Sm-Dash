@@ -91,90 +91,89 @@ const Resources = () => {
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto">
           <div className="p-6 md:p-8 w-full px-4 md:px-6 lg:px-8">
+            <div className="w-full">
 
-            {/* Page Header */}
-            <div className="mb-6 flex items-center justify-between">
+              {/* Page Header */}
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <h1 className="page-title mb-1">Resources</h1>
+                  <p className="page-subtitle">Access study materials, guides, and documentation</p>
+                </div>
+              </div>
+
+              {/* Resources List */}
               <div>
-                <h1 className="page-title mb-1">Resources</h1>
-                <p className="page-subtitle">Access study materials, guides, and documentation</p>
-              </div>
-
-            </div>
-
-            {/* Resources List */}
-            <div>
-              <div className="mb-6">
-                <h2 className="section-title">All Resources</h2>
-                <p className="body-text-sm mt-2">{filteredFiles.length} {filteredFiles.length === 1 ? 'resource' : 'resources'} available</p>
-              </div>
-
-              {loading ? (
-                <div className="flex justify-center items-center py-16">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <div className="mb-6">
+                  <h2 className="section-title">All Resources</h2>
+                  <p className="body-text-sm mt-2">{filteredFiles.length} {filteredFiles.length === 1 ? 'resource' : 'resources'} available</p>
                 </div>
-              ) : filteredFiles.length === 0 ? (
-                <Card className="border-0 shadow-md bg-white dark:bg-slate-800">
-                  <CardContent className="p-12 text-center">
-                    <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                    <p className="text-muted-foreground text-lg">
-                      No resources available yet
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredFiles.map((f) => (
-                    <Card key={f.id} className="border-0 shadow-md hover:shadow-lg transition-all bg-white dark:bg-slate-800">
-                      <CardHeader className="border-b border-border/10 pb-4">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex items-start gap-3 flex-1 min-w-0">
-                            {/* SM Logo Icon */}
-                            <div className="w-12 h-12 flex-shrink-0 bg-gradient-to-br from-orange-500/20 to-rose-500/20 rounded-lg flex items-center justify-center border-2 border-orange-200 dark:border-orange-800">
-                              <img
-                                src="/Images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
-                                alt="SM Logo"
-                                className="w-8 h-8 object-contain"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                }}
-                              />
+
+                {loading ? (
+                  <div className="flex justify-center items-center py-16">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  </div>
+                ) : filteredFiles.length === 0 ? (
+                  <Card className="border-0 shadow-md bg-white dark:bg-slate-800">
+                    <CardContent className="p-12 text-center">
+                      <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                      <p className="text-muted-foreground text-lg">No resources available yet</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 justify-center">
+                    {filteredFiles.map((f) => (
+                      <Card key={f.id} className="border-0 shadow-md hover:shadow-lg transition-all bg-white dark:bg-slate-800 max-w-lg mx-auto">
+                        <CardHeader className="border-b border-border/10 pb-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                              {/* SM Logo Icon */}
+                              <div className="w-12 h-12 flex-shrink-0 bg-gradient-to-br from-orange-500/20 to-rose-500/20 rounded-lg flex items-center justify-center border-2 border-orange-200 dark:border-orange-800">
+                                <img
+                                  src="/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png"
+                                  alt="SM Logo"
+                                  className="w-8 h-8 object-contain"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.src = '/images/Brand_logo.png';
+                                  }}
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <CardTitle className="truncate text-base">{f.title || f.original_name}</CardTitle>
+                                <CardDescription className="text-xs mt-1">
+                                  {f.created_at ? new Date(f.created_at).toLocaleDateString() : 'Unknown date'}
+                                  {f.resource_type && ` • ${f.resource_type}`}
+                                </CardDescription>
+                              </div>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <CardTitle className="truncate text-base">{f.title || f.original_name}</CardTitle>
-                              <CardDescription className="text-xs mt-1">
-                                {f.created_at ? new Date(f.created_at).toLocaleDateString() : 'Unknown date'}
-                                {f.resource_type && ` • ${f.resource_type}`}
-                              </CardDescription>
-                            </div>
+                            <Badge variant="secondary" className="flex-shrink-0">
+                              {friendlyType(f.mime_type)}
+                            </Badge>
                           </div>
-                          <Badge variant="secondary" className="flex-shrink-0">
-                            {friendlyType(f.mime_type)}
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-4">
-                        <div className="flex gap-2">
-                          {f.url && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="w-full gap-2"
-                              onClick={() => {
-                                setSelectedResource(f);
-                                setShowPDFViewer(true);
-                              }}
-                            >
-                              <Eye className="w-4 h-4" />
-                              View
-                            </Button>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
+                        </CardHeader>
+                        <CardContent className="p-4">
+                          <div className="flex gap-2">
+                            {f.url && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full gap-2 text-foreground"
+                                onClick={() => {
+                                  setSelectedResource(f);
+                                  setShowPDFViewer(true);
+                                }}
+                              >
+                                <Eye className="w-4 h-4" />
+                                View
+                              </Button>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </main>

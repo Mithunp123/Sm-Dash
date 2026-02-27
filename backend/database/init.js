@@ -519,6 +519,61 @@ export const initDatabase = async () => {
       )
     `);
 
+    // MOM (Minutes of Meeting) tables
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS mom_meetings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT,
+        date DATETIME,
+        time TEXT,
+        venue TEXT,
+        organizer_id INTEGER,
+        status TEXT DEFAULT 'draft' CHECK(status IN ('draft', 'final')),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (organizer_id) REFERENCES users(id)
+      )
+    `);
+
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS mom_attendance (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        mom_id INTEGER NOT NULL,
+        user_id INTEGER,
+        serial INTEGER,
+        name TEXT,
+        designation TEXT,
+        department TEXT,
+        year TEXT,
+        signature TEXT,
+        FOREIGN KEY (mom_id) REFERENCES mom_meetings(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      )
+    `);
+    // ensure year and user_id columns exist even on older DBs
+    try {
+      await run(database, `ALTER TABLE mom_attendance ADD COLUMN year TEXT`);
+    } catch (e) {
+      // ignore if already exists
+    }
+    try {
+      await run(database, `ALTER TABLE mom_attendance ADD COLUMN user_id INTEGER`);
+    } catch (e) {
+      // ignore if already exists
+    }
+
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS mom_points (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        mom_id INTEGER NOT NULL,
+        point_no INTEGER,
+        title TEXT,
+        discussion TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (mom_id) REFERENCES mom_meetings(id) ON DELETE CASCADE
+      )
+    `);
+
     // Bill folders table
     await run(database, `
       CREATE TABLE IF NOT EXISTS bill_folders (
@@ -804,11 +859,15 @@ export const initDatabase = async () => {
         dept TEXT,
         year TEXT,
         register_no TEXT UNIQUE NOT NULL,
-        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'interviewed', 'selected', 'rejected')),
+        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'assigned', 'interviewed', 'selected', 'rejected', 'completed')),
         marks INTEGER DEFAULT 0,
         interviewer TEXT,
+        interviewer_email TEXT,
+        mentor_id INTEGER,
         interview_date DATE,
         interview_time TIME,
+        remarks TEXT,
+        decision TEXT,
         email_sent INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
@@ -816,8 +875,66 @@ export const initDatabase = async () => {
 
     await addColumnSafe(database, 'interview_candidates', 'email_sent', 'INTEGER DEFAULT 0');
     await addColumnSafe(database, 'interview_candidates', 'interviewer', 'TEXT');
+    await addColumnSafe(database, 'interview_candidates', 'interviewer_email', 'TEXT');
+    await addColumnSafe(database, 'interview_candidates', 'mentor_id', 'INTEGER');
     await addColumnSafe(database, 'interview_candidates', 'interview_date', 'DATE');
     await addColumnSafe(database, 'interview_candidates', 'interview_time', 'TIME');
+    await addColumnSafe(database, 'interview_candidates', 'remarks', 'TEXT');
+    await addColumnSafe(database, 'interview_candidates', 'decision', 'TEXT');
+    await addColumnSafe(database, 'interview_candidates', 'role', "TEXT DEFAULT 'volunteer'");
+    await addColumnSafe(database, 'interview_candidates', 'attendance', "TEXT DEFAULT 'present'");
+
+    // Add is_interviewer flag to users table
+    await addColumnSafe(database, 'users', 'is_interviewer', 'INTEGER DEFAULT 0');
+
+    // Check and correct status constraint if legacy schema
+    if (process.env.DB_TYPE === 'mysql') {
+      // Drop existing check if present then add updated constraint
+      try {
+        await run(database, "ALTER TABLE interview_candidates DROP CHECK interview_candidates_chk_1");
+      } catch (e) {
+        // may fail if constraint doesn't exist, ignore
+      }
+      await run(database, "ALTER TABLE interview_candidates ADD CONSTRAINT interview_candidates_chk_1 CHECK(status IN ('pending','assigned','interviewed','selected','rejected','completed'))");
+    } else {
+      // SQLite - detect if the create SQL includes the new values
+      const row = await get(database, "SELECT sql FROM sqlite_master WHERE type='table' AND name='interview_candidates'");
+      if (row && row.sql && !row.sql.includes("'assigned'")) {
+        console.log('Rebuilding interview_candidates table to update status constraint');
+        // rename old table
+        await run(database, "ALTER TABLE interview_candidates RENAME TO _interview_candidates_old");
+        // recreate with correct schema
+        await run(database, `
+      CREATE TABLE interview_candidates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        phone TEXT,
+        dept TEXT,
+        year TEXT,
+        register_no TEXT UNIQUE NOT NULL,
+        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'assigned', 'interviewed', 'selected', 'rejected', 'completed')),
+        marks INTEGER DEFAULT 0,
+        interviewer TEXT,
+        interviewer_email TEXT,
+        mentor_id INTEGER,
+        interview_date DATE,
+        interview_time TIME,
+        remarks TEXT,
+        email_sent INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+            `);
+        // copy data
+        await run(database, `
+      INSERT INTO interview_candidates (id,name,email,phone,dept,year,register_no,status,marks,interviewer,interviewer_email,mentor_id,interview_date,interview_time,remarks,email_sent,created_at)
+      SELECT id,name,email,phone,dept,year,register_no,status,marks,interviewer,interviewer_email,mentor_id,interview_date,interview_time,remarks,email_sent,created_at
+      FROM _interview_candidates_old
+            `);
+        // drop old table
+        await run(database, "DROP TABLE _interview_candidates_old");
+      }
+    }
 
     // console.log('Creating: feedback_questions');
     // Feedback questions table

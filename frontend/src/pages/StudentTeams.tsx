@@ -58,6 +58,7 @@ const StudentTeams = () => {
   // Create Team State
   const [showCreateTeam, setShowCreateTeam] = useState(false);
   const [createTeamForm, setCreateTeamForm] = useState({ name: "", description: "" });
+  const currentUser = auth.getUser();
 
   useEffect(() => {
     if (!auth.isAuthenticated() || !auth.hasRole('student')) {
@@ -457,10 +458,12 @@ const StudentTeams = () => {
               <h1 className="text-3xl font-bold tracking-tight">My Teams</h1>
               <p className="text-muted-foreground">View your teams and assignments</p>
             </div>
-            <Button onClick={() => setShowCreateTeam(true)} className="gap-2 shrink-0">
-              <Plus className="w-4 h-4" />
-              Create New Team
-            </Button>
+            {currentUser?.role && currentUser.role !== 'student' && (
+              <Button onClick={() => setShowCreateTeam(true)} className="gap-2 shrink-0">
+                <Plus className="w-4 h-4" />
+                Create New Team
+              </Button>
+            )}
           </div>
 
           {/* Tabs */}
@@ -788,7 +791,8 @@ const StudentTeams = () => {
       </Dialog>
 
       {/* Create Team Modal */}
-      <Dialog open={showCreateTeam} onOpenChange={setShowCreateTeam}>
+      {currentUser?.role && currentUser.role !== 'student' && (
+        <Dialog open={showCreateTeam} onOpenChange={setShowCreateTeam}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create New Team</DialogTitle>
@@ -822,6 +826,7 @@ const StudentTeams = () => {
           </div>
         </DialogContent>
       </Dialog>
+      )}
 
       {/* Proof Upload Modal */}
       <Dialog open={showProofModal} onOpenChange={setShowProofModal}>

@@ -84,17 +84,15 @@ const ManageStudentDatabase = () => {
     // wait for permissions to load
     if (permissionsLoading) return;
 
-    // allow admins or users with student-db/students permission
+    // allow admins and office_bearers to view (admins can edit)
     const userIsAdmin = auth.hasRole('admin');
-    const allowed = userIsAdmin || permissions?.can_manage_student_db || permissions?.can_manage_students;
+    const allowed = userIsAdmin || user?.role === 'office_bearer' || permissions?.can_manage_student_db || permissions?.can_manage_students;
     if (!allowed) {
-      if (user?.role === 'office_bearer') {
-        // Office Bearers should have access, so if check failed, it might be due to initial state
-        // double check if permissions are fully loaded/correct role
-        // but for now, if 'allowed' is false, we redirect
-        navigate('/office-bearer');
+      // redirect non-authorized users
+      if (user?.role === 'student') {
+        navigate('/student');
       } else {
-        navigate('/admin');
+        navigate('/login');
       }
       return;
     }

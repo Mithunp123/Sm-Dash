@@ -441,7 +441,7 @@ const Login = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      className="w-full h-12 px-4 rounded-xl bg-gradient-to-r from-white/5 to-white/3 border border-white/15 text-white placeholder-slate-500 focus:outline-none focus:border-orange-400/80 focus:ring-2 focus:ring-orange-500/30 transition-all text-sm backdrop-blur-sm shadow-sm hover:border-white/25"
+                      className="w-full h-12 px-4 rounded-xl bg-gradient-to-r from-white/15 to-white/10 border border-white/40 text-white placeholder-slate-300 focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-500/50 transition-all text-sm backdrop-blur-sm shadow-md hover:border-white/50 hover:bg-gradient-to-r hover:from-white/20 hover:to-white/15"
                     />
                   </motion.div>
                 </motion.div>
@@ -459,14 +459,14 @@ const Login = () => {
                       required
                       placeholder="Enter your password"
                       whileHover={{ scale: 1.01 }}
-                      className="w-full h-12 px-4 pr-12 rounded-xl bg-gradient-to-r from-white/5 to-white/3 border border-white/15 text-white placeholder-slate-500 focus:outline-none focus:border-orange-400/80 focus:ring-2 focus:ring-orange-500/30 transition-all text-sm backdrop-blur-sm shadow-sm hover:border-white/25"
+                      className="w-full h-12 px-4 pr-12 rounded-xl bg-gradient-to-r from-white/15 to-white/10 border border-white/40 text-white placeholder-slate-300 focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-500/50 transition-all text-sm backdrop-blur-sm shadow-md hover:border-white/50 hover:bg-gradient-to-r hover:from-white/20 hover:to-white/15"
                     />
                     <motion.button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       whileHover={{ scale: 1.15 }}
                       whileTap={{ scale: 0.95 }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-orange-400 transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-orange-400 transition-colors font-semibold"
                     >
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </motion.button>

@@ -91,16 +91,11 @@ const MailSender = () => {
         }
     };
 
-    // Toggle user selection - auto-load template based on user role
+    // Toggle user selection
     const toggleUserSelection = (user: User) => {
         if (selectedRecipients.find(r => r.id === user.id)) {
             setSelectedRecipients(selectedRecipients.filter(r => r.id !== user.id));
         } else {
-            // Auto-load template based on user's role
-            const roleTemplate = user.role === 'office_bearer' ? 'office_bearer' : 'volunteer';
-            setSelectedRoleTemplate(roleTemplate);
-            loadDraft(roleTemplate as DraftType);
-            
             setSelectedRecipients([...selectedRecipients, user]);
         }
     };
@@ -235,15 +230,26 @@ const MailSender = () => {
                                         <div className="text-xs text-foreground/70">
                                             {selectedRecipients.length} of {allUsers.length} selected
                                         </div>
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={selectAllFiltered}
-                                            className="w-full text-xs h-8"
-                                            disabled={loadingUsers}
-                                        >
-                                            Select All
-                                        </Button>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={selectAllFiltered}
+                                                className="w-full text-xs h-8"
+                                                disabled={loadingUsers}
+                                            >
+                                                Select All
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => setSelectedRecipients([])}
+                                                className="w-full text-xs h-8"
+                                                disabled={selectedRecipients.length === 0}
+                                            >
+                                                Unselect All
+                                            </Button>
+                                        </div>
                                     </div>
 
                                     {/* User list */}
@@ -320,48 +326,34 @@ const MailSender = () => {
                             {/* RIGHT: Email Composer */}
                             <div className={showUserSelector ? "lg:col-span-2" : "lg:col-span-3"}>
                                 <div className="space-y-4">
-                                    {/* Template Selection - Role Based */}
-                                    <div className="space-y-2">
-                                        <Label className="text-sm font-semibold">Template</Label>
+                                    {/* Role & Template Selection */}
+                                    <div className="space-y-3">
+                                        <Label className="text-sm font-semibold">📋 Select Role</Label>
                                         <div className="grid grid-cols-2 gap-2">
-                                            {Object.keys(templates).map((key) => (
-                                                <Button
-                                                    key={key}
-                                                    type="button"
-                                                    variant={selectedRoleTemplate === key ? 'default' : 'outline'}
-                                                    onClick={() => loadDraft(key as DraftType)}
-                                                    className="text-xs h-9"
-                                                >
-                                                    {templates[key].name}
-                                                </Button>
-                                            ))}
+                                            <Button
+                                                type="button"
+                                                variant={selectedRoleTemplate === 'volunteer' ? 'default' : 'outline'}
+                                                onClick={() => loadDraft('volunteer')}
+                                                className="text-xs h-10 font-semibold"
+                                            >
+                                                Volunteer
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant={selectedRoleTemplate === 'office_bearer' ? 'default' : 'outline'}
+                                                onClick={() => loadDraft('office_bearer')}
+                                                className="text-xs h-10 font-semibold"
+                                            >
+                                                Office Bearer
+                                            </Button>
                                         </div>
-                                        {selectedRecipients.length > 0 && (
-                                            <p className="text-xs text-muted-foreground mt-2">
-                                                💡 Templates auto-load based on recipient role
-                                            </p>
-                                        )}
+                                        <p className="text-xs text-muted-foreground">
+                                            Default: Volunteer | Switch role to change template
+                                        </p>
                                     </div>
 
-                                    {/* Priority Slider */}
-                                    <div className="space-y-2">
-                                        <div className="flex items-center justify-between">
-                                            <Label className="text-xs font-semibold">Priority</Label>
-                                            <span className="text-xs text-muted-foreground">{sliderValue[0]}%</span>
-                                        </div>
-                                        <Slider
-                                            value={sliderValue}
-                                            onValueChange={setSliderValue}
-                                            max={100}
-                                            step={1}
-                                            className="w-full"
-                                        />
-                                        <div className="flex justify-between text-xs text-muted-foreground">
-                                            <span>Low</span>
-                                            <span>Medium</span>
-                                            <span>High</span>
-                                        </div>
-                                    </div>
+                                    {/* Subject and Body */}
+                                    <div className="pt-2 border-t space-y-4">
 
                                     {/* Subject */}
                                     <div className="space-y-2">
@@ -370,8 +362,10 @@ const MailSender = () => {
                                             value={subject}
                                             onChange={(e) => setSubject(e.target.value)}
                                             placeholder="Email subject (use [Name] for personalization)"
-                                            className="h-9 text-sm"
+                                            className="h-9 text-sm bg-muted/40"
+                                            readOnly
                                         />
+                                        <p className="text-xs text-muted-foreground">Auto-loaded from template</p>
                                     </div>
 
                                     {/* Body */}
@@ -410,6 +404,7 @@ const MailSender = () => {
                                         <p className="text-xs text-muted-foreground">
                                             Use <code className="bg-muted px-1 py-0.5 rounded">[Name]</code> to personalize with recipient names
                                         </p>
+                                    </div>
                                     </div>
                                 </div>
                             </div>

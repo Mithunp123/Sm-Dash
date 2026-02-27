@@ -30,6 +30,7 @@ const OfficeBearerDashboard = () => {
     teams: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [menteesCount, setMenteesCount] = useState(0);
 
   useEffect(() => {
     if (!auth.isAuthenticated()) {
@@ -79,6 +80,7 @@ const OfficeBearerDashboard = () => {
         projectsRes,
         resourcesRes,
         teamsRes,
+        myMenteesRes,
       ] = await Promise.allSettled([
         api.getMeetings().catch((e) => ({ success: false, meetings: [], error: e.message })),
         api.getBills().catch((e) => ({ success: false, bills: [], error: e.message })),
@@ -92,6 +94,7 @@ const OfficeBearerDashboard = () => {
         fetch(`${API_BASE}/teams`, {
           headers: { Authorization: `Bearer ${auth.getToken() || ''}` },
         }).then((r) => r.json()).catch(() => ({ success: false, teams: [] })),
+        api.getMyMentees().catch((e) => ({ success: false, mentees: [], error: e.message })),
       ]);
 
       // Extract results from Promise.allSettled
@@ -103,6 +106,7 @@ const OfficeBearerDashboard = () => {
       const projects = projectsRes.status === 'fulfilled' ? projectsRes.value : { success: false, projects: [] };
       const resources = resourcesRes.status === 'fulfilled' ? resourcesRes.value : { success: false, resources: [] };
       const teams = teamsRes.status === 'fulfilled' ? teamsRes.value : { success: false, teams: [] };
+      const myMentees = myMenteesRes && myMenteesRes.status === 'fulfilled' ? myMenteesRes.value : { success: false, mentees: [] };
 
       setStats({
         volunteers: usersCount,
@@ -115,6 +119,13 @@ const OfficeBearerDashboard = () => {
         resources: resources.resources?.length || 0,
         teams: teams.teams?.length || 0,
       });
+
+      // Set mentees count if available
+      try {
+        setMenteesCount(myMentees.mentees?.length || 0);
+      } catch (e) {
+        setMenteesCount(0);
+      }
 
       // Log any errors for debugging (but don't show toasts for expected permission errors)
       const errors = [
@@ -163,22 +174,19 @@ const OfficeBearerDashboard = () => {
     <>
       <DeveloperCredit />
       <div className="w-full space-y-12 pb-20 px-4 md:px-8">
-        {/* Premium Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pt-4">
-          <div className="space-y-2">
-            <h1 className="page-title">
-              OB Control Center
+        {/* Welcome Section (admin-style gradient) */}
+        <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-primary via-primary/95 to-primary/90 p-6 md:p-12 shadow-lg border border-primary/20">
+          <div className="relative z-10 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/20 text-white text-xs font-semibold backdrop-blur-sm mb-4 border border-white/30">
+              <Star className="w-3 h-3 text-white" />
+              <span>Office Bearer Dashboard</span>
+            </div>
+            <h1 className="page-title text-white mb-3">
+              Welcome back, <span className="text-white font-extrabold">{user?.name || 'Office Bearer'}</span>
             </h1>
-            <p className="page-subtitle flex items-center gap-2">
-              <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
-              Welcome back, <span className="text-foreground font-semibold">{user?.name || 'Office Bearer'}</span>
+            <p className="page-subtitle text-white/90">
+              Here's what's happening with your volunteers today.
             </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <Button variant="outline" className="rounded-full h-11 px-6 font-bold uppercase text-xs tracking-widest border-primary/20 hover:bg-primary/5 hover:border-primary/40 shadow-sm transition-all" onClick={() => navigate("/office-bearer/profile")}>
-              <UserCircle className="w-4 h-4 mr-2" />
-              View Profile
-            </Button>
           </div>
         </div>
 
@@ -245,6 +253,9 @@ const OfficeBearerDashboard = () => {
                       </Button>
                       <Button variant="outline" className="bg-transparent border-white/20 text-foreground hover:bg-white/10 font-bold uppercase tracking-widest text-xs rounded-2xl h-12 px-8" onClick={() => navigate("/admin/meetings")}>
                         Schedule Meet
+                      </Button>
+                      <Button variant="ghost" className="font-semibold rounded-2xl h-12 px-6" onClick={() => navigate('/office-bearer/mentees')}>
+                        My Mentees ({menteesCount})
                       </Button>
                     </div>
                   </div>

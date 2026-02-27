@@ -39,6 +39,8 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
     { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
     { icon: Users, label: "Manage Users", path: "/admin/users" },
     { icon: UserCheck, label: "Interview Candidates", path: "/admin/interviews" },
+    // Only show "My Interviews" if user is flagged as an interviewer
+    ...(user?.is_interviewer ? [{ icon: UserCheck, label: "My Interviews", path: "/mentor/interviews" }] : []),
     { icon: UsersRound, label: "Manage Office Bearers", path: "/admin/office-bearers" },
     { icon: Users, label: "Student Database", path: "/admin/student-db" },
     { icon: Briefcase, label: "Manage Projects", path: "/admin/projects" },
@@ -50,6 +52,7 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
     { icon: FileText, label: "Bills", path: "/admin/bills" },
     { icon: FileText, label: "Resources", path: "/admin/resources" },
     { icon: FileBarChart, label: "Reports", path: "/admin/reports" },
+    { icon: FileText, label: "Minutes of Meeting", path: "/admin/minutes" },
     { icon: UsersRound, label: "Teams", path: "/admin/teams" },
     { icon: Users, label: "Volunteer Submissions", path: "/admin/volunteers" },
     { icon: MessageSquare, label: "Messages", path: "/admin/messages" },
@@ -62,17 +65,19 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
   ];
 
   const getOfficeBearerMenuItems = () => {
-    return [
+    const items = [
       { icon: LayoutDashboard, label: "Dashboard", path: "/office-bearer" },
-      { icon: UserCheck, label: "My Interviews", path: "/mentor/interviews" },
-      { icon: Users, label: "Student Database", path: "/admin/student-db" },
+      // Only show "My Interviews" if user is flagged as an interviewer
+      ...(user?.is_interviewer ? [{ icon: UserCheck, label: "My Interviews", path: "/mentor/interviews" }] : []),
       { icon: Briefcase, label: "Manage Projects", path: "/admin/projects" },
+      { icon: Users, label: "Student Database", path: "/admin/student-db" },
       { icon: Calendar, label: "Meetings", path: "/admin/meetings" },
       { icon: Calendar, label: "Events", path: "/admin/events" },
       { icon: ClipboardCheck, label: "Attendance", path: "/admin/attendance" },
       { icon: FileText, label: "Bills", path: "/admin/bills" },
       { icon: FileText, label: "Resources", path: "/admin/resources" },
       { icon: FileBarChart, label: "Reports", path: "/admin/reports" },
+      { icon: FileText, label: "Minutes of Meeting", path: "/admin/minutes" },
       { icon: UsersRound, label: "Teams", path: "/admin/teams" },
       { icon: Megaphone, label: "Announcements", path: "/admin/announcements" },
       { icon: MessageSquare, label: "Messages", path: "/admin/messages" },
@@ -80,7 +85,9 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
       { icon: UserCircle, label: "My Profile", path: "/office-bearer/profile" },
       { icon: Settings, label: "Settings", path: "/office-bearer/settings" },
     ];
+    return items;
   };
+
 
 
 

@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import MainLayout from "@/components/layout/MainLayout";
 import Index from "./pages/Index";
@@ -30,6 +30,22 @@ import ManageStudentDatabase from "./pages/ManageStudentDatabase";
 import ManageProjects from "./pages/ManageProjects";
 import AssignProjectStudents from "./pages/AssignProjectStudents";
 import ProjectDetails from "./pages/ProjectDetails";
+
+// helper redirect component for legacy /mom paths
+const RedirectMom: React.FC = () => {
+  const { pathname } = useLocation();
+  // match /mom/:id or /mom
+  const parts = pathname.split('/');
+  let id = '';
+  if (parts.length >= 3 && parts[1] === 'mom') {
+    id = parts[2];
+  }
+  // don't redirect with literal ":id" or empty
+  if (id === ':id' || !id) {
+    return <Navigate to="/admin/minutes" replace />;
+  }
+  return <Navigate to={`/admin/minutes/${id}`} replace />;
+};
 import ManageOfficeBearers from "./pages/ManageOfficeBearers";
 import ManageAttendance from "./pages/ManageAttendance";
 import AttendanceDetails from "./pages/AttendanceDetails";
@@ -51,6 +67,8 @@ import ManageAwards from "./pages/ManageAwards";
 import AdminResources from "./pages/AdminResources";
 import Resources from "./pages/Resources";
 import Reports from "./pages/Reports";
+import MinutesOfMeeting from "./pages/MinutesOfMeeting";
+import OfficeBearerMentees from "./pages/OfficeBearerMentees";
 import ManageTeams from "./pages/ManageTeams";
 import StudentTeams from "./pages/StudentTeams";
 import NotFound from "./pages/NotFound";
@@ -81,15 +99,20 @@ const App = () => (
           <Route element={<MainLayout />}>
             <Route path="/home" element={<Index />} />
             <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/users" element={<ProtectedRoute requiredPermission="can_manage_users"><ManageUsers /></ProtectedRoute>} />
+            <Route path="/admin/users" element={<ProtectedRoute requiredRoles={['admin']}><ManageUsers /></ProtectedRoute>} />
             <Route path="/admin/interviews" element={<ProtectedRoute requiredRoles={['admin']}><ManageInterviews /></ProtectedRoute>} />
             <Route path="/mentor/interviews" element={<ProtectedRoute requiredRoles={['office_bearer', 'admin']}><MentorInterviews /></ProtectedRoute>} />
             <Route path="/admin/meetings" element={<ProtectedRoute requiredPermission="can_manage_meetings"><ManageMeetings /></ProtectedRoute>} />
+            <Route path="/admin/minutes" element={<ProtectedRoute requiredPermission="can_manage_meetings"><MinutesOfMeeting /></ProtectedRoute>} />
+            <Route path="/admin/minutes/:id" element={<ProtectedRoute requiredPermission="can_manage_meetings"><MinutesOfMeeting /></ProtectedRoute>} />
+            {/* legacy shortcuts */}
+            <Route path="/mom" element={<RedirectMom />} />
+            <Route path="/mom/:id" element={<RedirectMom />} />
             <Route path="/admin/bills" element={<ProtectedRoute requiredPermission="can_manage_bills"><ManageBills /></ProtectedRoute>} />
             <Route path="/admin/analytics" element={<ProtectedRoute requiredPermission="can_view_analytics"><Analytics /></ProtectedRoute>} />
             <Route path="/admin/students" element={<ProtectedRoute requiredPermission="can_manage_students"><ManageStudents /></ProtectedRoute>} />
             <Route path="/admin/students/:id" element={<ProtectedRoute requiredPermission="can_manage_students"><StudentDetails /></ProtectedRoute>} />
-            <Route path="/admin/student-db" element={<ProtectedRoute requiredPermission="can_manage_student_db"><ManageStudentDatabase /></ProtectedRoute>} />
+              <Route path="/admin/student-db" element={<ProtectedRoute requiredRoles={["admin","office_bearer"]}><ManageStudentDatabase /></ProtectedRoute>} />
             <Route path="/admin/projects" element={<ProtectedRoute requiredPermission="can_manage_projects"><ManageProjects /></ProtectedRoute>} />
             <Route path="/admin/projects/:id/assign" element={<ProtectedRoute requiredPermission="can_manage_projects"><AssignProjectStudents /></ProtectedRoute>} />
             <Route path="/admin/projects/:id" element={<ProtectedRoute blockedRoles={['student']}><ProjectDetails /></ProtectedRoute>} />
@@ -127,6 +150,7 @@ const App = () => (
             <Route path="/student/profile" element={<StudentProfile />} />
             <Route path="/student/mentees" element={<PhoneMentoringUpdate />} />
             <Route path="/mentor/mentees" element={<PhoneMentoringUpdate />} />
+            <Route path="/office-bearer/mentees" element={<ProtectedRoute requiredRoles={["office_bearer","admin"]}><OfficeBearerMentees /></ProtectedRoute>} />
             <Route path="/student/settings" element={<Settings />} />
             <Route path="/student/attendance" element={<StudentAttendance />} />
             <Route path="/student/feedback" element={<StudentFeedback />} />

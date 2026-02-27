@@ -172,6 +172,7 @@ router.post('/login', [
         name: user.name,
         email: user.email,
         role: user.role,
+        is_interviewer: user.is_interviewer === 1,
         mustChangePassword: user.must_change_password === 1,
         photo_url: photo_url
       }

@@ -168,17 +168,20 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
   return (
     <>
       <div className="w-full px-4 md:px-6 lg:px-8">
-        {/* Compact Header */}
-        <div className="mb-4 flex items-end justify-between pb-4">
-          <div>
-            <h1 className="page-title">
-              {activeTab === 'calendar' ? 'Mission Timeline' : 'Dashboard Overview'}
+        {/* Welcome Section (admin-style gradient) */}
+        <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-primary via-primary/95 to-primary/90 p-6 md:p-12 shadow-lg border border-primary/20 mb-4">
+          <div className="relative z-10 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/20 text-white text-xs font-semibold backdrop-blur-sm mb-4 border border-white/30">
+              <Star className="w-3 h-3 text-white" />
+              <span>Student Dashboard</span>
+            </div>
+            <h1 className="page-title text-white mb-3">
+              Welcome back, <span className="text-white font-extrabold">{auth.getUser()?.name || 'Volunteer'}</span>
             </h1>
-            <p className="page-subtitle">
-              {activeTab === 'calendar' ? 'Stay updated with your schedule' : `Welcome back, ${auth.getUser()?.name || 'Volunteer'}`}
+            <p className="page-subtitle text-white/90">
+              {activeTab === 'calendar' ? 'Stay updated with your schedule' : "Here's your activity overview."}
             </p>
           </div>
-
         </div>
 
         {/* Tabs Interface - Tab Bar Removed as requested */}
