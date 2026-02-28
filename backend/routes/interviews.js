@@ -487,17 +487,7 @@ router.post('/send-emails', authenticateToken, requireRole('admin', 'office_bear
 // POST /api/interviews/:id/submit-marks - Submit interview marks by mentor
 router.post('/:id/submit-marks', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
     const { id } = req.params;
-    const { marks, remarks } = req.body;
-
-    if (marks === undefined || marks === null) {
-        return res.status(400).json({ success: false, message: 'Marks are required' });
-    }
-
-    // Validate marks
-    const marksNum = parseFloat(marks);
-    if (isNaN(marksNum) || marksNum < 0 || marksNum > 10) {
-        return res.status(400).json({ success: false, message: 'Marks must be between 0 and 10' });
-    }
+    const { marks, remarks, decision } = req.body;
 
     const db = getDatabase();
 
@@ -512,18 +502,52 @@ router.post('/:id/submit-marks', authenticateToken, requireRole('admin', 'office
             return res.status(403).json({ success: false, message: 'You do not have permission to submit marks for this candidate' });
         }
 
-        // Update candidate with marks and set status to completed
+        // If candidate is absent or decision is "retake", marks are not required
+        // Otherwise marks are required
+        if (candidate.attendance !== 'absent' && decision !== 'retake') {
+            if (marks === undefined || marks === null) {
+                return res.status(400).json({ success: false, message: 'Marks are required for present candidates' });
+            }
+
+            // Validate marks
+            const marksNum = parseFloat(marks);
+            if (isNaN(marksNum) || marksNum < 0 || marksNum > 10) {
+                return res.status(400).json({ success: false, message: 'Marks must be between 0 and 10' });
+            }
+        }
+
+        // Update candidate with marks, remarks, decision, and set status to completed
+        const updates = ['status = ?'];
+        const params = ['completed'];
+
+        if (marks !== undefined && marks !== null) {
+            updates.push('marks = ?');
+            params.push(parseFloat(marks) || null);
+        }
+
+        if (remarks !== undefined) {
+            updates.push('remarks = ?');
+            params.push(remarks || null);
+        }
+
+        if (decision !== undefined) {
+            updates.push('decision = ?');
+            params.push(decision || null);
+        }
+
+        params.push(id);
+
         await run(db,
             `UPDATE interview_candidates 
-             SET marks = ?, remarks = ?, status = 'completed' 
+             SET ${updates.join(', ')} 
              WHERE id = ?`,
-            [marksNum, remarks || null, id]
+            params
         );
 
-        await logActivity(req.user.id, 'SUBMIT_INTERVIEW_MARKS', { id, marks: marksNum }, req, {
+        await logActivity(req.user.id, 'SUBMIT_INTERVIEW_MARKS', { id, marks, decision }, req, {
             action_type: 'UPDATE',
             module_name: 'interviews',
-            action_description: `Submitted interview marks (${marksNum}/10) for candidate: ${candidate.name}`
+            action_description: `Submitted interview marks (${decision === 'retake' ? 'RETAKE' : marks + '/10'}) for candidate: ${candidate.name}`
         });
 
         res.json({ success: true, message: 'Interview marks submitted successfully' });

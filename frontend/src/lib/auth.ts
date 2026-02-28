@@ -11,6 +11,8 @@ export interface User {
   photo_url?: string | null;
 }
 
+// Event emitter for auth state changes
+const authChangeListeners: Set<() => void> = new Set();
 
 export const auth = {
   getUser(): User | null {
@@ -26,6 +28,15 @@ export const auth = {
 
   setUser(user: User) {
     sessionStorage.setItem('auth_user', JSON.stringify(user));
+    // Notify all listeners of the change
+    authChangeListeners.forEach(listener => listener());
+    window.dispatchEvent(new Event('authChanged'));
+  },
+
+  // Subscribe to auth changes
+  onAuthChange(callback: () => void) {
+    authChangeListeners.add(callback);
+    return () => authChangeListeners.delete(callback);
   },
 
   getToken(): string | null {

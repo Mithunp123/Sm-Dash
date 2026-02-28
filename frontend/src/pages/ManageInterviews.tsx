@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,16 +86,28 @@ const ManageInterviews = () => {
         mentor_name: ""
     });
     const [showMarksDialog, setShowMarksDialog] = useState(false);
-    const _todayStr = () => new Date().toISOString().split('T')[0];
-    const _timeStr = () => { const n = new Date(); return `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`; };
-    const [marksData, setMarksData] = useState({
-        marks: "",
-        remarks: "",
-        interview_date: _todayStr(),
-        interview_time: _timeStr(),
-        attendance: "present" as "present" | "absent",
-        decision: "" as "" | "selected" | "waitlisted" | "rejected"
-    });
+
+    // Initialize with today's date and current time
+    const getInitialMarksData = () => {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const date = String(now.getDate()).padStart(2, '0');
+        const today = `${year}-${month}-${date}`;
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+
+        return {
+            marks: "",
+            remarks: "",
+            interview_date: today,
+            interview_time: `${hh}:${mm}`,
+            attendance: "present" as "present" | "absent",
+            decision: "" as "" | "selected" | "waitlisted" | "rejected"
+        };
+    };
+
+    const [marksData, setMarksData] = useState(getInitialMarksData());
     const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
@@ -114,6 +126,25 @@ const ManageInterviews = () => {
         loadCandidates();
         loadOfficeBearers();
     }, []);
+
+    // Update date and time when dialog opens
+    useEffect(() => {
+        if (showMarksDialog) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const date = String(now.getDate()).padStart(2, '0');
+            const today = `${year}-${month}-${date}`;
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+
+            setMarksData(prev => ({
+                ...prev,
+                interview_date: today,
+                interview_time: `${hh}:${mm}`
+            }));
+        }
+    }, [showMarksDialog, selectedCandidate?.id]);
 
     const loadCandidates = async () => {
         try {
@@ -320,7 +351,7 @@ const ManageInterviews = () => {
                 });
             }
 
-            toast.success(`✅ ${selectedCandidateIds.length} candidates assigned successfully`);
+            toast.success(`âœ… ${selectedCandidateIds.length} candidates assigned successfully`);
             setShowBulkAssignDialog(false);
             setSelectedCandidateIds([]);
             setBulkAssignFormData({ mentor_id: "", mentor_name: "" });
@@ -351,7 +382,7 @@ const ManageInterviews = () => {
         const selected = candidates.filter(c => selectedCandidateIds.includes(c.id));
         const uniqueMentorIds = [...new Set(selected.map(c => c.mentor_id).filter(Boolean))];
         if (uniqueMentorIds.length === 1) {
-            // All have same mentor — pre-select it
+            // All have same mentor â€” pre-select it
             const currentMentor = officeBearers.find((ob: any) => ob.id === uniqueMentorIds[0]);
             setBulkAssignFormData({
                 mentor_id: uniqueMentorIds[0].toString(),
@@ -363,18 +394,14 @@ const ManageInterviews = () => {
         setShowBulkAssignDialog(true);
     };
 
-    // ── Admin Marks ───────────────────────────────────────────
+    // â”€â”€ Admin Marks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const handleOpenAdminMarksDialog = (candidate: any) => {
-        const now = new Date();
-        const today = now.toISOString().split('T')[0];
-        const hh = String(now.getHours()).padStart(2, '0');
-        const mm = String(now.getMinutes()).padStart(2, '0');
         setSelectedCandidate(candidate);
         setMarksData({
             marks: candidate.marks?.toString() || "",
             remarks: candidate.remarks || "",
-            interview_date: candidate.interview_date || today,
-            interview_time: candidate.interview_time || `${hh}:${mm}`,
+            interview_date: "",
+            interview_time: "",
             attendance: candidate.attendance || "present",
             decision: candidate.decision || ""
         });
@@ -384,10 +411,12 @@ const ManageInterviews = () => {
     const handleSubmitAdminMarks = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedCandidate) return;
-        const marksNum = parseFloat(marksData.marks);
-        if (!marksData.marks || isNaN(marksNum) || marksNum < 0 || marksNum > 10) {
-            toast.error("Please enter valid marks between 0 and 10");
-            return;
+        if (marksData.attendance === "present") {
+            const marksNum = parseFloat(marksData.marks);
+            if (!marksData.marks || isNaN(marksNum) || marksNum < 0 || marksNum > 10) {
+                toast.error("Please enter valid marks between 0 and 10");
+                return;
+            }
         }
         try {
             setSubmitting(true);
@@ -397,8 +426,9 @@ const ManageInterviews = () => {
                 attendance: marksData.attendance,
                 decision: marksData.decision || null,
             });
+            const marksNum2 = marksData.attendance === "present" && marksData.marks ? parseFloat(marksData.marks) : undefined;
             const response = await api.submitInterviewMarks(selectedCandidate.id, {
-                marks: marksNum,
+                marks: marksNum2,
                 remarks: marksData.remarks || ""
             });
             if (response.success) {
@@ -406,7 +436,7 @@ const ManageInterviews = () => {
                 setShowMarksDialog(false);
                 setCandidates(prev => prev.map(c =>
                     c.id === selectedCandidate.id
-                        ? { ...c, marks: marksNum, remarks: marksData.remarks, interview_date: marksData.interview_date, interview_time: marksData.interview_time, attendance: marksData.attendance, decision: marksData.decision, status: 'completed' }
+                        ? { ...c, marks: marksNum2, remarks: marksData.remarks, interview_date: marksData.interview_date, interview_time: marksData.interview_time, attendance: marksData.attendance, decision: marksData.decision, status: 'completed' }
                         : c
                 ));
                 setSelectedCandidate(null);
@@ -591,7 +621,7 @@ const ManageInterviews = () => {
                     </Card>
                 </div>
 
-                {/* ── Manage Interviewers Panel ── */}
+                {/* â”€â”€ Manage Interviewers Panel â”€â”€ */}
                 <Card className="mb-6 border-cyan-500/30 bg-card shadow-sm rounded-md overflow-hidden">
                     <CardHeader
                         className="pb-3 cursor-pointer select-none"
@@ -610,7 +640,7 @@ const ManageInterviews = () => {
                                 <div>
                                     <CardTitle className="text-sm font-bold tracking-wide">Manage Interviewers</CardTitle>
                                     <CardDescription className="text-xs">
-                                        {officeBearers.length} active interviewer{officeBearers.length !== 1 ? 's' : ''} · Only these users can access the Mentor Interview page
+                                        {officeBearers.length} active interviewer{officeBearers.length !== 1 ? 's' : ''} Â· Only these users can access the Mentor Interview page
                                     </CardDescription>
                                 </div>
                             </div>
@@ -625,7 +655,7 @@ const ManageInterviews = () => {
                         <CardContent className="pt-0 pb-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                                {/* LEFT — Current Interviewers */}
+                                {/* LEFT â€” Current Interviewers */}
                                 <div>
                                     <p className="text-xs font-semibold uppercase tracking-wider text-cyan-500 mb-3">Current Interviewers</p>
                                     {officeBearers.length === 0 ? (
@@ -655,7 +685,7 @@ const ManageInterviews = () => {
                                     )}
                                 </div>
 
-                                {/* RIGHT — Add from all users */}
+                                {/* RIGHT â€” Add from all users */}
                                 <div>
                                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Add Interviewers</p>
                                     <div className="relative mb-3">
@@ -694,7 +724,7 @@ const ManageInterviews = () => {
                                                             )}
                                                         >
                                                             {u.is_interviewer
-                                                                ? <><Mic className="w-3 h-3 mr-1" />Interviewer ✓</>
+                                                                ? <><Mic className="w-3 h-3 mr-1" />Interviewer âœ“</>
                                                                 : <><Plus className="w-3 h-3 mr-1" />Add</>}
                                                         </Button>
                                                     </div>
@@ -812,20 +842,20 @@ const ManageInterviews = () => {
                                 <Table>
                                     <TableHeader className="bg-muted/30">
                                         <TableRow className="hover:bg-transparent border-border/10">
-                                            <TableHead className="py-4 px-6 font-black uppercase text-[10px] tracking-widest text-muted-foreground text-center">
+                                            <TableHead className="py-4 px-6 font-black uppercase text-xs tracking-widest text-muted-foreground text-center">
                                                 <Checkbox
                                                     checked={selectedCandidateIds.length === filteredCandidates.length && filteredCandidates.length > 0}
                                                     onCheckedChange={toggleSelectAllFiltered}
                                                     aria-label="Select all candidates"
                                                 />
                                             </TableHead>
-                                            <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground pl-6">Register No</TableHead>
-                                            <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground">Candidate Info</TableHead>
-                                            <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground">Contact</TableHead>
-                                            <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground">Status</TableHead>
-                                            <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground">Assigned Mentor</TableHead>
-                                            <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground">Marks</TableHead>
-                                            <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground text-right pr-6">Actions</TableHead>
+                                            <TableHead className="py-4 font-black uppercase text-xs tracking-widest text-muted-foreground pl-6">Register No</TableHead>
+                                            <TableHead className="py-4 font-black uppercase text-xs tracking-widest text-muted-foreground">Candidate Info</TableHead>
+                                            <TableHead className="py-4 font-black uppercase text-xs tracking-widest text-muted-foreground">Contact</TableHead>
+                                            <TableHead className="py-4 font-black uppercase text-xs tracking-widest text-muted-foreground">Status</TableHead>
+                                            <TableHead className="py-4 font-black uppercase text-xs tracking-widest text-muted-foreground">Assigned Mentor</TableHead>
+                                            <TableHead className="py-4 font-black uppercase text-xs tracking-widest text-muted-foreground">Marks</TableHead>
+                                            <TableHead className="py-4 font-black uppercase text-xs tracking-widest text-muted-foreground text-right pr-6">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -846,9 +876,9 @@ const ManageInterviews = () => {
                                                 <TableCell>
                                                     <div className="flex flex-col">
                                                         <span className="font-black text-sm tracking-tight text-foreground group-hover:text-primary transition-colors">{c.name}</span>
-                                                        <span className="text-[10px] font-bold text-muted-foreground dark:text-slate-300 uppercase tracking-widest items-center flex gap-1.5 mt-0.5">
+                                                        <span className="text-xs font-bold text-muted-foreground dark:text-slate-300 uppercase tracking-widest items-center flex gap-1.5 mt-0.5">
                                                             <GraduationCap className="w-3 h-3" />
-                                                            {c.dept || '-'} • {c.year} Year
+                                                            {c.dept || '-'} â€¢ {c.year} Year
                                                         </span>
                                                     </div>
                                                 </TableCell>
@@ -868,7 +898,7 @@ const ManageInterviews = () => {
                                                                 <PhoneCall className="w-3 h-3 text-muted-foreground" /> -
                                                             </span>
                                                         )}
-                                                        <span className="text-[10px] font-medium text-muted-foreground italic truncate max-w-[150px]">{c.email}</span>
+                                                        <span className="text-xs font-medium text-muted-foreground italic truncate max-w-[150px]">{c.email}</span>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>{getStatusBadge(c.status || '')}</TableCell>
@@ -885,7 +915,7 @@ const ManageInterviews = () => {
                                                             <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
                                                                 <UserX className="w-3 h-3 text-muted-foreground" />
                                                             </div>
-                                                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Unassigned</span>
+                                                            <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Unassigned</span>
                                                         </div>
                                                     )}
                                                 </TableCell>
@@ -894,10 +924,10 @@ const ManageInterviews = () => {
                                                         <div className="flex flex-col gap-1">
                                                             <div className="flex items-center gap-2">
                                                                 <span className="text-lg font-black text-foreground">{c.marks}</span>
-                                                                <span className="text-[10px] font-bold text-muted-foreground uppercase">/ 10</span>
+                                                                <span className="text-xs font-bold text-muted-foreground uppercase">/ 10</span>
                                                             </div>
                                                             {c.remarks && (
-                                                                <span className="text-[10px] text-muted-foreground font-medium italic border-l-2 border-primary/20 pl-2 leading-tight max-w-[150px] line-clamp-1" title={c.remarks}>
+                                                                <span className="text-xs text-muted-foreground font-medium italic border-l-2 border-primary/20 pl-2 leading-tight max-w-[150px] line-clamp-1" title={c.remarks}>
                                                                     &ldquo;{c.remarks}&rdquo;
                                                                 </span>
                                                             )}
@@ -908,7 +938,7 @@ const ManageInterviews = () => {
                                                 </TableCell>
                                                 <TableCell className="text-right pr-6">
                                                     <div className="flex items-center gap-2 justify-end">
-                                                        {/* Marks button — admin can always set/edit marks */}
+                                                        {/* Marks button â€” admin can always set/edit marks */}
                                                         <Button
                                                             size="sm"
                                                             onClick={() => handleOpenAdminMarksDialog(c)}
@@ -1153,7 +1183,7 @@ const ManageInterviews = () => {
                                     const selected = candidates.filter(c => selectedCandidateIds.includes(c.id));
                                     const alreadyAssigned = selected.filter(c => c.mentor_id).length;
                                     return alreadyAssigned > 0
-                                        ? `${selectedCandidateIds.length} candidate(s) selected. ${alreadyAssigned} already assigned — selecting a new mentor will reassign them.`
+                                        ? `${selectedCandidateIds.length} candidate(s) selected. ${alreadyAssigned} already assigned â€” selecting a new mentor will reassign them.`
                                         : `Assign ${selectedCandidateIds.length} selected candidate(s) to a mentor/interviewer`;
                                 })()}
                             </DialogDescription>
@@ -1328,7 +1358,7 @@ const ManageInterviews = () => {
                     description="Upload Excel/CSV with columns: name, email, phone, department, year, register_no"
                 />
 
-                {/* ── Admin Submit Marks Dialog ─────────────────────── */}
+                {/* â”€â”€ Admin Submit Marks Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
                 <Dialog open={showMarksDialog} onOpenChange={setShowMarksDialog}>
                     <DialogContent className="max-w-md">
                         <DialogHeader>
@@ -1340,7 +1370,7 @@ const ManageInterviews = () => {
                             </DialogDescription>
                         </DialogHeader>
                         {selectedCandidate && (
-                            <form onSubmit={handleSubmitAdminMarks} className="space-y-4">
+                            <form key={`marks-form-${selectedCandidate.id}`} onSubmit={handleSubmitAdminMarks} className="space-y-4">
                                 {/* Interview Date + Time */}
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-2">
@@ -1348,9 +1378,10 @@ const ManageInterviews = () => {
                                         <Input
                                             id="adm-interview-date"
                                             type="date"
-                                            value={marksData.interview_date}
+                                            value={marksData.interview_date || ""}
                                             onChange={(e) => setMarksData({ ...marksData, interview_date: e.target.value })}
                                             className="h-10 rounded-md"
+                                            required
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -1358,9 +1389,10 @@ const ManageInterviews = () => {
                                         <Input
                                             id="adm-interview-time"
                                             type="time"
-                                            value={marksData.interview_time}
+                                            value={marksData.interview_time || ""}
                                             onChange={(e) => setMarksData({ ...marksData, interview_time: e.target.value })}
                                             className="h-10 rounded-md"
+                                            required
                                         />
                                     </div>
                                 </div>
@@ -1392,83 +1424,95 @@ const ManageInterviews = () => {
                                     </div>
                                 </div>
 
-                                {/* Marks */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="adm-marks">Marks (out of 10) *</Label>
-                                    <Input
-                                        id="adm-marks"
-                                        type="number"
-                                        min="0"
-                                        max="10"
-                                        step="0.5"
-                                        value={marksData.marks}
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            const num = parseFloat(val);
-                                            let autoDecision = marksData.decision;
-                                            if (val === "") autoDecision = "";
-                                            else if (!isNaN(num) && num <= 5) autoDecision = "rejected";
-                                            else if (!isNaN(num) && num > 5 && marksData.decision === "rejected") autoDecision = "";
-                                            setMarksData({ ...marksData, marks: val, decision: autoDecision as any });
-                                        }}
-                                        placeholder="e.g., 7.5"
-                                        required
-                                        className="h-10 rounded-md"
-                                    />
-                                    <p className="text-xs text-muted-foreground">Enter marks between 0 and 10</p>
-                                </div>
-
-                                {/* Decision Category */}
-                                {marksData.marks !== "" && !isNaN(parseFloat(marksData.marks)) && (
-                                    parseFloat(marksData.marks) <= 5 ? (
-                                        <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">
-                                            <span className="text-lg">❌</span>
-                                            <div>
-                                                <p className="text-sm font-bold text-red-500">Auto Rejected</p>
-                                                <p className="text-xs text-muted-foreground">Marks ≤ 5 — automatically categorised as Rejected</p>
-                                            </div>
-                                        </div>
-                                    ) : (
+                                {/* Show Marks & Remarks ONLY when Present */}
+                                {marksData.attendance === "present" ? (
+                                    <>
+                                        {/* Marks */}
                                         <div className="space-y-2">
-                                            <Label>Select Category *</Label>
-                                            <div className="grid grid-cols-3 gap-2">
-                                                {([
-                                                    { value: "selected", label: "✅ Selected", color: "green" },
-                                                    { value: "waitlisted", label: "⏳ Waitlisted", color: "yellow" },
-                                                    { value: "rejected", label: "❌ Rejected", color: "red" }
-                                                ] as const).map(opt => (
-                                                    <button
-                                                        key={opt.value}
-                                                        type="button"
-                                                        onClick={() => setMarksData({ ...marksData, decision: opt.value })}
-                                                        className={`h-10 rounded-lg font-bold text-xs border-2 transition-all duration-200 ${marksData.decision === opt.value
-                                                            ? opt.color === 'green' ? 'bg-green-500/20 border-green-500 text-green-600'
-                                                                : opt.color === 'yellow' ? 'bg-yellow-500/20 border-yellow-500 text-yellow-600'
-                                                                    : 'bg-red-500/20 border-red-500 text-red-600'
-                                                            : 'bg-transparent border-border text-muted-foreground hover:border-primary/40'
-                                                            }`}
-                                                    >
-                                                        {opt.label}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                            <p className="text-xs text-muted-foreground">Marks &gt; 5 — select the outcome for this candidate</p>
+                                            <Label htmlFor="adm-marks">Marks (out of 10) *</Label>
+                                            <Input
+                                                id="adm-marks"
+                                                type="number"
+                                                min="0"
+                                                max="10"
+                                                step="0.5"
+                                                value={marksData.marks}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    const num = parseFloat(val);
+                                                    let autoDecision = marksData.decision;
+                                                    if (val === "") autoDecision = "";
+                                                    else if (!isNaN(num) && num <= 5) autoDecision = "rejected";
+                                                    else if (!isNaN(num) && num > 5 && marksData.decision === "rejected") autoDecision = "";
+                                                    setMarksData({ ...marksData, marks: val, decision: autoDecision as any });
+                                                }}
+                                                placeholder="e.g., 7.5"
+                                                required
+                                                className="h-10 rounded-md"
+                                            />
+                                            <p className="text-xs text-muted-foreground">Enter marks between 0 and 10</p>
                                         </div>
-                                    )
-                                )}
 
-                                {/* Remarks */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="adm-remarks">Remarks / Feedback</Label>
-                                    <Textarea
-                                        id="adm-remarks"
-                                        value={marksData.remarks}
-                                        onChange={(e) => setMarksData({ ...marksData, remarks: e.target.value })}
-                                        placeholder="Enter feedback or observations about the candidate..."
-                                        rows={3}
-                                        className="resize-none"
-                                    />
-                                </div>
+                                        {/* Decision Category */}
+                                        {marksData.marks !== "" && !isNaN(parseFloat(marksData.marks)) && (
+                                            parseFloat(marksData.marks) <= 5 ? (
+                                                <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">
+                                                    <span className="text-lg">❌</span>
+                                                    <div>
+                                                        <p className="text-sm font-bold text-red-500">Auto Rejected</p>
+                                                        <p className="text-xs text-muted-foreground">Marks ≤ 5 — automatically categorised as Rejected</p>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    <Label>Select Category *</Label>
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        {([
+                                                            { value: "selected", label: "✅ Selected", color: "green" },
+                                                            { value: "waitlisted", label: "⏳ Waitlisted", color: "yellow" },
+                                                            { value: "rejected", label: "❌ Rejected", color: "red" }
+                                                        ] as const).map(opt => (
+                                                            <button
+                                                                key={opt.value}
+                                                                type="button"
+                                                                onClick={() => setMarksData({ ...marksData, decision: opt.value })}
+                                                                className={`h-10 rounded-lg font-bold text-xs border-2 transition-all duration-200 ${marksData.decision === opt.value
+                                                                    ? opt.color === 'green' ? 'bg-green-500/20 border-green-500 text-green-600'
+                                                                        : opt.color === 'yellow' ? 'bg-yellow-500/20 border-yellow-500 text-yellow-600'
+                                                                            : 'bg-red-500/20 border-red-500 text-red-600'
+                                                                    : 'bg-transparent border-border text-muted-foreground hover:border-primary/40'
+                                                                    }`}
+                                                            >
+                                                                {opt.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground">Marks &gt; 5 — select the outcome for this candidate</p>
+                                                </div>
+                                            )
+                                        )}
+
+                                        {/* Remarks */}
+                                        <div className="space-y-2">
+                                            <Label htmlFor="adm-remarks">Remarks / Feedback</Label>
+                                            <Textarea
+                                                id="adm-remarks"
+                                                value={marksData.remarks}
+                                                onChange={(e) => setMarksData({ ...marksData, remarks: e.target.value })}
+                                                placeholder="Enter feedback or observations about the candidate..."
+                                                rows={3}
+                                                className="resize-none"
+                                            />
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="space-y-3">
+                                        <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg px-4 py-3">
+                                            <p className="text-sm font-bold text-orange-600">â³ Absent Candidate</p>
+                                            <p className="text-xs text-muted-foreground mt-1">Candidate is marked as absent. No marks required.</p>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <DialogFooter>
                                     <Button

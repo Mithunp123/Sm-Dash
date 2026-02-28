@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Users, Calendar, FileText, BarChart3, GraduationCap,
@@ -20,9 +21,18 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { permissions } = usePermissions();
+  const [, setAuthUpdate] = useState(0); // Force re-render on auth changes
 
   const isAuthenticated = auth.isAuthenticated();
   const user = auth.getUser();
+
+  // Listen to auth changes and re-render
+  useEffect(() => {
+    const unsubscribe = auth.onAuthChange(() => {
+      setAuthUpdate(prev => prev + 1);
+    });
+    return unsubscribe;
+  }, []);
 
   if (!isAuthenticated || !user) return null;
 

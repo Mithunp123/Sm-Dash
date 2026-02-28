@@ -61,6 +61,17 @@ const MentorInterviews = () => {
             return;
         }
         loadMyCandidates();
+
+        // Listen for auth changes (when user is removed/added as interviewer)
+        const unsubscribe = auth.onAuthChange(() => {
+            const currentUser = auth.getUser();
+            if (currentUser && currentUser.role !== 'admin' && !currentUser.is_interviewer) {
+                toast.error("You have been removed from interviewers. Access denied.");
+                navigate("/home");
+            }
+        });
+
+        return () => { unsubscribe(); };
     }, []);
 
 
@@ -130,10 +141,18 @@ const MentorInterviews = () => {
         e.preventDefault();
         if (!selectedCandidate) return;
 
-        const marksNum = parseFloat(marksData.marks);
-        if (!marksData.marks || isNaN(marksNum) || marksNum < 0 || marksNum > 10) {
-            toast.error("Please enter valid marks between 0 and 10");
-            return;
+        if (marksData.attendance === "present") {
+            // For present candidates, marks are required
+            const marksNum = parseFloat(marksData.marks);
+            if (!marksData.marks || isNaN(marksNum) || marksNum < 0 || marksNum > 10) {
+                toast.error("Please enter valid marks between 0 and 10");
+                return;
+            }
+
+            if (!marksData.decision) {
+                toast.error("Please select an outcome (Selected/Waitlisted/Rejected)");
+                return;
+            }
         }
 
         try {
@@ -148,13 +167,16 @@ const MentorInterviews = () => {
             });
 
             // Submit marks — backend sets status = 'completed'
+            const marksNum = marksData.attendance === "present" && marksData.marks ? parseFloat(marksData.marks) : undefined;
             const response = await api.submitInterviewMarks(selectedCandidate.id, {
                 marks: marksNum,
-                remarks: marksData.remarks || ""
+                remarks: marksData.remarks || "",
+                decision: marksData.decision || undefined
             });
 
             if (response.success) {
-                toast.success(`✅ Marks submitted for ${selectedCandidate.name}! Candidate marked as completed.`);
+                const statusMsg = marksData.attendance === "absent" ? "marked as absent" : "marks submitted";
+                toast.success(`✅ ${statusMsg} for ${selectedCandidate.name}! Candidate marked as completed.`);
                 setShowMarksDialog(false);
                 // Remove candidate from mentor view - job done once marks submitted
                 setCandidates(prev => prev.filter(c => c.id !== selectedCandidate.id));
@@ -407,15 +429,15 @@ const MentorInterviews = () => {
                                 <Table>
                                     <TableHeader className="bg-muted/30">
                                         <TableRow className="hover:bg-transparent border-border/10">
-                                            <TableHead className="py-4 pl-6 font-black uppercase text-[10px] tracking-widest text-muted-foreground">Name</TableHead>
-                                            <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground">Contact</TableHead>
-                                            <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground">Department</TableHead>
-                                            <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground">Reg No</TableHead>
-                                            <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground">Interview Date</TableHead>
-                                            <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground">Attendance</TableHead>
-                                            <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground">Status</TableHead>
-                                            <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground">Marks</TableHead>
-                                            <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground text-right pr-6">Actions</TableHead>
+                                            <TableHead className="py-4 pl-6 font-black uppercase text-xs tracking-widest text-muted-foreground">Name</TableHead>
+                                            <TableHead className="py-4 font-black uppercase text-xs tracking-widest text-muted-foreground">Contact</TableHead>
+                                            <TableHead className="py-4 font-black uppercase text-xs tracking-widest text-muted-foreground">Department</TableHead>
+                                            <TableHead className="py-4 font-black uppercase text-xs tracking-widest text-muted-foreground">Reg No</TableHead>
+                                            <TableHead className="py-4 font-black uppercase text-xs tracking-widest text-muted-foreground">Interview Date</TableHead>
+                                            <TableHead className="py-4 font-black uppercase text-xs tracking-widest text-muted-foreground">Attendance</TableHead>
+                                            <TableHead className="py-4 font-black uppercase text-xs tracking-widest text-muted-foreground">Status</TableHead>
+                                            <TableHead className="py-4 font-black uppercase text-xs tracking-widest text-muted-foreground">Marks</TableHead>
+                                            <TableHead className="py-4 font-black uppercase text-xs tracking-widest text-muted-foreground text-right pr-6">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -627,86 +649,99 @@ const MentorInterviews = () => {
                                     </div>
                                 </div>
 
-                                {/* Marks */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="marks">Marks (out of 10) *</Label>
-                                    <Input
-                                        id="marks"
-                                        type="number"
-                                        min="0"
-                                        max="10"
-                                        step="0.5"
-                                        value={marksData.marks}
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            const num = parseFloat(val);
-                                            // Auto-set decision based on marks
-                                            let autoDecision = marksData.decision;
-                                            if (val === "") autoDecision = "";
-                                            else if (!isNaN(num) && num <= 5) autoDecision = "rejected";
-                                            else if (!isNaN(num) && num > 5 && marksData.decision === "rejected") autoDecision = "";
-                                            setMarksData({ ...marksData, marks: val, decision: autoDecision as any });
-                                        }}
-                                        placeholder="e.g., 7.5"
-                                        required
-                                        className="h-10 rounded-md"
-                                    />
-                                    <p className="text-xs text-muted-foreground">Enter marks between 0 and 10</p>
-                                </div>
-
-                                {/* Decision Category */}
-                                {marksData.marks !== "" && !isNaN(parseFloat(marksData.marks)) && (
-                                    parseFloat(marksData.marks) <= 5 ? (
-                                        // Auto-rejected when marks <= 5
-                                        <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">
-                                            <span className="text-lg">❌</span>
-                                            <div>
-                                                <p className="text-sm font-bold text-red-500">Auto Rejected</p>
-                                                <p className="text-xs text-muted-foreground">Marks ≤ 5 — automatically categorised as Rejected</p>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        // Manual picker when marks > 5
+                                {/* Show Marks & Remarks ONLY when Present */}
+                                {marksData.attendance === "present" ? (
+                                    <>
+                                        {/* Marks */}
                                         <div className="space-y-2">
-                                            <Label htmlFor="decision">Select Category *</Label>
-                                            <div className="grid grid-cols-3 gap-2">
-                                                {([
-                                                    { value: "selected", label: "✅ Selected", color: "green" },
-                                                    { value: "waitlisted", label: "⏳ Waitlisted", color: "yellow" },
-                                                    { value: "rejected", label: "❌ Rejected", color: "red" }
-                                                ] as const).map(opt => (
-                                                    <button
-                                                        key={opt.value}
-                                                        type="button"
-                                                        onClick={() => setMarksData({ ...marksData, decision: opt.value })}
-                                                        className={`h-10 rounded-lg font-bold text-xs border-2 transition-all duration-200 ${marksData.decision === opt.value
-                                                            ? opt.color === 'green' ? 'bg-green-500/20 border-green-500 text-green-600'
-                                                                : opt.color === 'yellow' ? 'bg-yellow-500/20 border-yellow-500 text-yellow-600'
-                                                                    : 'bg-red-500/20 border-red-500 text-red-600'
-                                                            : 'bg-transparent border-border text-muted-foreground hover:border-primary/40'
-                                                            }`}
-                                                    >
-                                                        {opt.label}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                            <p className="text-xs text-muted-foreground">Marks &gt; 5 — select the outcome for this candidate</p>
+                                            <Label htmlFor="marks">Marks (out of 10) *</Label>
+                                            <Input
+                                                id="marks"
+                                                type="number"
+                                                min="0"
+                                                max="10"
+                                                step="0.5"
+                                                value={marksData.marks}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    const num = parseFloat(val);
+                                                    // Auto-set decision based on marks
+                                                    let autoDecision = marksData.decision;
+                                                    if (val === "") autoDecision = "";
+                                                    else if (!isNaN(num) && num <= 5) autoDecision = "rejected";
+                                                    else if (!isNaN(num) && num > 5 && marksData.decision === "rejected") autoDecision = "";
+                                                    setMarksData({ ...marksData, marks: val, decision: autoDecision as any });
+                                                }}
+                                                placeholder="e.g., 7.5"
+                                                required
+                                                className="h-10 rounded-md"
+                                            />
+                                            <p className="text-xs text-muted-foreground">Enter marks between 0 and 10</p>
                                         </div>
-                                    )
-                                )}
 
-                                {/* Remarks */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="remarks">Remarks / Feedback</Label>
-                                    <Textarea
-                                        id="remarks"
-                                        value={marksData.remarks}
-                                        onChange={(e) => setMarksData({ ...marksData, remarks: e.target.value })}
-                                        placeholder="Enter your feedback or observations about the candidate..."
-                                        rows={4}
-                                        className="resize-none"
-                                    />
-                                </div>
+                                        {/* Decision Category */}
+                                        {marksData.marks !== "" && !isNaN(parseFloat(marksData.marks)) && (
+                                            parseFloat(marksData.marks) <= 5 ? (
+                                                // Auto-rejected when marks <= 5
+                                                <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">
+                                                    <span className="text-lg">❌</span>
+                                                    <div>
+                                                        <p className="text-sm font-bold text-red-500">Auto Rejected</p>
+                                                        <p className="text-xs text-muted-foreground">Marks ≤ 5 — automatically categorised as Rejected</p>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                // Manual picker when marks > 5
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="decision">Select Category *</Label>
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        {([
+                                                            { value: "selected", label: "✅ Selected", color: "green" },
+                                                            { value: "waitlisted", label: "⏳ Waitlisted", color: "yellow" },
+                                                            { value: "rejected", label: "❌ Rejected", color: "red" }
+                                                        ] as const).map(opt => (
+                                                            <button
+                                                                key={opt.value}
+                                                                type="button"
+                                                                onClick={() => setMarksData({ ...marksData, decision: opt.value })}
+                                                                className={`h-10 rounded-lg font-bold text-xs border-2 transition-all duration-200 ${marksData.decision === opt.value
+                                                                    ? opt.color === 'green' ? 'bg-green-500/20 border-green-500 text-green-600'
+                                                                        : opt.color === 'yellow' ? 'bg-yellow-500/20 border-yellow-500 text-yellow-600'
+                                                                            : 'bg-red-500/20 border-red-500 text-red-600'
+                                                                    : 'bg-transparent border-border text-muted-foreground hover:border-primary/40'
+                                                                    }`}
+                                                            >
+                                                                {opt.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground">Marks &gt; 5 — select the outcome for this candidate</p>
+                                                </div>
+                                            )
+                                        )}
+
+                                        {/* Remarks */}
+                                        <div className="space-y-2">
+                                            <Label htmlFor="remarks">Remarks / Feedback</Label>
+                                            <Textarea
+                                                id="remarks"
+                                                value={marksData.remarks}
+                                                onChange={(e) => setMarksData({ ...marksData, remarks: e.target.value })}
+                                                placeholder="Enter your feedback or observations about the candidate..."
+                                                rows={4}
+                                                className="resize-none"
+                                            />
+                                        </div>
+                                    </>
+                                ) : (
+                                    // When ABSENT - show RETAKE option
+                                    <div className="space-y-3">
+                                        <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg px-4 py-3">
+                                            <p className="text-sm font-bold text-orange-600">⏳ Absent Candidate</p>
+                                            <p className="text-xs text-muted-foreground mt-1">Candidate is marked as absent. No marks required.</p>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <DialogFooter>
                                     <Button
@@ -724,7 +759,7 @@ const MentorInterviews = () => {
                                     </Button>
                                     <Button
                                         type="submit"
-                                        disabled={submitting}
+                                        disabled={submitting || (marksData.attendance === "present" && (!marksData.marks || !marksData.decision))}
                                         className="h-10 rounded-md font-semibold text-sm px-4"
                                     >
                                         {submitting ? "Submitting..." : "Submit Marks"}

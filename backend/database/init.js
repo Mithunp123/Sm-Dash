@@ -309,10 +309,24 @@ export const initDatabase = async () => {
         password TEXT NOT NULL,
         role TEXT NOT NULL CHECK(role IN ('admin', 'office_bearer', 'student')),
         must_change_password INTEGER DEFAULT 1,
+        is_interviewer INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Migration: Add is_interviewer column if it doesn't exist (for existing databases)
+    try {
+      await run(database, `
+        ALTER TABLE users ADD COLUMN is_interviewer INTEGER DEFAULT 0
+      `);
+      console.log('✅ Added is_interviewer column to users table');
+    } catch (err) {
+      // Column might already exist, which is fine
+      if (!err.message.includes('duplicate column') && !err.message.includes('already exists')) {
+        console.log('Note: is_interviewer column migration:', err.message);
+      }
+    }
 
     // Password resets table
     await run(database, `
@@ -984,10 +998,92 @@ export const initDatabase = async () => {
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    // ─── BILLS & FINANCE ────────────────────────────────────────────────
+    // Bill folders (Events)
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS bill_folders(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT,
+      qr_image TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+      `);
+
+    // Bills
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS bills(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        folder_id INTEGER,
+        project_id INTEGER,
+        title TEXT NOT NULL,
+        amount REAL NOT NULL,
+        description TEXT,
+        bill_date DATE,
+        bill_type TEXT,
+        drive_link TEXT,
+        submitted_by INTEGER,
+        approved_by INTEGER,
+        bill_status TEXT DEFAULT 'submitted',
+        paid_by TEXT,
+        amount_source TEXT,
+        category TEXT,
+        bill_image TEXT,
+        has_items INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(folder_id) REFERENCES bill_folders(id) ON DELETE SET NULL,
+        FOREIGN KEY(submitted_by) REFERENCES users(id),
+        FOREIGN KEY(approved_by) REFERENCES users(id)
+      )
+      `);
+
+    // Bill items
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS bill_items(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        bill_id INTEGER NOT NULL,
+        category TEXT,
+        description TEXT,
+        amount REAL NOT NULL,
+        from_loc TEXT,
+        to_loc TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(bill_id) REFERENCES bills(id) ON DELETE CASCADE
+      )
+      `);
+
+    // Fund Collections
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS fund_collections (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_id INTEGER,
+        title TEXT,
+        payer_name TEXT NOT NULL,
+        payer_dept TEXT,
+        payer_type TEXT CHECK(payer_type IN ('student', 'staff', 'other')),
+        amount REAL DEFAULT 0,
+        payment_mode TEXT DEFAULT 'cash' CHECK(payment_mode IN ('cash', 'upi')),
+        received_by TEXT,
+        user_id INTEGER,
+        status TEXT DEFAULT 'active' CHECK(status IN ('active', 'closed')),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        entry_date DATE,
+        FOREIGN KEY (event_id) REFERENCES bill_folders(id),
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      )
+    `);
+
+    // Migrations for enhanced fund collection
+    await addColumnSafe(database, 'bill_folders', 'event_date', 'DATE');
+    await addColumnSafe(database, 'bill_folders', 'created_by', 'INTEGER');
+    await addColumnSafe(database, 'fund_collections', 'user_id', 'INTEGER');
+    await addColumnSafe(database, 'fund_collections', 'entry_date', 'DATE');
 
     // Approved volunteers table (volunteers added to the system)
     await run(database, `
-      CREATE TABLE IF NOT EXISTS volunteers (
+      CREATE TABLE IF NOT EXISTS volunteers(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
         name TEXT NOT NULL,
@@ -997,16 +1093,16 @@ export const initDatabase = async () => {
         category TEXT,
         signature_file_path TEXT,
         hours_contributed INTEGER DEFAULT 0,
-        status TEXT DEFAULT 'active' CHECK(status IN ('active', 'inactive')),
+        status TEXT DEFAULT 'active' CHECK(status IN('active', 'inactive')),
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+        FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
       )
-    `);
+      `);
 
     // Admin messages table (Contact Us messages from landing page)
     await run(database, `
-      CREATE TABLE IF NOT EXISTS admin_messages (
+      CREATE TABLE IF NOT EXISTS admin_messages(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         email TEXT NOT NULL,
@@ -1016,13 +1112,13 @@ export const initDatabase = async () => {
         response_text TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (responded_by) REFERENCES users(id) ON DELETE SET NULL
+        FOREIGN KEY(responded_by) REFERENCES users(id) ON DELETE SET NULL
       )
-    `);
+      `);
 
     // Chat messages table for internal messaging (WhatsApp-style)
     await run(database, `
-      CREATE TABLE IF NOT EXISTS chat_messages (
+      CREATE TABLE IF NOT EXISTS chat_messages(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         sender_id INTEGER NOT NULL,
         recipient_id INTEGER NOT NULL,
@@ -1030,32 +1126,32 @@ export const initDatabase = async () => {
         is_read INTEGER DEFAULT 0,
         reply_to_id INTEGER DEFAULT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (reply_to_id) REFERENCES chat_messages(id) ON DELETE SET NULL
+        FOREIGN KEY(sender_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY(recipient_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY(reply_to_id) REFERENCES chat_messages(id) ON DELETE SET NULL
       )
-    `);
+      `);
 
     // Permission requests table - stores requests from office bearers to gain edit/view permissions
     await run(database, `
-        CREATE TABLE IF NOT EXISTS permission_requests (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          user_id INTEGER NOT NULL,
-          permission_key TEXT NOT NULL,
-          message TEXT,
-          status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected')),
-          processed_by INTEGER,
-          processed_at DATETIME,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-          FOREIGN KEY (processed_by) REFERENCES users(id) ON DELETE SET NULL
-        )
+        CREATE TABLE IF NOT EXISTS permission_requests(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        permission_key TEXT NOT NULL,
+        message TEXT,
+        status TEXT DEFAULT 'pending' CHECK(status IN('pending', 'approved', 'rejected')),
+        processed_by INTEGER,
+        processed_at DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY(processed_by) REFERENCES users(id) ON DELETE SET NULL
+      )
       `);
 
     // Resources table - stores uploaded documents for students (pdf/docx)
     await run(database, `
-      CREATE TABLE IF NOT EXISTS resources (
+      CREATE TABLE IF NOT EXISTS resources(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         filename TEXT NOT NULL,
         original_name TEXT NOT NULL,
@@ -1070,9 +1166,9 @@ export const initDatabase = async () => {
         upload_date DATE,
         upload_time TIME,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE SET NULL
+        FOREIGN KEY(uploaded_by) REFERENCES users(id) ON DELETE SET NULL
       )
-    `);
+      `);
     // Ensure legacy databases get the new columns if they don't exist
     // Ensure legacy databases get the new columns if they don't exist
     await addColumnSafe(database, 'resources', 'title', 'TEXT');
@@ -1085,7 +1181,7 @@ export const initDatabase = async () => {
 
     // Resource folders table
     await run(database, `
-      CREATE TABLE IF NOT EXISTS resource_folders (
+      CREATE TABLE IF NOT EXISTS resource_folders(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         description TEXT,
@@ -1094,10 +1190,10 @@ export const initDatabase = async () => {
         resource_type TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (parent_id) REFERENCES resource_folders(id) ON DELETE CASCADE,
-        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+        FOREIGN KEY(parent_id) REFERENCES resource_folders(id) ON DELETE CASCADE,
+        FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL
       )
-    `);
+      `);
 
     // console.log('Finished main tables');
     // Migration: Add resource_type column if it doesn't exist
@@ -1106,34 +1202,34 @@ export const initDatabase = async () => {
 
     // Teams table
     await run(database, `
-      CREATE TABLE IF NOT EXISTS teams (
+      CREATE TABLE IF NOT EXISTS teams(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         description TEXT,
         created_by INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+        FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL
       )
-    `);
+      `);
 
     // Team members table
     await run(database, `
-      CREATE TABLE IF NOT EXISTS team_members (
+      CREATE TABLE IF NOT EXISTS team_members(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         team_id INTEGER NOT NULL,
         user_id INTEGER NOT NULL,
-        role TEXT DEFAULT 'member' CHECK(role IN ('leader', 'member')),
+        role TEXT DEFAULT 'member' CHECK(role IN('leader', 'member')),
         joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY(team_id) REFERENCES teams(id) ON DELETE CASCADE,
+        FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
         UNIQUE(team_id, user_id)
       )
-    `);
+      `);
 
     // Team assignments table
     await run(database, `
-      CREATE TABLE IF NOT EXISTS team_assignments (
+      CREATE TABLE IF NOT EXISTS team_assignments(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         team_id INTEGER NOT NULL,
         title TEXT NOT NULL,
@@ -1141,17 +1237,17 @@ export const initDatabase = async () => {
         assigned_to INTEGER,
         assigned_by INTEGER,
         due_date TEXT,
-        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'in_progress', 'completed', 'cancelled')),
-        priority TEXT DEFAULT 'medium' CHECK(priority IN ('low', 'medium', 'high', 'urgent')),
+        status TEXT DEFAULT 'pending' CHECK(status IN('pending', 'in_progress', 'completed', 'cancelled')),
+        priority TEXT DEFAULT 'medium' CHECK(priority IN('low', 'medium', 'high', 'urgent')),
         proof_file_path TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         completed_at DATETIME,
-        FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
-        FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
-        FOREIGN KEY (assigned_by) REFERENCES users(id) ON DELETE SET NULL
+        FOREIGN KEY(team_id) REFERENCES teams(id) ON DELETE CASCADE,
+        FOREIGN KEY(assigned_to) REFERENCES users(id) ON DELETE SET NULL,
+        FOREIGN KEY(assigned_by) REFERENCES users(id) ON DELETE SET NULL
       )
-    `);
+      `);
 
     // Add proof_file_path column if it doesn't exist
     // Add proof_file_path column if it doesn't exist
@@ -1159,38 +1255,38 @@ export const initDatabase = async () => {
 
     // Team assignment tracking table
     await run(database, `
-      CREATE TABLE IF NOT EXISTS team_assignment_tracking (
+      CREATE TABLE IF NOT EXISTS team_assignment_tracking(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         assignment_id INTEGER NOT NULL,
         user_id INTEGER NOT NULL,
-        action TEXT NOT NULL CHECK(action IN ('created', 'assigned', 'started', 'updated', 'completed', 'cancelled', 'commented')),
+        action TEXT NOT NULL CHECK(action IN('created', 'assigned', 'started', 'updated', 'completed', 'cancelled', 'commented')),
         comment TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (assignment_id) REFERENCES team_assignments(id) ON DELETE CASCADE,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        FOREIGN KEY(assignment_id) REFERENCES team_assignments(id) ON DELETE CASCADE,
+        FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
       )
-    `);
+      `);
 
     // Team requests table
     await run(database, `
-      CREATE TABLE IF NOT EXISTS team_requests (
+      CREATE TABLE IF NOT EXISTS team_requests(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         team_id INTEGER NOT NULL,
         user_id INTEGER NOT NULL,
         message TEXT,
-        status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected')),
+        status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN('pending', 'approved', 'rejected')),
         reviewed_by INTEGER,
         reviewed_at DATETIME,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL
+        FOREIGN KEY(team_id) REFERENCES teams(id) ON DELETE CASCADE,
+        FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY(reviewed_by) REFERENCES users(id) ON DELETE SET NULL
       )
-    `);
+      `);
 
     // Events table (for special events, functions, etc.)
     await run(database, `
-      CREATE TABLE IF NOT EXISTS events (
+      CREATE TABLE IF NOT EXISTS events(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
         description TEXT,
@@ -1203,11 +1299,11 @@ export const initDatabase = async () => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
-    `);
+      `);
 
     // Awards table
     await run(database, `
-      CREATE TABLE IF NOT EXISTS awards (
+      CREATE TABLE IF NOT EXISTS awards(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
         description TEXT,
@@ -1219,13 +1315,13 @@ export const initDatabase = async () => {
         image_url TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE SET NULL
+        FOREIGN KEY(recipient_id) REFERENCES users(id) ON DELETE SET NULL
       )
-    `);
+      `);
 
     // NGO info table (multiple NGO support)
     await run(database, `
-      CREATE TABLE IF NOT EXISTS ngo_info (
+      CREATE TABLE IF NOT EXISTS ngo_info(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         about TEXT,
@@ -1241,7 +1337,7 @@ export const initDatabase = async () => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
-    `);
+      `);
 
     // Ensure image_url column exists (migration for existing databases)
     await addColumnSafe(database, 'events', 'image_url', 'TEXT');
@@ -1250,7 +1346,7 @@ export const initDatabase = async () => {
 
     // Optional mapping of volunteers to their assigned mentees (used to auto-fill mentee name)
     await run(database, `
-      CREATE TABLE IF NOT EXISTS phone_mentoring_assignments (
+      CREATE TABLE IF NOT EXISTS phone_mentoring_assignments(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         volunteer_id INTEGER,
         project_id INTEGER,
@@ -1271,11 +1367,11 @@ export const initDatabase = async () => {
         mentee_user_id INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (volunteer_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+        FOREIGN KEY(volunteer_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
+        FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL
       )
-    `);
+      `);
 
     // Ensure existing databases have the new assignment columns
     // Ensure existing databases have the new assignment columns
@@ -1305,38 +1401,38 @@ export const initDatabase = async () => {
 
           // Create new table without UNIQUE constraint
           await run(database, `
-            CREATE TABLE IF NOT EXISTS phone_mentoring_assignments_new (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              volunteer_id INTEGER,
-              project_id INTEGER,
-              mentee_name TEXT NOT NULL,
-              mentee_phone TEXT,
-              mentee_register_no TEXT,
-              mentee_department TEXT,
-              mentee_year TEXT,
-              mentee_gender TEXT,
-              mentee_school TEXT,
-              mentee_address TEXT,
-              mentee_district TEXT,
-              mentee_parent_contact TEXT,
-              mentee_status TEXT DEFAULT 'active',
-              mentee_notes TEXT,
-              expected_classes INTEGER,
-              created_by INTEGER,
-              mentee_user_id INTEGER,
-              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-              FOREIGN KEY (volunteer_id) REFERENCES users(id) ON DELETE CASCADE,
-              FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-              FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
-            )
-          `);
+            CREATE TABLE IF NOT EXISTS phone_mentoring_assignments_new(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        volunteer_id INTEGER,
+        project_id INTEGER,
+        mentee_name TEXT NOT NULL,
+        mentee_phone TEXT,
+        mentee_register_no TEXT,
+        mentee_department TEXT,
+        mentee_year TEXT,
+        mentee_gender TEXT,
+        mentee_school TEXT,
+        mentee_address TEXT,
+        mentee_district TEXT,
+        mentee_parent_contact TEXT,
+        mentee_status TEXT DEFAULT 'active',
+        mentee_notes TEXT,
+        expected_classes INTEGER,
+        created_by INTEGER,
+        mentee_user_id INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(volunteer_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
+        FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL
+      )
+      `);
 
           // Copy data from old table to new table
           await run(database, `
             INSERT INTO phone_mentoring_assignments_new 
             SELECT * FROM phone_mentoring_assignments
-          `);
+      `);
 
           // Drop old table
           await run(database, `DROP TABLE phone_mentoring_assignments`);
@@ -1354,7 +1450,7 @@ export const initDatabase = async () => {
 
     // Phone mentoring daily updates - records volunteer phone mentoring calls with mentees
     await run(database, `
-      CREATE TABLE IF NOT EXISTS phone_mentoring_updates (
+      CREATE TABLE IF NOT EXISTS phone_mentoring_updates(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         volunteer_id INTEGER NOT NULL,
         volunteer_name TEXT NOT NULL,
@@ -1362,17 +1458,17 @@ export const initDatabase = async () => {
         assignment_id INTEGER,
         project_id INTEGER,
         update_date DATE NOT NULL,
-        status TEXT NOT NULL CHECK(status IN ('CALL_DONE', 'NOT_CALLED', 'STUDENT_NOT_PICKED', 'CALL_PENDING')),
+        status TEXT NOT NULL CHECK(status IN('CALL_DONE', 'NOT_CALLED', 'STUDENT_NOT_PICKED', 'CALL_PENDING')),
         explanation TEXT,
         attempts INTEGER,
         attachment_path TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (volunteer_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (assignment_id) REFERENCES phone_mentoring_assignments(id) ON DELETE SET NULL,
-        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
+        FOREIGN KEY(volunteer_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY(assignment_id) REFERENCES phone_mentoring_assignments(id) ON DELETE SET NULL,
+        FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE SET NULL
       )
-    `);
+      `);
 
     // Ensure existing databases have the new mentoring update columns
     // Ensure existing databases have the new mentoring update columns
@@ -1381,24 +1477,24 @@ export const initDatabase = async () => {
 
     // Phone mentoring attendance table - tracks mentee attendance per assignment
     await run(database, `
-      CREATE TABLE IF NOT EXISTS phone_mentoring_attendance (
+      CREATE TABLE IF NOT EXISTS phone_mentoring_attendance(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         assignment_id INTEGER NOT NULL,
         project_id INTEGER,
         mentee_name TEXT,
         attendance_date DATE NOT NULL,
-        status TEXT NOT NULL CHECK(status IN ('PRESENT', 'ABSENT', 'FOLLOW_UP', 'NOT_REACHABLE')),
+        status TEXT NOT NULL CHECK(status IN('PRESENT', 'ABSENT', 'FOLLOW_UP', 'NOT_REACHABLE')),
         notes TEXT,
         call_recording_path TEXT,
         recorded_by INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(assignment_id, attendance_date),
-        FOREIGN KEY (assignment_id) REFERENCES phone_mentoring_assignments(id) ON DELETE CASCADE,
-        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-        FOREIGN KEY (recorded_by) REFERENCES users(id) ON DELETE SET NULL
+        FOREIGN KEY(assignment_id) REFERENCES phone_mentoring_assignments(id) ON DELETE CASCADE,
+        FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
+        FOREIGN KEY(recorded_by) REFERENCES users(id) ON DELETE SET NULL
       )
-    `);
+      `);
 
     // Ensure existing databases have call_recording_path column
     // Ensure existing databases have call_recording_path column
@@ -1411,25 +1507,25 @@ export const initDatabase = async () => {
       try {
         // Create new table with permission included
         await run(database, `
-          CREATE TABLE IF NOT EXISTS event_od_new (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            event_id INTEGER NOT NULL,
-            user_id INTEGER NOT NULL,
-            status TEXT NOT NULL CHECK(status IN ('od', 'absent', 'permission')),
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-            UNIQUE(event_id, user_id)
-          )
-        `);
+          CREATE TABLE IF NOT EXISTS event_od_new(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        status TEXT NOT NULL CHECK(status IN('od', 'absent', 'permission')),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE,
+        FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE(event_id, user_id)
+      )
+      `);
 
         // Copy existing rows (only allowed statuses) into new table
         await run(database, `
-          INSERT OR IGNORE INTO event_od_new (event_id, user_id, status, created_at, updated_at)
+          INSERT OR IGNORE INTO event_od_new(event_id, user_id, status, created_at, updated_at)
           SELECT event_id, user_id, status, created_at, updated_at FROM event_od
-          WHERE status IN ('od','absent')
-        `);
+          WHERE status IN('od', 'absent')
+      `);
 
         // Drop existing backup table if it exists to avoid rename conflicts
         await run(database, `DROP TABLE IF EXISTS event_od_old`);
@@ -1448,52 +1544,52 @@ export const initDatabase = async () => {
         }
         // If migration failed, ensure table exists with original definition (fallback)
         await run(database, `
-          CREATE TABLE IF NOT EXISTS event_od (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            event_id INTEGER NOT NULL,
-            user_id INTEGER NOT NULL,
-            status TEXT NOT NULL CHECK(status IN ('od', 'absent')),
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-            UNIQUE(event_id, user_id)
-          )
-        `);
+          CREATE TABLE IF NOT EXISTS event_od(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        status TEXT NOT NULL CHECK(status IN('od', 'absent')),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE,
+        FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE(event_id, user_id)
+      )
+      `);
       }
     } else {
       // Table doesn't exist - create with permission support
       await run(database, `
-        CREATE TABLE IF NOT EXISTS event_od (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          event_id INTEGER NOT NULL,
-          user_id INTEGER NOT NULL,
-          status TEXT NOT NULL CHECK(status IN ('od', 'absent', 'permission')),
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
-          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-          UNIQUE(event_id, user_id)
-        )
+        CREATE TABLE IF NOT EXISTS event_od(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        status TEXT NOT NULL CHECK(status IN('od', 'absent', 'permission')),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE,
+        FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE(event_id, user_id)
+      )
       `);
     }
 
     // Event members (students assigned to events)
     await run(database, `
-      CREATE TABLE IF NOT EXISTS event_members (
+      CREATE TABLE IF NOT EXISTS event_members(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         event_id INTEGER NOT NULL,
         user_id INTEGER NOT NULL,
         joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE,
+        FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
         UNIQUE(event_id, user_id)
       )
-    `);
+      `);
 
     // Event attendance records table
     await run(database, `
-      CREATE TABLE IF NOT EXISTS event_volunteers (
+      CREATE TABLE IF NOT EXISTS event_volunteers(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         event_id INTEGER NOT NULL,
         name TEXT NOT NULL,
@@ -1501,59 +1597,59 @@ export const initDatabase = async () => {
         year TEXT,
         phone TEXT NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+        FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE
       )
-    `);
+      `);
 
     await run(database, `
-      CREATE TABLE IF NOT EXISTS event_attendance (
+      CREATE TABLE IF NOT EXISTS event_attendance(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         event_id INTEGER NOT NULL,
         user_id INTEGER NOT NULL,
-        status TEXT NOT NULL CHECK(status IN ('present', 'absent', 'late')),
+        status TEXT NOT NULL CHECK(status IN('present', 'absent', 'late')),
         marked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         marked_by INTEGER,
         notes TEXT,
-        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (marked_by) REFERENCES users(id) ON DELETE SET NULL
+        FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE,
+        FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY(marked_by) REFERENCES users(id) ON DELETE SET NULL
       )
-    `);
+      `);
 
     // Student Event Registrations - Links students to events they registered for
     await run(database, `
-      CREATE TABLE IF NOT EXISTS event_registrations (
+      CREATE TABLE IF NOT EXISTS event_registrations(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         event_id INTEGER NOT NULL,
         user_id INTEGER NOT NULL,
-        registration_type TEXT DEFAULT 'volunteer' CHECK(registration_type IN ('volunteer', 'participant')),
-        status TEXT DEFAULT 'registered' CHECK(status IN ('registered', 'confirmed', 'cancelled')),
+        registration_type TEXT DEFAULT 'volunteer' CHECK(registration_type IN('volunteer', 'participant')),
+        status TEXT DEFAULT 'registered' CHECK(status IN('registered', 'confirmed', 'cancelled')),
         registered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         notes TEXT,
-        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE,
+        FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
         UNIQUE(event_id, user_id)
       )
-    `);
+      `);
 
 
 
     // Volunteer Assignments - Links registered students as volunteers to events
     await run(database, `
-      CREATE TABLE IF NOT EXISTS volunteer_assignments (
+      CREATE TABLE IF NOT EXISTS volunteer_assignments(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         event_id INTEGER NOT NULL,
         user_id INTEGER NOT NULL,
         assigned_by INTEGER,
         assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        status TEXT DEFAULT 'assigned' CHECK(status IN ('assigned', 'confirmed', 'completed', 'cancelled')),
+        status TEXT DEFAULT 'assigned' CHECK(status IN('assigned', 'confirmed', 'completed', 'cancelled')),
         notes TEXT,
-        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (assigned_by) REFERENCES users(id) ON DELETE SET NULL,
+        FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE,
+        FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY(assigned_by) REFERENCES users(id) ON DELETE SET NULL,
         UNIQUE(event_id, user_id)
       )
-    `);
+      `);
 
     // Create default admin user if not exists (email in lowercase)
     const adminEmail = 'smvolunteers@ksrct.ac.in'.toLowerCase().trim();
@@ -1566,9 +1662,9 @@ export const initDatabase = async () => {
     if (!adminExists) {
       const hashedPassword = await bcrypt.hash('12345', 10);
       const result = await run(database, `
-        INSERT INTO users (name, email, password, role, must_change_password)
-        VALUES (?, ?, ?, ?, ?)
-      `, ['Admin User', adminEmail, hashedPassword, 'admin', 0]);
+        INSERT INTO users(name, email, password, role, must_change_password)
+        VALUES(?, ?, ?, ?, ?)
+        `, ['Admin User', adminEmail, hashedPassword, 'admin', 0]);
 
       console.log('✅ Default admin user created');
       console.log('   Email: smvolunteers@ksrct.ac.in');
@@ -1584,20 +1680,20 @@ export const initDatabase = async () => {
 
     // Office Bearers table - stores student office bearers for each year
     await run(database, `
-      CREATE TABLE IF NOT EXISTS office_bearers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        position TEXT NOT NULL,
-        contact TEXT,
-        email TEXT,
-        department TEXT,
-        student_year TEXT,
-        photo_url TEXT,
-        academic_year TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+      CREATE TABLE IF NOT EXISTS office_bearers(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          position TEXT NOT NULL,
+          contact TEXT,
+          email TEXT,
+          department TEXT,
+          student_year TEXT,
+          photo_url TEXT,
+          academic_year TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
 
     // Ensure newer columns exist for older databases
     await addColumnSafe(database, 'office_bearers', 'department', 'TEXT');
@@ -1606,20 +1702,20 @@ export const initDatabase = async () => {
     // Announcements table
     await run(database, `
       CREATE TABLE IF NOT EXISTS announcements(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    content TEXT NOT NULL,
-    priority TEXT DEFAULT 'normal' CHECK(priority IN('normal', 'important')),
-    link_url TEXT,
-    image_url TEXT,
-    send_email INTEGER DEFAULT 0,
-    target TEXT DEFAULT 'all',
-    created_by INTEGER,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    deleted_at DATETIME,
-    FOREIGN KEY(created_by) REFERENCES users(id)
-  )
-  `);
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        priority TEXT DEFAULT 'normal' CHECK(priority IN('normal', 'important')),
+        link_url TEXT,
+        image_url TEXT,
+        send_email INTEGER DEFAULT 0,
+        target TEXT DEFAULT 'all',
+        created_by INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        deleted_at DATETIME,
+        FOREIGN KEY(created_by) REFERENCES users(id)
+      )
+      `);
 
     // Ensure link_url and image_url columns exist (Migration)
     await addColumnSafe(database, 'announcements', 'link_url', 'TEXT');

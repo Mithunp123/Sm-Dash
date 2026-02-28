@@ -72,7 +72,13 @@ const run = (db, query, params = []) => {
 router.get('/', authenticateToken, requireRole('admin'), async (req, res) => {
   try {
     const db = getDatabase();
-    const users = await all(db, 'SELECT id, name, email, role, is_interviewer, created_at FROM users ORDER BY created_at DESC');
+    const users = await all(db, `
+      SELECT u.id, u.name, u.email, u.role, u.is_interviewer, u.created_at,
+             p.dept, p.year, p.phone
+      FROM users u
+      LEFT JOIN profiles p ON u.id = p.user_id
+      ORDER BY u.created_at DESC
+    `);
     res.json({ success: true, users });
   } catch (error) {
     console.error('Get users error:', error);
@@ -271,7 +277,12 @@ router.put('/:id', authenticateToken, [
 
     // If role changed to a profile-bearing role, ensure profile exists
     if (role && ['student', 'office_bearer'].includes(role)) {
-      try { await run(db, 'INSERT OR IGNORE INTO profiles (user_id, role) VALUES (?, ?)', [id, role]); } catch (e) { }
+      try { 
+        const existingProf = await get(db, 'SELECT id FROM profiles WHERE user_id = ?', [id]);
+        if (!existingProf) {
+          await run(db, 'INSERT INTO profiles (user_id, role) VALUES (?, ?)', [id, role]);
+        }
+      } catch (e) { }
     }
 
     res.json({ success: true, message: 'User updated successfully' });
@@ -371,7 +382,12 @@ router.post('/', authenticateToken, requireRole('admin'), [
         }
         // Ensure profile exists for role types
         if (['student', 'office_bearer'].includes(role)) {
-          try { await run(db, 'INSERT OR IGNORE INTO profiles (user_id, role) VALUES (?, ?)', [existingUser.id, role]); } catch (e) { }
+          try { 
+          const existingProf = await get(db, 'SELECT id FROM profiles WHERE user_id = ?', [existingUser.id]);
+          if (!existingProf) {
+            await run(db, 'INSERT INTO profiles (user_id, role) VALUES (?, ?)', [existingUser.id, role]);
+          }
+        } catch (e) { }
         }
 
         await logActivity(req.user.id, 'UPDATE_USER', { targetId: existingUser.id, name, role }, req, {
@@ -542,8 +558,11 @@ router.get('/:userId/profile', authenticateToken, async (req, res) => {
         // Migrate to unified table if found
         if (profile) {
           try {
-            await run(db, `INSERT OR IGNORE INTO profiles (user_id, role, dept, year, phone, blood_group, gender, dob, address, photo_url, custom_fields) VALUES (?, 'student', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-              [userId, profile.dept || null, profile.year || null, profile.phone || null, profile.blood_group || null, profile.gender || null, profile.dob || null, profile.address || null, (profile.photo_url || null), profile.custom_fields || null]);
+            const existingProf = await get(db, 'SELECT id FROM profiles WHERE user_id = ?', [userId]);
+            if (!existingProf) {
+              await run(db, `INSERT INTO profiles (user_id, role, dept, year, phone, blood_group, gender, dob, address, photo_url, custom_fields) VALUES (?, 'student', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [userId, profile.dept || null, profile.year || null, profile.phone || null, profile.blood_group || null, profile.gender || null, profile.dob || null, profile.address || null, (profile.photo_url || null), profile.custom_fields || null]);
+            }
             profile = await get(db, 'SELECT * FROM profiles WHERE user_id = ?', [userId]);
           } catch (migrateErr) {
             console.error('Error migrating student profile:', migrateErr);
@@ -554,8 +573,11 @@ router.get('/:userId/profile', authenticateToken, async (req, res) => {
         profile = await get(db, 'SELECT * FROM office_bearer_profiles WHERE user_id = ?', [userId]);
         if (profile) {
           try {
-            await run(db, `INSERT OR IGNORE INTO profiles (user_id, role, dept, year, phone, blood_group, gender, dob, address, photo_url, custom_fields) VALUES (?, 'office_bearer', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-              [userId, profile.dept || null, profile.year || null, profile.phone || null, profile.blood_group || null, profile.gender || null, profile.dob || null, profile.address || null, (profile.photo_url || null), profile.custom_fields || null]);
+            const existingOBProf = await get(db, 'SELECT id FROM profiles WHERE user_id = ?', [userId]);
+            if (!existingOBProf) {
+              await run(db, `INSERT INTO profiles (user_id, role, dept, year, phone, blood_group, gender, dob, address, photo_url, custom_fields) VALUES (?, 'office_bearer', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [userId, profile.dept || null, profile.year || null, profile.phone || null, profile.blood_group || null, profile.gender || null, profile.dob || null, profile.address || null, (profile.photo_url || null), profile.custom_fields || null]);
+            }
             profile = await get(db, 'SELECT * FROM profiles WHERE user_id = ?', [userId]);
           } catch (migrateErr) {
             console.error('Error migrating office bearer profile:', migrateErr);
@@ -566,7 +588,21 @@ router.get('/:userId/profile', authenticateToken, async (req, res) => {
       }
     }
 
+    // If profile still doesn't exist, create an empty one for student/office_bearer roles
+    if (!profile && (user.role === 'student' || user.role === 'office_bearer')) {
+      try {
+        console.log(`📝 Creating empty profile for ${user.role} user ${userId}`);
+        await run(db, 'INSERT INTO profiles (user_id, role) VALUES (?, ?)', [userId, user.role]);
+        profile = await get(db, 'SELECT * FROM profiles WHERE user_id = ?', [userId]);
+        console.log(`✅ Empty profile created for user ${userId}`);
+      } catch (createErr) {
+        console.error('Error creating empty profile:', createErr);
+        // Continue - profile is still null, frontend will show empty form
+      }
+    }
+
     if (!profile) {
+      console.log(`⚠️ No profile found for user ${userId} (role: ${user.role})`);
       return res.json({ success: true, profile: null });
     }
 
@@ -622,14 +658,18 @@ router.put('/:userId/profile', authenticateToken, [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.error('Validation errors in profile update:', errors.array());
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
     const { userId } = req.params;
+    console.log(`📋 Profile update request for user ${userId}`);
+    
     // authorize: allow if requester is admin OR if requester is the owner of the profile
     const requesterId = req.user?.id;
     const requesterRole = req.user?.role;
     if (requesterRole !== 'admin' && parseInt(requesterId) !== parseInt(userId)) {
+      console.error(`❌ Access denied: requester ${requesterId} (${requesterRole}) cannot update user ${userId}`);
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
@@ -640,8 +680,10 @@ router.put('/:userId/profile', authenticateToken, [
     // Get user role
     const user = await get(db, 'SELECT role FROM users WHERE id = ?', [userId]);
     if (!user) {
+      console.error(`❌ User not found: ${userId}`);
       return res.status(404).json({ success: false, message: 'User not found' });
     }
+    console.log(`✅ User found: ${userId}, role: ${user.role}`);
 
     // Students and office bearers can update all their profile fields directly
     // No need to check profile field settings
@@ -669,10 +711,12 @@ router.put('/:userId/profile', authenticateToken, [
 
       if (updates.length > 0) {
         params.push(userId);
-        await run(db,
+        const result = await run(db,
           `UPDATE profiles SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?`,
           params
         );
+
+        console.log(`✅ Profile updated for user ${userId}, changes made: ${result.changes}`);
 
         await logActivity(req.user.id, 'UPDATE_PROFILE', { targetUserId: userId, fields: Object.keys(fields).filter(k => fields[k] !== undefined) }, req, {
           action_type: 'UPDATE',
@@ -680,23 +724,28 @@ router.put('/:userId/profile', authenticateToken, [
           action_description: `Updated profile fields for user: ${userId}`,
           reference_id: userId
         });
+      } else {
+        console.log(`⚠️ Profile update called for user ${userId} but no fields were changed`);
       }
-      res.json({ success: true, message: 'Profile updated successfully' });
+      return res.json({ success: true, message: 'Profile updated successfully' });
     }
     else {
       // Create new profile in unified table
-      await run(db,
+      console.log(`📝 Creating new profile for user ${userId}`);
+      const result = await run(db,
         `INSERT INTO profiles (user_id, role, dept, year, phone, blood_group, gender, dob, address, photo_url, register_no, academic_year, father_number, hosteller_dayscholar, position, custom_fields)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [userId, user.role, dept || null, year || null, phone || null, blood_group || null, gender || null, dob || null, address || null, photoUrl || null, register_no || null, academic_year || null, father_number || null, hosteller_dayscholar || null, position || null, custom_fields || null]
       );
+      console.log(`✅ Profile created for user ${userId} with ID: ${result.lastID}`);
+      
       await logActivity(req.user.id, 'CREATE_PROFILE', { targetUserId: userId }, req, {
         action_type: 'CREATE',
         module_name: 'profiles',
         action_description: `Created profile for user: ${userId}`,
         reference_id: userId
       });
-      res.json({ success: true, message: 'Profile created successfully' });
+      return res.json({ success: true, message: 'Profile created successfully' });
     }
   } catch (error) {
     console.error('Update profile error:', error);

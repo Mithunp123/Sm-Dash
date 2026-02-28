@@ -634,6 +634,15 @@ class ApiClient {
     return this.request('/bills');
   }
 
+  async getBillAnalyticsMonthly(year?: number) {
+    const qs = year ? `?year=${year}` : '';
+    return this.request(`/bills/analytics/monthly${qs}`);
+  }
+
+  async getBillAnalyticsSources() {
+    return this.request('/bills/analytics/sources');
+  }
+
   async uploadBill(formData: FormData) {
     return this.request('/bills', {
       method: 'POST',
@@ -882,7 +891,7 @@ class ApiClient {
   }
 
   // Submit interview marks (mentor only, one-time submission)
-  async submitInterviewMarks(candidateId: number, data: { marks: number; remarks?: string; decision?: string }) {
+  async submitInterviewMarks(candidateId: number, data: { marks?: number; remarks?: string; decision?: string }) {
     return this.request(`/interviews/${candidateId}/submit-marks`, {
       method: 'POST',
       body: JSON.stringify(data),
@@ -1415,6 +1424,37 @@ class ApiClient {
     this.setToken(null);
     sessionStorage.removeItem('auth_user');
   }
+
+  // ─── Bills & Collections ──────────────────────────────────────────────────
+  async getBillItems(id: number) {
+    return this.request(`/bills/${id}/items`);
+  }
+
+  async getCollections(eventId: number) {
+    return this.request(`/bills/collections/${eventId}`);
+  }
+
+  async createCollection(payload: any) {
+    return this.request('/bills/collections', { method: 'POST', body: JSON.stringify(payload) });
+  }
+
+  async updateCollection(id: number, payload: any) {
+    return this.request(`/bills/collections/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+  }
+
+  async deleteCollection(id: number) {
+    return this.request(`/bills/collections/${id}`, { method: 'DELETE' });
+  }
+
+  async uploadFolderQr(folderId: number, file: File) {
+    const formData = new FormData();
+    formData.append('qr', file);
+    return this.request(`/bills/folders/${folderId}/qr`, {
+      method: 'POST',
+      body: formData
+    });
+  }
+
   async uploadPhoto(formData: FormData) {
     const url = `${this.baseURL}/upload/photo`;
     const headers: HeadersInit = {};

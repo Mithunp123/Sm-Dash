@@ -221,7 +221,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
               <div className="lg:col-span-2 space-y-6">
                 {/* Refined Welcome Banner */}
                 {/* Interview Status Card - Only show if assigned or decision made */}
-                {interviewStatus && (interviewStatus.interview_date || interviewStatus.status === 'selected' || interviewStatus.status === 'rejected') && (
+                {interviewStatus && (interviewStatus.status !== 'unassigned') && (
                   <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-violet-600 to-indigo-600 p-8 text-white shadow-xl mb-6">
                     <div className="relative z-10">
                       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md mb-4 text-xs font-bold uppercase tracking-widest border border-white/10">
@@ -231,7 +231,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
                       <h2 className="section-title">
                         {interviewStatus.status === 'selected' ? 'Congratulations! You are Selected!' :
                           interviewStatus.status === 'rejected' ? 'Application Update' :
-                            'Interview Scheduled'}
+                            ['assigned', 'pending'].includes(interviewStatus.status) ? 'Interview Scheduled' : 'Interview Status'}
                       </h2>
                       <div className="space-y-4 mt-6">
                         {interviewStatus.status === 'selected' && (
@@ -255,7 +255,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
                             </p>
                           </div>
                         )}
-                        {interviewStatus.status === 'pending' && interviewStatus.interview_date && (
+                        {['assigned', 'pending'].includes(interviewStatus.status) && (
                           <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm border border-white/10">
                             <h3 className="text-sm font-bold uppercase tracking-widest text-indigo-200 mb-2">Your Interview Details</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -263,7 +263,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
                                 <CalendarIcon className="w-5 h-5 text-indigo-300" />
                                 <div>
                                   <p className="text-xs text-indigo-200 uppercase font-bold">Date</p>
-                                  <p className="font-bold text-lg">{interviewStatus.interview_date}</p>
+                                  <p className="font-bold text-lg">{interviewStatus.interview_date || 'TBD'}</p>
                                 </div>
                               </div>
                               <div className="flex items-center gap-3">

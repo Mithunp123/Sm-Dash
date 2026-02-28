@@ -77,6 +77,8 @@ const OfficeBearerProfile = () => {
         return;
       }
 
+      console.log(`📋 Loading office bearer profile for user ${currentUser.id}`);
+
       // Base shape mirroring student profile fields
       const baseProfile: any = {
         name: currentUser.name || "",
@@ -106,8 +108,11 @@ const OfficeBearerProfile = () => {
       );
 
       const data = await profileRes.json();
+      console.log(`✅ Profile response:`, data);
+      
       if (data.success && data.profile) {
         // Merge API data into base shape so new fields always exist
+        console.log(`✅ Office bearer profile loaded with data:`, data.profile);
         setProfileData({ ...baseProfile, ...data.profile });
         // Load existing photo if available
         if (data.profile.photo_url) {
@@ -165,6 +170,8 @@ const OfficeBearerProfile = () => {
         return;
       }
 
+      console.log(`💾 Saving office bearer profile for user ${currentUser.id}`);
+
       let photoUrl = profileData.photo_url || '';
 
       // Upload photo if a new file was selected
@@ -199,6 +206,7 @@ const OfficeBearerProfile = () => {
       // Update user name and email first
       if (profileData.name || profileData.email) {
         try {
+          console.log(`📝 Updating user info (name/email)`);
           const updateUserRes = await fetch(
             `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/${currentUser.id}`,
             {
@@ -217,6 +225,7 @@ const OfficeBearerProfile = () => {
           if (updateUserRes.ok) {
             const updateUserData = await updateUserRes.json();
             if (updateUserData.success) {
+              console.log(`✅ User info updated`);
               // Update local user data
               const current = auth.getUser();
               if (current) {
@@ -233,6 +242,9 @@ const OfficeBearerProfile = () => {
         }
       }
 
+      const payload = { ...profileData, photo_url: photoUrl };
+      console.log(`📦 Saving profile with payload keys:`, Object.keys(payload));
+
       const res = await fetch(
         `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/${currentUser.id}/profile`,
         {
@@ -241,15 +253,18 @@ const OfficeBearerProfile = () => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${auth.getToken()}`
           },
-          body: JSON.stringify({ ...profileData, photo_url: photoUrl })
+          body: JSON.stringify(payload)
         }
       );
 
       const data = await res.json();
+      console.log(`✅ Save response:`, data);
+      
       if (data.success) {
         toast.success('Profile updated successfully!');
         setIsEditing(false);
-        loadProfile();
+        console.log(`🔄 Reloading profile after save`);
+        await loadProfile(); // Reload to get fresh data from server
       } else {
         throw new Error(data.message || 'Failed to update profile');
       }

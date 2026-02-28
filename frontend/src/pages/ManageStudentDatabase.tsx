@@ -133,7 +133,8 @@ const ManageStudentDatabase = () => {
                 const p = await api.getStudentProfile(u.id);
                 profile = p.success ? p.profile : null;
               } else if (u.role === 'office_bearer') {
-                const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/profile/office-bearer/${u.id}`, {
+                // Use unified profile endpoint for office bearers (same as students)
+                const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/${u.id}/profile`, {
                   headers: { 'Authorization': `Bearer ${auth.getToken()}` }
                 });
                 const data = await res.json();
@@ -200,7 +201,8 @@ const ManageStudentDatabase = () => {
       if (selectedUser.role === 'student') {
         res = await api.updateStudentProfile(selectedUser.id, profileData);
       } else if (selectedUser.role === 'office_bearer') {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/profile/office-bearer/${selectedUser.id}`, {
+        // Use unified profile endpoint for office bearers (same as students)
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/${selectedUser.id}/profile`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${auth.getToken()}`,

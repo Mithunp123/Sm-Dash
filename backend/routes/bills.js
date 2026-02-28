@@ -53,6 +53,221 @@ const initializeFolderSchema = () => {
 // Run initialization (commented out - run manually if needed or move to migration)
 // initializeFolderSchema();
 
+// ─── Schema Migration for Treasurer fields ──────────────────────────────────
+const migrateSchema = async () => {
+  try {
+    const db = getDatabase();
+    const cols = [
+      ['amount_source', 'TEXT'],
+      ['paid_by', 'TEXT'],
+      ['category', 'TEXT'],
+      ['bill_image', 'TEXT'],
+      ['bill_status', "TEXT DEFAULT 'submitted'"],
+      ['has_items', 'INTEGER DEFAULT 0'],
+    ];
+    for (const [col, def] of cols) {
+      try { await run(db, `ALTER TABLE bills ADD COLUMN ${col} ${def}`); } catch (_) { /* already exists */ }
+    }
+
+    // Collection table (updated to payer focus)
+    const collCols = [
+      ['payer_name', 'TEXT'],
+      ['payer_dept', 'TEXT'],
+      ['payer_type', 'TEXT'],
+      ['amount', 'REAL DEFAULT 0'],
+      ['payment_mode', "TEXT DEFAULT 'cash'"],
+      ['received_by', 'TEXT'],
+    ];
+    for (const [col, def] of collCols) {
+      try { await run(db, `ALTER TABLE fund_collections ADD COLUMN ${col} ${def}`); } catch (_) { }
+    }
+
+    // Add qr_image to bill_folders
+    try { await run(db, `ALTER TABLE bill_folders ADD COLUMN qr_image TEXT`); } catch (_) { }
+  } catch (e) { console.error('Bills schema migration:', e.message); }
+};
+migrateSchema();
+
+// ─── SUMMARY ─────────────────────────────────────────────────────────────────
+router.get('/summary', authenticateToken, requirePermission('can_manage_bills', { allowView: true }), async (req, res) => {
+  try {
+    const db = getDatabase();
+    const today = new Date().toISOString().split('T')[0];
+    const [yr, mo] = today.split('-');
+    const q = async (sql, p = []) => { const r = await get(db, sql, p); return r ? (r.total || 0) : 0; };
+    const [todayTotal, monthTotal, yearTotal, collegeFund, studentContrib] = await Promise.all([
+      q(`SELECT COALESCE(SUM(amount),0) as total FROM bills WHERE bill_date = ?`, [today]),
+      q(`SELECT COALESCE(SUM(amount),0) as total FROM bills WHERE strftime('%Y-%m', bill_date) = ?`, [`${yr}-${mo}`]),
+      q(`SELECT COALESCE(SUM(amount),0) as total FROM bills WHERE strftime('%Y', bill_date) = ?`, [yr]),
+      q(`SELECT COALESCE(SUM(amount),0) as total FROM bills WHERE amount_source = 'College Fund'`),
+      q(`SELECT COALESCE(SUM(amount),0) as total FROM bills WHERE amount_source = 'Student Contribution'`),
+    ]);
+    res.json({ success: true, summary: { todayTotal, monthTotal, yearTotal, collegeFund, studentContrib } });
+  } catch (e) { res.status(500).json({ success: false, message: 'Server error' }); }
+});
+
+// Get individual bill items
+router.get('/:id/items', authenticateToken, requirePermission('can_manage_bills', { allowView: true }), async (req, res) => {
+  try {
+    const db = getDatabase();
+    const items = await all(db, 'SELECT * FROM bill_items WHERE bill_id = ?', [req.params.id]);
+    res.json({ success: true, items });
+  } catch (e) { res.status(500).json({ success: false, message: 'Server error' }); }
+});
+
+// ─── EVENT QR CODE MANAGEMENT ───────────────────────────────────────────────
+
+const qrUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const dir = path.join(process.cwd(), 'public', 'uploads', 'qr_codes');
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, `event-qr-${req.params.id}-${Date.now()}${ext}`);
+    }
+  })
+});
+
+router.post('/folders/:id/qr', authenticateToken, requirePermission('can_manage_bills'), qrUpload.single('qr'), async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Only Admin can upload QR' });
+    }
+    if (!req.file) {
+      console.warn('QR Upload: No file provided');
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+    const db = getDatabase();
+    const dbPath = `/uploads/qr_codes/${req.file.filename}`;
+    await run(db, 'UPDATE bill_folders SET qr_image = ? WHERE id = ?', [dbPath, req.params.id]);
+    res.json({ success: true, qr_image: dbPath });
+  } catch (e) {
+    console.error('QR Upload error DETAILS:', e);
+    res.status(500).json({ success: false, message: e.message || 'Server error' });
+  }
+});
+
+// ─── FUND COLLECTIONS ───────────────────────────────────────────────────────
+
+// Get all collections for an event
+router.get('/collections/:eventId', authenticateToken, requirePermission('can_manage_bills', { allowView: true }), async (req, res) => {
+  try {
+    const db = getDatabase();
+    let query = `
+      SELECT c.*, u.name as added_by 
+      FROM fund_collections c
+      LEFT JOIN users u ON c.user_id = u.id
+      WHERE c.event_id = ?
+    `;
+    let params = [req.params.eventId];
+
+    if (req.user.role !== 'admin') {
+      query += ' AND c.user_id = ?';
+      params.push(req.user.id);
+    }
+
+    query += ' ORDER BY c.created_at DESC';
+    const rows = await all(db, query, params);
+    res.json({ success: true, collections: rows });
+  } catch (e) {
+    console.error('Get collections error:', e);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Admin-only global analytics / list
+router.get('/collections/admin/all', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const db = getDatabase();
+    const rows = await all(db, `
+      SELECT c.*, f.name as event_name, u.name as added_by 
+      FROM fund_collections c
+      JOIN bill_folders f ON c.event_id = f.id
+      LEFT JOIN users u ON c.user_id = u.id
+      ORDER BY c.created_at DESC
+    `);
+    res.json({ success: true, collections: rows });
+  } catch (e) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Create collection
+router.post('/collections', authenticateToken, requirePermission('can_manage_bills'), async (req, res) => {
+  try {
+    const db = getDatabase();
+    let { event_id, payer_name, payer_dept, payer_type, amount, payment_mode, received_by, entry_date } = req.body;
+
+    // Ensure lowercase for check constraints
+    payer_type = (payer_type || 'student').toLowerCase();
+    payment_mode = (payment_mode || 'cash').toLowerCase();
+
+    const result = await run(db,
+      `INSERT INTO fund_collections (event_id, payer_name, payer_dept, payer_type, amount, payment_mode, received_by, user_id, entry_date) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [event_id, payer_name, payer_dept, payer_type, amount || 0, payment_mode, received_by || req.user.name, req.user.id, entry_date || new Date().toISOString().split('T')[0]]
+    );
+    res.json({ success: true, id: result.lastID });
+  } catch (e) {
+    console.error('Collection creation error:', e.message);
+    res.status(500).json({ success: false, message: e.message || 'Server error' });
+  }
+});
+
+// Update collection
+router.put('/collections/:id', authenticateToken, requirePermission('can_manage_bills'), async (req, res) => {
+  try {
+    const db = getDatabase();
+    let { title, payer_name, payer_dept, payer_type, amount, payment_mode, received_by, status } = req.body;
+
+    // Ensure lowercase for check constraints
+    payer_type = (payer_type || 'student').toLowerCase();
+    payment_mode = (payment_mode || 'cash').toLowerCase();
+
+    await run(db,
+      `UPDATE fund_collections SET title=?, payer_name=?, payer_dept=?, payer_type=?, amount=?, payment_mode=?, received_by=?, status=? WHERE id=?`,
+      [title, payer_name, payer_dept, payer_type, amount || 0, payment_mode, received_by, status || 'active', req.params.id]
+    );
+    res.json({ success: true });
+  } catch (e) {
+    console.error('Collection update error:', e.message);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Remove collection
+router.delete('/collections/:id', authenticateToken, requirePermission('can_manage_bills'), async (req, res) => {
+  try {
+    const db = getDatabase();
+    await run(db, 'DELETE FROM fund_collections WHERE id = ?', [req.params.id]);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ success: false, message: 'Server error' }); }
+});
+
+// Monthly analytics
+router.get('/analytics/monthly', authenticateToken, requirePermission('can_manage_bills', { allowView: true }), async (req, res) => {
+  try {
+    const db = getDatabase();
+    const year = req.query.year || new Date().getFullYear();
+    const rows = await all(db, `SELECT strftime('%m', bill_date) as month, COALESCE(SUM(amount),0) as total FROM bills WHERE strftime('%Y', bill_date) = ? GROUP BY month ORDER BY month`, [String(year)]);
+    const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const data = labels.map((label, i) => { const m = String(i + 1).padStart(2, '0'); const r = rows.find(x => x.month === m); return { month: label, total: r ? Number(r.total) : 0 }; });
+    res.json({ success: true, data });
+  } catch (e) { res.status(500).json({ success: false, message: 'Server error' }); }
+});
+
+// Source-wise analytics
+router.get('/analytics/sources', authenticateToken, requirePermission('can_manage_bills', { allowView: true }), async (req, res) => {
+  try {
+    const db = getDatabase();
+    const rows = await all(db, `SELECT COALESCE(amount_source,'Unknown') as source, COALESCE(SUM(amount),0) as total FROM bills GROUP BY amount_source ORDER BY total DESC`, []);
+    res.json({ success: true, data: rows.map(r => ({ source: r.source, total: Number(r.total) })) });
+  } catch (e) { res.status(500).json({ success: false, message: 'Server error' }); }
+});
+
 // Get all bills (optionally filtered by folder)
 router.get('/', authenticateToken, requirePermission('can_manage_bills', { allowView: true }), async (req, res) => {
   try {
@@ -122,13 +337,20 @@ router.post('/', authenticateToken, requirePermission('can_manage_bills', { requ
     }
 
     const folder_id = req.body.folder_id || null;
+    const paid_by = req.body.paid_by || null;
+    const amount_source = req.body.amount_source || null;
+    const category = req.body.category || 'other';
+    const bill_image = req.body.bill_image || null;
+    const bill_status = req.body.bill_status || 'submitted';
+    const has_items = (Array.isArray(items) && items.length > 0) ? 1 : 0;
+
     const result = await run(db,
-      'INSERT INTO bills (title, amount, description, bill_date, project_id, submitted_by, bill_type, drive_link, folder_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [title, totalAmount, description || null, bill_date || new Date().toISOString().split('T')[0], project_id || null, req.user.id, bill_type || null, drive_link || null, folder_id]
+      'INSERT INTO bills (title, amount, description, bill_date, project_id, submitted_by, bill_type, drive_link, folder_id, paid_by, amount_source, category, bill_image, bill_status, has_items) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [title, totalAmount, description || null, bill_date || new Date().toISOString().split('T')[0], project_id || null, req.user.id, bill_type || null, drive_link || null, folder_id, paid_by, amount_source, category, bill_image, bill_status, has_items]
     );
 
-    // Insert items if provided (support optional from/to for transport items)
-    if (Array.isArray(items) && items.length > 0) {
+    // Insert items if provided
+    if (has_items) {
       for (const it of items) {
         const fromLoc = it.from || it.from_loc || null;
         const toLoc = it.to || it.to_loc || null;
@@ -329,7 +551,10 @@ const folderUpload = multer({
 // Create folder with optional file uploads
 router.post('/folders', authenticateToken, requirePermission('can_manage_bills', { requireEdit: true }), folderUpload.array('files'), async (req, res) => {
   try {
-    const { name, description, parent_folder_id } = req.body;
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Only Admin can create events' });
+    }
+    const { name, description, parent_folder_id, event_date } = req.body;
 
     if (!name) {
       return res.status(400).json({ success: false, message: 'Folder name is required' });
@@ -340,8 +565,8 @@ router.post('/folders', authenticateToken, requirePermission('can_manage_bills',
 
     // Create the folder
     const result = await run(db,
-      'INSERT INTO bill_folders (name, description, created_by, parent_folder_id, is_file) VALUES (?, ?, ?, ?, 0)',
-      [name, description || null, req.user.id, parentId]
+      'INSERT INTO bill_folders (name, description, created_by, parent_folder_id, is_file, event_date) VALUES (?, ?, ?, ?, 0, ?)',
+      [name, description || null, req.user.id, parentId, event_date || null]
     );
 
     const folderId = result.lastID;
@@ -592,6 +817,8 @@ router.delete('/images/:imageId', authenticateToken, requirePermission('can_mana
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
+// Removed old QR route position
 
 export default router;
 
