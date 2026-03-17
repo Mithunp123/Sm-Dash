@@ -72,6 +72,7 @@ import OfficeBearerMentees from "./pages/OfficeBearerMentees";
 import ManageTeams from "./pages/ManageTeams";
 import StudentTeams from "./pages/StudentTeams";
 import NotFound from "./pages/NotFound";
+import Unauthorized from "./pages/Unauthorized";
 import MentorManagement from "./pages/MentorManagement";
 import PhoneMentoringUpdate from "./pages/PhoneMentoringUpdate";
 import StudentMessages from "./pages/StudentMessages";
@@ -101,7 +102,7 @@ const App = () => (
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/users" element={<ProtectedRoute requiredRoles={['admin']}><ManageUsers /></ProtectedRoute>} />
             <Route path="/admin/interviews" element={<ProtectedRoute requiredRoles={['admin']}><ManageInterviews /></ProtectedRoute>} />
-            <Route path="/mentor/interviews" element={<ProtectedRoute requiredRoles={['office_bearer', 'admin']}><MentorInterviews /></ProtectedRoute>} />
+            <Route path="/mentor/interviews" element={<ProtectedRoute requiredRoles={['office_bearer', 'admin', 'student']} requiredInterviewer={true}><MentorInterviews /></ProtectedRoute>} />
             <Route path="/admin/meetings" element={<ProtectedRoute requiredPermission="can_manage_meetings"><ManageMeetings /></ProtectedRoute>} />
             <Route path="/admin/minutes" element={<ProtectedRoute requiredPermission="can_manage_meetings"><MinutesOfMeeting /></ProtectedRoute>} />
             <Route path="/admin/minutes/:id" element={<ProtectedRoute requiredPermission="can_manage_meetings"><MinutesOfMeeting /></ProtectedRoute>} />
@@ -157,6 +158,7 @@ const App = () => (
             <Route path="/student/teams" element={<StudentTeams />} />
             <Route path="/student/events" element={<StudentEvents />} />
             {/* Student management modules removed */}
+            <Route path="/unauthorized" element={<Unauthorized />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

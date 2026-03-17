@@ -9,13 +9,15 @@ interface ProtectedRouteProps {
   requiredRoles?: string[];
   blockedRoles?: string[];
   requiredPermission?: string;
+  requiredInterviewer?: boolean;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requiredRoles = [],
   blockedRoles = [],
-  requiredPermission
+  requiredPermission,
+  requiredInterviewer = false
 }) => {
   const user = auth.getUser();
   const { permissions, loading: permissionsLoading } = usePermissions();
@@ -42,6 +44,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Check required roles
   if (requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
     return <Navigate to="/unauthorized" />;
+  }
+
+  // Check required interviewer role
+  if (requiredInterviewer && user.role !== 'admin' && !user.is_interviewer) {
+    return <Navigate to="/unauthorized" replace />;
   }
 
   // Check required permission

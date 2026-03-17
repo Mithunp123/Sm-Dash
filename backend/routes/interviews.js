@@ -309,11 +309,11 @@ router.put('/:id', authenticateToken, requireRole('admin', 'office_bearer'), asy
         }
         if (interviewer_email !== undefined) {
             updates.push('interviewer_email = ?');
-            params.push(interviewer_email);
+            params.push(interviewer_email ? interviewer_email.toLowerCase().trim() : interviewer_email);
         }
         if (mentor_id !== undefined) {
             updates.push('mentor_id = ?');
-            params.push(mentor_id);
+            params.push(parseInt(mentor_id, 10) || null);
         }
         if (marks !== undefined) {
             updates.push('marks = ?');
@@ -362,6 +362,22 @@ router.put('/:id', authenticateToken, requireRole('admin', 'office_bearer'), asy
 
         params.push(id);
         await run(db, `UPDATE interview_candidates SET ${updates.join(', ')} WHERE id = ?`, params);
+
+        // If an interviewer has been assigned, ensure the assigned mentor/interviewer user is flagged for interviewer access
+        if (mentor_id !== undefined && mentor_id !== null) {
+            try {
+                await run(db, 'UPDATE users SET is_interviewer = 1 WHERE id = ?', [mentor_id]);
+            } catch (err) {
+                console.error('Failed to mark mentor as interviewer:', err.message);
+            }
+        }
+        if (interviewer_email !== undefined && interviewer_email) {
+            try {
+                await run(db, 'UPDATE users SET is_interviewer = 1 WHERE email = ?', [interviewer_email]);
+            } catch (err) {
+                console.error('Failed to mark interviewer email as interviewer:', err.message);
+            }
+        }
 
         // log activity if user object exists
         if (req.user && req.user.id) {
@@ -424,9 +440,11 @@ router.get('/my-candidates', authenticateToken, async (req, res) => {
         // Get all candidates assigned to this mentor (by mentor_id or interviewer_email)
         const candidates = await all(db,
             `SELECT * FROM interview_candidates 
-             WHERE mentor_id = ? OR interviewer_email = ? 
+             WHERE mentor_id = ?
+               OR LOWER(interviewer_email) = LOWER(?)
+               OR LOWER(interviewer) = LOWER(?)
              ORDER BY created_at DESC`,
-            [req.user.id, user.email]
+            [req.user.id, user.email || '', user.name || '']
         );
 
         res.json({ success: true, candidates: candidates || [] });
@@ -502,9 +520,9 @@ router.post('/:id/submit-marks', authenticateToken, requireRole('admin', 'office
             return res.status(403).json({ success: false, message: 'You do not have permission to submit marks for this candidate' });
         }
 
-        // If candidate is absent or decision is "retake", marks are not required
+        // If decision is "retake" (absent candidate), marks are not required
         // Otherwise marks are required
-        if (candidate.attendance !== 'absent' && decision !== 'retake') {
+        if (decision !== 'retake') {
             if (marks === undefined || marks === null) {
                 return res.status(400).json({ success: false, message: 'Marks are required for present candidates' });
             }

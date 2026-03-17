@@ -301,23 +301,6 @@ const ManageUsers = () => {
     }
   };
 
-  const handleToggleInterviewer = async (user: any) => {
-    try {
-      const response = await api.toggleInterviewer(user.id);
-      if (response.success) {
-        toast.success(response.message);
-        // Update local state immediately
-        setUsers((prev: any[]) => prev.map((u: any) =>
-          u.id === user.id ? { ...u, is_interviewer: response.is_interviewer } : u
-        ));
-      } else {
-        toast.error(response.message || 'Failed to toggle interviewer status');
-      }
-    } catch (error: any) {
-      toast.error('Error: ' + error.message);
-    }
-  };
-
   const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -512,19 +495,6 @@ const ManageUsers = () => {
                         >
                           <RefreshCw className="w-3 h-3" />
                           Reset
-                        </Button>
-                        {/* Interviewer toggle */}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleToggleInterviewer(user)}
-                          title={user.is_interviewer ? 'Remove from interviewers' : 'Mark as interviewer'}
-                          className={`h-8 rounded-xl font-black text-[9px] uppercase tracking-widest border-2 transition-all gap-1.5 ${user.is_interviewer
-                              ? 'bg-cyan-500/15 border-cyan-500 text-cyan-500 hover:bg-cyan-500/25'
-                              : 'hover:bg-cyan-500/10 hover:text-cyan-500 hover:border-cyan-500/50'
-                            }`}
-                        >
-                          🎤 {user.is_interviewer ? 'Interviewer ✓' : 'Interviewer'}
                         </Button>
                       </div>
 

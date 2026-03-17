@@ -620,35 +620,38 @@ class ApiClient {
     return this.request(`/projects/${projectId}/students`);
   }
 
-  // Bill endpoints
+  // Bill endpoints - now proxy to finance/expenses but keep same shape for compatibility
   async getBills(param?: number | { eventId?: number; folderId?: number }) {
+    let endpoint = '/finance/expenses';
+    const query = new URLSearchParams();
     if (typeof param === 'number') {
-      return this.request(`/bills?event_id=${param}`);
+      query.append('eventId', param.toString());
+    } else {
+      if (param?.eventId) query.append('eventId', param.eventId.toString());
+      if (param?.folderId) query.append('folderId', param.folderId.toString());
     }
-    if (param?.eventId || param?.folderId) {
-      const query = new URLSearchParams();
-      if (param.eventId) query.append('event_id', param.eventId.toString());
-      if (param.folderId) query.append('folderId', param.folderId.toString());
-      return this.request(`/bills?${query.toString()}`);
+    const url = query.toString() ? `${endpoint}?${query.toString()}` : endpoint;
+    const res = await this.request(url);
+    // adapt structure: finance returns {success, expenses}
+    if (res.success && res.expenses) {
+      return { ...res, bills: res.expenses };
     }
-    return this.request('/bills');
-  }
-
-  async getBillAnalyticsMonthly(year?: number) {
-    const qs = year ? `?year=${year}` : '';
-    return this.request(`/bills/analytics/monthly${qs}`);
-  }
-
-  async getBillAnalyticsSources() {
-    return this.request('/bills/analytics/sources');
+    return res;
   }
 
   async uploadBill(formData: FormData) {
-    return this.request('/bills', {
-      method: 'POST',
-      body: formData,
-      headers: {}, // Let browser set Content-Type with boundary for FormData
-    });
+    // point at finance expenses create
+    const url = `${this.baseURL}/finance/expenses`;
+    const headers: HeadersInit = {};
+    if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
+    const response = await fetch(url, { method: 'POST', body: formData, headers });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to upload bill');
+    }
+    const data = await response.json();
+    if (data.expense) data.bill = data.expense;
+    return data;
   }
 
   // Legacy method for backward compatibility
@@ -720,21 +723,29 @@ class ApiClient {
   }
 
   async createBill(billData: any) {
-    return this.request('/bills', {
+    const res = await this.request('/finance/expenses', {
       method: 'POST',
       body: JSON.stringify(billData),
     });
+    if (res.success && res.expense) {
+      res.bill = res.expense;
+    }
+    return res;
   }
 
   async updateBill(billId: number, billData: any) {
-    return this.request(`/bills/${billId}`, {
+    const res = await this.request(`/finance/expenses/${billId}`, {
       method: 'PUT',
       body: JSON.stringify(billData),
     });
+    if (res.success && res.expense) {
+      res.bill = res.expense;
+    }
+    return res;
   }
 
   async deleteBill(billId: number) {
-    return this.request(`/bills/${billId}`, {
+    return this.request(`/finance/expenses/${billId}`, {
       method: 'DELETE',
     });
   }
@@ -1424,37 +1435,6 @@ class ApiClient {
     this.setToken(null);
     sessionStorage.removeItem('auth_user');
   }
-
-  // ─── Bills & Collections ──────────────────────────────────────────────────
-  async getBillItems(id: number) {
-    return this.request(`/bills/${id}/items`);
-  }
-
-  async getCollections(eventId: number) {
-    return this.request(`/bills/collections/${eventId}`);
-  }
-
-  async createCollection(payload: any) {
-    return this.request('/bills/collections', { method: 'POST', body: JSON.stringify(payload) });
-  }
-
-  async updateCollection(id: number, payload: any) {
-    return this.request(`/bills/collections/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
-  }
-
-  async deleteCollection(id: number) {
-    return this.request(`/bills/collections/${id}`, { method: 'DELETE' });
-  }
-
-  async uploadFolderQr(folderId: number, file: File) {
-    const formData = new FormData();
-    formData.append('qr', file);
-    return this.request(`/bills/folders/${folderId}/qr`, {
-      method: 'POST',
-      body: formData
-    });
-  }
-
   async uploadPhoto(formData: FormData) {
     const url = `${this.baseURL}/upload/photo`;
     const headers: HeadersInit = {};

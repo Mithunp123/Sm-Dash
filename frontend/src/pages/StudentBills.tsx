@@ -1,43 +1,19 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileText, Plus, Eye, Download, Trash2, Building, Calendar, CheckCircle2, Clock, XCircle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { auth } from "@/lib/auth";
-import { api } from "@/lib/api";
-import { toast } from "sonner";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import React from "react";
 import DeveloperCredit from "@/components/DeveloperCredit";
 
+// reverted to previous simple layout as requested
+
 const StudentBills = () => {
-    const navigate = useNavigate();
-    const [bills, setBills] = useState<any[]>([]);
-    const [projects, setProjects] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [showUploadDialog, setShowUploadDialog] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    // simple legacy view
+    return (
+        <div className="min-h-screen p-8">
+            <h1 className="text-3xl font-black">Mission Billing</h1>
+            <p className="text-muted-foreground mt-2">Submit and track your mission expenses here.</p>
+        </div>
+    );
+};
 
-    const [formData, setFormData] = useState({
-        amount: "",
-        bill_date: new Date().toISOString().split('T')[0],
-        description: "",
-        project_id: "",
-        file_url: ""
-    });
-
-    useEffect(() => {
-        if (!auth.isAuthenticated() || !auth.hasRole('student')) {
-            navigate("/login");
-            return;
-        }
-        loadData();
-    }, []);
+export default StudentBills;
 
     const loadData = async () => {
         setLoading(true);

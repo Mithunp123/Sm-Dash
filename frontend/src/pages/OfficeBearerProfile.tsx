@@ -282,14 +282,17 @@ const OfficeBearerProfile = () => {
 
       <main className="flex-1 p-4 md:p-6 lg:p-8 bg-transparent overflow-y-auto">
         <div className="w-full">
-          {/* Back Button - match volunteer profile style */}
+          {/* page title */}
           <div className="mb-6">
-            <BackButton className="bg-background/80 dark:bg-slate-900/80 border-border/70" />
+            <h1 className="page-title uppercase font-black">Office Bearer Profile</h1>
+            <p className="page-subtitle uppercase tracking-widest mt-1 text-muted-foreground">
+              Manage your personal and academic details as an Office Bearer.
+            </p>
           </div>
 
           {/* Profile Card Frame - Like Image Design */}
           <div className="mb-6 relative">
-            <Card className="border border-border bg-card dark:bg-slate-900 overflow-hidden rounded-md shadow-lg">
+            <Card className="border-none bg-card/60 dark:bg-slate-900/60 backdrop-blur-xl shadow-2xl overflow-hidden">
               {/* Upper Section - Portrait with Overlays */}
               <div className="relative h-40 md:h-56 bg-muted/50">
                 <input
@@ -319,7 +322,7 @@ const OfficeBearerProfile = () => {
 
                 {/* Logo Overlay - Top Left */}
                 <div className="absolute top-4 left-4 z-10">
-                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-primary/90 backdrop-blur-sm border-2 border-primary/50 flex items-center justify-center shadow-lg">
+                  <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary/90 backdrop-blur-sm border-2 border-primary/50 flex items-center justify-center shadow-lg">
                     <div className="text-white font-bold text-xs md:text-sm text-center">
                       <div className="text-[8px] md:text-[10px] uppercase tracking-wider">SM</div>
                       <div className="text-[10px] md:text-xs font-black">VOL</div>

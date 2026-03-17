@@ -138,7 +138,7 @@ tail -f backend.log | grep -i profile
 mysql -h localhost -u user -p database_name -e "SELECT * FROM profiles;"
 
 # For SQLite
-sqlite3 smvdb.db "SELECT * FROM profiles;"
+(SQLite commands removed; use MySQL client instead)
 ```
 
 ### Check if Student User was Created with Profile

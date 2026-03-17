@@ -1,4 +1,3 @@
-import sqlite3 from 'sqlite3';
 import mysql from 'mysql2/promise';
 import { promisify } from 'util';
 import path from 'path';
@@ -10,8 +9,6 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../database/sm_volunteers.db');
 
 let db;
 
@@ -79,21 +76,7 @@ export const getDatabase = () => {
         console.error('❌ Error connecting to MySQL database:', err);
       });
   } else {
-    // SQLite Fallback
-    db = new sqlite3.Database(DB_PATH, (err) => {
-      if (err) {
-        console.error('Error opening database:', err);
-      } else {
-        console.log('✅ Connected to SQLite database');
-        // Enable WAL mode for better performance and concurrency
-        db.run('PRAGMA journal_mode = WAL;', (err) => {
-          if (err) console.error('Error enabling WAL mode:', err);
-          else console.log('✅ SQLite WAL mode enabled');
-        });
-        db.run('PRAGMA synchronous = NORMAL;'); // Faster writes, still safe enough for most apps
-        db.run('PRAGMA foreign_keys = ON;'); // Enforce foreign key constraints
-      }
-    });
+    throw new Error('DB_TYPE must be set to "mysql" in environment variables. SQLite is no longer supported.');
   }
   return db;
 };
@@ -153,7 +136,10 @@ const translateQueryToMySQL = (query) => {
 };
 
 const run = async (db, query, params = []) => {
-  if (process.env.DB_TYPE === 'mysql') {
+  // Use feature detection: prefer using the driver's `execute` when available.
+  // This avoids relying solely on process.env.DB_TYPE which can be inconsistent
+  // if `getDatabase()` was called earlier and initialized a different driver.
+  if (db && typeof db.execute === 'function') {
     try {
       let mysqlQuery = translateQueryToMySQL(query);
 
@@ -174,15 +160,16 @@ const run = async (db, query, params = []) => {
   } else {
     return new Promise((resolve, reject) => {
       db.run(query, params, function (err) {
-        if (err) reject(err);
-        else resolve({ lastID: this.lastID, changes: this.changes });
+        if (err) {
+          reject(err);
+        } else resolve({ lastID: this.lastID, changes: this.changes });
       });
     });
   }
 };
 
 const get = async (db, query, params = []) => {
-  if (process.env.DB_TYPE === 'mysql') {
+  if (db && typeof db.execute === 'function') {
     try {
       let mysqlQuery = translateQueryToMySQL(query);
 
@@ -209,7 +196,7 @@ const get = async (db, query, params = []) => {
 };
 
 const all = async (db, query, params = []) => {
-  if (process.env.DB_TYPE === 'mysql') {
+  if (db && typeof db.execute === 'function') {
     try {
       let mysqlQuery = translateQueryToMySQL(query);
       let isTableInfo = false;
@@ -248,7 +235,7 @@ const all = async (db, query, params = []) => {
 };
 
 const columnExists = async (db, tableName, columnName) => {
-  if (process.env.DB_TYPE === 'mysql') {
+  if (db && typeof db.execute === 'function') {
     const query = `
       SELECT COUNT(*) as count 
       FROM information_schema.columns 
@@ -303,11 +290,11 @@ export const initDatabase = async () => {
     // Users table
     await run(database, `
       CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id INT PRIMARY KEY AUTO_INCREMENT,
         name TEXT NOT NULL,
-        email TEXT UNIQUE NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
         password TEXT NOT NULL,
-        role TEXT NOT NULL CHECK(role IN ('admin', 'office_bearer', 'student')),
+        role ENUM('admin', 'office_bearer', 'student', 'volunteer') NOT NULL,
         must_change_password INTEGER DEFAULT 1,
         is_interviewer INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -588,79 +575,9 @@ export const initDatabase = async () => {
       )
     `);
 
-    // Bill folders table
-    await run(database, `
-      CREATE TABLE IF NOT EXISTS bill_folders (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        description TEXT,
-        created_by INTEGER,
-        parent_folder_id INTEGER DEFAULT NULL,
-        is_file BOOLEAN DEFAULT 0,
-        file_path TEXT DEFAULT NULL,
-        file_size INTEGER DEFAULT NULL,
-        file_type TEXT DEFAULT NULL,
-        file_name TEXT DEFAULT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (created_by) REFERENCES users(id)
-      )
-    `);
+    // Bill folders table will be created later (newer version)
 
-    // Bills table
-    await run(database, `
-      CREATE TABLE IF NOT EXISTS bills (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        project_id INTEGER,
-        title TEXT NOT NULL,
-        amount REAL NOT NULL,
-        description TEXT,
-        bill_date DATE,
-        bill_type TEXT,
-        drive_link TEXT,
-        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected')),
-        submitted_by INTEGER,
-        approved_by INTEGER,
-        folder_id INTEGER,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (project_id) REFERENCES projects(id),
-        FOREIGN KEY (submitted_by) REFERENCES users(id),
-        FOREIGN KEY (approved_by) REFERENCES users(id),
-        FOREIGN KEY (folder_id) REFERENCES bill_folders(id)
-      )
-    `);
-
-    // Bill items table - stores itemized categories for bills (e.g., transport, food, stationary, refreshment, fuel)
-    await run(database, `
-      CREATE TABLE IF NOT EXISTS bill_items (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        bill_id INTEGER NOT NULL,
-        category TEXT NOT NULL,
-        description TEXT,
-        amount REAL NOT NULL DEFAULT 0,
-        from_loc TEXT,
-        to_loc TEXT,
-        FOREIGN KEY (bill_id) REFERENCES bills(id) ON DELETE CASCADE
-      )
-    `);
-
-    // Bill images table
-    await run(database, `
-      CREATE TABLE IF NOT EXISTS bill_images (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        bill_id INTEGER NOT NULL,
-        folder_name TEXT NOT NULL,
-        image_path TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (bill_id) REFERENCES bills(id) ON DELETE CASCADE
-      )
-    `);
-
-    // Ensure we have all necessary columns (Migrations)
-    await addColumnSafe(database, 'bills', 'folder_id', 'INTEGER');
-    await addColumnSafe(database, 'bills', 'updated_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP');
-    await addColumnSafe(database, 'bill_items', 'from_loc', 'TEXT');
-    await addColumnSafe(database, 'bill_items', 'to_loc', 'TEXT');
+    // Bills, bill items and images will be created later (newer version)
 
     // Permissions table
     await run(database, `
@@ -902,7 +819,7 @@ export const initDatabase = async () => {
     await addColumnSafe(database, 'users', 'is_interviewer', 'INTEGER DEFAULT 0');
 
     // Check and correct status constraint if legacy schema
-    if (process.env.DB_TYPE === 'mysql') {
+    if (database && typeof database.execute === 'function') {
       // Drop existing check if present then add updated constraint
       try {
         await run(database, "ALTER TABLE interview_candidates DROP CHECK interview_candidates_chk_1");
@@ -1651,6 +1568,87 @@ export const initDatabase = async () => {
       )
       `);
 
+    // Teams tables
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS teams (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        created_by INT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS team_members (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        team_id INT NOT NULL,
+        user_id INT NOT NULL,
+        role VARCHAR(50) DEFAULT 'member',
+        joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE(team_id, user_id)
+      )
+    `);
+
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS team_assignments (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        team_id INT NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        assigned_to INT,
+        assigned_by INT,
+        due_date DATE,
+        priority VARCHAR(50) DEFAULT 'medium',
+        status VARCHAR(50) DEFAULT 'pending',
+        proof_file_path TEXT,
+        completed_at DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
+        FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
+        FOREIGN KEY (assigned_by) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS team_assignment_tracking (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        assignment_id INT NOT NULL,
+        user_id INT NOT NULL,
+        action VARCHAR(100) NOT NULL,
+        comment TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (assignment_id) REFERENCES team_assignments(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS team_requests (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        team_id INT NOT NULL,
+        user_id INT NOT NULL,
+        message TEXT,
+        status VARCHAR(50) DEFAULT 'pending',
+        reviewed_by INT,
+        reviewed_at DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+
+    // Add can_manage_teams to permissions if missing
+    await addColumnSafe(database, 'permissions', 'can_manage_teams', 'INTEGER DEFAULT 0');
+    await addColumnSafe(database, 'permissions', 'can_manage_teams_view', 'INTEGER DEFAULT 0');
+    await addColumnSafe(database, 'permissions', 'can_manage_teams_edit', 'INTEGER DEFAULT 0');
+
     // Create default admin user if not exists (email in lowercase)
     const adminEmail = 'smvolunteers@ksrct.ac.in'.toLowerCase().trim();
 
@@ -1726,6 +1724,68 @@ export const initDatabase = async () => {
     await addColumnSafe(database, 'permissions', 'can_manage_announcements', 'INTEGER DEFAULT 0');
     await addColumnSafe(database, 'permissions', 'can_manage_announcements_view', 'INTEGER DEFAULT 0');
     await addColumnSafe(database, 'permissions', 'can_manage_announcements_edit', 'INTEGER DEFAULT 0');
+
+    // Financial Management Tables
+    // Categories for expenses and collections
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS financial_categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_id INTEGER NOT NULL,
+        category_name VARCHAR(255) NOT NULL,
+        category_type ENUM('expense', 'collection'),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Expenses - detailed breakdown of transport and food costs
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS financial_expenses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_id INTEGER NOT NULL,
+        category_id INTEGER NOT NULL,
+        transport_from VARCHAR(255),
+        transport_to VARCHAR(255),
+        transport_mode VARCHAR(100),
+        fuel_amount DECIMAL(10, 2) DEFAULT 0,
+        breakfast_amount DECIMAL(10, 2) DEFAULT 0,
+        lunch_amount DECIMAL(10, 2) DEFAULT 0,
+        dinner_amount DECIMAL(10, 2) DEFAULT 0,
+        refreshment_amount DECIMAL(10, 2) DEFAULT 0,
+        travel_total DECIMAL(10, 2) DEFAULT 0,
+        food_total DECIMAL(10, 2) DEFAULT 0,
+        grand_total DECIMAL(10, 2) DEFAULT 0,
+        created_by INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+        FOREIGN KEY (category_id) REFERENCES financial_categories(id) ON DELETE CASCADE,
+        FOREIGN KEY (created_by) REFERENCES users(id)
+      )
+    `);
+
+    // System Settings - Finance module toggle and QR management
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS financial_settings (
+        id INTEGER PRIMARY KEY AUTO_INCREMENT,
+        collection_enabled INTEGER DEFAULT 1,
+        qr_image_url TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY (id)
+      )
+    `);
+
+    // Ensure default settings record exists
+    try {
+      await run(database, `
+        INSERT INTO financial_settings (collection_enabled, qr_image_url) 
+        VALUES (1, NULL)
+        ON DUPLICATE KEY UPDATE collection_enabled = collection_enabled
+      `);
+    } catch (e) {
+      // Record may already exist
+    }
 
     console.log('✅ Database tables initialized successfully');
   } catch (error) {

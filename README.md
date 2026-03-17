@@ -37,7 +37,7 @@ SM Volunteers Dashboard is a full-stack web application designed to manage stude
 - **npm** or **bun** package manager
 - **MySQL Server** (v5.7 or higher) - Required for current configuration
   - Download: https://dev.mysql.com/downloads/mysql/
-  - Alternative: Use SQLite by changing `DB_TYPE=sqlite` in `.env`
+  - Database backend is now **MySQL only**; `DB_TYPE` must be set to `mysql`. SQLite support has been removed.
 
 ### Installation
 

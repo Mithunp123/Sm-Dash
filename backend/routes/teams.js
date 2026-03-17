@@ -32,19 +32,19 @@ router.get('/', authenticateToken, requirePermission('can_manage_teams', { allow
   }
 });
 
-// Get teams where user is a member
+// Get teams where user is an APPROVED member
 router.get('/my-teams', authenticateToken, async (req, res) => {
   try {
     const db = getDatabase();
     const userId = req.user.id;
     const teams = await all(db, `
       SELECT t.*, 
-        COUNT(DISTINCT tm.user_id) as member_count,
+        COUNT(DISTINCT tm2.user_id) as member_count,
         COUNT(DISTINCT ta.id) as assignment_count
       FROM teams t
-      INNER JOIN team_members tm ON t.id = tm.team_id
+      INNER JOIN team_members tm ON t.id = tm.team_id AND tm.user_id = ?
+      LEFT JOIN team_members tm2 ON t.id = tm2.team_id
       LEFT JOIN team_assignments ta ON t.id = ta.team_id
-      WHERE tm.user_id = ?
       GROUP BY t.id
       ORDER BY t.created_at DESC
     `, [userId]);
@@ -55,7 +55,55 @@ router.get('/my-teams', authenticateToken, async (req, res) => {
   }
 });
 
-// Get assignments assigned to user
+// Get available teams (not yet joined or pending request)
+router.get('/available', authenticateToken, async (req, res) => {
+  try {
+    const db = getDatabase();
+    const userId = req.user.id;
+    // Exclude teams user is already a member of OR has a pending/approved request
+    const teams = await all(db, `
+      SELECT t.*,
+        COUNT(DISTINCT tm.user_id) as member_count,
+        COUNT(DISTINCT ta.id) as assignment_count
+      FROM teams t
+      LEFT JOIN team_members tm ON t.id = tm.team_id
+      LEFT JOIN team_assignments ta ON t.id = ta.team_id
+      WHERE t.id NOT IN (
+        SELECT team_id FROM team_members WHERE user_id = ?
+      )
+      AND t.id NOT IN (
+        SELECT team_id FROM team_requests WHERE user_id = ? AND status IN ('pending', 'approved')
+      )
+      GROUP BY t.id
+      ORDER BY t.created_at DESC
+    `, [userId, userId]);
+    res.json({ success: true, teams });
+  } catch (error) {
+    console.error('Get available teams error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Get current user's team requests (so frontend can show pending status)
+router.get('/my-requests', authenticateToken, async (req, res) => {
+  try {
+    const db = getDatabase();
+    const userId = req.user.id;
+    const requests = await all(db, `
+      SELECT tr.*, t.name as team_name
+      FROM team_requests tr
+      JOIN teams t ON tr.team_id = t.id
+      WHERE tr.user_id = ?
+      ORDER BY tr.created_at DESC
+    `, [userId]);
+    res.json({ success: true, requests });
+  } catch (error) {
+    console.error('Get my requests error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Get assignments assigned to user (only for approved team memberships)
 router.get('/my-assignments', authenticateToken, async (req, res) => {
   try {
     const db = getDatabase();
@@ -67,11 +115,12 @@ router.get('/my-assignments', authenticateToken, async (req, res) => {
         u2.name as assigned_by_name
       FROM team_assignments ta
       INNER JOIN teams t ON ta.team_id = t.id
+      INNER JOIN team_members tm ON ta.team_id = tm.team_id AND tm.user_id = ?
       LEFT JOIN users u1 ON ta.assigned_to = u1.id
       LEFT JOIN users u2 ON ta.assigned_by = u2.id
       WHERE ta.assigned_to = ?
       ORDER BY ta.created_at DESC
-    `, [userId]);
+    `, [userId, userId]);
     res.json({ success: true, assignments });
   } catch (error) {
     console.error('Get my assignments error:', error);
@@ -99,13 +148,16 @@ router.post('/:id/request', authenticateToken, async (req, res) => {
       return res.status(400).json({ success: false, message: 'You are already a member of this team' });
     }
 
-    // Check if there's already a pending request
+    // Check if there's already a pending OR approved request
     const existingRequest = await get(db,
-      'SELECT * FROM team_requests WHERE team_id = ? AND user_id = ? AND status = ?',
-      [id, userId, 'pending']
+      "SELECT * FROM team_requests WHERE team_id = ? AND user_id = ? AND status IN ('pending', 'approved')",
+      [id, userId]
     );
     if (existingRequest) {
-      return res.status(400).json({ success: false, message: 'You already have a pending request for this team' });
+      if (existingRequest.status === 'pending') {
+        return res.status(400).json({ success: false, message: 'Request already sent' });
+      }
+      return res.status(400).json({ success: false, message: 'Your request was already approved for this team' });
     }
 
     // Create the request

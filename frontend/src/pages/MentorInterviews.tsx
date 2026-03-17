@@ -92,9 +92,14 @@ const MentorInterviews = () => {
                 try {
                     const allCandidates = await api.getCandidates();
                     if (allCandidates.success && allCandidates.candidates) {
-                        const myCandidates = allCandidates.candidates.filter((c: any) =>
-                            c.mentor_id === user.id || c.interviewer_email === user.email
-                        );
+                        const myCandidates = allCandidates.candidates.filter((c: any) => {
+                            const candidateEmail = (c.interviewer_email || '').toLowerCase().trim();
+                            const candidateInterviewer = (c.interviewer || '').toLowerCase().trim();
+                            const userEmail = (user.email || '').toLowerCase().trim();
+                            const userName = (user.name || '').toLowerCase().trim();
+                            const candidateMentorId = Number(c.mentor_id);
+                            return candidateMentorId === user.id || candidateEmail === userEmail || candidateInterviewer === userName;
+                        });
                         setCandidates(myCandidates);
                     } else {
                         setCandidates([]);

@@ -462,7 +462,7 @@ const ManageTeams = () => {
         </div>
 
         {showRequests ? (
-          <div className="space-y-6">
+          <div className="px-4 md:px-6 lg:px-8 mt-2 space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold">Team Join Requests</h2>
               <div className="flex gap-2">
