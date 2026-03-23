@@ -14,6 +14,51 @@ export interface User {
 // Event emitter for auth state changes
 const authChangeListeners: Set<() => void> = new Set();
 
+// Cross-tab communication: prefer BroadcastChannel, fallback to localStorage events
+const hasWindow = typeof window !== 'undefined';
+const bc: BroadcastChannel | null = hasWindow && typeof (window as any).BroadcastChannel !== 'undefined'
+  ? new BroadcastChannel('sm-auth')
+  : null;
+
+// Handle incoming cross-tab messages
+if (hasWindow) {
+  if (bc) {
+    bc.addEventListener('message', (ev) => {
+      try {
+        const msg = ev.data;
+        if (!msg || !msg.type) return;
+        if (msg.type === 'setUser') {
+          sessionStorage.setItem('auth_user', JSON.stringify(msg.user));
+          authChangeListeners.forEach(l => l());
+        } else if (msg.type === 'logout') {
+          sessionStorage.removeItem('auth_user');
+          authChangeListeners.forEach(l => l());
+        }
+      } catch (err) {
+        // ignore
+      }
+    });
+  }
+
+  // localStorage fallback for browsers without BroadcastChannel
+  window.addEventListener('storage', (e) => {
+    if (!e.key || e.key !== 'sm_auth_sync' || !e.newValue) return;
+    try {
+      const msg = JSON.parse(e.newValue);
+      if (!msg || !msg.type) return;
+      if (msg.type === 'setUser') {
+        sessionStorage.setItem('auth_user', JSON.stringify(msg.user));
+        authChangeListeners.forEach(l => l());
+      } else if (msg.type === 'logout') {
+        sessionStorage.removeItem('auth_user');
+        authChangeListeners.forEach(l => l());
+      }
+    } catch (err) {
+      // ignore malformed messages
+    }
+  });
+}
+
 export const auth = {
   getUser(): User | null {
     // Use sessionStorage so login lasts only for the current browser tab/session
@@ -31,6 +76,18 @@ export const auth = {
     // Notify all listeners of the change
     authChangeListeners.forEach(listener => listener());
     window.dispatchEvent(new Event('authChanged'));
+    // Broadcast to other tabs
+    try {
+      if (bc) {
+        bc.postMessage({ type: 'setUser', user });
+      } else if (hasWindow) {
+        localStorage.setItem('sm_auth_sync', JSON.stringify({ type: 'setUser', user, ts: Date.now() }));
+        // remove key to avoid accumulation
+        localStorage.removeItem('sm_auth_sync');
+      }
+    } catch (err) {
+      // ignore broadcast failures
+    }
   },
 
   // Subscribe to auth changes
@@ -70,6 +127,17 @@ export const auth = {
     } catch (err) {
       // If running in a non-browser environment or any error occurs, ignore
       console.warn('auth.logout: unable to navigate to login', err);
+    }
+    // Broadcast logout to other tabs
+    try {
+      if (bc) {
+        bc.postMessage({ type: 'logout' });
+      } else if (hasWindow) {
+        localStorage.setItem('sm_auth_sync', JSON.stringify({ type: 'logout', ts: Date.now() }));
+        localStorage.removeItem('sm_auth_sync');
+      }
+    } catch (err) {
+      // ignore
     }
   },
 

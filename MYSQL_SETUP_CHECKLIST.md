@@ -20,9 +20,10 @@
 
 ### ☑️ Step 3: Update Password
 - [ ] Open `.env` file in project root
-- [ ] Change `DB_PASSWORD=your_mysql_password_here`
-- [ ] To: `DB_PASSWORD=YOUR_ACTUAL_PASSWORD`
+- [ ] Change `DB_PASSWORD=YOUR_ACTUAL_PASSWORD`
 - [ ] Save the file
+
+> 🔒 **Note:** The project now uses **MySQL exclusively**. All SQLite-related scripts and files have been removed.
 
 ### ☑️ Step 4: Initialize Database Schema
 ```bash

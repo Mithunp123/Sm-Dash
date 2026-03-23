@@ -43,10 +43,10 @@ sm-dash/
 │   ├── 📁 database/                 # Database Layer
 │   │   ├── init.js                  # Database initialization & schema (1518 lines)
 │   │   │                            # - Creates 40+ tables
-│   │   │                            # - MySQL/SQLite compatibility layer
+│   │   │                            # - MySQL compatibility layer
 │   │   │                            # - Handles AUTOINCREMENT → AUTO_INCREMENT
 │   │   │                            # - Query translation
-│   │   └── sm_volunteers.db         # SQLite database file (gitignored)
+│   │   └── (SQLite database file removed after migration)
 │   │
 │   ├── 📁 routes/                   # API Route Handlers
 │   │   ├── auth.js                  # Authentication endpoints
@@ -179,8 +179,8 @@ sm-dash/
 │   │   │                            # - Create all tables
 │   │   │                            # - Create default admin user
 │   │   │
-│   │   ├── migrate-sqlite-to-mysql.js   # SQLite → MySQL migration
-│   │   │                                # - Backup SQLite database
+│   │   ├── migrate-sqlite-to-mysql.js   # (removed - legacy)
+│   │   │                                # - Backup MySQL or existing data
 │   │   │                                # - Transfer data to MySQL
 │   │   │                                # - Progress tracking
 │   │   │                                # - Data verification
@@ -226,7 +226,7 @@ sm-dash/
 │   │   │
 │   │   ├── test_import.js           # Test ES module imports
 │   │   │
-│   │   ├── test_sqlite.js           # SQLite testing
+│   │   ├── test_sqlite.js           # (removed - legacy)
 │   │   │
 │   │   └── debug_init.js            # Debug initialization
 │   │

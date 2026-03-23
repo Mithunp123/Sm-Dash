@@ -202,6 +202,7 @@ const StudentProfile = () => {
 
 
   const handleSaveProfile = async (e?: React.MouseEvent) => {
+    // universal save handler with refresh logic
     e?.preventDefault();
     e?.stopPropagation();
     try {
@@ -212,22 +213,16 @@ const StudentProfile = () => {
         return;
       }
 
-
-      // Update user name and email first
+      // Update user name/email if changed
       if (profileData.name || profileData.email) {
         try {
-          const token = auth.getToken();
-          if (!token) {
-            throw new Error('No authentication token found');
-          }
-
           const updateUserRes = await fetch(
             `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/users/${currentUser.id}`,
             {
               method: 'PUT',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                Authorization: `Bearer ${auth.getToken()}`
               },
               body: JSON.stringify({
                 name: profileData.name || undefined,
@@ -235,45 +230,26 @@ const StudentProfile = () => {
               })
             }
           );
-
-          if (!updateUserRes.ok) {
-            const errorData = await updateUserRes.json().catch(() => ({ message: 'Failed to update user info' }));
-            console.error('User update failed:', {
-              status: updateUserRes.status,
-              statusText: updateUserRes.statusText,
-              error: errorData,
-              userId: currentUser.id,
-              requesterId: currentUser.id
-            });
-
-            if (updateUserRes.status === 403) {
-              console.warn('User update forbidden (403) - This might be a permission issue. Continuing with profile update...');
-              // Continue with profile update even if user update fails
-            } else {
-              throw new Error(errorData.message || `HTTP ${updateUserRes.status}: Failed to update user info`);
-            }
-          } else {
-            const updateUserData = await updateUserRes.json();
-            if (updateUserData.success) {
-              // Update local user data
-              const current = auth.getUser();
-              if (current) {
+          if (updateUserRes.ok) {
+            const data = await updateUserRes.json();
+            if (data.success) {
+              const cur = auth.getUser();
+              if (cur) {
                 auth.setUser({
-                  ...current,
-                  name: profileData.name || current.name,
-                  email: profileData.email || current.email
+                  ...cur,
+                  name: profileData.name || cur.name,
+                  email: profileData.email || cur.email
                 });
               }
             }
           }
-        } catch (err: any) {
-          console.error('Failed to update user info:', err);
-          // Continue with profile update even if user update fails
-          toast.warning('Profile updated, but name/email update failed. Please try updating name/email separately.');
+        } catch (err) {
+          console.warn('user info update failed', err);
+          toast.warning('Name/email update failed');
         }
       }
 
-      // Prepare payload with all profile fields
+      // build profile payload
       const payload = {
         register_no: profileData.register_no || null,
         dept: profileData.dept || null,
@@ -289,56 +265,23 @@ const StudentProfile = () => {
       };
 
       const res = await api.updateStudentProfile(currentUser.id, payload);
-      if (res.success) {
-        toast.success('Profile updated successfully!');
+      if (!res.success) throw new Error(res.message || 'Failed to update profile');
 
-        // Reload user data to get updated name/email
-        try {
-          const userRes = await api.getUser(currentUser.id);
-          if (userRes.success && userRes.user) {
-            const current = auth.getUser();
-            if (current) {
-              auth.setUser({
-                ...current,
-                name: userRes.user.name,
-                email: userRes.user.email
-              });
-            }
-          }
-        } catch (e) {
-          console.error('Failed to reload user data:', e);
+      toast.success('Profile updated successfully!');
+
+      // refresh user and profile from server
+      try {
+        const usr = await api.getUser(currentUser.id);
+        if (usr.success && usr.user) {
+          auth.setUser({ ...auth.getUser(), ...usr.user });
         }
-
-        try {
-          // Reload profile to get updated data
-          const profileRes = await api.getStudentProfile(currentUser.id);
-          if (profileRes.success && profileRes.profile) {
-            // Get updated user data
-            const updatedUser = auth.getUser();
-            const updatedProfile = {
-              ...profileRes.profile,
-              name: updatedUser?.name || profileData.name || '',
-              email: updatedUser?.email || profileData.email || ''
-            };
-            setProfileData(updatedProfile);
-
-
-            // Trigger dashboard reload by dispatching custom event
-            window.dispatchEvent(new CustomEvent('profileUpdated'));
-          } else {
-            // If reload fails, keep current data
-            setProfileData(profileData);
-          }
-          setIsEditing(false);
-        } catch (e) {
-          console.error('Failed to refresh profile after save', e);
-          // On error, preserve current data
-          setProfileData(profileData);
-          setIsEditing(false);
-        }
-      } else {
-        throw new Error(res.message || 'Failed to update profile');
+      } catch (e) {
+        console.error('refresh user failed', e);
       }
+
+      await loadProfile();
+      setIsEditing(false);
+      window.dispatchEvent(new CustomEvent('profileUpdated'));
     } catch (err: any) {
       console.error('Error updating profile:', err);
       toast.error('Failed to save profile: ' + (err.message || 'Unknown error'));
@@ -355,13 +298,16 @@ const StudentProfile = () => {
 
       <main className="flex-1 p-4 md:p-6 lg:p-8 bg-transparent overflow-y-auto">
         <div className="w-full">
-          {/* Back Button */}
-          <div className="mb-4">
-
+          {/* page title */}
+          <div className="mb-6">
+            <h1 className="page-title uppercase font-black">My Profile</h1>
+            <p className="page-subtitle uppercase tracking-widest mt-1 text-muted-foreground">
+              Manage your personal and academic details
+            </p>
           </div>
 
           {/* Hero Header Section with Profile Picture */}
-          <div className="mb-6 bg-white dark:bg-slate-900 border border-border rounded-lg p-6 shadow-sm relative overflow-hidden">
+          <div className="mb-6 bg-card/60 dark:bg-slate-900/60 backdrop-blur-xl p-6 shadow-2xl relative overflow-hidden">
             <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
               {/* Profile Picture */}
               <div className="relative group">
@@ -372,7 +318,7 @@ const StudentProfile = () => {
                   onChange={handlePhotoUpload}
                   className="hidden"
                 />
-                <div className="w-24 h-24 rounded-full border-2 border-border bg-muted flex items-center justify-center overflow-hidden relative">
+                <div className="w-20 h-20 rounded-full border-2 border-border bg-muted flex items-center justify-center overflow-hidden relative">
                   {/* Avatar with initials or uploaded photo */}
                   {profilePicture ? (
                     <img
@@ -466,7 +412,7 @@ const StudentProfile = () => {
             </div>
           )}
 
-          <Card className="border border-border bg-white dark:bg-slate-900">
+          <Card className="border-none bg-card/60 dark:bg-slate-900/60 backdrop-blur-xl shadow-2xl">
             <CardHeader className="bg-muted/30 border-b border-border">
               <CardTitle className="text-lg font-semibold text-foreground">
                 Profile Information

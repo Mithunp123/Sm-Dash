@@ -15,6 +15,7 @@ console.log('Loading interview routes...');
 import attendanceRoutes from './routes/attendance.js';
 import meetingRoutes from './routes/meetings.js';
 import projectRoutes from './routes/projects.js';
+// billRoutes used to handle legacy billing endpoints; replaced by financeRoutes below
 import billRoutes from './routes/bills.js';
 import timeRoutes from './routes/time.js';
 import settingsRoutes from './routes/settings.js';
@@ -33,6 +34,7 @@ import activityRoutes from './routes/activity.js';
 import messageRoutes from './routes/messages.js';
 import mailRoutes from './routes/mail.js';
 import momRoutes from './routes/mom.js';
+import financeRoutes from './routes/finance.js';
 import { initDatabase } from './database/init.js';
 
 // Load .env from backend directory first, then fallback to root directory
@@ -111,7 +113,10 @@ app.use('/api/interviews', interviewRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/meetings', meetingRoutes);
 app.use('/api/projects', projectRoutes);
-app.use('/api/bills', billRoutes);
+// legacy bills path now forwards to finance router for new expense/collection logic
+app.use('/api/bills', financeRoutes);
+// keep old billRoutes import around in case some other module still references it
+/* app.use('/api/bills', billRoutes); */
 app.use('/api/time', timeRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/feedback', feedbackRoutes);
@@ -129,6 +134,7 @@ app.use('/api/announcements', announcementRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/mail', mailRoutes);
 app.use('/api/mom', momRoutes);
+app.use('/api/finance', financeRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

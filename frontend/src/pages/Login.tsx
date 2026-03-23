@@ -314,25 +314,25 @@ const Login = () => {
 
       {/* Background - clean dark gradient + glow blobs */}
       <div className="absolute inset-0 z-0 bg-gradient-to-br from-slate-950 via-[#0d1424] to-slate-900">
-        <motion.div 
+        <motion.div
           className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-br from-orange-600/20 to-orange-500/0 rounded-full blur-3xl"
-          animate={{ 
+          animate={{
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.6, 0.3]
           }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
         />
-        <motion.div 
+        <motion.div
           className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-br from-blue-600/20 to-blue-500/0 rounded-full blur-3xl"
-          animate={{ 
+          animate={{
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.5, 0.3]
           }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
         />
-        <motion.div 
+        <motion.div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-gradient-to-br from-indigo-900/30 to-purple-900/10 rounded-full blur-3xl"
-          animate={{ 
+          animate={{
             scale: [1, 1.1, 1]
           }}
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
@@ -350,31 +350,31 @@ const Login = () => {
         >
           <div className="w-full relative rounded-3xl p-[2px] bg-gradient-to-b from-orange-500/80 via-orange-500/20 to-transparent shadow-[0_0_80px_rgba(249,115,22,0.35),0_0_160px_rgba(249,115,22,0.15),inset_0_0_80px_rgba(249,115,22,0.1)] overflow-hidden group">
             {/* Orange top accent bar with animation */}
-            <motion.div 
+            <motion.div
               className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange-600 via-orange-400 to-yellow-400 rounded-t-3xl z-20"
               animate={{ boxShadow: ["0 0 20px rgba(249,115,22,0.5)", "0 0 40px rgba(249,115,22,0.8)", "0 0 20px rgba(249,115,22,0.5)"] }}
               transition={{ duration: 3, repeat: Infinity }}
             />
-            <motion.div 
+            <motion.div
               className="w-full rounded-3xl p-8 md:p-10 backdrop-blur-2xl bg-gradient-to-b from-slate-800/95 via-slate-900/98 to-slate-950/95 relative border border-white/5"
               whileHover={{ borderColor: "rgba(255,255,255,0.1)" }}
             >
 
               {/* Logo + Title */}
               <div className="text-center space-y-3 mb-8">
-                <motion.div 
+                <motion.div
                   className="flex justify-center mb-4"
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: 0.2, type: "spring" }}
                 >
-                  <motion.div 
+                  <motion.div
                     className="relative"
                     whileHover={{ scale: 1.1 }}
                     animate={{ y: [0, -8, 0] }}
                     transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                   >
-                    <motion.div 
+                    <motion.div
                       className="absolute inset-0 bg-gradient-to-r from-orange-500/40 via-orange-600/20 to-transparent blur-2xl rounded-full"
                       animate={{ scale: [1, 1.2, 1] }}
                       transition={{ duration: 3, repeat: Infinity }}
@@ -393,7 +393,7 @@ const Login = () => {
                     <span className="bg-gradient-to-r from-orange-400 via-orange-300 to-yellow-300 bg-clip-text text-transparent">Volunteers</span>
                   </h1>
                 </motion.div>
-                <motion.p 
+                <motion.p
                   className="text-sm text-slate-400"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -404,7 +404,7 @@ const Login = () => {
               </div>
 
               {/* Role Badge (auto-detected) */}
-              <motion.div 
+              <motion.div
                 className="flex justify-center mb-6"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -559,9 +559,9 @@ const Login = () => {
             transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
             className="relative"
           >
-            <motion.div 
+            <motion.div
               className="absolute inset-0 bg-gradient-to-r from-orange-600/50 via-orange-500/30 to-yellow-600/20 blur-3xl rounded-full scale-150"
-              animate={{ 
+              animate={{
                 scale: [1.2, 1.4, 1.2],
                 opacity: [0.4, 0.7, 0.4]
               }}
@@ -576,7 +576,7 @@ const Login = () => {
           </motion.div>
 
           {/* Text */}
-          <motion.div 
+          <motion.div
             className="space-y-3"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -589,7 +589,7 @@ const Login = () => {
             <p className="text-slate-400 font-medium tracking-widest uppercase text-sm">
               K.S.Rangasamy College of Technology
             </p>
-            <motion.div 
+            <motion.div
               className="pt-2"
               whileHover={{ scale: 1.05 }}
             >
@@ -600,7 +600,7 @@ const Login = () => {
           </motion.div>
 
           {/* Stats */}
-          <motion.div 
+          <motion.div
             className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -611,8 +611,8 @@ const Login = () => {
               { value: '1000+', label: 'Volunteers' },
               { value: '100+', label: 'Events' },
             ].map((s, idx) => (
-              <motion.div 
-                key={s.label} 
+              <motion.div
+                key={s.label}
                 className="bg-gradient-to-b from-white/10 to-white/5 backdrop-blur border border-white/10 rounded-2xl p-4 text-center hover:border-orange-400/50 transition-all cursor-pointer group"
                 whileHover={{ scale: 1.05, borderColor: "rgba(249,115,22,0.5)" }}
                 initial={{ opacity: 0, y: 20 }}
@@ -626,15 +626,15 @@ const Login = () => {
           </motion.div>
 
           {/* NGO pills */}
-          <motion.div 
+          <motion.div
             className="flex flex-wrap justify-center gap-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7 }}
           >
             {['Bhumi', 'TQI', 'Atchayam Trust', 'Sittruli'].map((ngo, idx) => (
-              <motion.span 
-                key={ngo} 
+              <motion.span
+                key={ngo}
                 className="text-xs px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-500/20 to-blue-600/10 text-blue-200 border border-blue-500/40 font-medium hover:border-blue-400/60 transition-all cursor-pointer shadow-md"
                 whileHover={{ scale: 1.08, y: -2 }}
                 initial={{ opacity: 0, scale: 0.8 }}

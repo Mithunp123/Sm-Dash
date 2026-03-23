@@ -247,7 +247,7 @@ const OfficeBearerDashboard = () => {
                         Coordinate your teams, manage resources, and track project milestones from one unified interface.
                       </p>
                     </div>
-                    <div className="flex gap-4">
+                    <div className="flex flex-wrap gap-4">
                       <Button variant="secondary" className="bg-white text-primary hover:bg-white/90 font-bold uppercase tracking-widest text-xs rounded-2xl h-12 px-8" onClick={() => navigate("/admin/projects")}>
                         Manage Projects
                       </Button>

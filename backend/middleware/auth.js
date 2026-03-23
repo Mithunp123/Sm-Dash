@@ -90,6 +90,34 @@ export const requirePermission = (permissionKey, { requireEdit = false, allowVie
   };
 };
 
+// Require admin role
+export const requireAdmin = (req, res, next) => {
+  return requireRole('admin')(req, res, next);
+};
+
+// Require admin or office_bearer role for finance access
+export const allowFinance = (req, res, next) => {
+  return requireRole('admin', 'office_bearer')(req, res, next);
+};
+
+// Block volunteers from accessing finance routes
+export const blockVolunteer = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ success: false, message: 'Authentication required' });
+  }
+
+  if (req.user.role === 'volunteer') {
+    logActivity(req.user.id, 'UNAUTHORIZED_ACCESS', { path: req.originalUrl || req.path, reason: 'Volunteer access denied' }, req, {
+      action_type: 'SECURITY',
+      module_name: 'finance',
+      action_description: `Volunteer attempted to access finance module: ${req.originalUrl || req.path}`
+    });
+    return res.status(403).json({ success: false, message: 'Volunteers do not have access to the finance module' });
+  }
+
+  next();
+};
+
 // Helper function to check if SPOC is assigned to a project
 export const isSPOCAssignedToProject = async (spocId, projectId) => {
   try {

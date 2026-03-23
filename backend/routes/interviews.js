@@ -502,9 +502,9 @@ router.post('/:id/submit-marks', authenticateToken, requireRole('admin', 'office
             return res.status(403).json({ success: false, message: 'You do not have permission to submit marks for this candidate' });
         }
 
-        // If candidate is absent or decision is "retake", marks are not required
+        // If decision is "retake" (absent candidate), marks are not required
         // Otherwise marks are required
-        if (candidate.attendance !== 'absent' && decision !== 'retake') {
+        if (decision !== 'retake') {
             if (marks === undefined || marks === null) {
                 return res.status(400).json({ success: false, message: 'Marks are required for present candidates' });
             }

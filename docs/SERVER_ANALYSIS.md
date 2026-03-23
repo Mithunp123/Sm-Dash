@@ -30,7 +30,7 @@
 - Handles graceful shutdown
 
 ### Key Features
-- ✅ **Dual Database Support**: Automatically uses SQLite or MySQL based on `DB_TYPE` environment variable
+- ✅ **MySQL-only**: The application now runs exclusively on MySQL; SQLite support has been removed.
 - ✅ **Hot Reload**: Works with nodemon for automatic restart on file changes
 - ✅ **Error Handling**: Comprehensive error handling middleware
 - ✅ **CORS Enabled**: Cross-Origin Resource Sharing for frontend communication
@@ -163,7 +163,7 @@ node scripts/migrate-sqlite-to-mysql.js
 
 ### DB_TYPE Usage
 
-The `DB_TYPE` environment variable determines which database to use:
+The `DB_TYPE` environment variable used to determine database type; it is now permanently `mysql` and other values are ignored.
 
 **Used in**:
 - `backend/database/init.js` (line 21) - Main database initialization
@@ -184,7 +184,7 @@ The `DB_TYPE` environment variable determines which database to use:
 | Variable | Used In | Line(s) | Purpose | Default |
 |----------|---------|---------|---------|---------|
 | **Database** |
-| `DB_TYPE` | database/init.js | 21 | Database type (sqlite/mysql) | `sqlite` |
+| `DB_TYPE` | database/init.js | 21 | Database type (mysql only) | `mysql` |
 | `DB_PATH` | database/init.js | 14 | SQLite database file path | `./backend/database/sm_volunteers.db` |
 | `DB_HOST` | database/init.js | 23 | MySQL server address | `localhost` |
 | `DB_USER` | database/init.js | 24 | MySQL username | `root` |
@@ -220,13 +220,13 @@ The `DB_TYPE` environment variable determines which database to use:
 ### Development (SQLite - Default)
 
 ```
-1. Set DB_TYPE=sqlite in .env (or leave unset)
+1. Ensure DB_TYPE is set to mysql in .env (required)
    ↓
 2. Server starts → server.js loads dotenv
    ↓
 3. initDatabase() called → database/init.js
    ↓
-4. DB_TYPE !== 'mysql' → SQLite path used
+4. (SQLite path logic removed; always uses MySQL)
    ↓
 5. SQLite database file created at:
    backend/database/sm_volunteers.db

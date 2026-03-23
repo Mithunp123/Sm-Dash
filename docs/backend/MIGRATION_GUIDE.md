@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide will help you migrate your SM Volunteers application from SQLite3 to MySQL **without changing any application behavior, routes, or frontend code**.
+This guide documents the transition from SQLite3 to MySQL; all necessary migration steps have been completed and SQLite support is now removed. The application now runs exclusively on MySQL.
 
 ## ✅ What This Migration Does
 
@@ -84,6 +84,7 @@ EXIT;
 cd d:\sm-dash-main\backend
 
 # The migration script will automatically create a backup, but you can manually backup too:
+# (SQLite database no longer used, backup steps shown for historical reference)
 Copy-Item database\sm_volunteers.db database\sm_volunteers_backup_$(Get-Date -Format 'yyyyMMdd_HHmmss').db
 ```
 
@@ -267,7 +268,7 @@ If something goes wrong, you can rollback to SQLite:
 DB_TYPE=sqlite
 
 # 3. Restore backup if needed
-Copy-Item database\sm_volunteers_backup.db database\sm_volunteers.db -Force
+# (Legacy instructions) Copy-Item database\sm_volunteers_backup.db database\sm_volunteers.db -Force
 
 # 4. Restart application
 npm run dev
@@ -361,7 +362,7 @@ This is normal - the script uses `CREATE TABLE IF NOT EXISTS`. The error is caug
 1. Check migration output for errors
 2. Verify SQLite database has data:
    ```powershell
-   sqlite3 database\sm_volunteers.db "SELECT COUNT(*) FROM users;"
+   # sqlite3 database\sm_volunteers.db "SELECT COUNT(*) FROM users;"  (obsolete)
    ```
 3. Re-run migration script (it uses `INSERT IGNORE` so won't duplicate)
 

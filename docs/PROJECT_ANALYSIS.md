@@ -86,7 +86,7 @@
 - **Express 4.18.2** - Web application framework (runs on port **3000**)
 
 #### Database
-- **SQLite3 5.1.6** - Default development database
+- **MySQL 8.0+** - Exclusive database backend (SQLite support removed)
 - **MySQL2 3.16.2** - Production database (with migration support)
 - **Dual Database Support**: Compatibility layer for both SQLite and MySQL
 

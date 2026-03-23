@@ -39,20 +39,13 @@ node scripts/init-db.js
 
 This will create 40+ tables in your MySQL database.
 
-## ✅ Step 5: (Optional) Migrate Existing Data from SQLite
+## 🔧 Legacy SQLite Support Removed
 
-If you have existing data in SQLite that you want to migrate:
+The codebase no longer contains any SQLite drivers or data files. All logic has been rewritten
+for MySQL, and any old migration scripts have been deleted. There's nothing you need to do to
+migrate—just ensure MySQL is running and restart the server.
 
-```bash
-cd backend
-node scripts/migrate-sqlite-to-mysql.js
-```
-
-This script will:
-- Backup your SQLite database
-- Transfer all data to MySQL
-- Verify data integrity
-- Show progress for each table
+> ⚠️ If you still have an old `sm_volunteers.db` file, you can delete it; it's no longer used.
 
 ## ✅ Step 6: Start the Backend Server
 
