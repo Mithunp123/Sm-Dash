@@ -46,12 +46,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import * as XLSX from 'xlsx';
 import { cn } from "@/lib/utils";
+import InterviewEmailPanel from "@/components/InterviewEmailPanel";
 
 const ManageInterviews = () => {
     const navigate = useNavigate();
     const [candidates, setCandidates] = useState<any[]>([]);
     const [officeBearers, setOfficeBearers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<'candidates' | 'emails'>('candidates');
     // Interviewers panel state
     const [showInterviewersPanel, setShowInterviewersPanel] = useState(false);
     const [allUsers, setAllUsers] = useState<any[]>([]);
@@ -78,12 +80,12 @@ const ManageInterviews = () => {
         role: "volunteer"
     });
     const [assignFormData, setAssignFormData] = useState({
-        mentor_id: "",
-        mentor_name: ""
+        interviewer_id: "",
+        interviewer_name: ""
     });
     const [bulkAssignFormData, setBulkAssignFormData] = useState({
-        mentor_id: "",
-        mentor_name: ""
+        interviewer_id: "",
+        interviewer_name: ""
     });
     const [showMarksDialog, setShowMarksDialog] = useState(false);
 
@@ -274,32 +276,32 @@ const ManageInterviews = () => {
 
     const handleAssignMentor = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedCandidate || !assignFormData.mentor_id) {
-            toast.error("Please select a mentor");
+        if (!selectedCandidate || !assignFormData.interviewer_id) {
+            toast.error("Please select an interviewer");
             return;
         }
 
         try {
             // Use updateCandidate API - backend matches by interviewer name or email
-            const selectedMentor = officeBearers.find(ob => ob.id.toString() === assignFormData.mentor_id);
-            const mentorName = selectedMentor?.name || assignFormData.mentor_name;
-            const mentorEmail = selectedMentor?.email || '';
+            const selectedInterviewer = officeBearers.find(ob => ob.id.toString() === assignFormData.interviewer_id);
+            const interviewerName = selectedInterviewer?.name || assignFormData.interviewer_name;
+            const interviewerEmail = selectedInterviewer?.email || '';
 
             const response = await api.updateCandidate(selectedCandidate.id, {
-                interviewer: mentorName,
-                interviewer_email: mentorEmail, // Add email for better matching
-                mentor_id: parseInt(assignFormData.mentor_id),
-                status: 'assigned' // Set to 'assigned' when mentor is assigned
+                interviewer: interviewerName,
+                interviewer_email: interviewerEmail, // Add email for better matching
+                interviewer_id: parseInt(assignFormData.interviewer_id),
+                status: 'assigned' // Set to 'assigned' when interviewer is assigned
             });
 
             if (response.success) {
-                toast.success("Mentor assigned successfully");
+                toast.success("Interviewer assigned successfully");
                 setShowAssignDialog(false);
                 setSelectedCandidate(null);
-                setAssignFormData({ mentor_id: "", mentor_name: "" });
+                setAssignFormData({ interviewer_id: "", interviewer_name: "" });
                 loadCandidates();
             } else {
-                toast.error(response.message || "Failed to assign mentor");
+                toast.error(response.message || "Failed to assign interviewer");
             }
         } catch (error: any) {
             toast.error("Error: " + error.message);
@@ -309,8 +311,8 @@ const ManageInterviews = () => {
     const handleOpenAssignDialog = (candidate: any) => {
         setSelectedCandidate(candidate);
         setAssignFormData({
-            mentor_id: candidate.mentor_id?.toString() || "",
-            mentor_name: candidate.interviewer || ""
+            interviewer_id: candidate.interviewer_id?.toString() || "",
+            interviewer_name: candidate.interviewer || ""
         });
         setShowAssignDialog(true);
     };
@@ -331,22 +333,22 @@ const ManageInterviews = () => {
 
     const handleBulkAssignMentor = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (selectedCandidateIds.length === 0 || !bulkAssignFormData.mentor_id) {
-            toast.error("Please select candidates and a mentor");
+        if (selectedCandidateIds.length === 0 || !bulkAssignFormData.interviewer_id) {
+            toast.error("Please select candidates and an interviewer");
             return;
         }
 
         try {
-            const selectedMentor = officeBearers.find(ob => ob.id.toString() === bulkAssignFormData.mentor_id);
-            const mentorName = selectedMentor?.name || bulkAssignFormData.mentor_name;
-            const mentorEmail = selectedMentor?.email || '';
+            const selectedInterviewer = officeBearers.find(ob => ob.id.toString() === bulkAssignFormData.interviewer_id);
+            const interviewerName = selectedInterviewer?.name || bulkAssignFormData.interviewer_name;
+            const interviewerEmail = selectedInterviewer?.email || '';
 
-            // Assign all selected candidates to the mentor
+            // Assign all selected candidates to the interviewer
             for (const candidateId of selectedCandidateIds) {
                 await api.updateCandidate(candidateId, {
-                    interviewer: mentorName,
-                    interviewer_email: mentorEmail,
-                    mentor_id: parseInt(bulkAssignFormData.mentor_id),
+                    interviewer: interviewerName,
+                    interviewer_email: interviewerEmail,
+                    interviewer_id: parseInt(bulkAssignFormData.interviewer_id),
                     status: 'assigned'
                 });
             }
@@ -354,7 +356,7 @@ const ManageInterviews = () => {
             toast.success(`âœ… ${selectedCandidateIds.length} candidates assigned successfully`);
             setShowBulkAssignDialog(false);
             setSelectedCandidateIds([]);
-            setBulkAssignFormData({ mentor_id: "", mentor_name: "" });
+            setBulkAssignFormData({ interviewer_id: "", interviewer_name: "" });
             loadCandidates();
         } catch (error: any) {
             toast.error("Error: " + error.message);
@@ -378,18 +380,18 @@ const ManageInterviews = () => {
     };
 
     const handleOpenBulkAssignDialog = () => {
-        // Pre-populate with current mentor if all selected candidates share the same mentor
+        // Pre-populate with current interviewer if all selected candidates share the same interviewer
         const selected = candidates.filter(c => selectedCandidateIds.includes(c.id));
-        const uniqueMentorIds = [...new Set(selected.map(c => c.mentor_id).filter(Boolean))];
-        if (uniqueMentorIds.length === 1) {
-            // All have same mentor â€” pre-select it
-            const currentMentor = officeBearers.find((ob: any) => ob.id === uniqueMentorIds[0]);
+        const uniqueInterviewerIds = [...new Set(selected.map(c => c.interviewer_id).filter(Boolean))];
+        if (uniqueInterviewerIds.length === 1) {
+            // All have same interviewer â€” pre-select it
+            const currentInterviewer = officeBearers.find((ob: any) => ob.id === uniqueInterviewerIds[0]);
             setBulkAssignFormData({
-                mentor_id: uniqueMentorIds[0].toString(),
-                mentor_name: currentMentor?.name || ""
+                interviewer_id: uniqueInterviewerIds[0].toString(),
+                interviewer_name: currentInterviewer?.name || ""
             });
         } else {
-            setBulkAssignFormData({ mentor_id: "", mentor_name: "" });
+            setBulkAssignFormData({ interviewer_id: "", interviewer_name: "" });
         }
         setShowBulkAssignDialog(true);
     };
@@ -813,8 +815,31 @@ const ManageInterviews = () => {
                     </CardContent>
                 </Card>
 
-                {/* Candidates Table */}
-                <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-xl rounded-[1.5rem] overflow-hidden">
+                {/* Tab Navigation */}
+                <div className="flex gap-2 mb-6 border-b border-border/40">
+                    <Button
+                        variant={activeTab === 'candidates' ? 'default' : 'ghost'}
+                        onClick={() => setActiveTab('candidates')}
+                        className="rounded-b-none"
+                    >
+                        <Users className="w-4 h-4 mr-2" />
+                        Candidates
+                    </Button>
+                    <Button
+                        variant={activeTab === 'emails' ? 'default' : 'ghost'}
+                        onClick={() => setActiveTab('emails')}
+                        className="rounded-b-none"
+                    >
+                        <Mail className="w-4 h-4 mr-2" />
+                        Email Management
+                    </Button>
+                </div>
+
+                {/* Content based on active tab */}
+                {activeTab === 'candidates' && (
+                    <>
+                    {/* Candidates Table */}
+                    <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-xl rounded-[1.5rem] overflow-hidden">
                     <CardHeader className="border-b border-border/10 pb-6">
                         <div className="flex items-center justify-between">
                             <div>
@@ -998,6 +1023,13 @@ const ManageInterviews = () => {
                         )}
                     </CardContent>
                 </Card>
+                    </>
+                )}
+
+                {/* Email Management Tab */}
+                {activeTab === 'emails' && (
+                    <InterviewEmailPanel />
+                )}
 
                 {/* Add Candidate Dialog */}
                 <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
@@ -1121,14 +1153,14 @@ const ManageInterviews = () => {
                         {selectedCandidate && (
                             <form onSubmit={handleAssignMentor} className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="mentor">Select Mentor / Interviewer *</Label>
+                                    <Label htmlFor="interviewer">Select Interviewer *</Label>
                                     <Select
-                                        value={assignFormData.mentor_id}
+                                        value={assignFormData.interviewer_id}
                                         onValueChange={(value) => {
-                                            const mentor = officeBearers.find(ob => ob.id.toString() === value);
+                                            const interviewer = officeBearers.find(ob => ob.id.toString() === value);
                                             setAssignFormData({
-                                                mentor_id: value,
-                                                mentor_name: mentor ? mentor.name : ""
+                                                interviewer_id: value,
+                                                interviewer_name: interviewer ? interviewer.name : ""
                                             });
                                         }}
                                     >
@@ -1192,12 +1224,12 @@ const ManageInterviews = () => {
                             <div className="space-y-2">
                                 <Label htmlFor="bulk_mentor">Select Mentor / Interviewer *</Label>
                                 <Select
-                                    value={bulkAssignFormData.mentor_id}
+                                    value={bulkAssignFormData.interviewer_id}
                                     onValueChange={(value) => {
-                                        const mentor = officeBearers.find(ob => ob.id.toString() === value);
+                                        const interviewer = officeBearers.find(ob => ob.id.toString() === value);
                                         setBulkAssignFormData({
-                                            mentor_id: value,
-                                            mentor_name: mentor ? mentor.name : ""
+                                            interviewer_id: value,
+                                            interviewer_name: interviewer ? interviewer.name : ""
                                         });
                                     }}
                                 >

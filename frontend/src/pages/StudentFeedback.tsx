@@ -180,9 +180,9 @@ export default function StudentFeedback() {
   return (
     <div className="min-h-full w-full">
       <DeveloperCredit />
-      <div className="container mx-auto p-4 md:p-8 w-full">
+      <div className="w-full p-4 md:p-8">
         {/* Header Section */}
-        <div className="max-w-4xl mx-auto space-y-8 mb-8">
+        <div className="w-full space-y-8 mb-8">
           <div className="flex flex-col gap-2">
             <div className="mb-2">
 
@@ -194,7 +194,7 @@ export default function StudentFeedback() {
           </div>
         </div>
 
-        <div className="max-w-4xl mx-auto space-y-8">
+        <div className="w-full space-y-8">
           {questionGroups.length === 0 ? (
             <Card className="p-12 text-center border-dashed border-2 border-border bg-muted/20 rounded-[2rem]">
               <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">

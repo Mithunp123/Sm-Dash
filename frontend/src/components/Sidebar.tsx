@@ -139,7 +139,7 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
         items: [
           { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
           { icon: Users, label: "Manage Users", path: "/admin/users" },
-          { icon: Users, label: "Student Database", path: "/admin/student-db" },
+          { icon: Users, label: "Profile Management", path: "/admin/student-db" },
         ]
       },
       {
@@ -167,7 +167,8 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
         items: [
           { icon: ClipboardCheck, label: "Attendance", path: "/admin/attendance" },
           { icon: Trophy, label: "Awards", path: "/admin/awards" },
-          { icon: FileText, label: "Bills", path: "/admin/bills" },
+          { icon: BarChart3, label: "Finance", path: "/admin/finance" },
+          { icon: BarChart3, label: "Finance Settings", path: "/admin/finance-settings" },
           { icon: FileText, label: "Resources", path: "/admin/resources" },
           { icon: FileBarChart, label: "Reports", path: "/admin/reports" },
           { icon: ClipboardCheck, label: "Activity Logs", path: "/admin/activity-logs" },
@@ -200,7 +201,7 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
         isImportant: true,
         items: [
           { icon: LayoutDashboard, label: "Dashboard", path: "/office-bearer" },
-          { icon: Users, label: "Student Database", path: "/admin/student-db" },
+          { icon: Users, label: "Profile Management", path: "/admin/student-db" },
         ]
       },
       {
@@ -222,7 +223,7 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
         category: "Administration",
         items: [
           { icon: ClipboardCheck, label: "Attendance", path: "/admin/attendance" },
-          { icon: FileText, label: "Bills", path: "/admin/bills" },
+          { icon: BarChart3, label: "Finance", path: "/office-bearer/finance" },
           { icon: FileText, label: "Resources", path: "/admin/resources" },
           { icon: FileBarChart, label: "Reports", path: "/admin/reports" },
           { icon: UsersRound, label: "Teams", path: "/admin/teams" },
@@ -254,7 +255,6 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
         isImportant: true,
         items: [
           { icon: LayoutDashboard, label: "Overview", path: "/student" },
-          { icon: UserCircle, label: "My Profile", path: "/student/profile" },
         ]
       },
       {
@@ -263,6 +263,7 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
           { icon: Calendar, label: "Calendar", path: "/student/calendar" },
           { icon: Calendar, label: "Events", path: "/student/events" },
           { icon: ClipboardCheck, label: "Attendance", path: "/student/attendance" },
+          { icon: UsersRound, label: "Teams", path: "/student/teams" },
           ...(user?.is_interviewer ? [{ icon: UserCheck, label: "My Interviews", path: "/mentor/interviews" }] : []),
         ]
       },
@@ -276,7 +277,6 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
         category: "Resources",
         items: [
           { icon: FileText, label: "Resources", path: "/resources" },
-          { icon: UsersRound, label: "Teams", path: "/student/teams" },
         ]
       },
       {
@@ -289,6 +289,7 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
       {
         category: "Account",
         items: [
+          { icon: UserCircle, label: "My Profile", path: "/student/profile" },
           { icon: Settings, label: "Settings", path: "/student/settings" }
         ]
       }

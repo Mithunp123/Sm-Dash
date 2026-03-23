@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X, FileSpreadsheet } from 'lucide-react';
+import { X, FileSpreadsheet, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -57,6 +58,28 @@ export function BulkUploadModal({ isOpen, onClose, onSuccess, uploadFn, title, d
         }
     };
 
+    const downloadSample = () => {
+        const sampleData = [{
+            name: "John Doe",
+            email: "john@student.college.edu",
+            phone: "9876543210",
+            department: "CSE",
+            year: "3",
+            register_no: "21CS001",
+            academic_year: "2023-2024",
+            dob: "2003-05-15",
+            gender: "Male",
+            blood_group: "O+",
+            father_number: "9876543211",
+            hosteller_dayscholar: "Hosteller",
+            address: "123 Main St, City"
+        }];
+        const worksheet = XLSX.utils.json_to_sheet(sampleData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Sample");
+        XLSX.writeFile(workbook, "bulk_upload_sample.xlsx");
+    };
+
     const reset = () => {
         setFile(null);
         setResult(null);
@@ -71,9 +94,14 @@ export function BulkUploadModal({ isOpen, onClose, onSuccess, uploadFn, title, d
         <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
             <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
                 <DialogHeader>
-                    <DialogTitle>{title || "Bulk Student Upload"}</DialogTitle>
+                    <DialogTitle className="flex justify-between items-center pr-6">
+                        <span>{title || "Bulk Student Upload"}</span>
+                        <Button variant="outline" size="sm" onClick={downloadSample} className="h-8 gap-2 text-xs font-semibold text-primary hover:bg-primary/5 border-primary/20">
+                            <Download className="w-3.5 h-3.5" /> Sample
+                        </Button>
+                    </DialogTitle>
                     <DialogDescription>
-                        {description || <>Upload an Excel file (.xlsx) or CSV with columns: <b>name, email, phone, department, year, register_no</b></>}
+                        {description || <>Upload an Excel file (.xlsx) or CSV with columns: <b>name, email, phone, department, year, register_no, academic_year, dob, gender, blood_group, father_number, hosteller_dayscholar, address</b></>}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -91,8 +119,8 @@ export function BulkUploadModal({ isOpen, onClose, onSuccess, uploadFn, title, d
                                     onChange={handleFileChange}
                                 />
                                 <label htmlFor="bulk-upload-modal-input">
-                                    <Button variant="secondary" asChild className="cursor-pointer">
-                                        <span>Select File</span>
+                                    <Button asChild className="cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 font-bold px-8 shadow-md h-12">
+                                        <span>Select Excel / CSV File</span>
                                     </Button>
                                 </label>
                             </div>

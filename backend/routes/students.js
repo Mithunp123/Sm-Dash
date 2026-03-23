@@ -105,6 +105,13 @@ router.post('/bulk-upload', authenticateToken, requireRole('admin'), upload.sing
             const dept = row[normalizedHeaders['department']];
             const year = row[normalizedHeaders['year']];
             const register_no = row[normalizedHeaders['register_no']];
+            const academic_year = row[normalizedHeaders['academic_year']] || null;
+            const dob = row[normalizedHeaders['dob']] || null;
+            const gender = row[normalizedHeaders['gender']] || null;
+            const blood_group = row[normalizedHeaders['blood_group']] || null;
+            const father_number = row[normalizedHeaders['father_number']] || null;
+            const hosteller_dayscholar = row[normalizedHeaders['hosteller_dayscholar']] || null;
+            const address = row[normalizedHeaders['address']] || null;
 
             // Basic validation
             if (!email || !register_no || !name) {
@@ -141,9 +148,11 @@ router.post('/bulk-upload', authenticateToken, requireRole('admin'), upload.sing
                 await run(db,
                     `INSERT INTO profiles (
                     user_id, role, dept, year, phone, register_no, 
-                    interview_status, interview_marks, mentor_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                    [userId, 'student', dept, year, phone, register_no, 'Pending', null, null]
+                    interview_status, interview_marks, mentor_id,
+                    academic_year, dob, gender, blood_group, father_number, hosteller_dayscholar, address
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [userId, 'student', dept, year, phone, register_no, 'Pending', null, null,
+                     academic_year, dob, gender, blood_group, father_number, hosteller_dayscholar, address]
                 );
 
                 // Log creation

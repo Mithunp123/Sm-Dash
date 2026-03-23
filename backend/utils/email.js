@@ -104,7 +104,6 @@ export const getInterviewEmailTemplate = (name, registerNo) => {
         <h2 style="color: #2563eb; margin-top: 0;">Interview Registration Successful</h2>
         <p>Dear ${name},</p>
         <p>Welcome! You have been successfully registered for the <strong>SM Volunteers Interview Process</strong>.</p>
-        
         <div style="background-color: #eff6ff; border-left: 4px solid #2563eb; padding: 15px; margin: 20px 0;">
           <p style="margin: 0 0 10px 0;"><strong>Registration Details:</strong></p>
           <p style="margin: 5px 0;"><strong>Registration Number:</strong> ${registerNo}</p>
@@ -132,4 +131,71 @@ export const getInterviewEmailTemplate = (name, registerNo) => {
       </div>
     </div>
   `;
+};
+
+export const getInterviewOutcomeTemplate = ({name, decision, interviewerName, interviewDate, interviewTime, decisionLink}) => {
+    const decisions = {
+        selected: {
+            heading: '🎉 Congratulations! You are Selected',
+            color: '#059669',
+            text: 'You have been <strong>selected</strong> for the SM Volunteers program. Welcome aboard!'
+        },
+        waitlisted: {
+            heading: '⏳ You are Waitlisted',
+            color: '#d97706',
+            text: 'You have been placed on the waitlist. We will keep you updated as slots open up.'
+        },
+        rejected: {
+            heading: '❌ Application Not Selected',
+            color: '#dc2626',
+            text: 'This round did not work out. Keep improving and please reapply in future cycles.'
+        },
+        retake: {
+            heading: '🔁 Interview Marked Absent / Retake',
+            color: '#f59e0b',
+            text: 'You are marked as absent today. We will share a retake schedule shortly.'
+        }
+    };
+
+    const decisionKey = decision && decisions[decision] ? decision : 'waitlisted';
+    const data = decisions[decisionKey];
+
+    return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background:#f8fafc;">
+      <div style="background:#fff; padding:30px; border-radius:10px; box-shadow:0 3px 8px rgba(0,0,0,0.12);">
+        <h2 style="color:${data.color}; margin-bottom:8px;">${data.heading}</h2>
+        <p>Dear <strong>${name}</strong>,</p>
+        <p style="font-size:15px;">${data.text}</p>
+
+        <div style="background:#f3f4f6; border-left:4px solid ${data.color}; padding:14px; border-radius:6px; margin:18px 0;">
+          <p style="margin:2px 0;"><strong>Interviewer:</strong> ${interviewerName || 'Not assigned yet'}</p>
+          <p style="margin:2px 0;"><strong>Interview Date:</strong> ${interviewDate || 'To be scheduled'}</p>
+          <p style="margin:2px 0;"><strong>Interview Time:</strong> ${interviewTime || 'To be scheduled'}</p>
+        </div>
+
+        <p style="font-size:14px;">For complete details and further action, please follow the link below:</p>
+        <p style="text-align:center; margin:18px 0;"><a href="${decisionLink || '#'}" style="background:${data.color}; color:#fff; text-decoration:none; padding:10px 20px; border-radius:8px; display:inline-block; font-weight:bold;">View Interview Status</a></p>
+
+        <p style="font-size:13px; color:#6b7280;">This is an automated message. Do not reply directly to this email.</p>
+      </div>
+    </div>`;
+};
+
+export const getInterviewAssignmentTemplate = ({name, mentorName, interviewDate, interviewTime, detailsLink}) => {
+    return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background:#f9fafb;">
+      <div style="background:#ffffff; padding: 30px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+        <h2 style="color: #0f172a; margin-top: 0;">Interview Assignment Update</h2>
+        <p>Dear <strong>${name}</strong>,</p>
+        <p>You have been assigned to <strong>mentor ${mentorName}</strong>.</p>
+        <p><strong>Scheduled date:</strong> ${interviewDate || 'Not set yet'}</p>
+        <p><strong>Scheduled time:</strong> ${interviewTime || 'Not set yet'}</p>
+
+        <div style="text-align:center; margin: 25px 0;">
+          <a href="${detailsLink || '#'}" style="background:#2563eb;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-weight:bold;">View Interview Details</a>
+        </div>
+
+        <p style="font-size:13px;color:#6b7280;">If your interview date/time changes, we will send an update automatically.</p>
+      </div>
+    </div>`;
 };

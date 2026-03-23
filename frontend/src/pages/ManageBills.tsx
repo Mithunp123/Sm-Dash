@@ -1,12 +1,91 @@
-﻿
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import DeveloperCredit from "@/components/DeveloperCredit";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Check, X, Clock, FileText, Trash2, FolderPlus, Loader2 } from "lucide-react";
+import { api } from "@/lib/api";
+import { auth } from "@/lib/auth";
+import { toast } from "sonner";
+import { motion } from "framer-motion";
 
-// NOTE: reverted to old simple style per request
-
-// Main component starts below
+// NOTE: Integrated with Event Finance System
 
 const ManageBills: React.FC = () => {
+    const navigate = useNavigate();
+    const [bills, setBills] = useState<any[]>([]);
+    const [folders, setFolders] = useState<any[]>([]);
+    const [selectedFolder, setSelectedFolder] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [showBillDialog, setShowBillDialog] = useState(false);
+    const [showFolderDialog, setShowFolderDialog] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    // Backward-compat alias: some older JSX references `showDialog` / `setShowDialog`
+    // (kept to avoid runtime crashes during dev while redirecting away from this legacy page)
+    const showDialog = showBillDialog;
+    const setShowDialog = setShowBillDialog;
+    const [formData, setFormData] = useState({
+        title: "",
+        amount: "",
+        billDate: new Date().toISOString().split('T')[0],
+        description: "",
+        billType: "expense",
+        category: "transport",
+        folderId: ""
+    });
+    const [folderData, setFolderData] = useState({
+        folderName: "",
+        description: ""
+    });
+
+    const loadBills = async () => {
+        try {
+            setLoading(true);
+            const res = await api.getBills();
+            if (res.success) {
+                setBills(res.bills || []);
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadFolders = async () => {
+        try {
+            // This would load from the new finance system if available
+            // For now, grouping bills by category
+            const grouped: { [key: string]: any[] } = {};
+            bills.forEach(bill => {
+                const cat = bill.category || 'other';
+                if (!grouped[cat]) grouped[cat] = [];
+                grouped[cat].push(bill);
+            });
+            setFolders(Object.entries(grouped).map(([name, items]) => ({
+                id: name,
+                name: name.charAt(0).toUpperCase() + name.slice(1),
+                items
+            })));
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    useEffect(() => {
+        loadBills();
+    }, []);
+
+    useEffect(() => {
+        loadFolders();
+    }, [bills]);
 
     const handleCreateBill = async () => {
         if (!formData.title || !formData.amount) {
@@ -27,7 +106,7 @@ const ManageBills: React.FC = () => {
 
             if (res.success) {
                 toast.success("Bill created successfully!");
-                setShowDialog(false);
+                setShowBillDialog(false);
                 setFormData({
                     title: "",
                     amount: "",
@@ -99,7 +178,7 @@ const ManageBills: React.FC = () => {
                             <h1 className="text-4xl font-black tracking-tight text-foreground">Manage Bills</h1>
                             <p className="text-muted-foreground font-bold italic uppercase tracking-widest text-xs mt-1">Review and approve submitted expense bills</p>
                         </div>
-                        <Dialog open={showDialog} onOpenChange={setShowDialog}>
+                        <Dialog open={showBillDialog} onOpenChange={setShowBillDialog}>
                             <DialogTrigger asChild>
                                 <Button className="rounded-2xl h-12 font-black uppercase tracking-widest text-xs px-6 shadow-lg shadow-primary/20">
                                     <Plus className="w-4 h-4 mr-2" />

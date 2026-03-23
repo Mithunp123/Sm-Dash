@@ -396,7 +396,7 @@ const MinutesOfMeeting = () => {
                     <ChevronDown className="w-4 h-4 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-full p-3" align="start">
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-3" align="start">
                   <ScrollArea className="h-48">
                     <div className="space-y-2">
                       {userOptions.map(u => (

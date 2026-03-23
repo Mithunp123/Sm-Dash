@@ -30,6 +30,9 @@ import ManageStudentDatabase from "./pages/ManageStudentDatabase";
 import ManageProjects from "./pages/ManageProjects";
 import AssignProjectStudents from "./pages/AssignProjectStudents";
 import ProjectDetails from "./pages/ProjectDetails";
+import EventFundsManagement from "./pages/EventFundsManagement";
+import EventFinanceSettings from "./pages/EventFinanceSettings";
+import FinanceHome from "./pages/FinanceHome";
 
 // helper redirect component for legacy /mom paths
 const RedirectMom: React.FC = () => {
@@ -109,7 +112,51 @@ const App = () => (
             {/* legacy shortcuts */}
             <Route path="/mom" element={<RedirectMom />} />
             <Route path="/mom/:id" element={<RedirectMom />} />
-            <Route path="/admin/bills" element={<ProtectedRoute requiredPermission="can_manage_bills"><ManageBills /></ProtectedRoute>} />
+            {/* Legacy Bills module is replaced by the new finance flow */}
+            <Route
+              path="/admin/bills"
+              element={<Navigate to="/admin/finance" replace />}
+            />
+            <Route
+              path="/admin/events/:eventId/funds"
+              element={
+                <ProtectedRoute requiredRoles={['admin', 'office_bearer']}>
+                  <EventFundsManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/office-bearer/events/:eventId/funds"
+              element={
+                <ProtectedRoute requiredRoles={['office_bearer', 'admin']}>
+                  <EventFundsManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/finance-settings"
+              element={
+                <ProtectedRoute requiredRoles={['admin']}>
+                  <EventFinanceSettings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/finance"
+              element={
+                <ProtectedRoute requiredRoles={['admin']}>
+                  <FinanceHome />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/office-bearer/finance"
+              element={
+                <ProtectedRoute requiredRoles={['office_bearer', 'admin']}>
+                  <FinanceHome />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/admin/analytics" element={<ProtectedRoute requiredPermission="can_view_analytics"><Analytics /></ProtectedRoute>} />
             <Route path="/admin/students" element={<ProtectedRoute requiredPermission="can_manage_students"><ManageStudents /></ProtectedRoute>} />
             <Route path="/admin/students/:id" element={<ProtectedRoute requiredPermission="can_manage_students"><StudentDetails /></ProtectedRoute>} />

@@ -5,10 +5,10 @@ import { fileURLToPath } from 'url';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 let db;
 
@@ -18,6 +18,7 @@ export const getDatabase = () => {
   if (process.env.DB_TYPE === 'mysql') {
     db = mysql.createPool({
       host: process.env.DB_HOST,
+      port: process.env.DB_PORT || 3306,
       user: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
@@ -794,26 +795,42 @@ export const initDatabase = async () => {
         marks INTEGER DEFAULT 0,
         interviewer TEXT,
         interviewer_email TEXT,
-        mentor_id INTEGER,
+        interviewer_id INTEGER,
+        user_id INTEGER,
         interview_date DATE,
         interview_time TIME,
         remarks TEXT,
         decision TEXT,
         email_sent INTEGER DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (interviewer_id) REFERENCES users(id) ON DELETE SET NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
       )
     `);
 
     await addColumnSafe(database, 'interview_candidates', 'email_sent', 'INTEGER DEFAULT 0');
     await addColumnSafe(database, 'interview_candidates', 'interviewer', 'TEXT');
     await addColumnSafe(database, 'interview_candidates', 'interviewer_email', 'TEXT');
-    await addColumnSafe(database, 'interview_candidates', 'mentor_id', 'INTEGER');
+    await addColumnSafe(database, 'interview_candidates', 'interviewer_id', 'INTEGER');
+    await addColumnSafe(database, 'interview_candidates', 'user_id', 'INTEGER');
     await addColumnSafe(database, 'interview_candidates', 'interview_date', 'DATE');
     await addColumnSafe(database, 'interview_candidates', 'interview_time', 'TIME');
     await addColumnSafe(database, 'interview_candidates', 'remarks', 'TEXT');
     await addColumnSafe(database, 'interview_candidates', 'decision', 'TEXT');
     await addColumnSafe(database, 'interview_candidates', 'role', "TEXT DEFAULT 'volunteer'");
     await addColumnSafe(database, 'interview_candidates', 'attendance', "TEXT DEFAULT 'present'");
+
+    // Migrate mentor_id to interviewer_id if mentor_id exists but interviewer_id doesn't
+    try {
+      const mentorIdExists = await columnExists(database, 'interview_candidates', 'mentor_id');
+      const interviewerIdExists = await columnExists(database, 'interview_candidates', 'interviewer_id');
+      if (mentorIdExists && interviewerIdExists) {
+        // Copy mentor_id values to interviewer_id where interviewer_id is null
+        await run(database, 'UPDATE interview_candidates SET interviewer_id = mentor_id WHERE interviewer_id IS NULL AND mentor_id IS NOT NULL');
+      }
+    } catch (e) {
+      // Migration might fail if columns don't exist, ignore
+    }
 
     // Add is_interviewer flag to users table
     await addColumnSafe(database, 'users', 'is_interviewer', 'INTEGER DEFAULT 0');

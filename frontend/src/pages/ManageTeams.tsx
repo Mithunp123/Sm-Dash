@@ -660,11 +660,14 @@ const ManageTeams = () => {
                           </Badge>
                         </div>
                         <Button
-                          variant="ghost"
+                          variant="destructive"
                           size="sm"
+                          className="px-2"
                           onClick={() => handleRemoveMember(member.user_id)}
+                          title="Remove member"
                         >
-                          <XCircle className="w-4 h-4 text-destructive" />
+                          <XCircle className="w-4 h-4 mr-1" />
+                          Remove
                         </Button>
                       </div>
                     ))}

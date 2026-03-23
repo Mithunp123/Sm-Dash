@@ -80,7 +80,7 @@ const MainLayout = ({ showSidebar = true, showBackButton: backButtonProp }: Main
                 {/* Adjust padding for Bottom Nav (pb-20 for mobile, pb-12 for desktop) */}
                 {/* Dynamic padding: 120px if marquee active on Landing/Home, 24px otherwise */}
                 <main className={cn(
-                    "flex-1 w-full max-w-full overflow-x-hidden overflow-y-auto pb-24 md:pb-12 px-4 md:px-8",
+                    "flex-1 w-full max-w-full overflow-x-hidden overflow-y-auto pb-24 md:pb-12",
                     (isLandingOrHome && hasAnnouncements) ? "pt-[120px]" : "pt-24"
                 )}>
                     <AnimatePresence mode="wait">

@@ -1,0 +1,98 @@
+#!/bin/bash
+# Event Finance System - Quick Integration Script
+# Run this script from the project root directory
+
+echo "🚀 Starting Event Finance System Integration..."
+echo ""
+
+# Step 1: Check database migration
+echo "📋 Step 1: Database Migration"
+echo "⚠️  MANUAL STEP REQUIRED:"
+echo "   Run this SQL on your MySQL database:"
+echo "   $ mysql -u root -p your_database_name < backend/migrations/03_event_fundraising_system.sql"
+echo ""
+echo "   OR paste the contents of backend/migrations/03_event_fundraising_system.sql"
+echo "   into your database admin panel (phpMyAdmin, MySQL Workbench, etc.)"
+echo ""
+
+# Step 2: Backend Integration
+echo "📦 Step 2: Backend Integration"
+echo "⚠️  MANUAL STEP REQUIRED:"
+echo "   Edit backend/server.js and add these imports:"
+echo ""
+echo "   const fundraisingRoutes = require('./routes/fundraising');"
+echo "   const expenseRoutes = require('./routes/expenses');"
+echo ""
+echo "   Then add these route registrations:"
+echo ""
+echo "   // Finance Management Routes"
+echo "   app.use('/api/fundraising', fundraisingRoutes);"
+echo "   app.use('/api/expenses', expenseRoutes);"
+echo ""
+
+# Step 3: Frontend Integration
+echo "🎨 Step 3: Frontend Integration"
+echo "⚠️  MANUAL STEP REQUIRED:"
+echo "   Edit frontend/src/App.tsx and add these imports:"
+echo ""
+echo "   import EventFundsManagement from './pages/EventFundsManagement';"
+echo "   import EventFinanceSettings from './pages/EventFinanceSettings';"
+echo ""
+echo "   Then add these routes inside the <Routes> component:"
+echo ""
+echo "   <Route path='/admin/events/:eventId/funds' element={<ProtectedRoute><EventFundsManagement /></ProtectedRoute>} />"
+echo "   <Route path='/admin/finance-settings' element={<ProtectedRoute><EventFinanceSettings /></ProtectedRoute>} />"
+echo "   <Route path='/office-bearer/events/:eventId/funds' element={<ProtectedRoute><EventFundsManagement /></ProtectedRoute>} />"
+echo ""
+
+# Step 4: Verify uploads directory
+echo "📁 Step 4: Creating uploads directory for QR codes"
+mkdir -p backend/public/uploads/qrcodes
+echo "✅ Directory created: backend/public/uploads/qrcodes"
+echo ""
+
+# Step 5: Restart services
+echo "🔄 Step 5: Restart Services"
+echo "⚠️  MANUAL STEP REQUIRED:"
+echo "   1. Restart backend server:"
+echo "      $ cd backend && npm start"
+echo ""
+echo "   2. In another terminal, start frontend:"
+echo "      $ cd frontend && npm run dev"
+echo ""
+
+# Step 6: Testing checklist
+echo "✅ Step 6: Testing Checklist"
+echo ""
+echo "After completing all manual steps, test:"
+echo ""
+echo "Admin Tests:"
+echo "  [ ] Login as admin"
+echo "  [ ] Navigate to /admin/finance-settings"
+echo "  [ ] Toggle fundraising enabled/disabled"
+echo "  [ ] Upload QR code image"
+echo "  [ ] Delete QR code"
+echo ""
+echo "Office Bearer Tests:"
+echo "  [ ] Login as office_bearer"
+echo "  [ ] Navigate to /office-bearer/events/1/funds"
+echo "  [ ] Add fund collection entry (cash)"
+echo "  [ ] Add fund collection entry (online)"
+echo "  [ ] Create bill folder"
+echo "  [ ] Add expense to folder"
+echo "  [ ] Verify amounts auto-calculate"
+echo ""
+echo "Volunteer Tests:"
+echo "  [ ] Login as volunteer"
+echo "  [ ] Try to access finance pages"
+echo "  [ ] Should see 'Volunteers do not have access' message"
+echo ""
+
+echo "🎉 Integration Complete!"
+echo ""
+echo "📚 Full Integration Guide:"
+echo "   See: FINANCE_SYSTEM_INTEGRATION.md"
+echo ""
+echo "🆘 Need Help?"
+echo "   Check the troubleshooting section in FINANCE_SYSTEM_INTEGRATION.md"
+echo ""

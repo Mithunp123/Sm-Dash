@@ -35,6 +35,8 @@ import messageRoutes from './routes/messages.js';
 import mailRoutes from './routes/mail.js';
 import momRoutes from './routes/mom.js';
 import financeRoutes from './routes/finance.js';
+import fundraisingRoutes from './routes/fundraising.js';
+import expenseRoutes from './routes/expenses.js';
 import { initDatabase } from './database/init.js';
 
 // Load .env from backend directory first, then fallback to root directory
@@ -117,6 +119,9 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/bills', financeRoutes);
 // keep old billRoutes import around in case some other module still references it
 /* app.use('/api/bills', billRoutes); */
+// Event Fund Raising & Bill Management (new spec)
+app.use('/api/fundraising', fundraisingRoutes);
+app.use('/api/expenses', expenseRoutes);
 app.use('/api/time', timeRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/feedback', feedbackRoutes);

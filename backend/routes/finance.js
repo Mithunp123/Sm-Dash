@@ -586,52 +586,260 @@ router.get('/analytics/sources', authenticateToken, allowFinance, async (req,res
 // SETTINGS ENDPOINTS (Admin only)
 // ============================================
 
-// Get settings
+const qrSettingsUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const dir = path.join(process.cwd(), 'public', 'uploads', 'qr_codes');
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, `settings-qr-${Date.now()}${ext}`);
+    }
+  }),
+  fileFilter: (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (allowed.includes(file.mimetype)) cb(null, true);
+    else cb(new Error('Only image files are allowed (JPEG, PNG, GIF, WebP)'));
+  },
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
+
+const upsertSetting = async (db, { settingKey, settingValue, dataType = 'string', userId }) => {
+  await run(
+    db,
+    `
+    INSERT INTO settings (setting_key, setting_value, data_type, updated_by)
+    VALUES (?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      setting_value = VALUES(setting_value),
+      data_type = VALUES(data_type),
+      updated_by = VALUES(updated_by),
+      updated_at = CURRENT_TIMESTAMP
+    `,
+    [settingKey, settingValue, dataType, userId]
+  );
+};
+
+const getSettingValue = async (db, key) => {
+  try {
+    const row = await get(db, 'SELECT setting_value FROM settings WHERE setting_key = ?', [key]);
+    return row?.setting_value ?? null;
+  } catch {
+    return null;
+  }
+};
+
+// Get finance settings (spec)
 router.get('/settings', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const db = getDatabase();
 
-    const settings = await get(db, 'SELECT * FROM financial_settings LIMIT 1');
+    const [fundraising_enabled, qr_code_path] = await Promise.all([
+      getSettingValue(db, 'fundraising_enabled'),
+      getSettingValue(db, 'qr_code_path')
+    ]);
 
-    if (!settings) {
-      // Create default settings if not exist
-      await run(db, 'INSERT INTO financial_settings (collection_enabled, qr_image_url) VALUES (1, NULL)');
-      const newSettings = await get(db, 'SELECT * FROM financial_settings LIMIT 1');
-      return res.json({ success: true, settings: newSettings });
-    }
-
-    res.json({ success: true, settings });
+    res.json({
+      success: true,
+      fundraising_enabled: fundraising_enabled === 'true' || fundraising_enabled === '1',
+      qr_code_path: qr_code_path || ''
+    });
   } catch (error) {
     console.error('Error fetching settings:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// Update settings (Admin only)
+// Update settings (Admin only) - legacy compatibility
 router.put('/settings', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const { collectionEnabled, qrImageUrl } = req.body;
     const db = getDatabase();
+    const { collectionEnabled, qrImageUrl, fundraisingEnabled } = req.body || {};
 
-    // Update or create settings
-    await run(
-      db,
-      `UPDATE financial_settings SET collection_enabled = ?, qr_image_url = ?, updated_at = NOW() WHERE id = 1`,
-      [collectionEnabled ? 1 : 0, qrImageUrl || null]
-    );
+    const enabledValue =
+      fundraisingEnabled !== undefined ? fundraisingEnabled : collectionEnabled;
 
-    const settings = await get(db, 'SELECT * FROM financial_settings WHERE id = 1');
+    if (enabledValue !== undefined) {
+      await upsertSetting(db, {
+        settingKey: 'fundraising_enabled',
+        settingValue: enabledValue ? 'true' : 'false',
+        dataType: 'boolean',
+        userId: req.user.id
+      });
+    }
 
-    await logActivity(req.user.id, 'UPDATE_SETTINGS', { collectionEnabled }, req, {
+    if (qrImageUrl !== undefined) {
+      await upsertSetting(db, {
+        settingKey: 'qr_code_path',
+        settingValue: qrImageUrl || '',
+        dataType: 'string',
+        userId: req.user.id
+      });
+    }
+
+    await logActivity(req.user.id, 'UPDATE_SETTINGS', req.body, req, {
       action_type: 'UPDATE',
       module_name: 'finance',
-      action_description: `Updated financial settings`,
-      reference_id: 1
+      action_description: 'Updated fundraising settings',
+      reference_id: null
     });
 
-    res.json({ success: true, message: 'Settings updated successfully', settings });
+    res.json({ success: true, message: 'Settings updated successfully' });
   } catch (error) {
     console.error('Error updating settings:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Toggle fundraising (Admin only)
+router.post('/settings/fundraising/toggle', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { enabled } = req.body || {};
+
+    if (enabled === undefined) {
+      return res.status(400).json({ success: false, message: 'enabled is required' });
+    }
+
+    const normalized = !!enabled;
+
+    await upsertSetting(db, {
+      settingKey: 'fundraising_enabled',
+      settingValue: normalized ? 'true' : 'false',
+      dataType: 'boolean',
+      userId: req.user.id
+    });
+
+    await logActivity(req.user.id, 'TOGGLE_FUNDRAISING', { enabled: normalized }, req, {
+      action_type: 'UPDATE',
+      module_name: 'finance',
+      action_description: `Fundraising ${normalized ? 'enabled' : 'disabled'}`
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Toggle fundraising error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Upload QR code (Admin only)
+router.post(
+  '/settings/qrcode/upload',
+  authenticateToken,
+  requireAdmin,
+  qrSettingsUpload.single('qr_code'),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No file uploaded' });
+      }
+
+      const db = getDatabase();
+      const qr_code_path = `/uploads/qr_codes/${req.file.filename}`;
+
+      // Optional: delete previously uploaded QR file if present and different
+      const existingPath = await getSettingValue(db, 'qr_code_path');
+      if (existingPath && typeof existingPath === 'string' && existingPath !== qr_code_path) {
+        try {
+          const actualPath = path.join(process.cwd(), 'public', existingPath.replace(/^\/uploads\//, ''));
+          if (fs.existsSync(actualPath)) fs.unlinkSync(actualPath);
+        } catch {
+          // Non-fatal; ignore cleanup errors
+        }
+      }
+
+      await upsertSetting(db, {
+        settingKey: 'qr_code_path',
+        settingValue: qr_code_path,
+        dataType: 'string',
+        userId: req.user.id
+      });
+
+      await logActivity(req.user.id, 'UPLOAD_QR_CODE', { qr_code_path }, req, {
+        action_type: 'UPDATE',
+        module_name: 'finance',
+        action_description: 'Uploaded fundraising QR code'
+      });
+
+      res.json({ success: true, qr_code_path });
+    } catch (error) {
+      console.error('QR upload error:', error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+);
+
+// Delete QR code (Admin only)
+router.post('/settings/qrcode/delete', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const db = getDatabase();
+    const existingPath = await getSettingValue(db, 'qr_code_path');
+
+    // Attempt delete file
+    if (existingPath && typeof existingPath === 'string' && existingPath.startsWith('/uploads/')) {
+      try {
+        const actualPath = path.join(process.cwd(), 'public', existingPath.replace(/^\/uploads\//, ''));
+        if (fs.existsSync(actualPath)) fs.unlinkSync(actualPath);
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+
+    await upsertSetting(db, {
+      settingKey: 'qr_code_path',
+      settingValue: '',
+      dataType: 'string',
+      userId: req.user.id
+    });
+
+    await logActivity(req.user.id, 'DELETE_QR_CODE', { existingPath }, req, {
+      action_type: 'UPDATE',
+      module_name: 'finance',
+      action_description: 'Deleted fundraising QR code'
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete QR error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Combined financial summary (used by EventFundsManagement UI)
+router.get('/summary/:eventId', authenticateToken, allowFinance, async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { eventId } = req.params;
+
+    const [totalFund, totalExpense] = await Promise.all([
+      get(
+        db,
+        `SELECT COALESCE(SUM(amount), 0) as total_fund_raised FROM fund_collections WHERE event_id = ?`,
+        [eventId]
+      ),
+      get(
+        db,
+        `SELECT COALESCE(SUM(grand_total), 0) as total_expenses FROM expenses WHERE event_id = ?`,
+        [eventId]
+      )
+    ]);
+
+    const total_fund_raised = totalFund?.total_fund_raised || 0;
+    const total_expenses = totalExpense?.total_expenses || 0;
+
+    res.json({
+      success: true,
+      summary: {
+        total_fund_raised,
+        total_expenses,
+        balance: total_fund_raised - total_expenses
+      }
+    });
+  } catch (error) {
+    console.error('Finance summary error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });

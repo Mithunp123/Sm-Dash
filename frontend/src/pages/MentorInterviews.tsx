@@ -28,13 +28,49 @@ const MentorInterviews = () => {
     const [showMarksDialog, setShowMarksDialog] = useState(false);
     const _todayStr = () => new Date().toISOString().split('T')[0];
     const _timeStr = () => { const n = new Date(); return `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`; };
+
+    const normalizeDateInput = (value?: string | null) => {
+        if (!value) return "";
+        // Special-case already valid format
+        if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+        // Convert dd-mm-yyyy to yyyy-mm-dd
+        const dmy = value.match(/^([0-3]?\d)[-/.]([0-1]?\d)[-/.](\d{4})$/);
+        if (dmy) {
+            const [_, d, m, y] = dmy;
+            return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+        }
+        const date = new Date(value);
+        if (!isNaN(date.getTime())) {
+            return date.toISOString().split('T')[0];
+        }
+        return "";
+    };
+
+    const normalizeTimeInput = (value?: string | null) => {
+        if (!value) return "";
+        if (/^[0-2]?\d:[0-5]\d$/.test(value)) return value;
+        if (/^[0-2]?\d:[0-5]\d:[0-5]\d$/.test(value)) return value.substring(0,5);
+        const date = new Date(`1970-01-01T${value}`);
+        if (!isNaN(date.getTime())) {
+            return `${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+        }
+        return "";
+    };
+
+    const formatCandidateDateDisplay = (value?: string | null) => {
+        if (!value) return "";
+        const normalized = normalizeDateInput(value);
+        if (!normalized) return value;
+        return new Date(normalized).toLocaleDateString('en-IN');
+    };
+
     const [marksData, setMarksData] = useState({
         marks: "",
         remarks: "",
         interview_date: _todayStr(),
         interview_time: _timeStr(),
         attendance: "present" as "present" | "absent",
-        decision: "" as "" | "selected" | "waitlisted" | "rejected"
+        decision: "" as "" | "selected" | "waitlisted" | "rejected" | "retake"
     });
     const [submitting, setSubmitting] = useState(false);
 
@@ -54,20 +90,50 @@ const MentorInterviews = () => {
             navigate("/login");
             return;
         }
-        // Admins always get in; others need is_interviewer flag
-        if (user.role !== 'admin' && !user.is_interviewer) {
-            toast.error("Access denied. You are not assigned as an interviewer.");
-            navigate("/home");
-            return;
-        }
-        loadMyCandidates();
+        // Admins always get in; others can access if they are assigned candidates or are marked as interviewer.
+        const validateInterviewer = async () => {
+            if (user.role === 'admin' || user.is_interviewer) {
+                loadMyCandidates();
+                return;
+            }
+
+            try {
+                const resp = await api.getMyInterviewCandidates();
+                if (resp.success && Array.isArray(resp.candidates)) {
+                    const active = resp.candidates.filter((c: any) => c.status !== 'completed');
+                    if (active.length > 0) {
+                        setCandidates(active);
+                        setLoading(false);
+                        return;
+                    }
+                }
+                toast.error("Access denied. You are not assigned as an interviewer or mentor for any pending candidate.");
+                navigate("/home");
+            } catch (err) {
+                console.error("Failed to validate interviewer access", err);
+                toast.error("Access denied. Interviewer access could not be validated.");
+                navigate("/home");
+            }
+        };
+        validateInterviewer();
 
         // Listen for auth changes (when user is removed/added as interviewer)
-        const unsubscribe = auth.onAuthChange(() => {
+        const unsubscribe = auth.onAuthChange(async () => {
             const currentUser = auth.getUser();
             if (currentUser && currentUser.role !== 'admin' && !currentUser.is_interviewer) {
-                toast.error("You have been removed from interviewers. Access denied.");
-                navigate("/home");
+                try {
+                    const resp = await api.getMyInterviewCandidates();
+                    const active = resp.success && Array.isArray(resp.candidates)
+                        ? resp.candidates.filter((c: any) => c.status !== 'completed')
+                        : [];
+                    if (!active.length) {
+                        toast.error("You have been removed from interviewers. Access denied.");
+                        navigate("/home");
+                    }
+                } catch {
+                    toast.error("You have been removed from interviewers. Access denied.");
+                    navigate("/home");
+                }
             }
         });
 
@@ -81,7 +147,8 @@ const MentorInterviews = () => {
             try {
                 const response = await api.getMyInterviewCandidates();
                 if (response.success) {
-                    setCandidates(response.candidates || []);
+                    const filtered = (response.candidates || []).filter((c: any) => c.status !== 'completed');
+                    setCandidates(filtered);
                     return;
                 }
             } catch (e: any) {
@@ -97,8 +164,8 @@ const MentorInterviews = () => {
                             const candidateInterviewer = (c.interviewer || '').toLowerCase().trim();
                             const userEmail = (user.email || '').toLowerCase().trim();
                             const userName = (user.name || '').toLowerCase().trim();
-                            const candidateMentorId = Number(c.mentor_id);
-                            return candidateMentorId === user.id || candidateEmail === userEmail || candidateInterviewer === userName;
+                            const candidateInterviewerId = Number(c.interviewer_id);
+                            return (candidateInterviewerId === user.id || candidateEmail === userEmail || candidateInterviewer === userName) && c.status !== 'completed';
                         });
                         setCandidates(myCandidates);
                     } else {
@@ -134,10 +201,10 @@ const MentorInterviews = () => {
         setMarksData({
             marks: candidate.marks?.toString() || "",
             remarks: candidate.remarks || "",
-            interview_date: candidate.interview_date || today,
-            interview_time: candidate.interview_time || currentTime,
+            interview_date: normalizeDateInput(candidate.interview_date || today) || today,
+            interview_time: normalizeTimeInput(candidate.interview_time || currentTime) || currentTime,
             attendance: candidate.attendance || "present",
-            decision: candidate.decision || ""
+            decision: candidate.attendance === "absent" ? "retake" : (candidate.decision || "")
         });
         setShowMarksDialog(true);
     };
@@ -154,7 +221,7 @@ const MentorInterviews = () => {
                 return;
             }
 
-            if (!marksData.decision) {
+            if (!marksData.decision || marksData.decision === "retake") {
                 toast.error("Please select an outcome (Selected/Waitlisted/Rejected)");
                 return;
             }
@@ -164,19 +231,26 @@ const MentorInterviews = () => {
             setSubmitting(true);
 
             // Update date/time/attendance/decision
-            await api.updateCandidate(selectedCandidate.id, {
+            const updateObj: any = {
                 interview_date: marksData.interview_date || null,
                 interview_time: marksData.interview_time || null,
                 attendance: marksData.attendance,
-                decision: marksData.decision || null,
-            });
+            };
+            // For absent, store decision consistently as 'retake'
+            if (marksData.attendance === 'absent') {
+                updateObj.decision = 'retake';
+            } else {
+                updateObj.decision = marksData.decision || null;
+            }
+
+            await api.updateCandidate(selectedCandidate.id, updateObj);
 
             // Submit marks — backend sets status = 'completed'
             const marksNum = marksData.attendance === "present" && marksData.marks ? parseFloat(marksData.marks) : undefined;
             const response = await api.submitInterviewMarks(selectedCandidate.id, {
                 marks: marksNum,
-                remarks: marksData.remarks || "",
-                decision: marksData.decision || undefined
+                remarks: marksData.attendance === 'absent' ? '' : (marksData.remarks || ""),
+                decision: marksData.attendance === 'absent' ? 'retake' : (marksData.decision || undefined)
             });
 
             if (response.success) {
@@ -264,8 +338,23 @@ const MentorInterviews = () => {
     };
 
     // ── Helpers ───────────────────────────────────────────────
-    const getStatusBadge = (status: string) => {
-        switch (status) {
+    const getStatusBadge = (candidate: any) => {
+        if (candidate.status === 'completed' && candidate.decision) {
+            if (candidate.decision === 'selected') {
+                return <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white">Selected</Badge>;
+            }
+            if (candidate.decision === 'waitlisted') {
+                return <Badge className="bg-amber-500 hover:bg-amber-600 text-white">Waitlisted</Badge>;
+            }
+            if (candidate.decision === 'rejected') {
+                return <Badge className="bg-rose-500 hover:bg-rose-600 text-white">Rejected</Badge>;
+            }
+            if (candidate.decision === 'retake') {
+                return <Badge className="bg-orange-500 hover:bg-orange-600 text-white">Retake</Badge>;
+            }
+        }
+
+        switch (candidate.status) {
             case 'completed':
                 return <Badge className="bg-green-500 hover:bg-green-600 text-white">Completed</Badge>;
             case 'pending':
@@ -273,7 +362,7 @@ const MentorInterviews = () => {
             case 'assigned':
                 return <Badge className="bg-blue-500 hover:bg-blue-600 text-white">Assigned</Badge>;
             default:
-                return <Badge className="bg-slate-500 hover:bg-slate-600 text-white">{status}</Badge>;
+                return <Badge className="bg-slate-500 hover:bg-slate-600 text-white">{candidate.status}</Badge>;
         }
     };
 
@@ -495,9 +584,9 @@ const MentorInterviews = () => {
                                                     {c.interview_date ? (
                                                         <div className="flex items-center gap-1 text-xs font-semibold text-foreground">
                                                             <CalendarDays className="w-3 h-3 text-primary" />
-                                                            {new Date(c.interview_date).toLocaleDateString('en-IN')}
+                                                            {formatCandidateDateDisplay(c.interview_date)}
                                                             {c.interview_time && (
-                                                                <span className="text-muted-foreground ml-1">{c.interview_time}</span>
+                                                                <span className="text-muted-foreground ml-1">{normalizeTimeInput(c.interview_time)}</span>
                                                             )}
                                                         </div>
                                                     ) : (
@@ -527,16 +616,31 @@ const MentorInterviews = () => {
                                                 </TableCell>
 
                                                 {/* Status */}
-                                                <TableCell>{getStatusBadge(c.status || 'assigned')}</TableCell>
+                                                <TableCell>{getStatusBadge(c)}</TableCell>
 
                                                 {/* Marks */}
                                                 <TableCell>
-                                                    {c.status === 'completed' && c.marks !== null ? (
-                                                        <div className="flex items-center gap-1">
-                                                            <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                                                            <span className="font-black text-sm text-foreground">{c.marks}</span>
-                                                            <span className="text-[10px] text-muted-foreground font-bold">/ 10</span>
-                                                        </div>
+                                                    {c.status === 'completed' ? (
+                                                        c.decision === 'retake' ? (
+                                                            <span className="text-xs font-semibold text-orange-500">Retake (no marks)</span>
+                                                        ) : c.marks !== null ? (
+                                                            <div className="space-y-1">
+                                                                <div className="flex items-center gap-1">
+                                                                    <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                                                                    <span className="font-black text-sm text-foreground">{c.marks}</span>
+                                                                    <span className="text-[10px] text-muted-foreground font-bold">/ 10</span>
+                                                                </div>
+                                                                {c.decision && (
+                                                                    <Badge
+                                                                        className={`text-xs font-semibold ${c.decision === 'selected' ? 'bg-emerald-500 text-white' : c.decision === 'waitlisted' ? 'bg-amber-500 text-white' : 'bg-rose-500 text-white'}`}
+                                                                    >
+                                                                        {c.decision === 'selected' ? 'Selected' : c.decision === 'waitlisted' ? 'Waitlisted' : 'Rejected'}
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-[10px] text-muted-foreground italic">Not graded</span>
+                                                        )
                                                     ) : (
                                                         <span className="text-[10px] text-muted-foreground italic">Not graded</span>
                                                     )}
@@ -633,7 +737,7 @@ const MentorInterviews = () => {
                                     <div className="flex gap-3">
                                         <button
                                             type="button"
-                                            onClick={() => setMarksData({ ...marksData, attendance: "present" })}
+                                            onClick={() => setMarksData({ ...marksData, attendance: "present", decision: marksData.decision === "retake" ? "" : marksData.decision })}
                                             className={`flex-1 flex items-center justify-center gap-2 h-10 rounded-lg font-bold text-sm border-2 transition-all duration-200 ${marksData.attendance === "present"
                                                 ? "bg-green-500/15 border-green-500 text-green-600"
                                                 : "bg-transparent border-border text-muted-foreground hover:border-green-400"
@@ -643,7 +747,7 @@ const MentorInterviews = () => {
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => setMarksData({ ...marksData, attendance: "absent" })}
+                                            onClick={() => setMarksData({ ...marksData, attendance: "absent", decision: "retake", marks: "", remarks: "" })}
                                             className={`flex-1 flex items-center justify-center gap-2 h-10 rounded-lg font-bold text-sm border-2 transition-all duration-200 ${marksData.attendance === "absent"
                                                 ? "bg-red-500/15 border-red-500 text-red-600"
                                                 : "bg-transparent border-border text-muted-foreground hover:border-red-400"
@@ -670,12 +774,15 @@ const MentorInterviews = () => {
                                                 onChange={(e) => {
                                                     const val = e.target.value;
                                                     const num = parseFloat(val);
-                                                    // Auto-set decision based on marks
-                                                    let autoDecision = marksData.decision;
-                                                    if (val === "") autoDecision = "";
-                                                    else if (!isNaN(num) && num <= 5) autoDecision = "rejected";
-                                                    else if (!isNaN(num) && num > 5 && marksData.decision === "rejected") autoDecision = "";
-                                                    setMarksData({ ...marksData, marks: val, decision: autoDecision as any });
+                                                    let autoDecision: "" | "selected" | "waitlisted" | "rejected" = "";
+                                                    if (val === "") {
+                                                        autoDecision = "";
+                                                    } else if (!isNaN(num)) {
+                                                        if (num <= 5) autoDecision = "rejected";
+                                                        else if (num <= 7) autoDecision = "waitlisted";
+                                                        else autoDecision = "selected";
+                                                    }
+                                                    setMarksData({ ...marksData, marks: val, decision: autoDecision });
                                                 }}
                                                 placeholder="e.g., 7.5"
                                                 required
@@ -685,45 +792,50 @@ const MentorInterviews = () => {
                                         </div>
 
                                         {/* Decision Category */}
-                                        {marksData.marks !== "" && !isNaN(parseFloat(marksData.marks)) && (
-                                            parseFloat(marksData.marks) <= 5 ? (
-                                                // Auto-rejected when marks <= 5
-                                                <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">
-                                                    <span className="text-lg">❌</span>
+                                        {marksData.marks !== "" && !isNaN(parseFloat(marksData.marks)) && (() => {
+                                            const marksNum = parseFloat(marksData.marks);
+                                            const category = marksNum <= 5 ? 'Rejected' : marksNum <= 7 ? 'Waitlisted' : 'Selected';
+                                            const categoryColor = marksNum <= 5 ? 'red' : marksNum <= 7 ? 'yellow' : 'green';
+                                            const categoryIcon = marksNum <= 5 ? '❌' : marksNum <= 7 ? '⏳' : '✅';
+
+                                            return (
+                                                <div className={`flex items-center gap-3 border rounded-lg px-4 py-3 ${categoryColor === 'red' ? 'bg-red-500/10 border-red-500/30' : categoryColor === 'yellow' ? 'bg-yellow-500/10 border-yellow-500/30' : 'bg-green-500/10 border-green-500/30'}`}>
+                                                    <span className="text-lg">{categoryIcon}</span>
                                                     <div>
-                                                        <p className="text-sm font-bold text-red-500">Auto Rejected</p>
-                                                        <p className="text-xs text-muted-foreground">Marks ≤ 5 — automatically categorised as Rejected</p>
+                                                        <p className={`text-sm font-bold ${categoryColor === 'red' ? 'text-red-500' : categoryColor === 'yellow' ? 'text-amber-600' : 'text-green-600'}`}>
+                                                            Auto {category}
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground">Default suggestion based on marks: {marksNum}.</p>
                                                     </div>
                                                 </div>
-                                            ) : (
-                                                // Manual picker when marks > 5
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="decision">Select Category *</Label>
-                                                    <div className="grid grid-cols-3 gap-2">
-                                                        {([
-                                                            { value: "selected", label: "✅ Selected", color: "green" },
-                                                            { value: "waitlisted", label: "⏳ Waitlisted", color: "yellow" },
-                                                            { value: "rejected", label: "❌ Rejected", color: "red" }
-                                                        ] as const).map(opt => (
-                                                            <button
-                                                                key={opt.value}
-                                                                type="button"
-                                                                onClick={() => setMarksData({ ...marksData, decision: opt.value })}
-                                                                className={`h-10 rounded-lg font-bold text-xs border-2 transition-all duration-200 ${marksData.decision === opt.value
-                                                                    ? opt.color === 'green' ? 'bg-green-500/20 border-green-500 text-green-600'
-                                                                        : opt.color === 'yellow' ? 'bg-yellow-500/20 border-yellow-500 text-yellow-600'
-                                                                            : 'bg-red-500/20 border-red-500 text-red-600'
-                                                                    : 'bg-transparent border-border text-muted-foreground hover:border-primary/40'
-                                                                    }`}
-                                                            >
-                                                                {opt.label}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                    <p className="text-xs text-muted-foreground">Marks &gt; 5 — select the outcome for this candidate</p>
-                                                </div>
-                                            )
-                                        )}
+                                            );
+                                        })()}
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="decision">Select Category *</Label>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {([
+                                                    { value: "selected", label: "✅ Selected", color: "green" },
+                                                    { value: "waitlisted", label: "⏳ Waitlisted", color: "yellow" },
+                                                    { value: "rejected", label: "❌ Rejected", color: "red" }
+                                                ] as const).map(opt => (
+                                                    <button
+                                                        key={opt.value}
+                                                        type="button"
+                                                        onClick={() => setMarksData({ ...marksData, decision: opt.value })}
+                                                        className={`h-10 rounded-lg font-bold text-xs border-2 transition-all duration-200 ${marksData.decision === opt.value
+                                                            ? opt.color === 'green' ? 'bg-green-500/20 border-green-500 text-green-600'
+                                                                : opt.color === 'yellow' ? 'bg-yellow-500/20 border-yellow-500 text-yellow-600'
+                                                                    : 'bg-red-500/20 border-red-500 text-red-600'
+                                                            : 'bg-transparent border-border text-muted-foreground hover:border-primary/40'
+                                                            }`}
+                                                    >
+                                                        {opt.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">Messages: 0-5 → rejected; 5+ to 7 → waitlisted; 7+ → selected (can override manually).</p>
+                                        </div>
 
                                         {/* Remarks */}
                                         <div className="space-y-2">

@@ -68,15 +68,19 @@ const run = (db, query, params = []) => {
   });
 };
 
-// Get all users (Admin only)
-router.get('/', authenticateToken, requireRole('admin'), async (req, res) => {
+// Get all users (Admin and Office Bearer)
+router.get('/', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
   try {
     const db = getDatabase();
     const users = await all(db, `
       SELECT u.id, u.name, u.email, u.role, u.is_interviewer, u.created_at,
-             p.dept, p.year, p.phone
+             COALESCE(p.dept, sp.dept, obp.dept) as dept, 
+             COALESCE(p.year, sp.year, obp.year) as year, 
+             COALESCE(p.phone, sp.phone, obp.phone) as phone
       FROM users u
       LEFT JOIN profiles p ON u.id = p.user_id
+      LEFT JOIN student_profiles sp ON u.id = sp.user_id AND u.role = 'student'
+      LEFT JOIN office_bearer_profiles obp ON u.id = obp.user_id AND u.role = 'office_bearer'
       ORDER BY u.created_at DESC
     `);
     res.json({ success: true, users });

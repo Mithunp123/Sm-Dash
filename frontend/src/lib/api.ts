@@ -116,6 +116,20 @@ class ApiClient {
     return this.request<T>(endpoint, { method: 'GET' });
   }
 
+  // Generic request helper (used by some pages)
+  async call<T = any>(method: string, endpoint: string, data?: any): Promise<ApiResponse<T>> {
+    const options: RequestInit = { method };
+    if (data !== undefined && method.toUpperCase() !== 'GET' && method.toUpperCase() !== 'HEAD') {
+      options.body = JSON.stringify(data);
+    }
+    return this.request<T>(endpoint, options);
+  }
+
+  // Same as `call`, but for multipart/form-data (e.g. image uploads)
+  async callFormData<T = any>(method: string, endpoint: string, formData: FormData): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method, body: formData });
+  }
+
   // Generic POST method
   async post<T = any>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
@@ -244,9 +258,9 @@ class ApiClient {
     return { success: true, users: [] };
   }
 
-  // Get only users flagged as interviewers (for mentor assignment dropdown)
+  // Get only users flagged as interviewers (for interviewer assignment dropdown)
   async getInterviewers() {
-    return this.request('/users/interviewers');
+    return this.request('/interviews/interviewers');
   }
 
   // Toggle the is_interviewer flag for a user

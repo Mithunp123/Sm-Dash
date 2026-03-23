@@ -21,6 +21,9 @@ import { api } from "@/lib/api";
 import { toast } from "sonner";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { Dialog as UIDialog, DialogContent as UIDialogContent, DialogHeader as UIDialogHeader, DialogTitle as UIDialogTitle } from "@/components/ui/dialog";
+import { BulkUploadModal } from "@/components/BulkUploadModal";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 // Common departments list
 const DEPARTMENTS = [
@@ -58,6 +61,7 @@ const ManageStudentDatabase = () => {
   const [filterRole, setFilterRole] = useState("all"); // Filter by role
   const [filterDept, setFilterDept] = useState("all"); // Filter by department
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [profileData, setProfileData] = useState({
@@ -328,6 +332,42 @@ const ManageStudentDatabase = () => {
     }
   };
 
+  const handleExportPDF = () => {
+    try {
+      const doc = new jsPDF('landscape');
+      doc.text("User Database", 14, 15);
+      
+      const tableColumn = ["S.No", "Name", "Reg No", "Role", "Dept", "Year", "Phone", "Blood", "Gender", "DOB", "Accommodation"];
+      const tableRows = filtered.map((u, i) => [
+        i + 1,
+        u.name || '-',
+        u.profile?.register_no || '-',
+        roleLabels[u.role] || u.role,
+        u.profile?.dept || '-',
+        u.profile?.year || '-',
+        u.profile?.phone || '-',
+        u.profile?.blood_group || '-',
+        u.profile?.gender || '-',
+        u.profile?.dob || '-',
+        u.profile?.hosteller_dayscholar || '-'
+      ]);
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 20,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [66, 139, 202] }
+      });
+      
+      doc.save(`user_database_${new Date().toISOString().split('T')[0]}.pdf`);
+      toast.success("PDF file exported successfully");
+    } catch (error) {
+      console.error("Error exporting to PDF:", error);
+      toast.error("Failed to export PDF format");
+    }
+  };
+
   const filtered = allUsers.filter(u => {
     const q = searchQuery.toLowerCase();
     const matchesSearch = u.name.toLowerCase().includes(q) ||
@@ -364,7 +404,7 @@ const ManageStudentDatabase = () => {
               {/* Page Header */}
               <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                 <div>
-                  <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground">Student Database</h1>
+                  <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-foreground">Profile Management</h1>
                   <p className="text-[10px] sm:text-xs md:text-sm font-medium text-muted-foreground opacity-70 border-l-4 border-primary/30 pl-3 mt-1">Unified records for the entire community</p>
                 </div>
                 {!canEdit && (
@@ -416,13 +456,20 @@ const ManageStudentDatabase = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="flex gap-2">
-                      <Button onClick={() => loadData()} variant="outline" className="flex-1 h-12 rounded-2xl font-bold text-[10px] uppercase tracking-widest border-2">
+                    <div className="flex gap-2 col-span-1 md:col-span-4 justify-end mt-2 md:mt-0">
+                      {canEdit && (
+                        <Button onClick={() => setShowBulkUpload(true)} className="flex-1 max-w-[140px] h-12 rounded-2xl font-bold text-[10px] uppercase tracking-widest gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20">
+                          Bulk Upload
+                        </Button>
+                      )}
+                      <Button onClick={() => loadData()} variant="outline" className="flex-1 max-w-[120px] h-12 rounded-2xl font-bold text-[10px] uppercase tracking-widest border-2">
                         Refresh
                       </Button>
-                      <Button onClick={() => handleExportExcel()} className="flex-1 h-12 rounded-2xl font-bold text-[10px] uppercase tracking-widest gap-2 shadow-lg shadow-primary/20">
-                        <Download className="w-4 h-4" />
-                        Export
+                      <Button onClick={() => handleExportExcel()} className="flex-1 max-w-[120px] h-12 rounded-2xl font-bold text-[10px] uppercase tracking-widest gap-2 bg-[#107c41] hover:bg-[#185c37] text-white shadow-lg shadow-emerald-500/20">
+                        <Download className="w-4 h-4" /> Excel
+                      </Button>
+                      <Button onClick={() => handleExportPDF()} className="flex-1 max-w-[120px] h-12 rounded-2xl font-bold text-[10px] uppercase tracking-widest gap-2 bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-500/20">
+                        <Download className="w-4 h-4" /> PDF
                       </Button>
                     </div>
                   </div>
@@ -505,8 +552,16 @@ const ManageStudentDatabase = () => {
                                   <p className="text-xs font-bold text-foreground overflow-hidden text-ellipsis whitespace-nowrap">{u.profile?.register_no || "-"}</p>
                                 </div>
                                 <div className="bg-muted/40 p-3 rounded-2xl border border-border/20">
-                                  <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1 opacity-60">Year</p>
-                                  <p className="text-xs font-bold text-foreground">{u.profile?.year || "-"}</p>
+                                  <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1 opacity-60">Academic</p>
+                                  <p className="text-xs font-bold text-foreground">{u.profile?.year || "-"} | {u.profile?.academic_year || "-"}</p>
+                                </div>
+                                <div className="bg-muted/40 p-3 rounded-2xl border border-border/20">
+                                  <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1 opacity-60">DOB & Blood</p>
+                                  <p className="text-xs font-bold text-foreground">{u.profile?.dob || "-"} | {u.profile?.blood_group || "-"}</p>
+                                </div>
+                                <div className="bg-muted/40 p-3 rounded-2xl border border-border/20">
+                                  <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1 opacity-60">Accommodation</p>
+                                  <p className="text-xs font-bold text-foreground truncate">{u.profile?.hosteller_dayscholar || "-"}</p>
                                 </div>
                               </div>
 
@@ -547,10 +602,12 @@ const ManageStudentDatabase = () => {
                         <Table>
                           <TableHeader className="bg-muted/50">
                             <TableRow>
-                              <TableHead className="w-[60px]">S.No</TableHead>
+                              <TableHead className="w-[50px]">S.No</TableHead>
                               <TableHead>User Information</TableHead>
                               <TableHead>Academic Info</TableHead>
-                              <TableHead>Contact</TableHead>
+                              <TableHead>Contact Info</TableHead>
+                              <TableHead>Personal (DOB/Blood/Gen)</TableHead>
+                              <TableHead>Location</TableHead>
                               <TableHead>Identity</TableHead>
                               {canEdit && <TableHead className="text-right">Actions</TableHead>}
                             </TableRow>
@@ -580,6 +637,18 @@ const ManageStudentDatabase = () => {
                                   <div className="flex flex-col">
                                     <span className="text-sm font-medium">{u.profile?.phone || '-'}</span>
                                     <span className="text-xs text-muted-foreground">F: {u.profile?.father_number || '-'}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="py-4">
+                                  <div className="flex flex-col">
+                                    <span className="text-sm font-medium">{u.profile?.dob || '-'}</span>
+                                    <span className="text-xs text-muted-foreground">{u.profile?.blood_group || '-'} | {u.profile?.gender || '-'}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="py-4">
+                                  <div className="flex flex-col max-w-[150px]">
+                                    <span className="text-sm font-medium truncate">{u.profile?.hosteller_dayscholar || '-'}</span>
+                                    <span className="text-xs text-muted-foreground truncate" title={u.profile?.address}>{u.profile?.address || '-'}</span>
                                   </div>
                                 </TableCell>
                                 <TableCell className="py-4">
@@ -757,6 +826,14 @@ const ManageStudentDatabase = () => {
         </DialogContent>
       </Dialog>
 
+      <BulkUploadModal
+        isOpen={showBulkUpload}
+        onClose={() => setShowBulkUpload(false)}
+        onSuccess={() => {
+          setShowBulkUpload(false);
+          loadData();
+        }}
+      />
 
     </div>
   );

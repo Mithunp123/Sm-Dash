@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import DeveloperCredit from "@/components/DeveloperCredit";
-import { ArrowLeft, Save, UserCircle, Camera, Settings, X } from "lucide-react";
+import { ArrowLeft, Save, UserCircle, Camera, Settings, X, Lock, Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { BackButton } from "@/components/BackButton";
 import { auth } from "@/lib/auth";
@@ -42,6 +42,17 @@ const StudentProfile = () => {
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'profile' | 'account'>('profile');
+  
+  // Account settings state
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
 
   // Calculate age from DOB
   const age = useMemo(() => {
@@ -290,6 +301,46 @@ const StudentProfile = () => {
     }
   };
 
+  const handleChangePassword = async (e: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error('All password fields are required');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error('New passwords do not match');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast.error('New password must be at least 6 characters');
+      return;
+    }
+
+    try {
+      setChangingPassword(true);
+      const res = await api.changePassword(currentPassword, newPassword);
+
+      if (res.success) {
+        toast.success('Password changed successfully!');
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setShowChangePassword(false);
+      } else {
+        toast.error(res.message || 'Failed to change password');
+      }
+    } catch (err: any) {
+      console.error('Password change error:', err);
+      toast.error('Failed to change password: ' + (err.message || 'Unknown error'));
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col bg-transparent">
       <DeveloperCredit />
@@ -302,10 +353,39 @@ const StudentProfile = () => {
           <div className="mb-6">
             <h1 className="page-title uppercase font-black">My Profile</h1>
             <p className="page-subtitle uppercase tracking-widest mt-1 text-muted-foreground">
-              Manage your personal and academic details
+              Manage your personal and account details
             </p>
           </div>
 
+          {/* Tab Navigation */}
+          <div className="mb-6 flex gap-2 border-b border-border">
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`px-4 py-3 font-medium transition-all duration-200 border-b-2 ${
+                activeTab === 'profile'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <UserCircle className="w-4 h-4 inline mr-2" />
+              Profile
+            </button>
+            <button
+              onClick={() => setActiveTab('account')}
+              className={`px-4 py-3 font-medium transition-all duration-200 border-b-2 ${
+                activeTab === 'account'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Lock className="w-4 h-4 inline mr-2" />
+              Account Settings
+            </button>
+          </div>
+
+          {/* Profile Tab Content */}
+          {activeTab === 'profile' && (
+          <>
           {/* Hero Header Section with Profile Picture */}
           <div className="mb-6 bg-card/60 dark:bg-slate-900/60 backdrop-blur-xl p-6 shadow-2xl relative overflow-hidden">
             <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
@@ -673,6 +753,158 @@ const StudentProfile = () => {
               )}
             </CardContent>
           </Card>
+          </>
+          )}
+
+          {/* Account Settings Tab Content */}
+          {activeTab === 'account' && (
+          <Card className="border-none bg-card/60 dark:bg-slate-900/60 backdrop-blur-xl shadow-2xl">
+            <CardHeader className="bg-muted/30 border-b border-border">
+              <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+                <Lock className="w-5 h-5" />
+                Account Security
+              </CardTitle>
+              <CardDescription className="text-sm mt-1 text-muted-foreground">
+                Manage your account security and password settings
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-6">
+                {/* Change Password Section */}
+                <div className="border border-border rounded-lg p-6 bg-card/40">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground mb-2">Change Password</h3>
+                      <p className="text-sm text-muted-foreground">Update your account password to keep your account secure</p>
+                    </div>
+                    {!showChangePassword && (
+                      <Button
+                        onClick={() => setShowChangePassword(true)}
+                        className="gap-2"
+                      >
+                        <Lock className="w-4 h-4" />
+                        Change Password
+                      </Button>
+                    )}
+                  </div>
+
+                  {showChangePassword && (
+                    <div className="mt-6 space-y-4 pt-4 border-t border-border">
+                      {/* Current Password */}
+                      <div className="space-y-2">
+                        <Label className="font-medium text-sm text-foreground">Current Password</Label>
+                        <div className="relative">
+                          <Input
+                            type={showCurrentPassword ? "text" : "password"}
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            placeholder="Enter current password"
+                            className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all pr-10"
+                            disabled={changingPassword}
+                          />
+                          <button
+                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            type="button"
+                          >
+                            {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* New Password */}
+                      <div className="space-y-2">
+                        <Label className="font-medium text-sm text-foreground">New Password</Label>
+                        <div className="relative">
+                          <Input
+                            type={showNewPassword ? "text" : "password"}
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder="Enter new password (min 6 characters)"
+                            className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all pr-10"
+                            disabled={changingPassword}
+                          />
+                          <button
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            type="button"
+                          >
+                            {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Confirm Password */}
+                      <div className="space-y-2">
+                        <Label className="font-medium text-sm text-foreground">Confirm Password</Label>
+                        <div className="relative">
+                          <Input
+                            type={showConfirmPassword ? "text" : "password"}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder="Confirm new password"
+                            className="border-2 border-border hover:border-primary/50 focus:border-primary transition-all pr-10"
+                            disabled={changingPassword}
+                          />
+                          <button
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            type="button"
+                          >
+                            {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-3 justify-end pt-4 border-t border-border">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setShowChangePassword(false);
+                            setCurrentPassword("");
+                            setNewPassword("");
+                            setConfirmPassword("");
+                          }}
+                          disabled={changingPassword}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={handleChangePassword}
+                          disabled={changingPassword}
+                          className="gap-2 bg-primary"
+                        >
+                          <Lock className="w-4 h-4" />
+                          {changingPassword ? 'Changing...' : 'Change Password'}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Account Information */}
+                <div className="border border-border rounded-lg p-6 bg-card/40">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">Account Information</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center py-2 border-b border-border/50">
+                      <span className="text-sm text-muted-foreground">Email</span>
+                      <span className="font-medium text-foreground">{auth.getUser()?.email || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-border/50">
+                      <span className="text-sm text-muted-foreground">Account Created</span>
+                      <span className="font-medium text-foreground">{auth.getUser()?.createdAt ? new Date(auth.getUser()?.createdAt).toLocaleDateString() : 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm text-muted-foreground">Role</span>
+                      <span className="font-medium text-primary capitalize">{auth.getUser()?.role || 'N/A'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          )}
         </div>
       </main>
 
