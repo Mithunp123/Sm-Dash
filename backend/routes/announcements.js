@@ -129,4 +129,21 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     }
 });
 
+// DELETE all announcements (Hard delete)
+router.delete('/clear-all', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
+    const db = getDatabase();
+    try {
+        await run(db, 'DELETE FROM announcements');
+        await logActivity(req.user.id, 'CLEAR_ALL_ANNOUNCEMENTS', {}, req, {
+            action_type: 'DELETE',
+            module_name: 'announcements',
+            action_description: 'Cleared all announcements',
+            reference_id: 'all'
+        });
+        res.json({ success: true, message: 'All announcements cleared' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 export default router;

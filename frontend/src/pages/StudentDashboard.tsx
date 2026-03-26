@@ -325,35 +325,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
               {/* Right Side: Sidebar info */}
               <div className="space-y-6">
 
-                {/* Upcoming Special Events / Holidays */}
-                {events.filter(e => e.is_special_day || e.type === 'holiday' || e.type === 'important').length > 0 && (
-                  <Card className="rounded-3xl shadow-sm border-none p-6 bg-amber-50/50 dark:bg-amber-900/10 border border-amber-200/20">
-                    <h4 className="font-black text-xs uppercase tracking-[0.2em] text-amber-600 dark:text-amber-400 mb-4 flex items-center gap-2">
-                      <Star className="w-3 h-3 fill-amber-500" />
-                      Special Highlights
-                    </h4>
-                    <div className="space-y-3">
-                      {events
-                        .filter(e => {
-                          const ed = new Date(e.date);
-                          const today = new Date();
-                          today.setHours(0, 0, 0, 0);
-                          return ed >= today;
-                        })
-                        .slice(0, 3)
-                        .map((e, idx) => (
-                          <div key={idx} className="flex flex-col gap-1 p-3 rounded-xl bg-white/50 dark:bg-black/20 border border-amber-100/50 dark:border-amber-900/30">
-                            <span className="text-xs font-black text-foreground">{e.title}</span>
-                            <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase">
-                              <CalendarIcon className="w-3 h-3 text-amber-500" />
-                              {new Date(e.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                              {e.is_special_day && <Badge className="ml-auto bg-amber-100 text-amber-700 hover:bg-amber-100 border-none text-xs h-4">Holiday</Badge>}
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  </Card>
-                )}
+              {/* Upcoming Special Events / Holidays removed (matches screenshot request) */}
 
               </div>
             </div>

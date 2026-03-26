@@ -20,6 +20,7 @@ const EventFinanceSettings = () => {
   // State
   const [loading, setLoading] = useState(true);
   const [fundraisingEnabled, setFundraisingEnabled] = useState(false);
+  const [fundEntryEnabled, setFundEntryEnabled] = useState(true);
   const [qrCodePath, setQrCodePath] = useState('');
   const [qrFile, setQrFile] = useState(null);
   const [showQrUpload, setShowQrUpload] = useState(false);
@@ -44,6 +45,7 @@ const EventFinanceSettings = () => {
       if (result.success) {
         setFundraisingEnabled(result.fundraising_enabled);
         setQrCodePath(result.qr_code_path);
+        setFundEntryEnabled(result.fund_entry_enabled ?? true);
       }
     } catch (err) {
       toast.error('Failed to load settings');
@@ -64,6 +66,28 @@ const EventFinanceSettings = () => {
       if (result.success) {
         setFundraisingEnabled(enabled);
         toast.success(`Fund raising ${enabled ? 'enabled' : 'disabled'}`);
+      } else {
+        toast.error(result.message || 'Failed to update setting');
+      }
+    } catch (err) {
+      toast.error('Error updating setting');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Toggle fund entry (controls whether students can Scan & Pay)
+  const handleToggleFundEntry = async (enabled) => {
+    try {
+      setLoading(true);
+      const result = await api.call('POST', '/finance/settings/fund-entry/toggle', {
+        enabled
+      });
+
+      if (result.success) {
+        setFundEntryEnabled(enabled);
+        toast.success(`Fund entry ${enabled ? 'enabled' : 'disabled'}`);
       } else {
         toast.error(result.message || 'Failed to update setting');
       }
@@ -175,6 +199,44 @@ const EventFinanceSettings = () => {
                 <p className="text-sm text-blue-800 dark:text-blue-200">
                   <strong>Status:</strong> Fund raising is currently{' '}
                   <strong>{fundraisingEnabled ? '✓ Enabled' : '✗ Disabled'}</strong>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Fund Entry Toggle */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle>Fund Entry Status</CardTitle>
+              <CardDescription>
+                Enable or disable Scan & Pay entries for students
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                <div>
+                  <h3 className="font-semibold">Enable Fund Entry</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    When disabled, students cannot add collection entries via Scan & Pay.
+                  </p>
+                </div>
+                <Switch
+                  checked={fundEntryEnabled}
+                  onCheckedChange={(checked) => handleToggleFundEntry(checked)}
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-900 rounded-lg">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  <strong>Status:</strong> Fund entry is currently{" "}
+                  <strong>{fundEntryEnabled ? "✓ Enabled" : "✗ Disabled"}</strong>
                 </p>
               </div>
             </CardContent>

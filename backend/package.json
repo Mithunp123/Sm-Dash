@@ -8,7 +8,8 @@
     "start": "node server.js",
     "predev": "node scripts/free-port.js",
     "dev": "nodemon server.js",
-    "init-db": "node scripts/init-db.js"
+    "init-db": "node scripts/init-db.js",
+    "fix-schema": "node scripts/fix-bill-folders-schema.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

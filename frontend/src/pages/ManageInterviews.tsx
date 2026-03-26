@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,7 +46,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import * as XLSX from 'xlsx';
 import { cn } from "@/lib/utils";
-import InterviewEmailPanel from "@/components/InterviewEmailPanel";
+import InterviewEmailPanelManual from "@/components/InterviewEmailPanelManual";
 
 const ManageInterviews = () => {
     const navigate = useNavigate();
@@ -353,7 +353,7 @@ const ManageInterviews = () => {
                 });
             }
 
-            toast.success(`âœ… ${selectedCandidateIds.length} candidates assigned successfully`);
+            toast.success(`Assigned ${selectedCandidateIds.length} candidates successfully`);
             setShowBulkAssignDialog(false);
             setSelectedCandidateIds([]);
             setBulkAssignFormData({ interviewer_id: "", interviewer_name: "" });
@@ -726,7 +726,7 @@ const ManageInterviews = () => {
                                                             )}
                                                         >
                                                             {u.is_interviewer
-                                                                ? <><Mic className="w-3 h-3 mr-1" />Interviewer âœ“</>
+                                                                ? <><Mic className="w-3 h-3 mr-1" />Interviewer</>
                                                                 : <><Plus className="w-3 h-3 mr-1" />Add</>}
                                                         </Button>
                                                     </div>
@@ -903,7 +903,7 @@ const ManageInterviews = () => {
                                                         <span className="font-black text-sm tracking-tight text-foreground group-hover:text-primary transition-colors">{c.name}</span>
                                                         <span className="text-xs font-bold text-muted-foreground dark:text-slate-300 uppercase tracking-widest items-center flex gap-1.5 mt-0.5">
                                                             <GraduationCap className="w-3 h-3" />
-                                                            {c.dept || '-'} â€¢ {c.year} Year
+                                                            {c.dept || '-'} - {c.year} Year
                                                         </span>
                                                     </div>
                                                 </TableCell>
@@ -1028,7 +1028,7 @@ const ManageInterviews = () => {
 
                 {/* Email Management Tab */}
                 {activeTab === 'emails' && (
-                    <InterviewEmailPanel />
+                    <InterviewEmailPanelManual />
                 )}
 
                 {/* Add Candidate Dialog */}
@@ -1215,7 +1215,7 @@ const ManageInterviews = () => {
                                     const selected = candidates.filter(c => selectedCandidateIds.includes(c.id));
                                     const alreadyAssigned = selected.filter(c => c.mentor_id).length;
                                     return alreadyAssigned > 0
-                                        ? `${selectedCandidateIds.length} candidate(s) selected. ${alreadyAssigned} already assigned â€” selecting a new mentor will reassign them.`
+                                        ? `${selectedCandidateIds.length} candidate(s) selected. ${alreadyAssigned} already assigned - selecting a new mentor will reassign them.`
                                         : `Assign ${selectedCandidateIds.length} selected candidate(s) to a mentor/interviewer`;
                                 })()}
                             </DialogDescription>
@@ -1540,7 +1540,7 @@ const ManageInterviews = () => {
                                 ) : (
                                     <div className="space-y-3">
                                         <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg px-4 py-3">
-                                            <p className="text-sm font-bold text-orange-600">â³ Absent Candidate</p>
+                                            <p className="text-sm font-bold text-orange-600">Absent Candidate</p>
                                             <p className="text-xs text-muted-foreground mt-1">Candidate is marked as absent. No marks required.</p>
                                         </div>
                                     </div>

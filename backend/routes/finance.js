@@ -636,15 +636,26 @@ router.get('/settings', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const db = getDatabase();
 
-    const [fundraising_enabled, qr_code_path] = await Promise.all([
+    const [fundraising_enabled, qr_code_path, fund_entry_enabled] = await Promise.all([
       getSettingValue(db, 'fundraising_enabled'),
-      getSettingValue(db, 'qr_code_path')
+      getSettingValue(db, 'qr_code_path'),
+      getSettingValue(db, 'fund_entry_enabled')
     ]);
+
+    // Construct full URL for QR code if path is relative
+    let fullQrPath = qr_code_path || '';
+    if (fullQrPath && fullQrPath.startsWith('/')) {
+      const protocol = req.protocol || 'http';
+      const host = req.get('host') || 'localhost:3000';
+      fullQrPath = `${protocol}://${host}${fullQrPath}`;
+    }
 
     res.json({
       success: true,
       fundraising_enabled: fundraising_enabled === 'true' || fundraising_enabled === '1',
-      qr_code_path: qr_code_path || ''
+      fund_entry_enabled:
+        fund_entry_enabled === 'true' || fund_entry_enabled === '1' || fund_entry_enabled === true,
+      qr_code_path: fullQrPath
     });
   } catch (error) {
     console.error('Error fetching settings:', error);
@@ -725,6 +736,38 @@ router.post('/settings/fundraising/toggle', authenticateToken, requireAdmin, asy
   }
 });
 
+// Toggle fund entry (students can only VIEW + PAY; no entry allowed when disabled)
+router.post('/settings/fund-entry/toggle', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { enabled } = req.body || {};
+
+    if (enabled === undefined) {
+      return res.status(400).json({ success: false, message: 'enabled is required' });
+    }
+
+    const normalized = !!enabled;
+
+    await upsertSetting(db, {
+      settingKey: 'fund_entry_enabled',
+      settingValue: normalized ? 'true' : 'false',
+      dataType: 'boolean',
+      userId: req.user.id
+    });
+
+    await logActivity(req.user.id, 'TOGGLE_FUND_ENTRY', { enabled: normalized }, req, {
+      action_type: 'UPDATE',
+      module_name: 'finance',
+      action_description: `Fund entry ${normalized ? 'enabled' : 'disabled'}`
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Toggle fund entry error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // Upload QR code (Admin only)
 router.post(
   '/settings/qrcode/upload',
@@ -764,7 +807,12 @@ router.post(
         action_description: 'Uploaded fundraising QR code'
       });
 
-      res.json({ success: true, qr_code_path });
+      // Construct full URL for response
+      const protocol = req.protocol || 'http';
+      const host = req.get('host') || 'localhost:3000';
+      const fullUrl = `${protocol}://${host}${qr_code_path}`;
+
+      res.json({ success: true, qr_code_path: fullUrl });
     } catch (error) {
       console.error('QR upload error:', error);
       res.status(500).json({ success: false, message: error.message });

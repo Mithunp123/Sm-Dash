@@ -1,7 +1,9 @@
 import express from 'express';
 import { getDatabase } from '../database/init.js';
-import { authenticateToken, allowFinance, requireAdmin } from '../middleware/auth.js';
+import { authenticateToken, allowFinance } from '../middleware/auth.js';
 import { logActivity } from '../utils/logger.js';
+import PDFDocument from 'pdfkit';
+import xlsx from 'xlsx';
 
 const router = express.Router();
 
@@ -39,6 +41,51 @@ const normalizeNumber = (v) => {
   return Number.isNaN(n) ? 0 : n;
 };
 
+const normalizeSQLDateTime = (v) => {
+  if (!v) return null;
+  const s = String(v).trim();
+  // If it's already YYYY-MM-DD from <input type="date">, let MySQL parse it.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return `${s} 00:00:00`;
+
+  // Otherwise try to parse to a MySQL-friendly DATETIME string.
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 19).replace('T', ' ');
+};
+
+const normalizeExpenseCategory = (category) => {
+  const c = (category ? String(category) : '').trim().toLowerCase();
+
+  // New spec keys
+  if (['food & refreshment', 'food_refreshment', 'food-and-refreshment', 'foodrefreshment', 'food'].includes(c)) return 'food';
+  if (['travel'].includes(c)) return 'travel';
+  if (['fuel'].includes(c)) return 'fuel';
+  if (['stationary', 'stationery'].includes(c)) return 'stationary';
+
+  // Backward-compatible old keys
+  if (['accommodation'].includes(c)) return 'accommodation';
+  if (['other', 'misc'].includes(c)) return 'other';
+
+  // Default fallback
+  return 'other';
+};
+
+const calculateTotals = (breakdown) => {
+  const breakfast = normalizeNumber(breakdown.breakfast_amount);
+  const lunch = normalizeNumber(breakdown.lunch_amount);
+  const dinner = normalizeNumber(breakdown.dinner_amount);
+  const refreshment = normalizeNumber(breakdown.refreshment_amount);
+
+  const food_total = breakfast + lunch + dinner + refreshment;
+  // Existing schema uses fuel_amount as the "travel" contribution.
+  const travel_total = normalizeNumber(breakdown.fuel_amount);
+  const accommodationAmount = normalizeNumber(breakdown.accommodation_amount);
+  const otherExpense = normalizeNumber(breakdown.other_expense);
+
+  const grand_total = food_total + travel_total + accommodationAmount + otherExpense;
+  return { food_total, travel_total, grand_total };
+};
+
 const validateFolderAdd = (body) => {
   const { event_id, folder_name, description } = body || {};
   if (!event_id || !folder_name) {
@@ -64,6 +111,12 @@ const validateExpenseAdd = (body) => {
     folder_id,
     expense_title,
     category,
+    // New spec inputs
+    amount,
+    date,
+    from_location,
+    to_location,
+    // Backward-compatible inputs
     transport_from,
     transport_to,
     transport_mode,
@@ -80,10 +133,200 @@ const validateExpenseAdd = (body) => {
     return { ok: false, message: 'Missing required fields: event_id, folder_id, expense_title' };
   }
 
-  const validCategories = ['fuel', 'food', 'travel', 'accommodation', 'other'];
-  const cat = category ? String(category) : 'other';
-  if (cat && !validCategories.includes(cat)) {
-    return { ok: false, message: `category must be one of: ${validCategories.join(', ')}` };
+  const cat = normalizeExpenseCategory(category);
+  const created_at = normalizeSQLDateTime(date);
+
+  const hasNewAmountPayload = amount !== undefined && amount !== null && String(amount).trim() !== '';
+
+  if (hasNewAmountPayload) {
+    const amt = normalizeNumber(amount);
+    if (!Number.isFinite(amt) || amt <= 0) {
+      return { ok: false, message: 'amount must be greater than 0' };
+    }
+
+    const transportFrom = from_location ?? transport_from;
+    const transportTo = to_location ?? transport_to;
+    const transportMode = transport_mode ?? null;
+
+    // Travel category: From/To are required by spec.
+    if (cat === 'travel') {
+      if (!transportFrom || !transportTo) {
+        return { ok: false, message: 'From location and To location are required for Travel expenses' };
+      }
+    }
+
+    // Map spec categories into existing schema fields.
+    const breakdown = {
+      fuel_amount: 0,
+      breakfast_amount: 0,
+      lunch_amount: 0,
+      dinner_amount: 0,
+      refreshment_amount: 0,
+      accommodation_amount: 0,
+      other_expense: 0
+    };
+
+    if (cat === 'food') breakdown.breakfast_amount = amt;
+    else if (cat === 'travel' || cat === 'fuel') breakdown.fuel_amount = amt;
+    else if (cat === 'stationary') breakdown.other_expense = amt;
+    else if (cat === 'accommodation') breakdown.accommodation_amount = amt;
+    else breakdown.other_expense = amt;
+
+    const totals = calculateTotals(breakdown);
+    if (totals.grand_total <= 0) {
+      return { ok: false, message: 'amount must be greater than 0' };
+    }
+
+    return {
+      ok: true,
+      data: {
+        event_id,
+        folder_id,
+        expense_title: String(expense_title).trim(),
+        category: cat,
+        transport_from: transportFrom ? String(transportFrom) : null,
+        transport_to: transportTo ? String(transportTo) : null,
+        transport_mode: transportMode ? String(transportMode) : null,
+        ...breakdown,
+        created_at,
+        ...totals
+      }
+    };
+  }
+
+  // Backward-compatible payload path (old schema inputs)
+  const amountFields = [
+    fuel_amount,
+    breakfast_amount,
+    lunch_amount,
+    dinner_amount,
+    refreshment_amount,
+    accommodation_amount,
+    other_expense
+  ];
+
+  // Disallow negative values
+  for (const v of amountFields) {
+    if (v === '' || v === undefined || v === null) continue;
+    const n = parseFloat(v);
+    if (Number.isNaN(n) || n <= 0) {
+      // Backward-compatible payload: require at least one positive amount (no zeros)
+      return { ok: false, message: 'Expense amounts must be greater than 0' };
+    }
+  }
+
+  const breakdown = {
+    fuel_amount: normalizeNumber(fuel_amount),
+    breakfast_amount: normalizeNumber(breakfast_amount),
+    lunch_amount: normalizeNumber(lunch_amount),
+    dinner_amount: normalizeNumber(dinner_amount),
+    refreshment_amount: normalizeNumber(refreshment_amount),
+    accommodation_amount: normalizeNumber(accommodation_amount),
+    other_expense: normalizeNumber(other_expense)
+  };
+
+  const totals = calculateTotals(breakdown);
+  if (totals.grand_total <= 0) {
+    return { ok: false, message: 'amount must be greater than 0' };
+  }
+
+  return {
+    ok: true,
+    data: {
+      event_id,
+      folder_id,
+      expense_title: String(expense_title).trim(),
+      category: cat,
+      transport_from: transport_from ? String(transport_from) : null,
+      transport_to: transport_to ? String(transport_to) : null,
+      transport_mode: transport_mode ? String(transport_mode) : null,
+      ...breakdown,
+      created_at,
+      ...totals
+    }
+  };
+};
+
+const validateExpenseUpdate = (body) => {
+  const {
+    expense_title,
+    category,
+    // New spec inputs
+    amount,
+    date,
+    from_location,
+    to_location,
+    // Backward-compatible inputs
+    transport_from,
+    transport_to,
+    transport_mode,
+    fuel_amount,
+    breakfast_amount,
+    lunch_amount,
+    dinner_amount,
+    refreshment_amount,
+    accommodation_amount,
+    other_expense
+  } = body || {};
+
+  if (!expense_title) {
+    return { ok: false, message: 'expense_title is required' };
+  }
+
+  const cat = normalizeExpenseCategory(category);
+  const created_at = normalizeSQLDateTime(date);
+  const hasNewAmountPayload = amount !== undefined && amount !== null && String(amount).trim() !== '';
+
+  if (hasNewAmountPayload) {
+    const amt = normalizeNumber(amount);
+    if (!Number.isFinite(amt) || amt <= 0) {
+      return { ok: false, message: 'amount must be greater than 0' };
+    }
+
+    const transportFrom = from_location ?? transport_from;
+    const transportTo = to_location ?? transport_to;
+    const transportMode = transport_mode ?? null;
+
+    if (cat === 'travel') {
+      if (!transportFrom || !transportTo) {
+        return { ok: false, message: 'From location and To location are required for Travel expenses' };
+      }
+    }
+
+    const breakdown = {
+      fuel_amount: 0,
+      breakfast_amount: 0,
+      lunch_amount: 0,
+      dinner_amount: 0,
+      refreshment_amount: 0,
+      accommodation_amount: 0,
+      other_expense: 0
+    };
+
+    if (cat === 'food') breakdown.breakfast_amount = amt;
+    else if (cat === 'travel' || cat === 'fuel') breakdown.fuel_amount = amt;
+    else if (cat === 'stationary') breakdown.other_expense = amt;
+    else if (cat === 'accommodation') breakdown.accommodation_amount = amt;
+    else breakdown.other_expense = amt;
+
+    const totals = calculateTotals(breakdown);
+    if (totals.grand_total <= 0) {
+      return { ok: false, message: 'amount must be greater than 0' };
+    }
+
+    return {
+      ok: true,
+      data: {
+        expense_title: String(expense_title).trim(),
+        category: cat,
+        transport_from: transportFrom ? String(transportFrom) : null,
+        transport_to: transportTo ? String(transportTo) : null,
+        transport_mode: transportMode ? String(transportMode) : null,
+        ...breakdown,
+        created_at,
+        ...totals
+      }
+    };
   }
 
   const amountFields = [
@@ -95,32 +338,54 @@ const validateExpenseAdd = (body) => {
     accommodation_amount,
     other_expense
   ];
-  // Disallow negative values
+
   for (const v of amountFields) {
     if (v === '' || v === undefined || v === null) continue;
     const n = parseFloat(v);
-    if (Number.isNaN(n) || n < 0) {
-      return { ok: false, message: 'Expense amounts must be non-negative numbers' };
+    if (Number.isNaN(n) || n <= 0) {
+      return { ok: false, message: 'Expense amounts must be greater than 0' };
     }
+  }
+
+  const breakdown = {
+    fuel_amount: normalizeNumber(fuel_amount),
+    breakfast_amount: normalizeNumber(breakfast_amount),
+    lunch_amount: normalizeNumber(lunch_amount),
+    dinner_amount: normalizeNumber(dinner_amount),
+    refreshment_amount: normalizeNumber(refreshment_amount),
+    accommodation_amount: normalizeNumber(accommodation_amount),
+    other_expense: normalizeNumber(other_expense)
+  };
+  const totals = calculateTotals(breakdown);
+  if (totals.grand_total <= 0) {
+    return { ok: false, message: 'amount must be greater than 0' };
   }
 
   return {
     ok: true,
     data: {
-      event_id,
-      folder_id,
       expense_title: String(expense_title).trim(),
-      category: cat || 'other',
+      category: cat,
       transport_from: transport_from ? String(transport_from) : null,
       transport_to: transport_to ? String(transport_to) : null,
       transport_mode: transport_mode ? String(transport_mode) : null,
-      fuel_amount: normalizeNumber(fuel_amount),
-      breakfast_amount: normalizeNumber(breakfast_amount),
-      lunch_amount: normalizeNumber(lunch_amount),
-      dinner_amount: normalizeNumber(dinner_amount),
-      refreshment_amount: normalizeNumber(refreshment_amount),
-      accommodation_amount: normalizeNumber(accommodation_amount),
-      other_expense: normalizeNumber(other_expense)
+      ...breakdown,
+      created_at,
+      ...totals
+    }
+  };
+};
+
+const validateFolderUpdate = (body) => {
+  const { folder_name, description } = body || {};
+  if (!folder_name) return { ok: false, message: 'folder_name is required' };
+  const name = String(folder_name).trim();
+  if (name.length < 2) return { ok: false, message: 'folder_name must be at least 2 characters' };
+  return {
+    ok: true,
+    data: {
+      folder_name: name,
+      description: description ? String(description) : ''
     }
   };
 };
@@ -258,6 +523,90 @@ router.get('/folder/:folderId', authenticateToken, allowFinance, async (req, res
 });
 
 /**
+ * PUT /expenses/folder/:folderId
+ * Edit a folder (Admin & Office Bearer can edit their own)
+ */
+router.put('/folder/:folderId', authenticateToken, allowFinance, async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { folderId } = req.params;
+    const validated = validateFolderUpdate(req.body);
+    if (!validated.ok) return res.status(400).json({ success: false, message: validated.message });
+
+    const id = parseInt(folderId);
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: 'Invalid folderId' });
+
+    if (req.user.role === 'student') {
+      return res.status(403).json({ success: false, message: 'Insufficient permissions' });
+    }
+
+    if (req.user.role === 'office_bearer') {
+      const owned = await get(db, 'SELECT created_by FROM bill_folders WHERE id = ?', [id]);
+      if (!owned) return res.status(404).json({ success: false, message: 'Folder not found' });
+      if (owned.created_by !== req.user.id) return res.status(403).json({ success: false, message: 'You can only edit your own folders' });
+    }
+
+    const result = await run(
+      db,
+      `
+        UPDATE bill_folders
+        SET folder_name = ?, description = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `,
+      [validated.data.folder_name, validated.data.description, id]
+    );
+
+    res.json({
+      success: true,
+      message: 'Folder updated successfully',
+      affectedRows: result.changes
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * DELETE /expenses/folder/:folderId
+ * Delete a folder (Admin & Office Bearer can delete their own)
+ */
+router.delete('/folder/:folderId', authenticateToken, allowFinance, async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { folderId } = req.params;
+    const id = parseInt(folderId);
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: 'Invalid folderId' });
+
+    if (req.user.role === 'student') {
+      return res.status(403).json({ success: false, message: 'Insufficient permissions' });
+    }
+
+    if (req.user.role === 'office_bearer') {
+      const owned = await get(db, 'SELECT created_by FROM bill_folders WHERE id = ?', [id]);
+      if (!owned) return res.status(404).json({ success: false, message: 'Folder not found' });
+      if (owned.created_by !== req.user.id) return res.status(403).json({ success: false, message: 'You can only delete your own folders' });
+    }
+
+    const result = await run(db, 'DELETE FROM bill_folders WHERE id = ?', [id]);
+
+    await logActivity(req.user.id, 'DELETE_FOLDER', { id }, req, {
+      action_type: 'DELETE',
+      module_name: 'expenses',
+      action_description: `Deleted folder id=${id}`,
+      reference_id: id
+    });
+
+    res.json({
+      success: true,
+      message: 'Folder deleted successfully',
+      affectedRows: result.changes
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
  * POST /expenses/add
  * Add a new expense
  */
@@ -291,9 +640,9 @@ router.post('/add', authenticateToken, allowFinance, async (req, res) => {
         transport_from, transport_to, transport_mode,
         fuel_amount, breakfast_amount, lunch_amount, dinner_amount, refreshment_amount,
         accommodation_amount, other_expense,
-        created_by
+        created_by, created_at, updated_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))
       `,
       [
         validated.data.event_id,
@@ -310,7 +659,9 @@ router.post('/add', authenticateToken, allowFinance, async (req, res) => {
         validated.data.refreshment_amount,
         validated.data.accommodation_amount,
         validated.data.other_expense,
-        req.user.id
+        req.user.id,
+        validated.data.created_at,
+        validated.data.created_at
       ]
     );
 
@@ -375,7 +726,7 @@ router.put('/:id', authenticateToken, allowFinance, async (req, res) => {
     const db = getDatabase();
     const { id } = req.params;
 
-    const validated = validateExpenseAdd(req.body);
+    const validated = validateExpenseUpdate(req.body);
     if (!validated.ok) {
       return res.status(400).json({ success: false, message: validated.message });
     }
@@ -400,6 +751,7 @@ router.put('/:id', authenticateToken, allowFinance, async (req, res) => {
         refreshment_amount = ?,
         accommodation_amount = ?,
         other_expense = ?,
+        created_at = COALESCE(?, created_at),
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
       ${ownershipWhere}
@@ -417,6 +769,7 @@ router.put('/:id', authenticateToken, allowFinance, async (req, res) => {
         validated.data.refreshment_amount,
         validated.data.accommodation_amount,
         validated.data.other_expense,
+        validated.data.created_at,
         id,
         ...ownershipParams
       ]
@@ -436,12 +789,26 @@ router.put('/:id', authenticateToken, allowFinance, async (req, res) => {
  * DELETE /expenses/:id
  * Delete an expense (Admin only)
  */
-router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
+router.delete('/:id', authenticateToken, allowFinance, async (req, res) => {
   try {
     const db = getDatabase();
     const { id } = req.params;
 
-    const result = await run(db, 'DELETE FROM expenses WHERE id = ?', [id]);
+    if (req.user.role !== 'admin' && req.user.role !== 'office_bearer') {
+      return res.status(403).json({ success: false, message: 'Insufficient permissions' });
+    }
+
+    const ownershipWhere = req.user.role === 'office_bearer' ? 'AND created_by = ?' : '';
+    const ownershipParams = req.user.role === 'office_bearer' ? [req.user.id] : [];
+
+    const deleteQuery = `DELETE FROM expenses WHERE id = ? ${ownershipWhere}`;
+    const result = await run(db, deleteQuery, [id, ...ownershipParams]);
+
+    if (req.user.role === 'office_bearer' && result.changes === 0) {
+      const exists = await get(db, 'SELECT id FROM expenses WHERE id = ?', [id]);
+      if (!exists) return res.status(404).json({ success: false, message: 'Expense not found' });
+      return res.status(403).json({ success: false, message: 'You can only delete your own expenses' });
+    }
 
     await logActivity(req.user.id, 'DELETE_EXPENSE', { id }, req, {
       action_type: 'DELETE',
@@ -455,6 +822,215 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
       message: 'Expense deleted successfully',
       affectedRows: result.changes
     });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * GET /expenses/summary/:eventId
+ * Totals: overall + per category + per folder (with category subtotals)
+ */
+router.get('/summary/:eventId', authenticateToken, allowFinance, async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { eventId } = req.params;
+
+    const overall = await get(
+      db,
+      `SELECT COALESCE(SUM(grand_total), 0) as overall_total FROM expenses WHERE event_id = ?`,
+      [eventId]
+    );
+
+    const totalsByCategory = await all(
+      db,
+      `
+        SELECT
+          category,
+          COALESCE(SUM(grand_total), 0) as total
+        FROM expenses
+        WHERE event_id = ?
+        GROUP BY category
+      `,
+      [eventId]
+    );
+
+    const totalsByFolder = await all(
+      db,
+      `
+        SELECT
+          bf.id as folder_id,
+          bf.folder_name,
+          COALESCE(SUM(e.grand_total), 0) as folder_total
+        FROM bill_folders bf
+        LEFT JOIN expenses e ON e.folder_id = bf.id
+        WHERE bf.event_id = ?
+        GROUP BY bf.id
+        ORDER BY bf.created_at DESC
+      `,
+      [eventId]
+    );
+
+    const categoryTotalsByFolderRows = await all(
+      db,
+      `
+        SELECT
+          bf.id as folder_id,
+          e.category,
+          COALESCE(SUM(e.grand_total), 0) as total
+        FROM bill_folders bf
+        LEFT JOIN expenses e ON e.folder_id = bf.id
+        WHERE bf.event_id = ?
+        GROUP BY bf.id, e.category
+      `,
+      [eventId]
+    );
+
+    const categoryTotalsByFolder = {};
+    for (const row of categoryTotalsByFolderRows) {
+      if (!categoryTotalsByFolder[row.folder_id]) categoryTotalsByFolder[row.folder_id] = {};
+      categoryTotalsByFolder[row.folder_id][row.category] = Number(row.total || 0);
+    }
+
+    res.json({
+      success: true,
+      summary: {
+        overall_total_expenses: Number(overall?.overall_total || 0),
+        totals_by_category: totalsByCategory.reduce((acc, r) => {
+          acc[r.category] = Number(r.total || 0);
+          return acc;
+        }, {}),
+        totals_by_folder: totalsByFolder.map((f) => ({
+          folder_id: f.folder_id,
+          folder_name: f.folder_name,
+          folder_total: Number(f.folder_total || 0),
+          category_totals: categoryTotalsByFolder[f.folder_id] || {}
+        }))
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+const getExportExpensesRows = async (db, eventId) => {
+  return await all(
+    db,
+    `
+      SELECT
+        e.id,
+        e.event_id,
+        e.folder_id,
+        bf.folder_name,
+        e.expense_title,
+        e.category,
+        e.grand_total,
+        e.created_at,
+        e.created_by,
+        u.name as created_by_name,
+        e.transport_from,
+        e.transport_to
+      FROM expenses e
+      LEFT JOIN bill_folders bf ON e.folder_id = bf.id
+      LEFT JOIN users u ON e.created_by = u.id
+      WHERE e.event_id = ?
+      ORDER BY e.created_at DESC
+    `,
+    [eventId]
+  );
+};
+
+/**
+ * GET /expenses/export/pdf/:eventId
+ * Server-side PDF export of all expense data
+ */
+router.get('/export/pdf/:eventId', authenticateToken, allowFinance, async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { eventId } = req.params;
+
+    const rows = await getExportExpensesRows(db, eventId);
+    const overallTotal = rows.reduce((sum, r) => sum + Number(r.grand_total || 0), 0);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="expenses_${eventId}.pdf"`);
+
+    const doc = new PDFDocument({ margin: 30, size: 'A4' });
+    doc.pipe(res);
+
+    doc.fontSize(18).text('Expense Report', { align: 'left' });
+    doc.moveDown(0.5);
+    doc.fontSize(10).text(`Event ID: ${eventId}`);
+    doc.fontSize(10).text(`Report generated: ${new Date().toLocaleString()}`);
+    doc.moveDown(1);
+    doc.fontSize(12).text(`Overall Total: INR ${overallTotal.toFixed(2)}`);
+    doc.moveDown(1);
+
+    // Simple text-based table (PDFKit tables require more layout work)
+    doc.fontSize(10).text('Folder | Date | Title | Category | Amount | Created By | From | To');
+    doc.moveDown(0.25);
+    doc.fontSize(9);
+    for (const r of rows) {
+      const date = r.created_at ? new Date(r.created_at).toLocaleDateString() : '-';
+      const from = r.transport_from || '';
+      const to = r.transport_to || '';
+      const line = [
+        r.folder_name || '-',
+        date,
+        r.expense_title || '-',
+        r.category || '-',
+        `₹${Number(r.grand_total || 0).toFixed(2)}`,
+        r.created_by_name || '-',
+        from,
+        to
+      ].join(' | ');
+      doc.text(line);
+    }
+
+    doc.end();
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * GET /expenses/export/excel/:eventId
+ * Server-side Excel export of all expense data
+ */
+router.get('/export/excel/:eventId', authenticateToken, allowFinance, async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { eventId } = req.params;
+
+    const rows = await getExportExpensesRows(db, eventId);
+    const overallTotal = rows.reduce((sum, r) => sum + Number(r.grand_total || 0), 0);
+
+    const data = rows.map((r) => ({
+      Folder: r.folder_name || '',
+      Date: r.created_at ? new Date(r.created_at).toLocaleDateString() : '',
+      Title: r.expense_title || '',
+      Category: r.category || '',
+      Amount: Number(r.grand_total || 0),
+      'Created By': r.created_by_name || '',
+      'From Location': r.transport_from || '',
+      'To Location': r.transport_to || ''
+    }));
+
+    const worksheet = xlsx.utils.json_to_sheet(data);
+    const workbook = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(workbook, worksheet, 'Expenses');
+
+    // Summary sheet
+    const summarySheet = xlsx.utils.json_to_sheet([
+      { Metric: 'Overall Total', Value: overallTotal }
+    ]);
+    xlsx.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+
+    const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="expenses_${eventId}.xlsx"`);
+    res.send(buffer);
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

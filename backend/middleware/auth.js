@@ -32,7 +32,7 @@ export const authenticateToken = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production');
 
     const db = getDatabase();
-    const user = await get(db, 'SELECT id, email, role, name FROM users WHERE id = ?', [decoded.userId]);
+    const user = await get(db, 'SELECT id, email, role, name, is_interviewer FROM users WHERE id = ?', [decoded.userId]);
 
     if (!user) {
       return res.status(401).json({ success: false, message: 'User not found' });
@@ -95,9 +95,9 @@ export const requireAdmin = (req, res, next) => {
   return requireRole('admin')(req, res, next);
 };
 
-// Require admin or office_bearer role for finance access
+// Require admin, office_bearer, or student role for finance access
 export const allowFinance = (req, res, next) => {
-  return requireRole('admin', 'office_bearer')(req, res, next);
+  return requireRole('admin', 'office_bearer', 'student')(req, res, next);
 };
 
 // Block volunteers from accessing finance routes

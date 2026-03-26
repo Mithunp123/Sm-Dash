@@ -9,7 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import DeveloperCredit from '@/components/DeveloperCredit';
-import { BackButton } from '@/components/BackButton';
 import { useNavigate, useParams } from 'react-router-dom';
 import { auth } from '@/lib/auth';
 import { api } from '@/lib/api';
@@ -17,8 +16,10 @@ import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import {
   DollarSign, QrCode, Plus, Trash2, Eye, Calendar, User, TrendingUp,
-  PieChart, FolderPlus, FileText, AlertCircle, Loader2, Download
+  PieChart, FolderPlus, FileText, AlertCircle, Loader2, Download, Settings, Gear, Upload, Edit
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import ExpensesModule from '@/components/expenses/ExpensesModule';
 
 const EventFundsManagement = () => {
   const navigate = useNavigate();
@@ -27,13 +28,17 @@ const EventFundsManagement = () => {
   // State
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(auth.hasRole('student') ? 'fundraising' : 'overview');
+  const [currentUserID, setCurrentUserID] = useState(null);
 
   // Fundraising state
   const [fundraisingEnabled, setFundraisingEnabled] = useState(false);
+  const [fundEntryEnabled, setFundEntryEnabled] = useState(true);
   const [qrCodePath, setQrCodePath] = useState('');
   const [collections, setCollections] = useState([]);
   const [showAddCollection, setShowAddCollection] = useState(false);
+  const [showEditCollection, setShowEditCollection] = useState(false);
+  const [editingCollectionId, setEditingCollectionId] = useState(null);
   const [collectionFormData, setCollectionFormData] = useState({
     payer_name: '',
     amount: '',
@@ -76,6 +81,12 @@ const EventFundsManagement = () => {
     balance: 0
   });
 
+  // Settings state for admin
+  const [qrFile, setQrFile] = useState(null);
+  const [showQrUpload, setShowQrUpload] = useState(false);
+  const [uploadingQR, setUploadingQR] = useState(false);
+  const [updatingSettings, setUpdatingSettings] = useState(false);
+
   // Check authentication
   useEffect(() => {
     if (!auth.isAuthenticated()) {
@@ -89,6 +100,10 @@ const EventFundsManagement = () => {
       navigate('/');
       return;
     }
+
+    // Set current user ID for filtering
+    const userId = auth.user?.id || JSON.parse(localStorage.getItem('user') || '{}').id;
+    setCurrentUserID(userId);
 
     loadEventData();
   }, [eventId]);
@@ -110,6 +125,7 @@ const EventFundsManagement = () => {
       if (statusRes.success) {
         fundraisingEnabledLocal = statusRes.fundraising_enabled;
         setFundraisingEnabled(statusRes.fundraising_enabled);
+        setFundEntryEnabled(statusRes.fund_entry_enabled ?? true);
         setQrCodePath(statusRes.qr_code_path);
       }
 
@@ -146,12 +162,43 @@ const EventFundsManagement = () => {
     }
   };
 
+  // Refresh QR code when Add Collection dialog opens
+  useEffect(() => {
+    if (showAddCollection) {
+      const refreshQR = async () => {
+        try {
+          const statusRes = await api.call('GET', '/fundraising/status');
+          if (statusRes.success && statusRes.qr_code_path) {
+            setQrCodePath(statusRes.qr_code_path);
+          }
+        } catch (err) {
+          console.error('Failed to refresh QR code:', err);
+        }
+      };
+      refreshQR();
+    }
+  }, [showAddCollection]);
+
   // Add collection
   const handleAddCollection = async (e) => {
     e.preventDefault();
     try {
+      if (!fundEntryEnabled) {
+        toast.error('Fund entry is currently disabled');
+        return;
+      }
       if (!collectionFormData.payer_name || !collectionFormData.amount) {
         toast.error('Please fill in all required fields');
+        return;
+      }
+
+      // Students (Scan & Pay) don't need transaction_id in the UI.
+      if (
+        collectionFormData.payment_mode === 'online' &&
+        !auth.hasRole('student') &&
+        !collectionFormData.transaction_id.trim()
+      ) {
+        toast.error('Transaction ID is required for UPI payments');
         return;
       }
 
@@ -269,6 +316,222 @@ const EventFundsManagement = () => {
     }
   };
 
+  // Toggle fundraising (Admin only)
+  const handleToggleFundraising = async (enabled) => {
+    try {
+      setUpdatingSettings(true);
+      const result = await api.call('POST', '/finance/settings/fundraising/toggle', {
+        enabled
+      });
+
+      if (result.success) {
+        setFundraisingEnabled(enabled);
+        toast.success(`Fund raising ${enabled ? 'enabled' : 'disabled'}`);
+      } else {
+        toast.error(result.message || 'Failed to update setting');
+      }
+    } catch (err) {
+      toast.error('Error updating setting');
+      console.error(err);
+    } finally {
+      setUpdatingSettings(false);
+    }
+  };
+
+  // Handle QR upload (Admin only)
+  const handleQRUpload = async () => {
+    try {
+      if (!qrFile) {
+        toast.error('Please select a file');
+        return;
+      }
+
+      setUploadingQR(true);
+      const formData = new FormData();
+      formData.append('qr_code', qrFile);
+
+      const result = await api.callFormData('POST', '/finance/settings/qrcode/upload', formData);
+
+      if (result.success) {
+        setQrCodePath(result.qr_code_path);
+        setQrFile(null);
+        setShowQrUpload(false);
+        toast.success('QR code uploaded successfully');
+      } else {
+        toast.error(result.message || 'Failed to upload QR code');
+      }
+    } catch (err) {
+      toast.error('Error uploading QR code');
+      console.error(err);
+    } finally {
+      setUploadingQR(false);
+    }
+  };
+
+  // Delete QR code (Admin only)
+  const handleDeleteQR = async () => {
+    try {
+      setUpdatingSettings(true);
+      const result = await api.call('POST', '/finance/settings/qrcode/delete');
+
+      if (result.success) {
+        setQrCodePath('');
+        toast.success('QR code deleted');
+      } else {
+        toast.error(result.message || 'Failed to delete QR code');
+      }
+    } catch (err) {
+      toast.error('Error deleting QR code');
+      console.error(err);
+    } finally {
+      setUpdatingSettings(false);
+    }
+  };
+
+  // Edit collection
+  const handleEditCollection = (collection) => {
+    setCollectionFormData({
+      payer_name: collection.payer_name,
+      amount: collection.amount.toString(),
+      department: collection.department || '',
+      contributor_type: collection.contributor_type || 'student',
+      payment_mode: collection.payment_mode,
+      transaction_id: collection.transaction_id || '',
+      notes: collection.notes || ''
+    });
+    setEditingCollectionId(collection.id);
+    setShowEditCollection(true);
+  };
+
+  // Update collection
+  const handleUpdateCollection = async (e) => {
+    e.preventDefault();
+    try {
+      if (!collectionFormData.payer_name || !collectionFormData.amount) {
+        toast.error('Please fill in all required fields');
+        return;
+      }
+
+      const result = await api.call('PUT', `/fundraising/${editingCollectionId}`, {
+        ...collectionFormData,
+        amount: parseFloat(collectionFormData.amount)
+      });
+
+      if (result.success) {
+        toast.success('Collection entry updated');
+        setShowEditCollection(false);
+        setEditingCollectionId(null);
+        setCollectionFormData({
+          payer_name: '',
+          amount: '',
+          department: '',
+          contributor_type: 'student',
+          payment_mode: 'cash',
+          transaction_id: '',
+          notes: ''
+        });
+        loadEventData();
+      } else {
+        toast.error(result.message || 'Failed to update collection');
+      }
+    } catch (err) {
+      toast.error('Error updating collection');
+      console.error(err);
+    }
+  };
+
+  // Export to Excel with better formatting
+  const exportToExcel = (data) => {
+    try {
+      // Create CSV with proper headers and formatting
+      const headers = ['Payer Name', 'Amount (₹)', 'Department', 'Payment Mode', 'Received By', 'Date'];
+      const rows = data.map(row => [
+        row.payer_name,
+        Number(row.amount).toFixed(2),
+        row.department || 'N/A',
+        row.payment_mode,
+        row.received_by_name || 'N/A',
+        new Date(row.created_at).toLocaleDateString()
+      ]);
+
+      // Build CSV content
+      let csvContent = headers.map(h => `"${h}"`).join(',') + '\n';
+      rows.forEach(row => {
+        csvContent += row.map(cell => `"${cell}"`).join(',') + '\n';
+      });
+
+      const element = document.createElement('a');
+      element.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent));
+      element.setAttribute('download', `fundraising_collections_${event?.id}_${new Date().getTime()}.csv`);
+      element.style.display = 'none';
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+      toast.success('Excel file downloaded successfully');
+    } catch (err) {
+      toast.error('Failed to export Excel');
+      console.error(err);
+    }
+  };
+
+  // Export to PDF
+  const exportToPDF = (data) => {
+    try {
+      const htmlContent = `
+        <html>
+          <head>
+            <title>Fund Raising Report</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; background: white; }
+              h1 { color: #333; border-bottom: 2px solid #4CAF50; padding-bottom: 10px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+              th { background-color: #4CAF50; color: white; font-weight: bold; }
+              tr:nth-child(even) { background-color: #f2f2f2; }
+            </style>
+          </head>
+          <body>
+            <h1>Fund Raising Collections Report</h1>
+            <p><strong>Event:</strong> ${event?.title || 'N/A'}</p>
+            <p><strong>Report Date:</strong> ${new Date().toLocaleDateString()}</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Payer Name</th>
+                  <th>Amount</th>
+                  <th>Department</th>
+                  <th>Payment Mode</th>
+                  <th>Received By</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.map(row => `
+                  <tr>
+                    <td>${row.payer_name}</td>
+                    <td>₹${Number(row.amount).toFixed(2)}</td>
+                    <td>${row.department || 'N/A'}</td>
+                    <td>${row.payment_mode}</td>
+                    <td>${row.received_by_name || 'N/A'}</td>
+                    <td>${new Date(row.created_at).toLocaleDateString()}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </body>
+        </html>
+      `;
+
+      const printWindow = window.open('', '', 'height=600,width=800');
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      setTimeout(() => printWindow.print(), 250);
+    } catch (err) {
+      toast.error('Failed to export PDF');
+      console.error(err);
+    }
+  };
+
   if (loading) {
     return (
       <div className="w-full min-h-screen bg-background flex items-center justify-center">
@@ -280,15 +543,15 @@ const EventFundsManagement = () => {
   return (
     <div className="w-full min-h-screen bg-background">
       <DeveloperCredit />
-      <main className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 space-y-8">
+      <main className="w-full px-4 md:px-6 lg:px-8 py-8 space-y-8">
         {/* Header */}
         <div>
-          <BackButton />
-          <h1 className="text-4xl font-bold mt-4 mb-2">Event Funds Management</h1>
+          <h1 className="text-4xl font-bold mb-2">Event Funds Management</h1>
           <p className="text-muted-foreground">{event?.title || 'Event'}</p>
         </div>
 
-        {/* Summary Cards */}
+        {/* Summary Cards - Hide for students */}
+        {!auth.hasRole('student') && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -329,14 +592,22 @@ const EventFundsManagement = () => {
             </CardContent>
           </Card>
         </motion.div>
+        )}
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsList className={`grid w-full ${
+            auth.hasRole('student') ? 'grid-cols-1' : 
+            auth.hasRole('admin') ? 'grid-cols-4' : 
+            'grid-cols-3'
+          }`}>
+            {!auth.hasRole('student') && <TabsTrigger value="overview">Overview</TabsTrigger>}
             <TabsTrigger value="fundraising">Fund Raising</TabsTrigger>
-            <TabsTrigger value="expenses">Expenses</TabsTrigger>
+            {!auth.hasRole('student') && <TabsTrigger value="expenses">Expenses</TabsTrigger>}
+            {auth.hasRole('admin') && <TabsTrigger value="settings">Settings</TabsTrigger>}
           </TabsList>
+
+          {/* Allow all roles to see Fundraising tab content (not just admin/office bearer) */}
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
@@ -367,7 +638,7 @@ const EventFundsManagement = () => {
 
           {/* Fundraising Tab */}
           <TabsContent value="fundraising" className="space-y-6">
-            {!fundraisingEnabled && !auth.hasRole('admin') ? (
+            {!fundraisingEnabled && !auth.hasRole('admin') && !auth.hasRole('office_bearer') && !auth.hasRole('student') ? (
               <Card className="border-orange-200">
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-4">
@@ -386,7 +657,7 @@ const EventFundsManagement = () => {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <QrCode className="w-5 h-5" />
-                        Scan & Pay
+                        Entry
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="flex justify-center">
@@ -395,16 +666,92 @@ const EventFundsManagement = () => {
                   </Card>
                 )}
 
-                {/* Add Collection Button */}
-                <Button onClick={() => setShowAddCollection(true)} className="w-full">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Collection Entry
-                </Button>
+                {/* Add Collection / Scan & Pay Button */}
+                {auth.hasRole('student') ? (
+                  <Button
+                    onClick={() => {
+                      if (!fundEntryEnabled) {
+                        toast.error('Fund entry is currently disabled');
+                        return;
+                      }
+                      setCollectionFormData((prev) => ({
+                        ...prev,
+                        payment_mode: 'online',
+                        transaction_id: '',
+                        notes: '',
+                        contributor_type: 'student'
+                      }));
+                      setShowAddCollection(true);
+                    }}
+                    className="w-full"
+                    disabled={!fundEntryEnabled}
+                  >
+                    <QrCode className="w-4 h-4 mr-2" />
+                    Entry
+                  </Button>
+                ) : (
+                  <div className="space-y-2">
+                    <Button
+                      onClick={() => setShowAddCollection(true)}
+                      className="w-full"
+                      disabled={!fundEntryEnabled}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Collection Entry
+                    </Button>
+                    {!fundEntryEnabled && (
+                      <p className="text-sm text-muted-foreground">
+                        Fund entry is currently disabled
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {auth.hasRole('student') && !fundEntryEnabled && (
+                  <p className="text-sm text-muted-foreground">
+                    Fund entry is currently disabled
+                  </p>
+                )}
 
                 {/* Collections List */}
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Fund Collections</CardTitle>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>Fund Collections</CardTitle>
+                      {auth.hasRole('student') && (
+                        <p className="text-lg font-bold text-green-600 mt-2">
+                          Total Collected: ₹{Number(
+                            collections.reduce((sum, col) => sum + Number(col.amount), 0)
+                          ).toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+                    {(auth.hasRole('admin') || auth.hasRole('student')) && (
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                              const dataToExport = collections;
+                            exportToExcel(dataToExport);
+                          }}
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Excel
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                              const dataToExport = collections;
+                            exportToPDF(dataToExport);
+                          }}
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          PDF
+                        </Button>
+                      </div>
+                    )}
                   </CardHeader>
                   <CardContent>
                     <div className="overflow-x-auto">
@@ -413,6 +760,7 @@ const EventFundsManagement = () => {
                           <TableRow>
                             <TableHead>Payer Name</TableHead>
                             <TableHead>Amount</TableHead>
+                            <TableHead>Department</TableHead>
                             <TableHead>Mode</TableHead>
                             <TableHead>Received By</TableHead>
                             <TableHead>Date</TableHead>
@@ -424,6 +772,7 @@ const EventFundsManagement = () => {
                             <TableRow key={col.id}>
                               <TableCell>{col.payer_name}</TableCell>
                               <TableCell className="font-semibold">₹{Number(col.amount).toFixed(2)}</TableCell>
+                              <TableCell className="text-sm">{col.department || 'N/A'}</TableCell>
                               <TableCell>
                                 <Badge variant={col.payment_mode === 'cash' ? 'default' : 'secondary'}>
                                   {col.payment_mode}
@@ -435,14 +784,26 @@ const EventFundsManagement = () => {
                               </TableCell>
                               {auth.hasRole('admin') && (
                                 <TableCell>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => handleDeleteCollection(col.id)}
-                                    className="text-destructive hover:bg-destructive/10"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleEditCollection(col)}
+                                      className="text-blue-600 hover:bg-blue-50"
+                                      title="Edit entry"
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleDeleteCollection(col.id)}
+                                      className="text-destructive hover:bg-destructive/10"
+                                      title="Delete entry"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
                                 </TableCell>
                               )}
                             </TableRow>
@@ -458,97 +819,341 @@ const EventFundsManagement = () => {
 
           {/* Expenses Tab */}
           <TabsContent value="expenses" className="space-y-6">
-            <Button onClick={() => setShowAddFolder(true)} className="w-full">
-              <FolderPlus className="w-4 h-4 mr-2" />
-              Create Folder
-            </Button>
+            <ExpensesModule
+              eventId={eventId as string}
+              folders={folders}
+              expenses={expenses}
+              onRefresh={loadEventData}
+            />
+          </TabsContent>
 
-            {/* Folders Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {folders.map((folder) => (
-                <Card key={folder.id} className="cursor-pointer hover:shadow-lg transition-shadow">
-                  <CardHeader onClick={() => setSelectedFolder(folder)}>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>{folder.folder_name}</span>
-                      <Badge>{folder.expense_count} items</Badge>
-                    </CardTitle>
-                    <CardDescription>{folder.description}</CardDescription>
+          {/* Settings Tab (Admin Only) */}
+          {auth.hasRole('admin') && (
+            <TabsContent value="settings" className="space-y-6">
+              {/* Fundraising Toggle */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Fund Raising Status</CardTitle>
+                    <CardDescription>
+                      Enable or disable fund raising for all events
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold text-primary">₹{Number(folder.folder_total).toFixed(2)}</p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Created by {folder.created_by_name}
-                    </p>
+                    <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                      <div>
+                        <h3 className="font-semibold">Enable Fund Raising</h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          When enabled, office bearers can add fund collections
+                        </p>
+                      </div>
+                      <Switch
+                        checked={fundraisingEnabled}
+                        onCheckedChange={(checked) => handleToggleFundraising(checked)}
+                        disabled={updatingSettings}
+                      />
+                    </div>
+
+                    <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-900 rounded-lg">
+                      <p className="text-sm text-blue-800 dark:text-blue-200">
+                        <strong>Status:</strong> Fund raising is currently{' '}
+                        <strong>{fundraisingEnabled ? '✓ Enabled' : '✗ Disabled'}</strong>
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
+              </motion.div>
 
-            {/* Expenses View (All + optionally filtered by selected folder) */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>{selectedFolder ? selectedFolder.folder_name : 'All Expenses'}</CardTitle>
-                  <CardDescription>
-                    {selectedFolder ? 'Expenses in this folder' : 'All expenses across folders'}
-                  </CardDescription>
-                </div>
-                <Button
-                  onClick={() => setShowAddExpense(true)}
-                  size="sm"
-                  disabled={!selectedFolder}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Expense
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Folder</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Title</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Created By</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(selectedFolder
-                        ? expenses.filter((e) => e.folder_id === selectedFolder.id)
-                        : expenses
-                      ).map((expense) => (
-                        <TableRow key={expense.id}>
-                          <TableCell>{expense.folder_name}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {expense.created_at ? new Date(expense.created_at).toLocaleDateString() : '-'}
-                          </TableCell>
-                          <TableCell>{expense.expense_title}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{expense.category}</Badge>
-                          </TableCell>
-                          <TableCell className="font-semibold">₹{Number(expense.grand_total).toFixed(2)}</TableCell>
-                          <TableCell>{expense.created_by_name}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              {/* QR Code Management */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <QrCode className="w-5 h-5" />
+                      QR Code Management
+                    </CardTitle>
+                    <CardDescription>
+                      Upload a QR code for online payments
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Current QR Display */}
+                    {qrCodePath ? (
+                      <div className="space-y-4">
+                        <div className="p-6 bg-muted rounded-lg flex flex-col items-center">
+                          <img
+                            src={qrCodePath}
+                            alt="QR Code"
+                            className="w-64 h-64 object-contain rounded-lg shadow-lg"
+                          />
+                          <p className="text-sm text-muted-foreground mt-4">Current QR Code</p>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => setShowQrUpload(true)}
+                            disabled={uploadingQR || updatingSettings}
+                          >
+                            <Upload className="w-4 h-4 mr-2" />
+                            Replace QR Code
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            className="flex-1"
+                            onClick={handleDeleteQR}
+                            disabled={uploadingQR || updatingSettings}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-8 border-2 border-dashed border-muted-foreground/30 rounded-lg text-center">
+                        <QrCode className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
+                        <p className="text-muted-foreground mb-4">No QR code uploaded yet</p>
+                        <Button onClick={() => setShowQrUpload(true)} disabled={uploadingQR || updatingSettings}>
+                          <Upload className="w-4 h-4 mr-2" />
+                          Upload QR Code
+                        </Button>
+                      </div>
+                    )}
+
+                    <div className="p-4 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-900 rounded-lg">
+                      <p className="text-sm text-amber-800 dark:text-amber-200">
+                        <strong>Note:</strong> The QR code will be displayed to office bearers when they add online payment entries. Supported formats: PNG, JPEG, GIF
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Info Section */}
+              <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-900">
+                <CardHeader>
+                  <CardTitle className="text-blue-900 dark:text-blue-100">How Settings Work</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-blue-800 dark:text-blue-200">
+                  <p>
+                    <strong>1. Enable Fund Raising:</strong> Toggle the switch above to activate the fund raising module for office bearers
+                  </p>
+                  <p>
+                    <strong>2. Upload QR Code:</strong> Upload a QR code image that links to your payment gateway or UPI
+                  </p>
+                  <p>
+                    <strong>3. Global Setting:</strong> These settings apply to all events when the fundraising tab is visible
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
       </main>
 
-      {/* Add Collection Dialog */}
-      <Dialog open={showAddCollection} onOpenChange={setShowAddCollection}>
+      {/* QR Upload Dialog */}
+      <Dialog open={showQrUpload} onOpenChange={setShowQrUpload}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Fund Collection Entry</DialogTitle>
+            <DialogTitle>Upload QR Code</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
+              onClick={() => document.getElementById('qr-input')?.click()}
+            >
+              <input
+                id="qr-input"
+                type="file"
+                accept="image/*"
+                onChange={(e) => setQrFile(e.target.files?.[0] || null)}
+                className="hidden"
+              />
+              <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">
+                {qrFile ? qrFile.name : 'Click to select or drag & drop image'}
+              </p>
+            </div>
+
+            {qrFile && (
+              <div className="p-4 bg-muted rounded-lg">
+                <p className="text-sm font-semibold">{qrFile.name}</p>
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-4">
+              <Button onClick={handleQRUpload} className="flex-1" disabled={uploadingQR || !qrFile}>
+                {uploadingQR ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload
+                  </>
+                )}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setShowQrUpload(false)} disabled={uploadingQR}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Collection Dialog */}
+      <Dialog open={showAddCollection} onOpenChange={setShowAddCollection}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{auth.hasRole('student') ? 'Entry' : 'Add Fund Collection Entry'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleAddCollection} className="space-y-4">
+            <div>
+              <Label>Payer Name *</Label>
+              <Input
+                value={collectionFormData.payer_name}
+                onChange={(e) =>
+                  setCollectionFormData({ ...collectionFormData, payer_name: e.target.value })
+                }
+                placeholder="Enter payer name"
+              />
+            </div>
+
+            <div>
+              <Label>Amount *</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={collectionFormData.amount}
+                onChange={(e) =>
+                  setCollectionFormData({ ...collectionFormData, amount: e.target.value })
+                }
+                placeholder="Enter amount"
+              />
+            </div>
+
+            {auth.hasRole('student') ? (
+              <div>
+                <Label>Mode *</Label>
+                <Input value="UPI" disabled />
+              </div>
+            ) : (
+              <div>
+                <Label>Payment Mode *</Label>
+                <Select
+                  value={collectionFormData.payment_mode}
+                  onValueChange={(value) =>
+                    setCollectionFormData({ ...collectionFormData, payment_mode: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="online">Online</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Show QR Code when Online is selected */}
+            {collectionFormData.payment_mode === 'online' && (
+              <div className="space-y-2">
+                {qrCodePath ? (
+                  <div className="border-2 border-blue-500 rounded-lg p-4 bg-blue-50 dark:bg-blue-950">
+                    <p className="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-3">
+                      💳 Scan QR Code for Online Payment
+                    </p>
+                    <div className="flex justify-center">
+                      <img 
+                        src={qrCodePath} 
+                        alt="Payment QR Code" 
+                        className="max-w-xs rounded border-2 border-blue-300"
+                        onError={() => console.log('QR Code failed to load from:', qrCodePath)}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="border-2 border-amber-300 rounded-lg p-4 bg-amber-50 dark:bg-amber-950">
+                    <div className="flex flex-col items-center justify-center gap-3 py-4">
+                      <div className="w-24 h-24 bg-gray-300 dark:bg-gray-600 rounded flex items-center justify-center">
+                        <QrCode className="w-12 h-12 text-gray-500" />
+                      </div>
+                      <p className="text-sm text-amber-700 dark:text-amber-300 text-center">
+                        ⚠️ QR Code not available yet. Please contact admin to upload payment QR code.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div>
+              <Label>Department</Label>
+              <Select
+                value={collectionFormData.department || 'none'}
+                onValueChange={(value) =>
+                  setCollectionFormData({ ...collectionFormData, department: value === 'none' ? '' : value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="CSE">Computer Science & Engineering</SelectItem>
+                  <SelectItem value="ECE">Electronics & Communication</SelectItem>
+                  <SelectItem value="MECH">Mechanical Engineering</SelectItem>
+                  <SelectItem value="CIVIL">Civil Engineering</SelectItem>
+                  <SelectItem value="EEE">Electrical & Electronics</SelectItem>
+                  <SelectItem value="IT">Information Technology</SelectItem>
+                  <SelectItem value="OTHER">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {!auth.hasRole('student') && (
+              <div>
+                <Label>Transaction ID *</Label>
+                <Input
+                  value={collectionFormData.transaction_id}
+                  onChange={(e) =>
+                    setCollectionFormData({ ...collectionFormData, transaction_id: e.target.value })
+                  }
+                  placeholder="Enter UPI transaction reference / ID"
+                />
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-4">
+              <Button type="submit" className="flex-1">
+                {auth.hasRole('student') ? 'Submit Entry' : 'Add Entry'}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setShowAddCollection(false)}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Collection Dialog */}
+      <Dialog open={showEditCollection} onOpenChange={setShowEditCollection}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Fund Collection Entry</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdateCollection} className="space-y-4">
             <div>
               <Label>Payer Name *</Label>
               <Input
@@ -593,20 +1198,33 @@ const EventFundsManagement = () => {
 
             <div>
               <Label>Department</Label>
-              <Input
-                value={collectionFormData.department}
-                onChange={(e) =>
-                  setCollectionFormData({ ...collectionFormData, department: e.target.value })
+              <Select
+                value={collectionFormData.department || 'none'}
+                onValueChange={(value) =>
+                  setCollectionFormData({ ...collectionFormData, department: value === 'none' ? '' : value })
                 }
-                placeholder="Optional"
-              />
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="CSE">Computer Science & Engineering</SelectItem>
+                  <SelectItem value="ECE">Electronics & Communication</SelectItem>
+                  <SelectItem value="MECH">Mechanical Engineering</SelectItem>
+                  <SelectItem value="CIVIL">Civil Engineering</SelectItem>
+                  <SelectItem value="EEE">Electrical & Electronics</SelectItem>
+                  <SelectItem value="IT">Information Technology</SelectItem>
+                  <SelectItem value="OTHER">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex gap-2 pt-4">
               <Button type="submit" className="flex-1">
-                Add Entry
+                Update Entry
               </Button>
-              <Button type="button" variant="outline" onClick={() => setShowAddCollection(false)}>
+              <Button type="button" variant="outline" onClick={() => setShowEditCollection(false)}>
                 Cancel
               </Button>
             </div>

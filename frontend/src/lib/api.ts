@@ -1002,6 +1002,12 @@ class ApiClient {
     });
   }
 
+  async clearAllAnnouncements() {
+    return this.request(`/announcements/clear-all`, {
+      method: 'DELETE'
+    });
+  }
+
   // Feedback endpoints
   async getFeedbackQuestions() {
     return this.request('/feedback/questions');

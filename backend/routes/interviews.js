@@ -62,6 +62,32 @@ const all = (db, query, params = []) => {
     });
 };
 
+const applyTemplateVars = (text, vars) => {
+    if (text === undefined || text === null) return '';
+    let out = String(text);
+    // Only required variables for this module
+    for (const [key, value] of Object.entries(vars)) {
+        const safeValue = value === undefined || value === null ? '' : String(value);
+        out = out.replace(new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g'), safeValue);
+    }
+    return out;
+};
+
+const wrapBodyAsHtml = (body) => {
+    // If admin provides HTML, keep it. Otherwise treat as plain text.
+    if (!body) return '';
+    const s = String(body);
+    const looksLikeHtml = /<\/?[a-z][\s\S]*>/i.test(s);
+    if (looksLikeHtml) return s;
+    const escaped = s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    return `<div>${escaped.replace(/\n/g, '<br/>')}</div>`;
+};
+
 // GET /api/interviews - List all candidates
 router.get('/', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
     try {
@@ -428,6 +454,10 @@ router.put('/:id', authenticateToken, requireRole('admin', 'office_bearer'), asy
 // GET /api/interviews/my-status - Get interview status for logged in user
 router.get('/my-status', authenticateToken, async (req, res) => {
     try {
+        if (!req.user?.is_interviewer) {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
         const db = getDatabase();
         const user = await get(db, 'SELECT * FROM users WHERE id = ?', [req.user.id]);
 
@@ -483,6 +513,10 @@ router.get('/my-status', authenticateToken, async (req, res) => {
 // GET /api/interviews/my-candidates - Get candidates assigned to current mentor
 router.get('/my-candidates', authenticateToken, async (req, res) => {
     try {
+        if (!req.user?.is_interviewer) {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
         const db = getDatabase();
         const user = await get(db, 'SELECT * FROM users WHERE id = ?', [req.user.id]);
 
@@ -681,29 +715,64 @@ router.delete('/:id', authenticateToken, requireRole('admin', 'office_bearer'), 
 router.get('/admin/email-candidates', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
     try {
         const db = getDatabase();
-        const { type = 'registration' } = req.query; // 'registration' or 'outcome'
+        const { type = 'registration' } = req.query; // registration/outcome OR selected/rejected
 
+        // Manual outcome email logs use email_logs (keyed by candidate.user_id + type)
+        if (type === 'selected' || type === 'rejected') {
+            const decisionType = type;
+            const candidates = await all(
+                db,
+                `
+                SELECT
+                  ic.id,
+                  ic.name,
+                  ic.email,
+                  ic.user_id,
+                  ic.decision,
+                  ic.status,
+                  COALESCE(el.status, 'pending') AS email_status,
+                  el.sent_at
+                FROM interview_candidates ic
+                LEFT JOIN email_logs el
+                  ON el.user_id = ic.user_id
+                 AND el.type = ?
+                WHERE ic.status = 'completed'
+                  AND ic.decision = ?
+                ORDER BY ic.created_at DESC
+                `,
+                [decisionType, decisionType]
+            );
+
+            res.json({
+                success: true,
+                candidates: (candidates || []).map((c) => ({
+                    ...c,
+                    already_sent: c.email_status === 'sent'
+                })),
+                emailType: decisionType
+            });
+            return;
+        }
+
+        // Legacy behavior (registration/outcome template-based)
         let candidates;
-        
         if (type === 'outcome') {
-            // Get candidates with submitted marks (completed status)
-            candidates = await all(db, 
-                `SELECT id, name, email, marks, decision, status, email_sent, created_at 
-                 FROM interview_candidates 
-                 WHERE status = 'completed' 
+            candidates = await all(db,
+                `SELECT id, name, email, marks, decision, status, email_sent, created_at
+                 FROM interview_candidates
+                 WHERE status = 'completed'
                  ORDER BY created_at DESC`
             );
         } else {
-            // Get all candidates for registration emails (default)
-            candidates = await all(db, 
-                `SELECT id, name, email, dept, year, register_no, status, email_sent, created_at 
-                 FROM interview_candidates 
+            candidates = await all(db,
+                `SELECT id, name, email, dept, year, register_no, status, email_sent, created_at
+                 FROM interview_candidates
                  ORDER BY created_at DESC`
             );
         }
 
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             candidates: candidates || [],
             emailType: type
         });
@@ -716,7 +785,7 @@ router.get('/admin/email-candidates', authenticateToken, requireRole('admin', 'o
 // POST /api/interviews/admin/preview-email - Get email preview
 router.post('/admin/preview-email', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
     try {
-        const { candidateId, emailType = 'registration' } = req.body;
+        const { candidateId, emailType = 'registration', type, subject, body } = req.body;
 
         if (!candidateId) {
             return res.status(400).json({ success: false, message: 'Candidate ID required' });
@@ -729,15 +798,22 @@ router.post('/admin/preview-email', authenticateToken, requireRole('admin', 'off
             return res.status(404).json({ success: false, message: 'Candidate not found' });
         }
 
-        let subject = '';
+        let finalSubject = '';
         let html = '';
 
-        if (emailType === 'outcome') {
-            // Outcome email preview
-            subject = candidate.decision === 'selected' 
+        // Manual compose with {{name}} and {{email}}
+        const hasManualCompose = (subject && String(subject).trim()) || (body && String(body).trim());
+        if (hasManualCompose) {
+            const vars = { name: candidate.name, email: candidate.email };
+            finalSubject = applyTemplateVars(subject || '', vars).trim() || 'Interview Update - SM Volunteers';
+            const replacedBody = applyTemplateVars(body || '', vars);
+            html = wrapBodyAsHtml(replacedBody);
+        } else if (emailType === 'outcome') {
+            // Outcome email preview (legacy template)
+            finalSubject = candidate.decision === 'selected'
                 ? '🎉 Congratulations! You are Selected'
                 : `Interview Result - ${candidate.decision || 'Pending'}`;
-            
+
             html = getInterviewOutcomeTemplate({
                 name: candidate.name,
                 decision: candidate.decision || 'pending',
@@ -748,8 +824,8 @@ router.post('/admin/preview-email', authenticateToken, requireRole('admin', 'off
                 decisionLink: `${process.env.FRONTEND_URL || 'http://localhost:9000'}/my-interview`,
             });
         } else {
-            // Registration email preview
-            subject = "Interview Process Registration - SM Volunteers";
+            // Registration email preview (legacy template)
+            finalSubject = "Interview Process Registration - SM Volunteers";
             html = getInterviewEmailTemplate(candidate.name, candidate.register_no);
         }
 
@@ -758,9 +834,9 @@ router.post('/admin/preview-email', authenticateToken, requireRole('admin', 'off
             preview: {
                 email: candidate.email,
                 name: candidate.name,
-                subject,
+                subject: finalSubject,
                 html,
-                emailType
+                emailType: type || emailType
             }
         });
     } catch (error) {
@@ -769,83 +845,166 @@ router.post('/admin/preview-email', authenticateToken, requireRole('admin', 'off
     }
 });
 
-// POST /api/interviews/admin/send-outcome-emails - Send outcome emails to selected candidates
+// POST /api/interviews/admin/send-outcome-emails - Send outcome emails (manual selected/rejected flow)
 router.post('/admin/send-outcome-emails', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
     try {
-        const { candidateIds, emailType = 'outcome' } = req.body;
+        const { candidateIds, emailType = 'outcome', type, subject, body } = req.body;
 
         if (!candidateIds || !Array.isArray(candidateIds) || candidateIds.length === 0) {
             return res.status(400).json({ success: false, message: 'No candidates selected' });
         }
 
         const db = getDatabase();
+        const targetType = type === 'selected' || type === 'rejected' ? type : null;
+
+        const useEmailLogs = !!targetType;
+
         let sentCount = 0;
-        const failedEmails = [];
+        let skippedCount = 0;
+        let failedCount = 0;
 
         const placeholders = candidateIds.map(() => '?').join(',');
-        const candidates = await all(db, `SELECT * FROM interview_candidates WHERE id IN (${placeholders})`, candidateIds);
+        const candidates = await all(
+            db,
+            `SELECT * FROM interview_candidates WHERE id IN (${placeholders})`,
+            candidateIds
+        );
 
         for (const candidate of candidates) {
-            const { id, name, email, decision, marks, interview_date, interview_time, interviewer } = candidate;
-
-            // Skip if already sent and not forcing resend
-            if (candidate.email_sent && emailType === 'registration') {
-                continue;
-            }
-
             try {
-                let subject = '';
-                let html = '';
+                const { id, name, email, decision, marks, interview_date, interview_time, interviewer, user_id, register_no } = candidate;
 
-                if (emailType === 'outcome') {
-                    subject = decision === 'selected' 
-                        ? '🎉 Congratulations! You are Selected'
-                        : `Interview Result - ${decision || 'Pending'}`;
-                    
-                    html = getInterviewOutcomeTemplate({
-                        name,
-                        decision: decision || 'pending',
-                        interviewerName: interviewer || '',
-                        interviewDate: interview_date || '',
-                        interviewTime: interview_time || '',
-                        marks: marks || '',
-                        decisionLink: `${process.env.FRONTEND_URL || 'http://localhost:9000'}/my-interview`,
-                    });
-                } else {
-                    subject = "Interview Process Registration - SM Volunteers";
-                    html = getInterviewEmailTemplate(name, candidate.register_no);
-                }
+                if (useEmailLogs) {
+                    if (candidate.status !== 'completed' || decision !== targetType) {
+                        skippedCount++;
+                        continue;
+                    }
+                    if (!user_id) {
+                        failedCount++;
+                        continue;
+                    }
 
-                const sent = await sendEmail(email, subject, html);
-                if (sent) {
-                    await run(db, 'UPDATE interview_candidates SET email_sent = 1 WHERE id = ?', [id]);
-                    sentCount++;
+                    // Already sent?
+                    const existing = await get(
+                        db,
+                        'SELECT status FROM email_logs WHERE user_id = ? AND type = ?',
+                        [user_id, targetType]
+                    );
+                    if (existing?.status === 'sent') {
+                        skippedCount++;
+                        continue;
+                    }
+
+                    const vars = { name, email };
+                    const hasManualCompose = (subject && String(subject).trim()) || (body && String(body).trim());
+
+                    const finalSubject = hasManualCompose
+                        ? applyTemplateVars(subject || '', vars).trim() || `Interview Update - SM Volunteers`
+                        : (decision === 'selected'
+                            ? '🎉 Congratulations! You are Selected'
+                            : `Interview Result - ${decision || 'Pending'}`);
+
+                    const finalHtml = hasManualCompose
+                        ? wrapBodyAsHtml(applyTemplateVars(body || '', vars))
+                        : getInterviewOutcomeTemplate({
+                            name,
+                            decision: decision || 'pending',
+                            interviewerName: interviewer || '',
+                            interviewDate: interview_date || '',
+                            interviewTime: interview_time || '',
+                            marks: marks || '',
+                            decisionLink: `${process.env.FRONTEND_URL || 'http://localhost:9000'}/my-interview`,
+                        });
+
+                    // Ensure log row exists (pending)
+                    if (!existing) {
+                        await run(
+                            db,
+                            'INSERT INTO email_logs (user_id, type, status, sent_at) VALUES (?, ?, ?, ?)',
+                            [user_id, targetType, 'pending', null]
+                        );
+                    } else {
+                        await run(
+                            db,
+                            'UPDATE email_logs SET status = ?, sent_at = NULL WHERE user_id = ? AND type = ?',
+                            ['pending', user_id, targetType]
+                        );
+                    }
+
+                    const sent = await sendEmail(email, finalSubject, finalHtml);
+                    if (sent) {
+                        await run(
+                            db,
+                            'UPDATE email_logs SET status = ?, sent_at = CURRENT_TIMESTAMP WHERE user_id = ? AND type = ?',
+                            ['sent', user_id, targetType]
+                        );
+                        sentCount++;
+                    } else {
+                        // Keep as pending
+                        failedCount++;
+                    }
                 } else {
-                    failedEmails.push(email);
+                    // Legacy fallback: existing template-based flow
+                    let legacySubject = '';
+                    let legacyHtml = '';
+
+                    if (emailType === 'outcome') {
+                        legacySubject = decision === 'selected'
+                            ? '🎉 Congratulations! You are Selected'
+                            : `Interview Result - ${decision || 'Pending'}`;
+
+                        legacyHtml = getInterviewOutcomeTemplate({
+                            name,
+                            decision: decision || 'pending',
+                            interviewerName: interviewer || '',
+                            interviewDate: interview_date || '',
+                            interviewTime: interview_time || '',
+                            marks: marks || '',
+                            decisionLink: `${process.env.FRONTEND_URL || 'http://localhost:9000'}/my-interview`,
+                        });
+                    } else {
+                        legacySubject = "Interview Process Registration - SM Volunteers";
+                        legacyHtml = getInterviewEmailTemplate(name, register_no);
+                    }
+
+                    // Skip if already sent registration emails (legacy behavior)
+                    if (candidate.email_sent && emailType === 'registration') {
+                        skippedCount++;
+                        continue;
+                    }
+
+                    const sent = await sendEmail(email, legacySubject, legacyHtml);
+                    if (sent) {
+                        await run(db, 'UPDATE interview_candidates SET email_sent = 1 WHERE id = ?', [id]);
+                        sentCount++;
+                    } else {
+                        failedCount++;
+                    }
                 }
             } catch (err) {
-                console.error(`Failed to send ${emailType} email to ${email}:`, err);
-                failedEmails.push(email);
+                console.error(`Failed to send email for candidate id=${candidate?.id}:`, err);
+                failedCount++;
             }
         }
 
-        await logActivity(req.user.id, `SEND_${emailType.toUpperCase()}_EMAILS`, 
-            { count: sentCount, candidateIds, failedCount: failedEmails.length }, 
-            req, {
+        await logActivity(
+            req.user.id,
+            'SEND_OUTCOME_EMAILS_MANUAL',
+            { sentCount, skippedCount, failedCount, candidateIds, type: targetType || emailType },
+            req,
+            {
                 action_type: 'UPDATE',
                 module_name: 'interviews',
-                action_description: `Sent ${emailType} emails to ${sentCount} candidates`
+                action_description: `Manual email send (${targetType || emailType}) - sent=${sentCount}, skipped=${skippedCount}, failed=${failedCount}`
             }
         );
 
-        res.json({ 
-            success: true, 
-            message: `Emails sent successfully to ${sentCount} candidates`,
+        res.json({
+            success: true,
             sentCount,
-            failedCount: failedEmails.length,
-            failedEmails: failedEmails.length > 0 ? failedEmails : undefined
+            skippedCount,
+            failedCount
         });
-
     } catch (error) {
         console.error('Send outcome emails error:', error);
         res.status(500).json({ success: false, message: 'Server error sending emails' });

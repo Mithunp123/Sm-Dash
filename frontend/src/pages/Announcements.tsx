@@ -129,7 +129,7 @@ const Announcements = () => {
                     <div>
                         <h1 className="page-title uppercase flex flex-wrap items-center gap-x-2">
                             Announcement
-                            <span className="bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent italic">Control Center</span>
+                            <span className="bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">Control Center</span>
                         </h1>
                         <p className="page-subtitle uppercase tracking-widest mt-2">Broadcast updates in real-time</p>
                     </div>
@@ -219,7 +219,7 @@ const Announcements = () => {
                                             checked={formData.priority === "important"}
                                             onCheckedChange={checked => setFormData({ ...formData, priority: checked ? "important" : "normal" })}
                                         />
-                                        <Label htmlFor="priority" className="flex items-center gap-2 cursor-pointer font-bold text-sm text-rose-600 dark:text-rose-400 font-black italic">
+                                        <Label htmlFor="priority" className="flex items-center gap-2 cursor-pointer font-bold text-sm text-rose-600 dark:text-rose-400 font-black">
                                             <Sparkles className="w-4 h-4" />
                                             IMPORTANT (Highlight Layout)
                                         </Label>
@@ -290,9 +290,38 @@ const Announcements = () => {
                                 </CardTitle>
                                 <CardDescription className="font-medium text-[10px] md:text-sm">Managing the flow of active announcements.</CardDescription>
                             </div>
-                            <Button variant="outline" size="sm" onClick={loadAnnouncements} className="rounded-xl font-bold bg-background/50 h-8 md:h-10 text-[10px] md:text-xs">
-                                Refresh
-                            </Button>
+                            <div className="flex gap-2 items-center">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={loadAnnouncements}
+                                    className="rounded-xl font-bold bg-background/50 h-8 md:h-10 text-[10px] md:text-xs"
+                                >
+                                    Refresh
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    className="rounded-xl font-bold h-8 md:h-10 text-[10px] md:text-xs"
+                                    onClick={async () => {
+                                        if (!confirm("Are you sure you want to clear all announcements?")) return;
+                                        try {
+                                            const res = await api.clearAllAnnouncements?.();
+                                            if (res?.success) {
+                                                toast.success("All announcements cleared");
+                                                await loadAnnouncements();
+                                            } else {
+                                                toast.error(res?.message || "Failed to clear announcements");
+                                            }
+                                        } catch (e: any) {
+                                            toast.error(e?.message || "Failed to clear announcements");
+                                        }
+                                    }}
+                                >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Clear All
+                                </Button>
+                            </div>
                         </CardHeader>
                         <CardContent className="p-0">
                             {loading ? (
@@ -305,7 +334,7 @@ const Announcements = () => {
                                     <div className="w-20 h-20 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-2">
                                         <Megaphone className="w-10 h-10 text-muted-foreground/20" />
                                     </div>
-                                    <p className="text-muted-foreground font-bold italic">No active broadcasts found.</p>
+                                    <p className="text-muted-foreground font-bold">No active broadcasts found.</p>
                                 </div>
                             ) : (
                                 <div className="overflow-x-auto">

@@ -1,39 +1,59 @@
 // Settings Model
-const db = require('../database/init');
+import { getDatabase } from '../database/init.js';
+
+// Helper functions for database queries
+const get = (db, query, params = []) => {
+  return new Promise((resolve, reject) => {
+    db.get(query, params, (err, row) => {
+      if (err) reject(err);
+      else resolve(row);
+    });
+  });
+};
+
+const all = (db, query, params = []) => {
+  return new Promise((resolve, reject) => {
+    db.all(query, params, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+};
+
+const run = (db, query, params = []) => {
+  return new Promise((resolve, reject) => {
+    db.run(query, params, function (err) {
+      if (err) reject(err);
+      else resolve({ lastID: this.lastID, changes: this.changes });
+    });
+  });
+};
 
 const Settings = {
   /**
    * Get a setting by key
    */
   async getSetting(key) {
+    const db = getDatabase();
     const query = `SELECT * FROM settings WHERE setting_key = ?`;
-
-    return new Promise((resolve, reject) => {
-      db.query(query, [key], (err, results) => {
-        if (err) reject(err);
-        else resolve(results[0] || null);
-      });
-    });
+    const result = await get(db, query, [key]);
+    return result || null;
   },
 
   /**
    * Get all settings
    */
   async getAllSettings() {
+    const db = getDatabase();
     const query = `SELECT * FROM settings`;
-
-    return new Promise((resolve, reject) => {
-      db.query(query, [], (err, results) => {
-        if (err) reject(err);
-        else resolve(results);
-      });
-    });
+    return await all(db, query, []);
   },
 
   /**
    * Update a setting
    */
   async updateSetting(key, value, userId) {
+    const db = getDatabase();
     const query = `
       INSERT INTO settings (setting_key, setting_value, updated_by)
       VALUES (?, ?, ?)
@@ -42,41 +62,28 @@ const Settings = {
         updated_by = ?,
         updated_at = CURRENT_TIMESTAMP
     `;
-
-    return new Promise((resolve, reject) => {
-      db.query(query, [key, value, userId, value, userId], (err, result) => {
-        if (err) reject(err);
-        else resolve({ success: true, key, value });
-      });
-    });
+    await run(db, query, [key, value, userId, value, userId]);
+    return { success: true, key, value };
   },
 
   /**
    * Check if fundraising is enabled
    */
   async isFundraisingEnabled() {
+    const db = getDatabase();
     const query = `SELECT setting_value FROM settings WHERE setting_key = 'fundraising_enabled'`;
-
-    return new Promise((resolve, reject) => {
-      db.query(query, [], (err, results) => {
-        if (err) reject(err);
-        else resolve(results[0]?.setting_value === 'true' || false);
-      });
-    });
+    const result = await get(db, query, []);
+    return result?.setting_value === 'true' || false;
   },
 
   /**
    * Get QR code path
    */
   async getQRCodePath() {
+    const db = getDatabase();
     const query = `SELECT setting_value FROM settings WHERE setting_key = 'qr_code_path'`;
-
-    return new Promise((resolve, reject) => {
-      db.query(query, [], (err, results) => {
-        if (err) reject(err);
-        else resolve(results[0]?.setting_value || '');
-      });
-    });
+    const result = await get(db, query, []);
+    return result?.setting_value || '';
   },
 
   /**
@@ -94,4 +101,4 @@ const Settings = {
   }
 };
 
-module.exports = Settings;
+export default Settings;

@@ -63,9 +63,27 @@ const getQRCodePath = async (db) => {
   }
 };
 
+const getFundEntryEnabled = async (db) => {
+  try {
+    const row = await get(
+      db,
+      `SELECT setting_value
+       FROM settings
+       WHERE setting_key = 'fund_entry_enabled'`
+    );
+    const raw = row?.setting_value;
+    // Default TRUE if missing
+    if (raw === undefined || raw === null || raw === '') return true;
+    return raw === true || raw === 'true' || raw === '1';
+  } catch {
+    // If settings table is missing/uninitialized, default to enabled
+    return true;
+  }
+};
+
 const requireFundraisingEnabled = async (req, res, db) => {
   const enabled = await getFundraisingEnabled(db);
-  if (!enabled && req.user.role !== 'admin') {
+  if (!enabled && !['admin', 'student', 'office_bearer'].includes(req.user.role)) {
     res.status(403).json({
       success: false,
       message: 'Fund raising is currently disabled'
@@ -100,6 +118,17 @@ const validateAddCollection = (body) => {
     return { ok: false, message: 'payment_mode must be either "cash" or "online"' };
   }
 
+  const normalizedContributorType = contributor_type || 'other';
+
+  // For UPI/Online payments, require a transaction id except for students
+  if (
+    payment_mode === 'online' &&
+    normalizedContributorType !== 'student' &&
+    (!transaction_id || !String(transaction_id).trim())
+  ) {
+    return { ok: false, message: 'transaction_id is required for online (UPI) payments' };
+  }
+
   if (contributor_type && !['staff', 'student', 'other'].includes(contributor_type)) {
     return { ok: false, message: 'contributor_type must be one of: staff, student, other' };
   }
@@ -111,7 +140,7 @@ const validateAddCollection = (body) => {
       payer_name: String(payer_name).trim(),
       amount: parsedAmount,
       department: department ? String(department).trim() : null,
-      contributor_type: contributor_type || 'other',
+      contributor_type: normalizedContributorType,
       payment_mode,
       transaction_id: transaction_id ? String(transaction_id).trim() : null,
       notes: notes ? String(notes).trim() : null
@@ -126,15 +155,25 @@ const validateAddCollection = (body) => {
 router.get('/status', authenticateToken, allowFinance, async (req, res) => {
   try {
     const db = getDatabase();
-    const [fundraising_enabled, qr_code_path] = await Promise.all([
+    const [fundraising_enabled, qr_code_path, fund_entry_enabled] = await Promise.all([
       getFundraisingEnabled(db),
-      getQRCodePath(db)
+      getQRCodePath(db),
+      getFundEntryEnabled(db)
     ]);
+
+    // Construct full URL for QR code if path is relative
+    let fullQrPath = qr_code_path;
+    if (qr_code_path && qr_code_path.startsWith('/')) {
+      const protocol = req.protocol || 'http';
+      const host = req.get('host') || 'localhost:3000';
+      fullQrPath = `${protocol}://${host}${qr_code_path}`;
+    }
 
     res.json({
       success: true,
       fundraising_enabled,
-      qr_code_path
+      fund_entry_enabled,
+      qr_code_path: fullQrPath
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -150,6 +189,15 @@ router.post('/add', authenticateToken, allowFinance, async (req, res) => {
     const db = getDatabase();
     const canProceed = await requireFundraisingEnabled(req, res, db);
     if (!canProceed) return;
+
+    // Enforce manual enable/disable control for entries (Scan & Pay / Add Collection)
+    const fundEntryEnabled = await getFundEntryEnabled(db);
+    if (!fundEntryEnabled) {
+      return res.status(403).json({
+        success: false,
+        message: 'Fund entry is currently disabled'
+      });
+    }
 
     const validated = validateAddCollection(req.body);
     if (!validated.ok) {
@@ -359,6 +407,55 @@ router.get('/user-contribution/:eventId', authenticateToken, allowFinance, async
  * DELETE /fundraising/:id
  * Delete a fund collection entry (Admin only)
  */
+router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { id } = req.params;
+    const { payer_name, amount, payment_mode, department, contributor_type, transaction_id, notes } = req.body;
+
+    if (!payer_name || amount === undefined) {
+      return res.status(400).json({ success: false, message: 'Payer name and amount are required' });
+    }
+
+    const updateQuery = `
+      UPDATE fund_collections 
+      SET payer_name = ?, amount = ?, payment_mode = ?, department = ?, 
+          contributor_type = ?, transaction_id = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `;
+
+    const result = await run(db, updateQuery, [
+      payer_name,
+      parseFloat(amount),
+      payment_mode || 'cash',
+      department || null,
+      contributor_type || 'student',
+      transaction_id || null,
+      notes || null,
+      id
+    ]);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ success: false, message: 'Collection entry not found' });
+    }
+
+    await logActivity(req.user.id, 'UPDATE_FUND_COLLECTION', { id, payer_name, amount }, req, {
+      action_type: 'UPDATE',
+      module_name: 'fundraising',
+      action_description: `Updated fund collection id=${id}`,
+      reference_id: id
+    });
+
+    res.json({
+      success: true,
+      message: 'Fund collection entry updated successfully',
+      affectedRows: result.changes
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const db = getDatabase();

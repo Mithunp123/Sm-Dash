@@ -47,7 +47,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // Check required interviewer role
-  if (requiredInterviewer && user.role !== 'admin' && !user.is_interviewer) {
+  if (requiredInterviewer && !user.is_interviewer) {
     return <Navigate to="/unauthorized" replace />;
   }
 

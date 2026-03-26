@@ -579,7 +579,7 @@ router.get('/:id', authenticateToken, requirePermission('can_manage_events', { a
 router.post('/', authenticateToken, requirePermission('can_manage_events', { requireEdit: true }), eventImageUpload.single('image'), (req, res) => {
   try {
     const db = getDatabase();
-    const { title, description, date, year, is_special_day, image_url, max_volunteers, volunteer_registration_deadline } = req.body;
+    const { title, description, date, year, is_special_day, image_url, max_volunteers, volunteer_registration_deadline, finance_enabled } = req.body;
 
     console.log('📸 Event creation - File uploaded:', !!req.file, 'Image URL provided:', !!image_url);
     if (req.file) {
@@ -609,9 +609,9 @@ router.post('/', authenticateToken, requirePermission('can_manage_events', { req
     }
 
     db.run(
-      `INSERT INTO events (title, description, date, year, is_special_day, image_url, max_volunteers, volunteer_registration_deadline, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-      [title, description || null, date, year, is_special_day ? 1 : 0, finalImageUrl, max_volunteers || null, volunteer_registration_deadline || null],
+      `INSERT INTO events (title, description, date, year, is_special_day, image_url, max_volunteers, volunteer_registration_deadline, finance_enabled, created_by, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [title, description || null, date, year, is_special_day ? 1 : 0, finalImageUrl, max_volunteers || null, volunteer_registration_deadline || null, finance_enabled ? 1 : 0, req.user.id],
       async function (err) {
         if (err) {
           // Clean up uploaded file on error
@@ -620,10 +620,10 @@ router.post('/', authenticateToken, requirePermission('can_manage_events', { req
           }
           return res.status(500).json({ success: false, message: 'Failed to create event', error: err.message });
         }
-        await logActivity(req.user.id, 'CREATE_EVENT', { title, date }, req, {
+        await logActivity(req.user.id, 'CREATE_EVENT', { title, date, finance_enabled }, req, {
           action_type: 'CREATE',
           module_name: 'events',
-          action_description: `Created event: ${title}`,
+          action_description: `Created event: ${title}${finance_enabled ? ' (Finance enabled)' : ''}`,
           reference_id: this.lastID
         });
         res.json({ success: true, id: this.lastID, message: 'Event created successfully' });
@@ -643,7 +643,7 @@ router.put('/:id', authenticateToken, requirePermission('can_manage_events', { r
   try {
     const db = getDatabase();
     const { id } = req.params;
-    const { title, description, date, year, is_special_day, image_url, max_volunteers, volunteer_registration_deadline } = req.body;
+    const { title, description, date, year, is_special_day, image_url, max_volunteers, volunteer_registration_deadline, finance_enabled } = req.body;
 
     // Get existing event to delete old image if new one is uploaded
     const existingEvent = await new Promise((resolve, reject) => {
@@ -671,9 +671,9 @@ router.put('/:id', authenticateToken, requirePermission('can_manage_events', { r
     }
 
     db.run(
-      `UPDATE events SET title = ?, description = ?, date = ?, year = ?, is_special_day = ?, image_url = ?, max_volunteers = ?, volunteer_registration_deadline = ?, updated_at = CURRENT_TIMESTAMP
+      `UPDATE events SET title = ?, description = ?, date = ?, year = ?, is_special_day = ?, image_url = ?, max_volunteers = ?, volunteer_registration_deadline = ?, finance_enabled = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`,
-      [title, description, date, year, is_special_day ? 1 : 0, finalImageUrl, max_volunteers || null, volunteer_registration_deadline || null, id],
+      [title, description, date, year, is_special_day ? 1 : 0, finalImageUrl, max_volunteers || null, volunteer_registration_deadline || null, finance_enabled ? 1 : 0, id],
       async function (err) {
         if (err) {
           // Clean up uploaded file on error
@@ -689,10 +689,10 @@ router.put('/:id', authenticateToken, requirePermission('can_manage_events', { r
           }
           return res.status(404).json({ success: false, message: 'Event not found' });
         }
-        await logActivity(req.user.id, 'UPDATE_EVENT', { id, title }, req, {
+        await logActivity(req.user.id, 'UPDATE_EVENT', { id, title, finance_enabled }, req, {
           action_type: 'UPDATE',
           module_name: 'events',
-          action_description: `Updated event: ${title}`,
+          action_description: `Updated event: ${title}${finance_enabled ? ' (Finance enabled)' : ''}`,
           reference_id: id
         });
         res.json({ success: true, message: 'Event updated successfully' });
