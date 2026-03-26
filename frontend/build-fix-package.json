@@ -1,0 +1,14 @@
+{
+  "name": "fix-build",
+  "version": "1.0.0",
+  "scripts": {
+    "clean": "rimraf dist node_modules/.vite",
+    "fresh-install": "rimraf node_modules package-lock.json && npm install",
+    "build-clean": "npm run clean && npm run build",
+    "test-build": "npm run clean && npm install && npm run build",
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "rimraf": "^5.0.5"
+  }
+}

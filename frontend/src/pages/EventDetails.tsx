@@ -20,6 +20,7 @@ import autoTable from 'jspdf-autotable';
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { auth } from "@/lib/auth";
+// Ensure correct path resolution for Cloudflare builds
 import ksrctLogo from "../assets/images/Brand_logo.png";
 import smLogo from "../assets/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png";
 
