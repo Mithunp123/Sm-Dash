@@ -1,8 +1,4 @@
 ﻿import { useState, useEffect, useCallback, useRef } from "react";
-import principalImg from "../../../docs/Images/Dr.R. Gopalakrishnan.jpg";
-import palaniappanImg from "../../../docs/Images/Dr.A.Palaniappan.jpg";
-import mythiliImg from "../../../docs/Images/MYTHILI MAM.png";
-import rajkumarImg from "../../../docs/Images/Rajkumar.png";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -25,6 +21,12 @@ import { buildImageUrl } from "@/utils/imageUtils";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+
+// Image constants using public folder paths
+const principalImg = "/images/Dr.R. Gopalakrishnan.jpg";
+const palaniappanImg = "/images/Dr.A.Palaniappan.jpg";
+const mythiliImg = "/images/MYTHILI MAM.jpg";
+const rajkumarImg = "/images/Rajkumar.png";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
