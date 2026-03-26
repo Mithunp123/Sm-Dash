@@ -34,3 +34,4 @@ backend/database/database.db
 *.sqlite
 # Ignore
 docs
+scripts
