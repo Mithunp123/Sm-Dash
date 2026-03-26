@@ -21,8 +21,8 @@ import { usePermissions } from "@/hooks/usePermissions";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import ksrctLogo from "../../../docs/Images/Brand_logo.png";
-import smLogo from "../../../docs/Images/Picsart_23-05-18_16-47-20-287-removebg-preview.png";
+import ksrctLogo from "../assets/images/Brand_logo.png";
+import smLogo from "../assets/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png";
 
 const ManageEvents = () => {
   const navigate = useNavigate();
