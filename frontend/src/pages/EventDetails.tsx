@@ -20,8 +20,8 @@ import autoTable from 'jspdf-autotable';
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { auth } from "@/lib/auth";
-import ksrctLogo from "../../../docs/Images/Brand_logo.png";
-import smLogo from "../../../docs/Images/Picsart_23-05-18_16-47-20-287-removebg-preview.png";
+import ksrctLogo from "../assets/images/Brand_logo.png";
+import smLogo from "../assets/images/Picsart_23-05-18_16-47-20-287-removebg-preview.png";
 
 const EventDetails = () => {
     const { id } = useParams<{ id: string }>();
