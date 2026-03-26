@@ -349,7 +349,7 @@ router.get('/collections', authenticateToken, allowFinance, async (req, res) => 
 
     // Office Bearer: only see their own collections
     if (req.user.role === 'office_bearer') {
-      query += ' AND user_id = ?';
+      query += ' AND received_by = ?';
       params.push(req.user.id);
     }
 
@@ -369,19 +369,20 @@ router.post('/collections', authenticateToken, allowFinance, async (req, res) =>
   try {
     const {
       eventId,
-      categoryId,
       payerName,
-      contributedAmount,
+      amount,
       department,
       contributorType,
-      paymentMode
+      paymentMode,
+      transactionId,
+      notes
     } = req.body;
 
-    if (!eventId || !categoryId || !payerName || !contributedAmount) {
-      return res.status(400).json({ success: false, message: 'Missing required fields' });
+    if (!eventId || !payerName || !amount) {
+      return res.status(400).json({ success: false, message: 'Missing required fields: eventId, payerName, amount' });
     }
 
-    if (!['staff', 'student', 'other'].includes(contributorType)) {
+    if (contributorType && !['staff', 'student', 'other'].includes(contributorType)) {
       return res.status(400).json({ success: false, message: 'Invalid contributor type' });
     }
 
@@ -390,28 +391,28 @@ router.post('/collections', authenticateToken, allowFinance, async (req, res) =>
     // received_by is auto-filled from JWT token
     const result = await run(
       db,
-      `INSERT INTO fund_collections 
-       (event_id, category_id, payer_name, contributed_amount, department, contributor_type, payment_mode, received_by, user_id)
+      `INSERT INTO fund_collections
+       (event_id, payer_name, amount, department, contributor_type, payment_mode, transaction_id, notes, received_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         eventId,
-        categoryId,
         payerName,
-        contributedAmount,
+        parseFloat(amount),
         department || null,
-        contributorType,
+        contributorType || 'other',
         paymentMode || 'cash',
-        req.user.name, // auto-filled from JWT
-        req.user.id    // auto-filled from JWT
+        transactionId || null,
+        notes || null,
+        req.user.id
       ]
     );
 
     const collection = await get(db, 'SELECT * FROM fund_collections WHERE id = ?', [result.lastID]);
 
-    await logActivity(req.user.id, 'CREATE_COLLECTION', { eventId, categoryId, amount: contributedAmount }, req, {
+    await logActivity(req.user.id, 'CREATE_COLLECTION', { eventId, amount }, req, {
       action_type: 'CREATE',
       module_name: 'finance',
-      action_description: `Created collection: $${contributedAmount}`,
+      action_description: `Created collection: $${amount}`,
       reference_id: result.lastID
     });
 
@@ -438,7 +439,7 @@ router.delete('/collections/:collectionId', authenticateToken, requireAdmin, asy
     await logActivity(req.user.id, 'DELETE_COLLECTION', { collectionId }, req, {
       action_type: 'DELETE',
       module_name: 'finance',
-      action_description: `Deleted collection: $${collection.contributed_amount}`,
+      action_description: `Deleted collection: $${collection.amount}`,
       reference_id: collectionId
     });
 
@@ -471,7 +472,7 @@ router.get('/event-summary/:eventId', authenticateToken, allowFinance, async (re
     // Calculate total collections
     const collectionResult = await get(
       db,
-      `SELECT SUM(COALESCE(contributed_amount, 0)) as total_collection
+      `SELECT SUM(COALESCE(amount, 0)) as total_collection
        FROM fund_collections WHERE event_id = ?`,
       [eventId]
     );
@@ -641,10 +642,18 @@ router.get('/settings', authenticateToken, requireAdmin, async (req, res) => {
       getSettingValue(db, 'qr_code_path')
     ]);
 
+    // Construct full URL for QR code if path is relative
+    let fullQrPath = qr_code_path || '';
+    if (fullQrPath && fullQrPath.startsWith('/')) {
+      const protocol = req.protocol || 'http';
+      const host = req.get('host') || 'localhost:3000';
+      fullQrPath = `${protocol}://${host}${fullQrPath}`;
+    }
+
     res.json({
       success: true,
       fundraising_enabled: fundraising_enabled === 'true' || fundraising_enabled === '1',
-      qr_code_path: qr_code_path || ''
+      qr_code_path: fullQrPath
     });
   } catch (error) {
     console.error('Error fetching settings:', error);
@@ -764,7 +773,12 @@ router.post(
         action_description: 'Uploaded fundraising QR code'
       });
 
-      res.json({ success: true, qr_code_path });
+      // Construct full URL for response
+      const protocol = req.protocol || 'http';
+      const host = req.get('host') || 'localhost:3000';
+      const fullUrl = `${protocol}://${host}${qr_code_path}`;
+
+      res.json({ success: true, qr_code_path: fullUrl });
     } catch (error) {
       console.error('QR upload error:', error);
       res.status(500).json({ success: false, message: error.message });

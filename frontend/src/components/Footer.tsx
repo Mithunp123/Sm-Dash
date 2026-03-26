@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Phone, Mail, MapPin, Instagram, Facebook, Linkedin, Youtube, Twitter } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import brandLogo from '../../../Images/Brand_logo.png';
+import brandLogo from '../../../docs/Images/Brand_logo.png';
 
 const Footer = ({ className }: { className?: string }) => {
   return (
@@ -41,6 +41,20 @@ const Footer = ({ className }: { className?: string }) => {
                 KSR Kalvi Nagar, Tiruchengode - 637 215,<br />
                 Namakkal District, Tamil Nadu, India.
               </p>
+            </div>
+
+            {/* Google Maps Embed */}
+            <div className="mt-4 rounded-lg overflow-hidden border border-slate-800 shadow-lg">
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1381.2647386776532!2d77.828115470683!3d11.362756349074413!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ba964016c607823%3A0x580736a65c2b0005!2sK.S.RANGASAMY%20COLLEGE%20OF%20TECHNOLOGY!5e1!3m2!1sen!2sin!4v1774521536119!5m2!1sen!2sin"
+                width="100%"
+                height="200"
+                style={{ border: 0 }}
+                allowFullScreen={true}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="KSRCT Location"
+              />
             </div>
           </div>
 

@@ -15,6 +15,19 @@ export default defineConfig(({ mode }) => ({
       overlay: false,
     },
   },
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true, // ✅ CRITICAL: Cleans old files before building
+    sourcemap: false,
+    minify: 'esbuild', // Uses built-in esbuild - no extra install needed
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+        },
+      },
+    },
+  },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
     alias: {

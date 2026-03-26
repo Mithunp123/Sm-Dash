@@ -39,9 +39,8 @@ import fundraisingRoutes from './routes/fundraising.js';
 import expenseRoutes from './routes/expenses.js';
 import { initDatabase } from './database/init.js';
 
-// Load .env from backend directory first, then fallback to root directory
+// Load .env from backend directory
 dotenv.config();
-dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -66,7 +65,7 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')
 // Serve favicon.ico and favicon.png - SM Volunteers Logo
 app.get('/favicon.ico', (req, res) => {
   const rootDir = path.resolve(__dirname, '..');
-  const smLogoPath = path.join(rootDir, 'Images', 'Picsart_23-05-18_16-47-20-287-removebg-preview.png');
+  const smLogoPath = path.join(rootDir, 'docs', 'Images', 'Picsart_23-05-18_16-47-20-287-removebg-preview.png');
   const faviconPath = path.join(rootDir, 'public', 'favicon.ico');
 
   // Try SM logo first, then fallback to favicon.ico
@@ -87,7 +86,7 @@ app.get('/favicon.ico', (req, res) => {
 
 app.get('/favicon.png', (req, res) => {
   const rootDir = path.resolve(__dirname, '..');
-  const smLogoPath = path.join(rootDir, 'Images', 'Picsart_23-05-18_16-47-20-287-removebg-preview.png');
+  const smLogoPath = path.join(rootDir, 'docs', 'Images', 'Picsart_23-05-18_16-47-20-287-removebg-preview.png');
   const faviconPngPath = path.join(rootDir, 'public', 'favicon.png');
 
   if (fs.existsSync(smLogoPath)) {

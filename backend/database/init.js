@@ -89,6 +89,7 @@ const translateQueryToMySQL = (query) => {
 
   // Handle common reserved keywords in SQLite queries that clash with MySQL identifiers
   // Only include strictly reserved words that are likely to be used as identifiers
+  // Note: 'date' and 'year' are NOT included because they conflict with DATE type
   const keywords = ['order', 'group', 'user'];
   keywords.forEach(keyword => {
     // Escape keywords with backticks, but only if:
@@ -287,6 +288,13 @@ export const initDatabase = async () => {
       }
     }
 
+    // Ensure users table uses InnoDB if it already exists (required for foreign keys)
+    try {
+      await run(database, `ALTER TABLE users ENGINE=InnoDB`);
+    } catch (e) {
+      // Table doesn't exist yet, that's fine
+    }
+
     // console.log('Creating: users');
     // Users table
     await run(database, `
@@ -296,11 +304,11 @@ export const initDatabase = async () => {
         email VARCHAR(255) UNIQUE NOT NULL,
         password TEXT NOT NULL,
         role ENUM('admin', 'office_bearer', 'student', 'volunteer') NOT NULL,
-        must_change_password INTEGER DEFAULT 1,
-        is_interviewer INTEGER DEFAULT 0,
+        must_change_password INT DEFAULT 1,
+        is_interviewer INT DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
+      ) ENGINE=InnoDB
     `);
 
     // Migration: Add is_interviewer column if it doesn't exist (for existing databases)
@@ -932,88 +940,229 @@ export const initDatabase = async () => {
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // ─── EVENTS TABLE (must be created before bill_folders) ─────────────────
+    // Ensure events table uses InnoDB if it already exists (required for foreign keys)
+    try {
+      await run(database, `ALTER TABLE events ENGINE=InnoDB`);
+    } catch (e) {
+      // Table doesn't exist yet, that's fine
+    }
+
+    // Events table (for special events, functions, etc.)
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS events(
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        \`date\` VARCHAR(255) NOT NULL,
+        \`year\` VARCHAR(50) NOT NULL,
+        is_special_day INT DEFAULT 0,
+        image_url TEXT,
+        max_volunteers INT,
+        volunteer_registration_deadline DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB
+    `);
+
     // ─── BILLS & FINANCE ────────────────────────────────────────────────
-    // Bill folders (Events)
+    // Bill folders (Expense folders within events)
     await run(database, `
       CREATE TABLE IF NOT EXISTS bill_folders(
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      description TEXT,
-      qr_image TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-      `);
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        event_id INT NOT NULL,
+        folder_name VARCHAR(255) NOT NULL,
+        description TEXT,
+        created_by INT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE,
+        FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL
+      ) ENGINE=InnoDB
+    `);
+
+    // CRITICAL: Add event_id to bill_folders if it doesn't exist
+    await addColumnSafe(database, 'bill_folders', 'event_id', 'INT NOT NULL');
+    await addColumnSafe(database, 'bill_folders', 'folder_name', 'VARCHAR(255) NOT NULL');
+    await addColumnSafe(database, 'bill_folders', 'created_by', 'INT');
+    
+    // CRITICAL: Drop the old 'name' column if it exists (data migration)
+    try {
+      // Check if 'name' column exists in MySQL
+      const checkNameColumn = await new Promise((resolve, reject) => {
+        database.all(`
+          SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+          WHERE TABLE_NAME = 'bill_folders' AND COLUMN_NAME = 'name'
+        `, (err, columns) => {
+          if (err) reject(err);
+          else resolve(columns || []);
+        });
+      });
+      
+      const hasNameColumn = checkNameColumn && checkNameColumn.length > 0;
+      if (hasNameColumn) {
+        console.log('🔄 Found old "name" column in bill_folders. Migrating data...');
+        
+        // Migrate data: Copy from old 'name' column to 'folder_name'
+        await run(database, `
+          UPDATE bill_folders
+          SET folder_name = COALESCE(folder_name, name, 'Unnamed Folder')
+          WHERE folder_name IS NULL AND name IS NOT NULL
+        `);
+        
+        // Drop the old 'name' column
+        await run(database, `ALTER TABLE bill_folders DROP COLUMN name`);
+        
+        console.log('✅ bill_folders schema fixed!');
+      }
+    } catch (err) {
+      console.log('ℹ️  No schema migration needed for bill_folders:', err.message);
+    }
+
+    // CRITICAL: Create expenses table (different from financial_expenses)
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS expenses (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        event_id INT NOT NULL,
+        folder_id INT NOT NULL,
+        expense_title VARCHAR(255) NOT NULL,
+        category VARCHAR(100) DEFAULT 'other',
+        transport_from VARCHAR(255),
+        transport_to VARCHAR(255),
+        transport_mode VARCHAR(100),
+        fuel_amount DECIMAL(10, 2) DEFAULT 0,
+        breakfast_amount DECIMAL(10, 2) DEFAULT 0,
+        lunch_amount DECIMAL(10, 2) DEFAULT 0,
+        dinner_amount DECIMAL(10, 2) DEFAULT 0,
+        refreshment_amount DECIMAL(10, 2) DEFAULT 0,
+        accommodation_amount DECIMAL(10, 2) DEFAULT 0,
+        other_expense DECIMAL(10, 2) DEFAULT 0,
+        food_total DECIMAL(10, 2) DEFAULT 0,
+        travel_total DECIMAL(10, 2) DEFAULT 0,
+        grand_total DECIMAL(10, 2) DEFAULT 0,
+        created_by INT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE,
+        FOREIGN KEY(folder_id) REFERENCES bill_folders(id) ON DELETE CASCADE,
+        FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL
+      ) ENGINE=InnoDB
+    `);
 
     // Bills
     await run(database, `
       CREATE TABLE IF NOT EXISTS bills(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        folder_id INTEGER,
-        project_id INTEGER,
-        title TEXT NOT NULL,
-        amount REAL NOT NULL,
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        folder_id INT,
+        project_id INT,
+        title VARCHAR(255) NOT NULL,
+        amount DECIMAL(10, 2) NOT NULL,
         description TEXT,
         bill_date DATE,
-        bill_type TEXT,
+        bill_type VARCHAR(100),
         drive_link TEXT,
-        submitted_by INTEGER,
-        approved_by INTEGER,
-        bill_status TEXT DEFAULT 'submitted',
-        paid_by TEXT,
-        amount_source TEXT,
-        category TEXT,
+        submitted_by INT,
+        approved_by INT,
+        bill_status VARCHAR(50) DEFAULT 'submitted',
+        paid_by VARCHAR(255),
+        amount_source VARCHAR(255),
+        category VARCHAR(100),
         bill_image TEXT,
-        has_items INTEGER DEFAULT 0,
+        has_items INT DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(folder_id) REFERENCES bill_folders(id) ON DELETE SET NULL,
         FOREIGN KEY(submitted_by) REFERENCES users(id),
         FOREIGN KEY(approved_by) REFERENCES users(id)
-      )
+      ) ENGINE=InnoDB
       `);
 
     // Bill items
     await run(database, `
       CREATE TABLE IF NOT EXISTS bill_items(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        bill_id INTEGER NOT NULL,
-        category TEXT,
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        bill_id INT NOT NULL,
+        category VARCHAR(100),
         description TEXT,
-        amount REAL NOT NULL,
-        from_loc TEXT,
-        to_loc TEXT,
+        amount DECIMAL(10, 2) NOT NULL,
+        from_loc VARCHAR(255),
+        to_loc VARCHAR(255),
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(bill_id) REFERENCES bills(id) ON DELETE CASCADE
-      )
+      ) ENGINE=InnoDB
       `);
 
-    // Fund Collections
+    // Fund Collections (Fund raising entries)
     await run(database, `
       CREATE TABLE IF NOT EXISTS fund_collections (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        event_id INTEGER,
-        title TEXT,
-        payer_name TEXT NOT NULL,
-        payer_dept TEXT,
-        payer_type TEXT CHECK(payer_type IN ('student', 'staff', 'other')),
-        amount REAL DEFAULT 0,
-        payment_mode TEXT DEFAULT 'cash' CHECK(payment_mode IN ('cash', 'upi')),
-        received_by TEXT,
-        user_id INTEGER,
-        status TEXT DEFAULT 'active' CHECK(status IN ('active', 'closed')),
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        event_id INT NOT NULL,
+        payer_name VARCHAR(255) NOT NULL,
+        department VARCHAR(255),
+        amount DECIMAL(10, 2) NOT NULL,
+        payment_mode VARCHAR(50) DEFAULT 'cash',
+        received_by INT,
+        status VARCHAR(50) DEFAULT 'active',
         entry_date DATE,
-        FOREIGN KEY (event_id) REFERENCES bill_folders(id),
-        FOREIGN KEY (user_id) REFERENCES users(id)
-      )
+        contributor_type VARCHAR(50),
+        transaction_id VARCHAR(255),
+        notes TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE,
+        FOREIGN KEY(received_by) REFERENCES users(id) ON DELETE SET NULL
+      ) ENGINE=InnoDB
     `);
 
     // Migrations for enhanced fund collection
-    await addColumnSafe(database, 'bill_folders', 'event_date', 'DATE');
-    await addColumnSafe(database, 'bill_folders', 'created_by', 'INTEGER');
-    await addColumnSafe(database, 'fund_collections', 'user_id', 'INTEGER');
+    await addColumnSafe(database, 'fund_collections', 'department', 'VARCHAR(255)');
+    await addColumnSafe(database, 'fund_collections', 'received_by', 'INT');
     await addColumnSafe(database, 'fund_collections', 'entry_date', 'DATE');
+    await addColumnSafe(database, 'fund_collections', 'contributor_type', "VARCHAR(50) DEFAULT 'other'");
+    await addColumnSafe(database, 'fund_collections', 'transaction_id', 'VARCHAR(255)');
+    await addColumnSafe(database, 'fund_collections', 'notes', 'TEXT');
+
+    // Fix payment_mode and status columns if they are ENUM type
+    try {
+      const checkColumns = await new Promise((resolve, reject) => {
+        database.all(`
+          SELECT COLUMN_NAME, COLUMN_TYPE 
+          FROM INFORMATION_SCHEMA.COLUMNS 
+          WHERE TABLE_NAME = 'fund_collections' 
+          AND COLUMN_NAME IN ('payment_mode', 'status')
+        `, (err, cols) => {
+          if (err) reject(err);
+          else resolve(cols || []);
+        });
+      });
+
+      // If payment_mode is ENUM, convert to VARCHAR
+      const paymentModeEnum = checkColumns.find(c => c.COLUMN_NAME === 'payment_mode' && c.COLUMN_TYPE.includes('enum'));
+      if (paymentModeEnum) {
+        console.log('🔄 Converting payment_mode from ENUM to VARCHAR...');
+        try {
+          await run(database, `ALTER TABLE fund_collections MODIFY COLUMN payment_mode VARCHAR(50) DEFAULT 'cash'`);
+          console.log('✅ payment_mode converted to VARCHAR');
+        } catch (alterErr) {
+          console.log('ℹ️  payment_mode already VARCHAR or migration skipped');
+        }
+      }
+
+      // If status is ENUM, convert to VARCHAR
+      const statusEnum = checkColumns.find(c => c.COLUMN_NAME === 'status' && c.COLUMN_TYPE.includes('enum'));
+      if (statusEnum) {
+        console.log('🔄 Converting status from ENUM to VARCHAR...');
+        try {
+          await run(database, `ALTER TABLE fund_collections MODIFY COLUMN status VARCHAR(50) DEFAULT 'active'`);
+          console.log('✅ status converted to VARCHAR');
+        } catch (alterErr) {
+          console.log('ℹ️  status already VARCHAR or migration skipped');
+        }
+      }
+    } catch (err) {
+      console.log('ℹ️  Column type check skipped:', err.message);
+    }
 
     // Approved volunteers table (volunteers added to the system)
     await run(database, `
@@ -1218,23 +1367,6 @@ export const initDatabase = async () => {
       )
       `);
 
-    // Events table (for special events, functions, etc.)
-    await run(database, `
-      CREATE TABLE IF NOT EXISTS events(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        description TEXT,
-        date TEXT NOT NULL,
-        year TEXT NOT NULL,
-        is_special_day INTEGER DEFAULT 0,
-        image_url TEXT,
-        max_volunteers INTEGER,
-        volunteer_registration_deadline DATETIME,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-      `);
-
     // Awards table
     await run(database, `
       CREATE TABLE IF NOT EXISTS awards(
@@ -1277,6 +1409,10 @@ export const initDatabase = async () => {
     await addColumnSafe(database, 'events', 'image_url', 'TEXT');
     await addColumnSafe(database, 'events', 'max_volunteers', 'INTEGER');
     await addColumnSafe(database, 'events', 'volunteer_registration_deadline', 'DATETIME');
+    // CRITICAL: Add finance_enabled to events table
+    await addColumnSafe(database, 'events', 'finance_enabled', 'INTEGER DEFAULT 0');
+    await addColumnSafe(database, 'events', 'created_by', 'INTEGER REFERENCES users(id)');
+    await addColumnSafe(database, 'events', 'event_date', 'DATE');
 
     // Optional mapping of volunteers to their assigned mentees (used to auto-fill mentee name)
     await run(database, `
@@ -1780,6 +1916,27 @@ export const initDatabase = async () => {
         FOREIGN KEY (created_by) REFERENCES users(id)
       )
     `);
+
+    // General Settings table for key-value configuration
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS settings (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        setting_key VARCHAR(255) UNIQUE NOT NULL,
+        setting_value LONGTEXT,
+        data_type VARCHAR(50) DEFAULT 'string',
+        updated_by INT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+
+    // Migration: Add data_type column if it doesn't exist
+    try {
+      await addColumnSafe(database, 'settings', 'data_type', "VARCHAR(50) DEFAULT 'string'");
+    } catch (e) {
+      // Column might already exist
+    }
 
     // System Settings - Finance module toggle and QR management
     await run(database, `

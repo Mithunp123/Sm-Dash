@@ -95,9 +95,9 @@ export const requireAdmin = (req, res, next) => {
   return requireRole('admin')(req, res, next);
 };
 
-// Require admin or office_bearer role for finance access
+// Require admin, office_bearer, or student role for finance access
 export const allowFinance = (req, res, next) => {
-  return requireRole('admin', 'office_bearer')(req, res, next);
+  return requireRole('admin', 'office_bearer', 'student')(req, res, next);
 };
 
 // Block volunteers from accessing finance routes

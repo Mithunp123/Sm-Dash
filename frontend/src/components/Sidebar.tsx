@@ -168,7 +168,6 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
           { icon: ClipboardCheck, label: "Attendance", path: "/admin/attendance" },
           { icon: Trophy, label: "Awards", path: "/admin/awards" },
           { icon: BarChart3, label: "Finance", path: "/admin/finance" },
-          { icon: BarChart3, label: "Finance Settings", path: "/admin/finance-settings" },
           { icon: FileText, label: "Resources", path: "/admin/resources" },
           { icon: FileBarChart, label: "Reports", path: "/admin/reports" },
           { icon: ClipboardCheck, label: "Activity Logs", path: "/admin/activity-logs" },
@@ -262,6 +261,7 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
         items: [
           { icon: Calendar, label: "Calendar", path: "/student/calendar" },
           { icon: Calendar, label: "Events", path: "/student/events" },
+          { icon: BarChart3, label: "Finance", path: "/student/finance" },
           { icon: ClipboardCheck, label: "Attendance", path: "/student/attendance" },
           { icon: UsersRound, label: "Teams", path: "/student/teams" },
           ...(user?.is_interviewer ? [{ icon: UserCheck, label: "My Interviews", path: "/mentor/interviews" }] : []),

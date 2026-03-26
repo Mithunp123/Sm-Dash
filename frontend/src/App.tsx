@@ -31,8 +31,9 @@ import ManageProjects from "./pages/ManageProjects";
 import AssignProjectStudents from "./pages/AssignProjectStudents";
 import ProjectDetails from "./pages/ProjectDetails";
 import EventFundsManagement from "./pages/EventFundsManagement";
-import EventFinanceSettings from "./pages/EventFinanceSettings";
 import FinanceHome from "./pages/FinanceHome";
+import BillsEventSelector from "./pages/BillsEventSelector";
+import BillsFolderManagement from "./pages/BillsFolderManagement";
 
 // helper redirect component for legacy /mom paths
 const RedirectMom: React.FC = () => {
@@ -112,11 +113,6 @@ const App = () => (
             {/* legacy shortcuts */}
             <Route path="/mom" element={<RedirectMom />} />
             <Route path="/mom/:id" element={<RedirectMom />} />
-            {/* Legacy Bills module is replaced by the new finance flow */}
-            <Route
-              path="/admin/bills"
-              element={<Navigate to="/admin/finance" replace />}
-            />
             <Route
               path="/admin/events/:eventId/funds"
               element={
@@ -134,14 +130,6 @@ const App = () => (
               }
             />
             <Route
-              path="/admin/finance-settings"
-              element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <EventFinanceSettings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path="/admin/finance"
               element={
                 <ProtectedRoute requiredRoles={['admin']}>
@@ -154,6 +142,31 @@ const App = () => (
               element={
                 <ProtectedRoute requiredRoles={['office_bearer', 'admin']}>
                   <FinanceHome />
+                </ProtectedRoute>
+              }
+            />
+            {/* Bills Management Routes */}
+            <Route
+              path="/admin/bills"
+              element={
+                <ProtectedRoute requiredRoles={['admin']}>
+                  <BillsEventSelector />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/office-bearer/bills"
+              element={
+                <ProtectedRoute requiredRoles={['office_bearer', 'admin']}>
+                  <BillsEventSelector />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/bills/event/:eventId"
+              element={
+                <ProtectedRoute requiredRoles={['admin', 'office_bearer']}>
+                  <BillsFolderManagement />
                 </ProtectedRoute>
               }
             />
@@ -204,6 +217,8 @@ const App = () => (
             <Route path="/student/feedback" element={<StudentFeedback />} />
             <Route path="/student/teams" element={<StudentTeams />} />
             <Route path="/student/events" element={<StudentEvents />} />
+            <Route path="/student/finance" element={<ProtectedRoute requiredRoles={['student']}><FinanceHome /></ProtectedRoute>} />
+            <Route path="/student/events/:eventId/funds" element={<ProtectedRoute requiredRoles={['student']}><EventFundsManagement /></ProtectedRoute>} />
             {/* Student management modules removed */}
             <Route path="/unauthorized" element={<Unauthorized />} />
           </Route>

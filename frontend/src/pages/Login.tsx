@@ -441,7 +441,8 @@ const Login = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      className="w-full h-12 px-4 rounded-xl bg-gradient-to-r from-white/15 to-white/10 border border-white/40 text-white placeholder-slate-300 focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-500/50 transition-all text-sm backdrop-blur-sm shadow-md hover:border-white/50 hover:bg-gradient-to-r hover:from-white/20 hover:to-white/15"
+                      style={{ color: 'white' }}
+                      className="w-full h-12 px-4 rounded-xl bg-gradient-to-r from-white/15 to-white/10 border border-white/40 !text-white placeholder-white/70 focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-500/50 transition-all text-sm backdrop-blur-sm shadow-md hover:border-white/50 hover:bg-gradient-to-r hover:from-white/20 hover:to-white/15"
                     />
                   </motion.div>
                 </motion.div>
@@ -459,7 +460,8 @@ const Login = () => {
                       required
                       placeholder="Enter your password"
                       whileHover={{ scale: 1.01 }}
-                      className="w-full h-12 px-4 pr-12 rounded-xl bg-gradient-to-r from-white/15 to-white/10 border border-white/40 text-white placeholder-slate-300 focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-500/50 transition-all text-sm backdrop-blur-sm shadow-md hover:border-white/50 hover:bg-gradient-to-r hover:from-white/20 hover:to-white/15"
+                      style={{ color: 'white' }}
+                      className="w-full h-12 px-4 pr-12 rounded-xl bg-gradient-to-r from-white/15 to-white/10 border border-white/40 !text-white placeholder-white/70 focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-500/50 transition-all text-sm backdrop-blur-sm shadow-md hover:border-white/50 hover:bg-gradient-to-r hover:from-white/20 hover:to-white/15"
                     />
                     <motion.button
                       type="button"
@@ -698,7 +700,7 @@ const Login = () => {
           <form onSubmit={handleForgotPassword} className="space-y-5 mt-4">
             <div className="space-y-2 text-left">
               <Label htmlFor="forgotEmail" className="text-sm font-medium">Email Address</Label>
-              <Input id="forgotEmail" type="email" placeholder="you@example.com" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} required className="h-11" />
+              <Input id="forgotEmail" type="email" placeholder="you@example.com" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} required className="h-11" style={{ color: 'inherit' }} />
               <p className="text-xs text-muted-foreground mt-1">We'll send a one-time password to this email</p>
             </div>
             <div className="flex gap-2">
@@ -723,7 +725,7 @@ const Login = () => {
             </div>
             <div className="space-y-2 text-left">
               <Label htmlFor="otp" className="text-sm font-medium">One-Time Password (OTP)</Label>
-              <Input id="otp" type="text" placeholder="Enter 6-digit OTP" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} required maxLength={6} className="h-11 text-center text-lg tracking-widest font-mono" />
+              <Input id="otp" type="text" placeholder="Enter 6-digit OTP" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} required maxLength={6} className="h-11 text-center text-lg tracking-widest font-mono" style={{ color: 'inherit' }} />
               <div className="flex items-center justify-between mt-2">
                 <p className="text-xs text-muted-foreground">OTP expires in 10 minutes</p>
                 <Button type="button" variant="link" size="sm" onClick={handleResendOTP} disabled={resendCooldown > 0 || loading} className="h-auto p-0 text-xs">{resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend OTP"}</Button>
@@ -732,7 +734,7 @@ const Login = () => {
             <div className="space-y-2 text-left">
               <Label htmlFor="newResetPassword" className="text-sm font-medium">New Password</Label>
               <div className="relative">
-                <Input id="newResetPassword" type={showNewResetPassword ? "text" : "password"} placeholder="Enter new password" value={newResetPassword} onChange={(e) => setNewResetPassword(e.target.value)} required minLength={5} className="h-11 pr-10" />
+                <Input id="newResetPassword" type={showNewResetPassword ? "text" : "password"} placeholder="Enter new password" value={newResetPassword} onChange={(e) => setNewResetPassword(e.target.value)} required minLength={5} className="h-11 pr-10" style={{ color: 'inherit' }} />
                 <button type="button" onClick={() => setShowNewResetPassword(!showNewResetPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">{showNewResetPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
               </div>
               <p className="text-xs text-muted-foreground">Must be at least 5 characters</p>
@@ -740,7 +742,7 @@ const Login = () => {
             <div className="space-y-2 text-left">
               <Label htmlFor="confirmResetPassword" className="text-sm font-medium">Confirm New Password</Label>
               <div className="relative">
-                <Input id="confirmResetPassword" type={showConfirmResetPassword ? "text" : "password"} placeholder="Re-enter new password" value={confirmResetPassword} onChange={(e) => setConfirmResetPassword(e.target.value)} required minLength={5} className="h-11 pr-10" />
+                <Input id="confirmResetPassword" type={showConfirmResetPassword ? "text" : "password"} placeholder="Re-enter new password" value={confirmResetPassword} onChange={(e) => setConfirmResetPassword(e.target.value)} required minLength={5} className="h-11 pr-10" style={{ color: 'inherit' }} />
                 <button type="button" onClick={() => setShowConfirmResetPassword(!showConfirmResetPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">{showConfirmResetPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
               </div>
             </div>
