@@ -601,6 +601,72 @@ router.post('/event/:eventId/mark', authenticateToken, requirePermission('can_ma
   }
 });
 
+// Update event attendance record
+router.put('/event/records/:id', authenticateToken, requirePermission('can_manage_attendance', { requireEdit: true }), [
+  body('status').optional().isIn(['present', 'absent', 'late']),
+  body('notes').optional().trim()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    const { id } = req.params;
+    const { status, notes } = req.body;
+    const db = getDatabase();
+
+    const existing = await get(db, 'SELECT id FROM event_attendance WHERE id = ?', [id]);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Attendance record not found' });
+    }
+
+    const updates = [];
+    const params = [];
+
+    if (status) {
+      updates.push('status = ?');
+      params.push(status);
+    }
+    if (notes !== undefined) {
+      updates.push('notes = ?');
+      params.push(notes || null);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ success: false, message: 'No fields to update' });
+    }
+
+    updates.push('marked_at = CURRENT_TIMESTAMP');
+    params.push(id);
+
+    await run(db, `UPDATE event_attendance SET ${updates.join(', ')} WHERE id = ?`, params);
+    res.json({ success: true, message: 'Attendance record updated successfully' });
+  } catch (error) {
+    console.error('Update event attendance record error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Delete event attendance record
+router.delete('/event/records/:id', authenticateToken, requirePermission('can_manage_attendance', { requireEdit: true }), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = getDatabase();
+
+    const existing = await get(db, 'SELECT id FROM event_attendance WHERE id = ?', [id]);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Attendance record not found' });
+    }
+
+    await run(db, 'DELETE FROM event_attendance WHERE id = ?', [id]);
+    res.json({ success: true, message: 'Attendance record deleted successfully' });
+  } catch (error) {
+    console.error('Delete event attendance record error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // Get saved dates for a project
 router.get('/project/:projectId/dates', authenticateToken, requirePermission('can_manage_attendance', { allowView: true }), async (req, res) => {
   try {

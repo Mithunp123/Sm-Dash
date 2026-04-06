@@ -1,8 +1,9 @@
-﻿import { useState, useEffect, useCallback, useRef } from "react";
-import principalImg from "../../../Images/Dr.R. Gopalakrishnan.jpg";
-import palaniappanImg from "../../../Images/Dr.A.Palaniappan.jpg";
-import mythiliImg from "../../../Images/MYTHILI MAM.png";
-import rajkumarImg from "../../../Images/Rajkumar.png";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { cn } from "@/lib/utils";
+const principalImg = "/images/principal.jpg";
+const palaniappanImg = "/images/coordinator_palaniappan.jpg";
+const mythiliImg = "/images/coordinator_mythili.png";
+const rajkumarImg = "/images/coordinator_rajkumar.png";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -10,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Heart, Award, ChevronRight, MapPin, Mail, Phone, Calendar, Sparkles, X, Activity, Users, ArrowRight } from "lucide-react";
+import { Heart, Award, ChevronRight, MapPin, Mail, Phone, Calendar, Sparkles, X, Activity, Users, ArrowRight, PhoneCall, UserPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { auth } from "@/lib/auth";
@@ -143,6 +144,7 @@ const POSITION_ORDER: Record<string, number> = {
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const [flippedCoordinator, setFlippedCoordinator] = useState<number | null>(null);
   // Fallback departments list (full forms to match profile values)
   const DEFAULT_DEPARTMENTS = [
     "Artificial Intelligence and Data Science",
@@ -309,6 +311,8 @@ const LandingPage = () => {
 
   const getDashboardPath = () => {
     const role = user?.role;
+    const isInterviewer = user?.is_interviewer;
+    if (isInterviewer) return "/admin/interviews"; // Interviewers go to interviews page
     if (role === "admin") return "/admin";
     if (role === "office_bearer") return "/office-bearer";
     if (role === "student") return "/student";
@@ -505,10 +509,10 @@ const LandingPage = () => {
       <br>
 
       </br>
-     
 
-      
-      
+
+
+
       {/* Hero Section - Ultra Modern */}
       <section className="relative w-full min-h-[900px] md:min-h-[900px] overflow-hidden z-10 flex items-center justify-center pt-32 md:pt-0 pb-12">
         {/* Background Image — 100% opacity, no overlays */}
@@ -562,10 +566,18 @@ const LandingPage = () => {
                 size="lg"
                 className="bg-gradient-to-r from-white to-blue-50 text-slate-900 hover:from-blue-50 hover:to-white shadow-2xl hover:shadow-orange-500/50 transform hover:scale-110 transition-all duration-300 px-8 md:px-12 py-6 md:py-7 text-base md:text-lg font-black rounded-2xl w-full sm:w-auto uppercase tracking-wide"
                 onClick={() =>
-                  isAuthenticated ? navigate(getDashboardPath()) : window.location.href = "/login"
+                  isAuthenticated ? navigate(getDashboardPath()) : navigate('/login')
                 }
               >
                 {isAuthenticated ? "Enter Dashboard" : "Get Started"}
+                <ChevronRight className="ml-2 w-5 h-5" />
+              </Button>
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 shadow-2xl hover:shadow-orange-500/50 transform hover:scale-110 transition-all duration-300 px-8 md:px-12 py-6 md:py-7 text-base md:text-lg font-black rounded-2xl w-full sm:w-auto uppercase tracking-wide"
+                onClick={() => navigate("/volunteer-registration")}
+              >
+                Register as Volunteer
                 <ChevronRight className="ml-2 w-5 h-5" />
               </Button>
             </motion.div>
@@ -937,14 +949,12 @@ const LandingPage = () => {
             >
               <Card className="bg-card border-border/50 overflow-hidden transition-all flex flex-col md:flex-row shadow-lg rounded-2xl h-full border-l-8 border-l-primary">
                 <div className="md:w-2/5 bg-muted/20 flex items-center justify-center p-8">
-                  <div
-                    className="w-48 h-48 md:w-64 md:h-64 bg-card rounded-2xl border-4 border-primary/10 overflow-hidden shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500"
-                    role="img"
-                    aria-label="Principal photo"
-                    style={{
-                      backgroundImage: `url(${principalImg})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: '50% 14%'
+                  <img
+                    className="w-48 h-48 md:w-64 md:h-64 rounded-2xl border-4 border-primary/10 overflow-hidden shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500 object-cover bg-card"
+                    src={principalImg}
+                    alt="Principal photo"
+                    onError={(e) => {
+                      e.currentTarget.src = "/images/Brand_logo.png";
                     }}
                   />
                 </div>
@@ -967,12 +977,6 @@ const LandingPage = () => {
                         </div>
                         <span className="text-foreground font-semibold break-all">principal@ksrct.ac.in</span>
                       </button>
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Phone className="w-5 h-5 text-primary" />
-                        </div>
-                        <span className="text-foreground font-semibold">+91-99941 50505</span>
-                      </div>
                     </div>
                   </CardContent>
                 </div>
@@ -1054,9 +1058,15 @@ const LandingPage = () => {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.2 }}
-                className="h-[350px] md:h-[400px] perspective-1000 group mx-auto w-full max-w-sm lg:max-w-none"
+                className="h-[350px] md:h-[400px] perspective-1000 mx-auto w-full max-w-sm lg:max-w-none"
               >
-                <div className="relative w-full h-full transition-transform duration-700 preserve-3d group-hover:rotate-y-180 cursor-pointer active:rotate-y-180">
+                <div 
+                  className={cn(
+                    "relative w-full h-full transition-transform duration-700 preserve-3d cursor-pointer",
+                    flippedCoordinator === index ? "rotate-y-180" : ""
+                  )}
+                  onClick={() => setFlippedCoordinator(flippedCoordinator === index ? null : index)}
+                >
                   {/* Front Side */}
                   <Card className="absolute inset-0 backface-hidden bg-gradient-to-br from-white to-blue-50 dark:from-slate-800 dark:to-slate-900 border border-blue-200 dark:border-blue-900/50 overflow-hidden shadow-xl flex flex-col items-center text-center rounded-[2rem] h-full hover:shadow-2xl hover:shadow-blue-500/20 transition-shadow">
                     <div className="w-full bg-gradient-to-r from-blue-600/10 to-orange-500/10 flex items-center justify-center p-6 md:p-8 border-b border-blue-200 dark:border-blue-900/50 relative overflow-hidden flex-shrink-0">
@@ -1098,7 +1108,7 @@ const LandingPage = () => {
                       <div className="space-y-2 md:space-y-3">
                         <button
                           onClick={(e) => { e.stopPropagation(); openInGmail(coordinator.email); }}
-                          className="flex items-center gap-3 p-2 md:p-3 rounded-xl bg-white/20 border border-white/30 hover:border-white/60 hover:bg-white/30 transition-all w-full group/btn"
+                          className="flex items-center gap-3 p-2 md:p-3 rounded-xl bg-white/20 border border-white/40 hover:border-white/60 hover:bg-white/30 transition-all w-full group/btn"
                         >
                           <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/20 flex items-center justify-center group-hover/btn:bg-white/30">
                             <Mail className="w-4 h-4 md:w-5 md:h-5 text-white" />
@@ -1110,17 +1120,19 @@ const LandingPage = () => {
                         </button>
 
                         <a
-                          href={`tel:${coordinator.phone}`}
-                          className="flex items-center gap-3 p-2 md:p-3 rounded-xl bg-white/20 border border-white/30 w-full hover:border-white/60 transition-all group/btn"
+                          href={`tel:${coordinator.phone.replace(/\s+/g, '')}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-3 p-2 md:p-3 rounded-xl bg-white/20 border border-white/40 hover:border-white/60 hover:bg-white/30 transition-all w-full group/btn"
                         >
-                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/20 flex items-center justify-center">
+                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/20 flex items-center justify-center group-hover/btn:bg-white/30">
                             <Phone className="w-4 h-4 md:w-5 md:h-5 text-white" />
                           </div>
-                          <div className="text-left">
-                            <p className="text-[7px] md:text-[8px] font-black uppercase text-white/70 tracking-widest">Mobile Contact</p>
-                            <p className="text-[10px] md:text-xs font-bold text-white">{coordinator.phone}</p>
+                          <div className="text-left overflow-hidden">
+                            <p className="text-[7px] md:text-[8px] font-black uppercase text-white/70 tracking-widest">Phone Number</p>
+                            <p className="text-[10px] md:text-xs font-bold text-white truncate">{coordinator.phone}</p>
                           </div>
                         </a>
+
                       </div>
                     </div>
                   </Card>
@@ -1196,13 +1208,19 @@ const LandingPage = () => {
                     </h3>
                   </div>
 
-                  {/* Right Side - Phone */}
-                  <div className="flex flex-col items-end">
-                    <a href={`tel:${ob.contact}`} className="text-xs font-semibold text-cyan-200 dark:text-cyan-300 flex items-center gap-1.5 hover:text-cyan-100 transition-colors cursor-pointer">
-                      <Phone className="w-3.5 h-3.5 text-cyan-400 dark:text-cyan-300 flex-shrink-0" />
-                      <span className="truncate text-right">{ob.contact || 'N/A'}</span>
-                    </a>
-                  </div>
+                  {/* Right Side - Phone Info (Icon + Number) */}
+                  {(ob.contact || ob.phone || ob.contact_no) && (
+                    <div className="flex items-center gap-1.5 shrink-0 ml-auto group/phone py-1">
+                      <Phone className="w-3.5 h-3.5 text-cyan-400 group-hover/phone:scale-110 transition-transform drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]" />
+                      <a 
+                        href={`tel:${(ob.contact || ob.phone || ob.contact_no || '').toString().replace(/\s+/g, '')}`} 
+                        className="text-[11px] md:text-sm font-black text-cyan-400 hover:text-white transition-colors tracking-tight whitespace-nowrap"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {ob.contact || ob.phone || ob.contact_no}
+                      </a>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             ))}
@@ -1327,7 +1345,7 @@ const LandingPage = () => {
               size="lg"
               className="bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 font-bold shadow-xl hover:shadow-2xl hover:shadow-blue-500/40 transition-all transform hover:scale-105 px-8 md:px-10 py-6 md:py-7 rounded-2xl text-base md:text-lg w-full sm:w-auto uppercase tracking-wide"
               onClick={() =>
-                isAuthenticated ? navigate(getDashboardPath()) : window.location.href = "/login"
+                isAuthenticated ? navigate(getDashboardPath()) : navigate("/login")
               }
             >
               {isAuthenticated ? "Go to Dashboard" : "Login to Dashboard"}
@@ -1378,10 +1396,6 @@ const LandingPage = () => {
                   <div>
                     <label className="block text-sm font-black text-foreground uppercase tracking-wider mb-2">Email</label>
                     <input value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} className="w-full px-4 py-3 rounded-lg border-2 border-input bg-background text-base font-semibold text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-black text-foreground uppercase tracking-wider mb-2">Contact No</label>
-                    <input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} className="w-full px-4 py-3 rounded-lg border-2 border-input bg-background text-base font-semibold text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all" placeholder="+91-" />
                   </div>
                 </motion.div>
               )}
@@ -1471,20 +1485,6 @@ const LandingPage = () => {
                 )}
               </div>
 
-              <div className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
-                <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 shrink-0">
-                  <Phone className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[9px] uppercase font-black tracking-widest text-muted-foreground">Mobile</p>
-                  <p className="font-medium text-xs truncate select-all">{selectedOB?.contact || 'N/A'}</p>
-                </div>
-                {selectedOB?.contact && (
-                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-green-500" onClick={() => window.location.href = `tel:${selectedOB.contact}`}>
-                    <ArrowRight className="w-3 h-3" />
-                  </Button>
-                )}
-              </div>
             </div>
 
             <div className="pt-1">

@@ -19,6 +19,7 @@ import StudentProjects from "./pages/StudentProjects";
 import StudentBills from "./pages/StudentBills";
 import StudentReports from "./pages/StudentReports";
 import ManageInterviews from "./pages/ManageInterviews";
+import InterviewCandidateDashboard from "./pages/InterviewCandidateDashboard";
 import MentorInterviews from "./pages/MentorInterviews";
 import ManageUsers from "./pages/ManageUsers";
 import ManageMeetings from "./pages/ManageMeetings";
@@ -34,6 +35,8 @@ import EventFundsManagement from "./pages/EventFundsManagement";
 import FinanceHome from "./pages/FinanceHome";
 import BillsEventSelector from "./pages/BillsEventSelector";
 import BillsFolderManagement from "./pages/BillsFolderManagement";
+import AdminInterviewsPanel from "./pages/AdminInterviewsPanel";
+import InterviewerDashboard from "./pages/InterviewerDashboard";
 
 // helper redirect component for legacy /mom paths
 const RedirectMom: React.FC = () => {
@@ -52,7 +55,7 @@ const RedirectMom: React.FC = () => {
 };
 import ManageOfficeBearers from "./pages/ManageOfficeBearers";
 import ManageAttendance from "./pages/ManageAttendance";
-import AttendanceDetails from "./pages/AttendanceDetails";
+import AttendanceCalendarView from "./pages/AttendanceCalendarView";
 import AttendanceProjects from "./pages/AttendanceProjects";
 import AttendanceMeetings from "./pages/AttendanceMeetings";
 import AttendanceEvents from "./pages/AttendanceEvents";
@@ -104,9 +107,12 @@ const App = () => (
           <Route element={<MainLayout />}>
             <Route path="/home" element={<Index />} />
             <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/users" element={<ProtectedRoute requiredRoles={['admin']}><ManageUsers /></ProtectedRoute>} />
-            <Route path="/admin/interviews" element={<ProtectedRoute requiredRoles={['admin']}><ManageInterviews /></ProtectedRoute>} />
-            <Route path="/mentor/interviews" element={<ProtectedRoute requiredRoles={['office_bearer', 'admin', 'student']} requiredInterviewer={true}><MentorInterviews /></ProtectedRoute>} />
+            <Route path="/admin/users" element={<ProtectedRoute requiredRoles={['admin', 'office_bearer']}><ManageUsers /></ProtectedRoute>} />
+            <Route path="/admin/interviews" element={<ProtectedRoute requiredRoles={['admin', 'office_bearer']}><AdminInterviewsPanel /></ProtectedRoute>} />
+            <Route path="/interviewer/dashboard" element={<ProtectedRoute requiredInterviewer={true}><InterviewerDashboard /></ProtectedRoute>} />
+            {/* Legacy routes for interviews - redirect to new URLs */}
+            <Route path="/interviews" element={<ProtectedRoute requiredInterviewer={true}><InterviewerDashboard /></ProtectedRoute>} />
+            <Route path="/mentor/interviews" element={<ProtectedRoute requiredRoles={['mentor', 'admin']}><InterviewerDashboard /></ProtectedRoute>} />
             <Route path="/admin/meetings" element={<ProtectedRoute requiredPermission="can_manage_meetings"><ManageMeetings /></ProtectedRoute>} />
             <Route path="/admin/minutes" element={<ProtectedRoute requiredPermission="can_manage_meetings"><MinutesOfMeeting /></ProtectedRoute>} />
             <Route path="/admin/minutes/:id" element={<ProtectedRoute requiredPermission="can_manage_meetings"><MinutesOfMeeting /></ProtectedRoute>} />
@@ -116,7 +122,7 @@ const App = () => (
             <Route
               path="/admin/events/:eventId/funds"
               element={
-                <ProtectedRoute requiredRoles={['admin', 'office_bearer']}>
+                <ProtectedRoute requiredRoles={['admin']}>
                   <EventFundsManagement />
                 </ProtectedRoute>
               }
@@ -177,12 +183,12 @@ const App = () => (
             <Route path="/admin/projects" element={<ProtectedRoute requiredPermission="can_manage_projects"><ManageProjects /></ProtectedRoute>} />
             <Route path="/admin/projects/:id/assign" element={<ProtectedRoute requiredPermission="can_manage_projects"><AssignProjectStudents /></ProtectedRoute>} />
             <Route path="/admin/projects/:id" element={<ProtectedRoute blockedRoles={['student']}><ProjectDetails /></ProtectedRoute>} />
-            <Route path="/admin/office-bearers" element={<ProtectedRoute requiredRoles={['admin']}><ManageOfficeBearers /></ProtectedRoute>} />
+            <Route path="/admin/office-bearers" element={<ProtectedRoute requiredRoles={['admin', 'office_bearer']}><ManageOfficeBearers /></ProtectedRoute>} />
             <Route path="/admin/attendance" element={<ProtectedRoute requiredPermission="can_manage_attendance"><ManageAttendance /></ProtectedRoute>} />
             <Route path="/admin/attendance/projects" element={<ProtectedRoute requiredPermission="can_manage_attendance"><AttendanceProjects /></ProtectedRoute>} />
             <Route path="/admin/attendance/meetings" element={<ProtectedRoute requiredPermission="can_manage_attendance"><AttendanceMeetings /></ProtectedRoute>} />
             <Route path="/admin/attendance/events" element={<ProtectedRoute requiredPermission="can_manage_attendance"><AttendanceEvents /></ProtectedRoute>} />
-            <Route path="/admin/attendance/:type/:id" element={<ProtectedRoute requiredPermission="can_manage_attendance"><AttendanceDetails /></ProtectedRoute>} />
+            <Route path="/admin/attendance/:type/:id" element={<ProtectedRoute requiredPermission="can_manage_attendance"><AttendanceCalendarView /></ProtectedRoute>} />
             <Route path="/admin/settings" element={<ProtectedRoute requiredPermission="can_manage_settings"><Settings /></ProtectedRoute>} />
             <Route path="/admin/feedback/questions" element={<ProtectedRoute requiredPermission="can_manage_feedback_questions"><ManageQuestions /></ProtectedRoute>} />
             <Route path="/admin/feedback/reports" element={<ProtectedRoute requiredPermission="can_manage_feedback_reports"><ViewFeedbackReports /></ProtectedRoute>} />
@@ -190,14 +196,14 @@ const App = () => (
             <Route path="/admin/resources" element={<ProtectedRoute requiredPermission="can_manage_resources"><AdminResources /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute requiredPermission="can_view_reports"><Reports /></ProtectedRoute>} />
             <Route path="/admin/teams" element={<ProtectedRoute requiredPermission="can_manage_teams"><ManageTeams /></ProtectedRoute>} />
-            <Route path="/admin/mentor-management" element={<ProtectedRoute requiredRoles={['admin']}><MentorManagement /></ProtectedRoute>} />
-            <Route path="/admin/mentees/:projectId/:id" element={<ProtectedRoute requiredRoles={['admin']}><MenteeDetails /></ProtectedRoute>} />
+            <Route path="/admin/mentor-management" element={<ProtectedRoute requiredRoles={['admin', 'office_bearer']}><MentorManagement /></ProtectedRoute>} />
+            <Route path="/admin/mentees/:projectId/:id" element={<ProtectedRoute requiredRoles={['admin', 'office_bearer']}><MenteeDetails /></ProtectedRoute>} />
             <Route path="/admin/messages" element={<ProtectedRoute requiredPermission="can_manage_messages"><AdminMessages /></ProtectedRoute>} />
             <Route path="/admin/events" element={<ProtectedRoute requiredPermission="can_manage_events"><ManageEvents /></ProtectedRoute>} />
             <Route path="/admin/events/:id" element={<EventDetails />} />
             <Route path="/admin/awards" element={<ProtectedRoute requiredPermission="can_manage_events"><ManageAwards /></ProtectedRoute>} />
             <Route path="/admin/announcements" element={<ProtectedRoute requiredPermission="can_manage_announcements"><Announcements /></ProtectedRoute>} />
-            <Route path="/admin/activity-logs" element={<ProtectedRoute requiredRoles={['admin']}><ManageActivityLogs /></ProtectedRoute>} />
+            <Route path="/admin/activity-logs" element={<ProtectedRoute requiredRoles={['admin', 'office_bearer']}><ManageActivityLogs /></ProtectedRoute>} />
             {/* Student Assignments removed */}
             <Route path="/resources" element={<Resources />} />
             <Route path="/office-bearer" element={<OfficeBearerDashboard />} />

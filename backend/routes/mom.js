@@ -6,7 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { logActivity } from '../utils/logger.js';
 
-import { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun } from 'docx';
+import { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun, Table, TableRow, TableCell, WidthType } from 'docx';
 import PDFDocument from 'pdfkit';
 
 const router = express.Router();
@@ -217,29 +217,43 @@ router.get('/download/docx/:id', authenticateToken, async (req, res) => {
 
     const runs = [];
 
-    // Header: logos and center title
+    // Header: logos and center title row
     const smLogoBuf = loadImageBuffer('Picsart_23-05-18_16-47-20-287-removebg-preview.png');
     const ksrctLogoBuf = loadImageBuffer('Brand_logo.png');
 
-    const headerChildren = [];
+    const headerRow = new Table({
+      width: { size: 100, type: WidthType.PERCENT },
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              children: smLogoBuf ? [new Paragraph({ children: [new ImageRun({ data: smLogoBuf, transformation: { width: 50, height: 50 } })], alignment: AlignmentType.CENTER })] : [new Paragraph({ text: '' })],
+              width: { size: 20, type: WidthType.PERCENT },
+              borders: { top: { style: 'none' }, bottom: { style: 'none' }, left: { style: 'none' }, right: { style: 'none' } }
+            }),
+            new TableCell({
+              children: [
+                new Paragraph({ children: [new TextRun({ text: 'K.S. RANGASAMY COLLEGE OF TECHNOLOGY, TIRUCHENGODE – 637215', bold: true, size: 28, font: 'Times New Roman' })], alignment: AlignmentType.CENTER }),
+                new Paragraph({ children: [new TextRun({ text: 'Service Motto Volunteering Forum', size: 26, font: 'Times New Roman' })], alignment: AlignmentType.CENTER }),
+                new Paragraph({ children: [new TextRun({ text: 'REGULAR MEETING', bold: true, size: 26, font: 'Times New Roman' })], alignment: AlignmentType.CENTER })
+              ],
+              width: { size: 60, type: WidthType.PERCENT },
+              borders: { top: { style: 'none' }, bottom: { style: 'none' }, left: { style: 'none' }, right: { style: 'none' } }
+            }),
+            new TableCell({
+              children: ksrctLogoBuf ? [new Paragraph({ children: [new ImageRun({ data: ksrctLogoBuf, transformation: { width: 50, height: 50 } })], alignment: AlignmentType.CENTER })] : [new Paragraph({ text: '' })],
+              width: { size: 20, type: WidthType.PERCENT },
+              borders: { top: { style: 'none' }, bottom: { style: 'none' }, left: { style: 'none' }, right: { style: 'none' } }
+            })
+          ]
+        })
+      ]
+    });
 
-    // Left logo
-    if (smLogoBuf) {
-      headerChildren.push(new Paragraph({ children: [new ImageRun({ data: smLogoBuf, transformation: { width: 60, height: 60 } })], alignment: AlignmentType.LEFT }));
-    }
+    doc.addSection({ children: [headerRow] });
 
-    // Center title block
-    headerChildren.push(new Paragraph({ children: [new TextRun({ text: 'K.S. RANGASAMY COLLEGE OF TECHNOLOGY, TIRUCHENGODE – 637215', bold: true, size: 28, font: 'Times New Roman' })], alignment: AlignmentType.CENTER }));
-    headerChildren.push(new Paragraph({ children: [new TextRun({ text: 'Service Motto Volunteering Forum', italics: false, size: 26, font: 'Times New Roman' })], alignment: AlignmentType.CENTER }));
-    headerChildren.push(new Paragraph({ children: [new TextRun({ text: 'REGULAR MEETING', bold: true, size: 26, font: 'Times New Roman' })], alignment: AlignmentType.CENTER }));
-
-    // Date/Time/Venue
-    headerChildren.push(new Paragraph({ children: [new TextRun({ text: `Date: ${mom.date || ''}`, size: 24, font: 'Times New Roman' })], alignment: AlignmentType.CENTER }));
-    headerChildren.push(new Paragraph({ children: [new TextRun({ text: `Time: ${mom.time || ''}`, size: 24, font: 'Times New Roman' })], alignment: AlignmentType.CENTER }));
-    headerChildren.push(new Paragraph({ children: [new TextRun({ text: `Venue: ${mom.venue || ''}`, size: 24, font: 'Times New Roman' })], alignment: AlignmentType.CENTER }));
-
-    // Add header children
-    headerChildren.forEach(h => doc.addSection({ children: [h] }));
+    // Date only (no Time or Venue)
+    doc.addSection({ children: [new Paragraph({ children: [new TextRun({ text: `Date: ${mom.date || ''}`, size: 24, font: 'Times New Roman' })], alignment: AlignmentType.CENTER })] });
 
     // Attendance table
     const tableRows = [];
@@ -390,10 +404,6 @@ router.get('/download/pdf/:id', authenticateToken, async (req, res) => {
     doc.moveDown(0.4);
     doc.font('Times-Roman').fontSize(11)
       .text(`Date: ${formatDate(mom.date)}`, PAGE_LEFT, doc.y, { width: PAGE_WIDTH, align: 'center' });
-    doc.fontSize(11)
-      .text(`Time: ${mom.time || ''}`, PAGE_LEFT, doc.y + 2, { width: PAGE_WIDTH, align: 'center' });
-    doc.fontSize(11)
-      .text(`Venue: ${mom.venue || ''}`, PAGE_LEFT, doc.y + 2, { width: PAGE_WIDTH, align: 'center' });
 
     doc.moveDown(0.8);
     hRule(doc.y);

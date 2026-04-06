@@ -29,6 +29,73 @@ const StudentAttendance = () => {
   const [selectedDateForRecords, setSelectedDateForRecords] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('meetings');
 
+  // Safe date formatting function
+  const formatDateSafely = (dateString: string | null | undefined) => {
+    if (!dateString) return '-';
+    try {
+      let date: Date | null = null;
+      
+      // Try parsing as ISO date (YYYY-MM-DD)
+      if (dateString.includes('-') && !dateString.includes(':')) {
+        date = new Date(dateString + 'T00:00:00Z');
+      }
+      // Try parsing as full datetime
+      else if (dateString.includes('T')) {
+        date = new Date(dateString);
+      }
+      // Try parsing as timestamp
+      else if (!isNaN(Number(dateString))) {
+        date = new Date(Number(dateString));
+      }
+      // Fallback: try direct parse
+      else {
+        date = new Date(dateString);
+      }
+      
+      // Validate the date
+      if (!date || isNaN(date.getTime())) {
+        return '-';
+      }
+      
+      return date.toLocaleDateString();
+    } catch (error) {
+      return '-';
+    }
+  };
+
+  const getDayNameSafely = (dateString: string | null | undefined) => {
+    if (!dateString) return '';
+    try {
+      let date: Date | null = null;
+      
+      // Try parsing as ISO date (YYYY-MM-DD)
+      if (dateString.includes('-') && !dateString.includes(':')) {
+        date = new Date(dateString + 'T00:00:00Z');
+      }
+      // Try parsing as full datetime
+      else if (dateString.includes('T')) {
+        date = new Date(dateString);
+      }
+      // Try parsing as timestamp
+      else if (!isNaN(Number(dateString))) {
+        date = new Date(Number(dateString));
+      }
+      // Fallback: try direct parse
+      else {
+        date = new Date(dateString);
+      }
+      
+      // Validate the date
+      if (!date || isNaN(date.getTime())) {
+        return '';
+      }
+      
+      return date.toLocaleDateString('en-US', { weekday: 'long' });
+    } catch (error) {
+      return '';
+    }
+  };
+
   useEffect(() => {
     if (!auth.isAuthenticated() || !auth.hasRole('student')) {
       navigate("/login");
@@ -380,14 +447,14 @@ const StudentAttendance = () => {
                       </TableHeader>
                       <TableBody>
                         {meetingRecords.map((record) => {
-                          const dateObj = record.meeting_date ? new Date(record.meeting_date) : record.marked_at ? new Date(record.marked_at) : null;
+                          const dateStr = record.meeting_date || record.marked_at;
                           return (
                             <TableRow key={record.id} className="hover:bg-muted/30 border-border transition-colors group">
                               <TableCell className="font-bold text-foreground py-4 px-6">
-                                {dateObj ? dateObj.toLocaleDateString() : '-'}
+                                {formatDateSafely(dateStr)}
                               </TableCell>
                               <TableCell className="text-xs font-black text-muted-foreground uppercase py-4 px-6">
-                                {dateObj ? dateObj.toLocaleDateString('en-US', { weekday: 'long' }) : '-'}
+                                {getDayNameSafely(dateStr)}
                               </TableCell>
                               <TableCell className="py-4 px-6">{getStatusBadge(record.status)}</TableCell>
                               <TableCell className="py-4 px-6">
@@ -447,6 +514,66 @@ const StudentAttendance = () => {
               </div>
             </CardHeader>
             <CardContent className="p-8">
+              {/* Attendance Marking Form */}
+              {!markedToday && (
+                <div className="mb-8 p-6 bg-primary/5 border-2 border-primary/20 rounded-2xl">
+                  <h3 className="font-black text-lg text-foreground mb-4">Mark today's attendance</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    {/* Date Picker */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Attendance Date</label>
+                      <input
+                        type="date"
+                        value={attendanceDate}
+                        onChange={(e) => setAttendanceDate(e.target.value)}
+                        className="w-full h-10 px-3 rounded-xl border border-input bg-background font-bold text-sm"
+                      />
+                      <p className="text-xs font-bold text-muted-foreground mt-1">
+                        {(() => {
+                          try {
+                            const date = new Date(attendanceDate + 'T00:00:00Z');
+                            if (isNaN(date.getTime())) return '-';
+                            return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+                          } catch {
+                            return '-';
+                          }
+                        })()}
+                      </p>
+                    </div>
+
+                    {/* Status Selector */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Status</label>
+                      <select
+                        value={attendanceStatus}
+                        onChange={(e) => setAttendanceStatus(e.target.value)}
+                        className="w-full h-10 px-3 rounded-xl border border-input bg-background font-bold text-sm"
+                      >
+                        <option value="present">Present</option>
+                        <option value="absent">Absent</option>
+                        <option value="permission">Permission</option>
+                      </select>
+                    </div>
+
+                    {/* Mark Button */}
+                    <div>
+                      <Button
+                        onClick={handleMarkAttendance}
+                        className="w-full h-10 rounded-xl font-bold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25"
+                      >
+                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                        Mark Attendance
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {markedToday && (
+                <div className="mb-8 p-6 bg-green-500/5 border-2 border-green-500/20 rounded-2xl">
+                  <p className="font-bold text-green-600 dark:text-green-400">✓ Attendance already marked for today</p>
+                </div>
+              )}
               {dateWiseRecords.length === 0 ? (
                 <div className="text-center py-24 bg-muted/20 rounded-2xl border border-dashed border-border">
                   <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
@@ -487,10 +614,10 @@ const StudentAttendance = () => {
                         {dateWiseRecords.map((record) => (
                           <TableRow key={record.id} className="hover:bg-muted/30 border-border transition-colors group">
                             <TableCell className="font-bold text-foreground py-4 px-6">
-                              {new Date(record.attendance_date + 'T00:00:00').toLocaleDateString()}
+                              {formatDateSafely(record.attendance_date)}
                             </TableCell>
                             <TableCell className="text-xs font-black text-muted-foreground uppercase py-4 px-6">
-                              {new Date(record.attendance_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' })}
+                              {getDayNameSafely(record.attendance_date)}
                             </TableCell>
                             <TableCell className="py-4 px-6">{getStatusBadge(record.status)}</TableCell>
                             <TableCell className="py-4 px-6 text-sm font-medium text-muted-foreground italic">
@@ -559,7 +686,7 @@ const StudentAttendance = () => {
                         {eventRecords.map((record) => (
                           <TableRow key={record.id} className="hover:bg-muted/30 border-border transition-colors group">
                             <TableCell className="font-bold text-foreground py-4 px-6">
-                              {new Date(record.marked_at).toLocaleDateString()}
+                              {formatDateSafely(record.marked_at)}
                             </TableCell>
                             <TableCell className="py-4 px-6">{getStatusBadge(record.status)}</TableCell>
                             <TableCell className="py-4 px-6">

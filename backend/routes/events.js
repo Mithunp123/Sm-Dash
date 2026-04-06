@@ -72,6 +72,52 @@ router.get('/public', async (req, res) => {
   }
 });
 
+// ==== SPECIAL DAYS ENDPOINTS (move to top to avoid /:id routing collisions) ====
+router.get('/special-days', authenticateToken, async (req, res) => {
+  try {
+    const db = getDatabase();
+    db.all('SELECT * FROM special_days ORDER BY date ASC', [], (err, rows) => {
+      if (err) return res.status(500).json({ success: false, message: 'Failed to fetch special days', error: err.message });
+      res.json({ success: true, specialDays: rows || [] });
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error fetching special days', error: error.message });
+  }
+});
+
+router.post('/special-days', authenticateToken, requirePermission('can_manage_events', { requireEdit: true }), async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { title, date, description } = req.body;
+    if (!date) return res.status(400).json({ success: false, message: 'date is required' });
+    const safeTitle = (title || 'Special Day').trim() || 'Special Day';
+    db.run(
+      'INSERT INTO special_days (title, date, description, created_by) VALUES (?, ?, ?, ?)',
+      [safeTitle, date, description || null, req.user.id],
+      function (err) {
+        if (err) return res.status(500).json({ success: false, message: 'Failed to create special day', error: err.message });
+        res.json({ success: true, id: this.lastID, message: 'Special day added successfully' });
+      }
+    );
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error creating special day', error: error.message });
+  }
+});
+
+router.delete('/special-days/:id', authenticateToken, requirePermission('can_manage_events', { requireEdit: true }), async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { id } = req.params;
+    db.run('DELETE FROM special_days WHERE id = ?', [id], function (err) {
+      if (err) return res.status(500).json({ success: false, message: 'Failed to delete special day', error: err.message });
+      if (this.changes === 0) return res.status(404).json({ success: false, message: 'Special day not found' });
+      res.json({ success: true, message: 'Special day deleted successfully' });
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error deleting special day', error: error.message });
+  }
+});
+
 // GET all events with OD status for a student (if provided)
 router.get('/', authenticateToken, requirePermission('can_manage_events', { allowView: true }), async (req, res) => {
   try {
@@ -546,6 +592,11 @@ router.get('/:id', authenticateToken, requirePermission('can_manage_events', { a
     const db = getDatabase();
     const { id } = req.params;
 
+    // safety guard to avoid treating special route as event id
+    if (id === 'special-days' || id === 'my-registrations' || id === 'active') {
+      return res.status(404).json({ success: false, message: 'Invalid event ID' });
+    }
+
     db.get('SELECT * FROM events WHERE id = ?', [id], (err, event) => {
       if (err) {
         return res.status(500).json({ success: false, message: 'Database error', error: err.message });
@@ -575,7 +626,42 @@ router.get('/:id', authenticateToken, requirePermission('can_manage_events', { a
   }
 });
 
-// CREATE event
+// Update event title only (used from finance settings)
+router.put('/:id/title', authenticateToken, requirePermission('can_manage_events', { requireEdit: true }), async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { id } = req.params;
+    const { title } = req.body;
+
+    if (!title) {
+      return res.status(400).json({ success: false, message: 'Title is required' });
+    }
+
+    db.run(
+      'UPDATE events SET title = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [title, id],
+      async function (err) {
+        if (err) {
+          return res.status(500).json({ success: false, message: 'Failed to update event title', error: err.message });
+        }
+        if (this.changes === 0) {
+          return res.status(404).json({ success: false, message: 'Event not found' });
+        }
+        await logActivity(req.user.id, 'UPDATE_EVENT_TITLE', { id, title }, req, {
+          action_type: 'UPDATE',
+          module_name: 'events',
+          action_description: `Updated event title to: ${title}`,
+          reference_id: id
+        });
+        res.json({ success: true, message: 'Event name updated successfully' });
+      }
+    );
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error updating event title', error: error.message });
+  }
+});
+
+
 router.post('/', authenticateToken, requirePermission('can_manage_events', { requireEdit: true }), eventImageUpload.single('image'), (req, res) => {
   try {
     const db = getDatabase();

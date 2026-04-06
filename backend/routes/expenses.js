@@ -1,9 +1,12 @@
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
 import { getDatabase } from '../database/init.js';
 import { authenticateToken, allowFinance } from '../middleware/auth.js';
 import { logActivity } from '../utils/logger.js';
 import PDFDocument from 'pdfkit';
 import xlsx from 'xlsx';
+import { numberToWords, formatCompactDate, formatDate } from '../utils/formatters.js';
 
 const router = express.Router();
 
@@ -581,11 +584,18 @@ router.delete('/folder/:folderId', authenticateToken, allowFinance, async (req, 
       return res.status(403).json({ success: false, message: 'Insufficient permissions' });
     }
 
-    if (req.user.role === 'office_bearer') {
-      const owned = await get(db, 'SELECT created_by FROM bill_folders WHERE id = ?', [id]);
-      if (!owned) return res.status(404).json({ success: false, message: 'Folder not found' });
-      if (owned.created_by !== req.user.id) return res.status(403).json({ success: false, message: 'You can only delete your own folders' });
+    const folder = await get(db, 'SELECT id, created_by FROM bill_folders WHERE id = ?', [id]);
+    if (!folder) {
+      return res.status(404).json({ success: false, message: 'Folder not found' });
     }
+
+    if (req.user.role === 'office_bearer' && folder.created_by !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'You can only delete your own folders' });
+    }
+
+    // Clean up dependent data to avoid foreign key constraints
+    await run(db, 'DELETE FROM fund_collections WHERE event_id = ?', [id]);
+    await run(db, 'DELETE FROM expenses WHERE folder_id = ?', [id]);
 
     const result = await run(db, 'DELETE FROM bill_folders WHERE id = ?', [id]);
 
@@ -602,6 +612,9 @@ router.delete('/folder/:folderId', authenticateToken, allowFinance, async (req, 
       affectedRows: result.changes
     });
   } catch (err) {
+    if (err.message && err.message.includes('foreign key constraint')) {
+      return res.status(409).json({ success: false, message: 'Folder cannot be deleted because it has linked records. Please remove related collections/expenses first.' });
+    }
     res.status(500).json({ success: false, message: err.message });
   }
 });
@@ -836,9 +849,21 @@ router.get('/summary/:eventId', authenticateToken, allowFinance, async (req, res
     const db = getDatabase();
     const { eventId } = req.params;
 
+    const computedAmountExpr = `
+      COALESCE(NULLIF(e.grand_total, 0),
+        COALESCE(e.breakfast_amount, 0) +
+        COALESCE(e.lunch_amount, 0) +
+        COALESCE(e.dinner_amount, 0) +
+        COALESCE(e.refreshment_amount, 0) +
+        COALESCE(e.accommodation_amount, 0) +
+        COALESCE(e.fuel_amount, 0) +
+        COALESCE(e.other_expense, 0)
+      )
+    `;
+
     const overall = await get(
       db,
-      `SELECT COALESCE(SUM(grand_total), 0) as overall_total FROM expenses WHERE event_id = ?`,
+      `SELECT COALESCE(SUM(${computedAmountExpr}), 0) as overall_total FROM expenses e WHERE e.event_id = ?`,
       [eventId]
     );
 
@@ -847,9 +872,9 @@ router.get('/summary/:eventId', authenticateToken, allowFinance, async (req, res
       `
         SELECT
           category,
-          COALESCE(SUM(grand_total), 0) as total
-        FROM expenses
-        WHERE event_id = ?
+          COALESCE(SUM(${computedAmountExpr}), 0) as total
+        FROM expenses e
+        WHERE e.event_id = ?
         GROUP BY category
       `,
       [eventId]
@@ -861,7 +886,7 @@ router.get('/summary/:eventId', authenticateToken, allowFinance, async (req, res
         SELECT
           bf.id as folder_id,
           bf.folder_name,
-          COALESCE(SUM(e.grand_total), 0) as folder_total
+          COALESCE(SUM(${computedAmountExpr}), 0) as folder_total
         FROM bill_folders bf
         LEFT JOIN expenses e ON e.folder_id = bf.id
         WHERE bf.event_id = ?
@@ -877,7 +902,7 @@ router.get('/summary/:eventId', authenticateToken, allowFinance, async (req, res
         SELECT
           bf.id as folder_id,
           e.category,
-          COALESCE(SUM(e.grand_total), 0) as total
+          COALESCE(SUM(${computedAmountExpr}), 0) as total
         FROM bill_folders bf
         LEFT JOIN expenses e ON e.folder_id = bf.id
         WHERE bf.event_id = ?
@@ -925,6 +950,13 @@ const getExportExpensesRows = async (db, eventId) => {
         e.expense_title,
         e.category,
         e.grand_total,
+        e.breakfast_amount,
+        e.lunch_amount,
+        e.dinner_amount,
+        e.refreshment_amount,
+        e.fuel_amount,
+        e.accommodation_amount,
+        e.other_expense,
         e.created_at,
         e.created_by,
         u.name as created_by_name,
@@ -942,7 +974,7 @@ const getExportExpensesRows = async (db, eventId) => {
 
 /**
  * GET /expenses/export/pdf/:eventId
- * Server-side PDF export of all expense data
+ * Server-side PDF export of all expense data with logos
  */
 router.get('/export/pdf/:eventId', authenticateToken, allowFinance, async (req, res) => {
   try {
@@ -950,7 +982,16 @@ router.get('/export/pdf/:eventId', authenticateToken, allowFinance, async (req, 
     const { eventId } = req.params;
 
     const rows = await getExportExpensesRows(db, eventId);
-    const overallTotal = rows.reduce((sum, r) => sum + Number(r.grand_total || 0), 0);
+    const calcAmount = (r) =>
+      Number(r.breakfast_amount || 0) +
+      Number(r.lunch_amount || 0) +
+      Number(r.dinner_amount || 0) +
+      Number(r.refreshment_amount || 0) +
+      Number(r.accommodation_amount || 0) +
+      Number(r.fuel_amount || 0) +
+      Number(r.other_expense || 0);
+
+    const overallTotal = rows.reduce((sum, r) => sum + calcAmount(r), 0);
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="expenses_${eventId}.pdf"`);
@@ -958,36 +999,113 @@ router.get('/export/pdf/:eventId', authenticateToken, allowFinance, async (req, 
     const doc = new PDFDocument({ margin: 30, size: 'A4' });
     doc.pipe(res);
 
-    doc.fontSize(18).text('Expense Report', { align: 'left' });
-    doc.moveDown(0.5);
-    doc.fontSize(10).text(`Event ID: ${eventId}`);
-    doc.fontSize(10).text(`Report generated: ${new Date().toLocaleString()}`);
-    doc.moveDown(1);
-    doc.fontSize(12).text(`Overall Total: INR ${overallTotal.toFixed(2)}`);
-    doc.moveDown(1);
+    const MARGIN = 40;
+    const PAGE_WIDTH = doc.page.width;
+    const CONTENT_WIDTH = PAGE_WIDTH - (MARGIN * 2);
 
-    // Simple text-based table (PDFKit tables require more layout work)
-    doc.fontSize(10).text('Folder | Date | Title | Category | Amount | Created By | From | To');
-    doc.moveDown(0.25);
-    doc.fontSize(9);
-    for (const r of rows) {
-      const date = r.created_at ? new Date(r.created_at).toLocaleDateString() : '-';
-      const from = r.transport_from || '';
-      const to = r.transport_to || '';
-      const line = [
-        r.folder_name || '-',
-        date,
-        r.expense_title || '-',
-        r.category || '-',
-        `₹${Number(r.grand_total || 0).toFixed(2)}`,
-        r.created_by_name || '-',
-        from,
-        to
-      ].join(' | ');
-      doc.text(line);
-    }
+    // Initial positioning
+    doc.y = MARGIN;
+
+    // College Header (Center)
+    doc.fontSize(11).font('Helvetica-Bold');
+    doc.text('K.S.Rangasamy College of Technology (Autonomous), Tiruchengode – 637 215', { align: 'center', width: CONTENT_WIDTH });
+    doc.moveDown(0.3);
+    
+    doc.fontSize(11).text('Consolidated Bill - Expense Report', { align: 'center' });
+    doc.moveDown(0.3);
+    
+    doc.fontSize(11).text('Service Motto Volunteers', { align: 'center' });
+    doc.moveDown(0.3);
+    
+    doc.fontSize(10).font('Helvetica').text(`Event ID: ${eventId}`, { align: 'center' });
+    doc.moveDown(1.5);
+
+    // Date (Top Right)
+    const dateStr = formatDate(new Date());
+    doc.fontSize(10).font('Helvetica').text(`Date: ${dateStr}`, MARGIN, doc.y, { align: 'right', width: CONTENT_WIDTH });
+    doc.moveDown(0.5);
+
+    // Table Setup
+    const tableTop = doc.y;
+    const colWidths = [45, 280, 100, 90]; // SN, Particulars, Date, Amount
+    const colStarts = [MARGIN, MARGIN + colWidths[0], MARGIN + colWidths[0] + colWidths[1], MARGIN + colWidths[0] + colWidths[1] + colWidths[2]];
+    const headers = ['S.No.', 'Expense (Folder)', 'Date', 'Amount (in Rs)'];
+
+    // Draw header row
+    const drawHeader = (y) => {
+        doc.font('Helvetica-Bold').fontSize(10);
+        headers.forEach((h, i) => {
+            doc.text(h, colStarts[i] + 5, y + 8, { width: colWidths[i] - 10, align: i === 3 ? 'center' : 'left' });
+        });
+        // Table frame
+        doc.rect(MARGIN, y, CONTENT_WIDTH, 25).stroke();
+        // Column dividers
+        for(let i=1; i<4; i++) {
+            doc.moveTo(colStarts[i], y).lineTo(colStarts[i], y + 25).stroke();
+        }
+        return y + 25;
+    };
+
+    let tableY = drawHeader(tableTop);
+
+    // Set font for rows
+    doc.font('Helvetica').fontSize(9);
+
+    rows.forEach((r, idx) => {
+        const itemAmount = calcAmount(r);
+        const rowDate = formatCompactDate(r.created_at);
+        const titleText = `[${r.folder_name || 'No Folder'}] ${r.expense_title || '-'}`;
+        
+        // Dynamic row height
+        const textHeight = doc.heightOfString(titleText, { width: colWidths[1] - 10 });
+        const rowHeight = Math.max(textHeight + 15, 25);
+
+        // Page break
+        if (tableY + rowHeight > doc.page.height - 100) {
+            doc.addPage();
+            tableY = drawHeader(MARGIN);
+            doc.font('Helvetica').fontSize(9);
+        }
+
+        // Draw cells
+        doc.text((idx + 1).toString() + '.', colStarts[0] + 15, tableY + (rowHeight/2 - 4.5));
+        doc.text(titleText, colStarts[1] + 5, tableY + (rowHeight/2 - 4.5), { width: colWidths[1] - 10 });
+        doc.text(rowDate, colStarts[2] + 25, tableY + (rowHeight/2 - 4.5));
+        doc.text(`${Math.floor(itemAmount)}/-`, colStarts[3], tableY + (rowHeight/2 - 4.5), { width: colWidths[3] - 5, align: 'right' });
+
+        // Borders
+        doc.rect(MARGIN, tableY, CONTENT_WIDTH, rowHeight).stroke();
+        for(let i=1; i<4; i++) {
+            doc.moveTo(colStarts[i], tableY).lineTo(colStarts[i], tableY + rowHeight).stroke();
+        }
+
+        tableY += rowHeight;
+    });
+
+    // Total Row
+    doc.font('Helvetica-Bold');
+    doc.text('Grand Total', MARGIN + 220, tableY + 8);
+    doc.text(`${Math.floor(overallTotal)}/-`, colStarts[3], tableY + 8, { width: colWidths[3] - 5, align: 'right' });
+    doc.rect(MARGIN, tableY, CONTENT_WIDTH, 25).stroke();
+    doc.moveTo(colStarts[3], tableY).lineTo(colStarts[3], tableY + 25).stroke();
+
+    tableY += 40;
+
+    // Amount in Words
+    const words = numberToWords(overallTotal);
+    doc.font('Helvetica-BoldOblique').fontSize(10);
+    doc.text(`(Rupees ${words} Only)`, MARGIN, tableY, { align: 'center', width: CONTENT_WIDTH });
+
+    tableY += 60;
+
+    // Footer signatures
+    doc.font('Helvetica-Bold').fontSize(10);
+    doc.text('Faculty Coordinator', MARGIN, tableY);
+    doc.moveDown(0.3);
+    doc.text('SM Volunteers', MARGIN, doc.y);
 
     doc.end();
+
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -1003,14 +1121,23 @@ router.get('/export/excel/:eventId', authenticateToken, allowFinance, async (req
     const { eventId } = req.params;
 
     const rows = await getExportExpensesRows(db, eventId);
-    const overallTotal = rows.reduce((sum, r) => sum + Number(r.grand_total || 0), 0);
+    const calcAmount = (r) =>
+      Number(r.breakfast_amount || 0) +
+      Number(r.lunch_amount || 0) +
+      Number(r.dinner_amount || 0) +
+      Number(r.refreshment_amount || 0) +
+      Number(r.accommodation_amount || 0) +
+      Number(r.fuel_amount || 0) +
+      Number(r.other_expense || 0);
+
+    const overallTotal = rows.reduce((sum, r) => sum + calcAmount(r), 0);
 
     const data = rows.map((r) => ({
       Folder: r.folder_name || '',
       Date: r.created_at ? new Date(r.created_at).toLocaleDateString() : '',
       Title: r.expense_title || '',
       Category: r.category || '',
-      Amount: Number(r.grand_total || 0),
+        Amount: calcAmount(r),
       'Created By': r.created_by_name || '',
       'From Location': r.transport_from || '',
       'To Location': r.transport_to || ''

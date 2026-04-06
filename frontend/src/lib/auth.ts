@@ -93,7 +93,7 @@ export const auth = {
   // Subscribe to auth changes
   onAuthChange(callback: () => void) {
     authChangeListeners.add(callback);
-    return () => authChangeListeners.delete(callback);
+    return () => { authChangeListeners.delete(callback); };
   },
 
   getToken(): string | null {

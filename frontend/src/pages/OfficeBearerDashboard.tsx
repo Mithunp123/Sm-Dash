@@ -4,7 +4,8 @@ import DeveloperCredit from "@/components/DeveloperCredit";
 import {
   Users, Calendar, FileText, Briefcase, UserCircle, BarChart3, XCircle,
   MessageSquare, ClipboardCheck, LayoutDashboard, Star, Clock, ChevronRight,
-  TrendingUp, Layers, CheckCircle2, BookOpen, Trophy, UsersRound, Megaphone
+  TrendingUp, Layers, CheckCircle2, BookOpen, Trophy, UsersRound, Megaphone,
+  FileBarChart
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/auth";
@@ -251,6 +252,50 @@ const OfficeBearerDashboard = () => {
                         <div className="space-y-1">
                           <p className="text-3xl font-bold tracking-tight">{stat.value}</p>
                           <p className="text-sm text-muted-foreground">{stat.desc}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="section-container mb-xl">
+              <h2 className="section-title flex items-center gap-2 mb-6">
+                <Layers className="w-5 h-5 text-primary" />
+                Quick Actions
+              </h2>
+              <motion.div
+                variants={container}
+                initial="hidden"
+                animate="show"
+                className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+              >
+                {[
+                  { title: 'Schedule Meetings', desc: 'Organize team meetings', icon: Calendar, path: '/admin/meetings', color: "text-green-500", bg: "bg-green-500/10", border: 'border-green-500/20', permission: permissions.can_manage_meetings },
+                  { title: 'Track Attendance', desc: 'Monitor participation', icon: ClipboardCheck, path: '/admin/attendance', color: "text-purple-500", bg: "bg-purple-500/10", border: 'border-purple-500/20', permission: permissions.can_manage_attendance },
+                  { title: 'Manage Teams', desc: 'Organize team structure', icon: UsersRound, path: '/admin/teams', color: "text-orange-500", bg: "bg-orange-500/10", border: 'border-orange-500/20', permission: permissions.can_manage_teams },
+                  { title: 'View Reports', desc: 'Access system reports', icon: FileBarChart, path: '/admin/reports', color: "text-red-500", bg: "bg-red-500/10", border: 'border-red-500/20', permission: permissions.can_view_reports },
+                  { title: 'Send Messages', desc: 'Communicate with team', icon: MessageSquare, path: '/admin/messages', color: "text-cyan-500", bg: "bg-cyan-500/10", border: 'border-cyan-500/20', permission: permissions.can_manage_messages },
+                  { title: 'Post Announcements', desc: 'Share important updates', icon: Megaphone, path: '/admin/announcements', color: "text-yellow-500", bg: "bg-yellow-500/10", border: 'border-yellow-500/20', permission: permissions.can_manage_announcements },
+                ].filter(action => action.permission).map((action, i) => (
+                  <motion.div key={i} variants={item}>
+                    <Card
+                      className="border-none shadow-sm hover:shadow-lg transition-all duration-300 rounded-xl overflow-hidden bg-card/50 backdrop-blur-sm relative group cursor-pointer"
+                      onClick={() => navigate(action.path)}
+                    >
+                      <div className={`absolute inset-0 border-2 rounded-xl border-dashed ${action.border} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className={`w-12 h-12 rounded-lg ${action.bg} ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                            <action.icon className="w-6 h-6" />
+                          </div>
+                          <ChevronRight className={`w-5 h-5 ${action.color} opacity-0 group-hover:opacity-100 transition-opacity`} />
+                        </div>
+                        <div className="space-y-2">
+                          <h4 className="font-semibold text-sm">{action.title}</h4>
+                          <p className="text-xs text-muted-foreground leading-relaxed">{action.desc}</p>
                         </div>
                       </CardContent>
                     </Card>

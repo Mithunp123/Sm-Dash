@@ -64,6 +64,7 @@ interface Permissions {
   can_view_assigned_attendance: boolean;
   can_view_assigned_bills: boolean;
   can_view_assigned_reports: boolean;
+  is_interviewer: boolean;
 }
 
 export const usePermissions = () => {
@@ -127,7 +128,8 @@ export const usePermissions = () => {
     can_view_assigned_reports: false,
     can_manage_announcements: false,
     can_manage_announcements_view: false,
-    can_manage_announcements_edit: false
+    can_manage_announcements_edit: false,
+    is_interviewer: false
   });
   const [loading, setLoading] = useState(true);
 
@@ -137,6 +139,26 @@ export const usePermissions = () => {
       if (!user) {
         setLoading(false);
         return;
+      }
+
+      // Default value from current user object
+      let liveIsInterviewer = !!user.is_interviewer;
+
+      try {
+        // Fetch latest profile from backend to get live is_interviewer status
+        const profileRes = await api.getProfile(user.id) as any;
+        if (profileRes.success && (profileRes.profile || profileRes.data)) {
+          const profileData = profileRes.profile || profileRes.data;
+          liveIsInterviewer = !!profileData.is_interviewer;
+          
+          // Sync local user object if it changed
+          if (!!user.is_interviewer !== liveIsInterviewer) {
+            const updatedUser = { ...user, is_interviewer: liveIsInterviewer };
+            auth.setUser(updatedUser as any);
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to fetch profile for permissions sync", e);
       }
 
       // Permission system disabled - Admin and Office Bearers have all permissions
@@ -201,7 +223,8 @@ export const usePermissions = () => {
           can_view_assigned_reports: true,
           can_manage_announcements: true,
           can_manage_announcements_view: true,
-          can_manage_announcements_edit: true
+          can_manage_announcements_edit: true,
+          is_interviewer: liveIsInterviewer
         });
       } else if (user.role === 'student') {
         // Students: permissions system removed as requested
@@ -245,7 +268,6 @@ export const usePermissions = () => {
           can_manage_students: false,
           can_manage_students_view: false,
           can_manage_students_edit: false,
-
           can_manage_feedback_questions: false,
           can_manage_feedback_questions_view: false,
           can_manage_feedback_questions_edit: false,
@@ -266,7 +288,8 @@ export const usePermissions = () => {
           can_view_assigned_reports: false,
           can_manage_announcements: false,
           can_manage_announcements_view: false,
-          can_manage_announcements_edit: false
+          can_manage_announcements_edit: false,
+          is_interviewer: liveIsInterviewer
         });
       } else {
         // All other roles get no permissions
@@ -310,7 +333,6 @@ export const usePermissions = () => {
           can_manage_students: false,
           can_manage_students_view: false,
           can_manage_students_edit: false,
-
           can_manage_feedback_questions: false,
           can_manage_feedback_questions_view: false,
           can_manage_feedback_questions_edit: false,
@@ -331,7 +353,8 @@ export const usePermissions = () => {
           can_view_assigned_reports: false,
           can_manage_announcements: false,
           can_manage_announcements_view: false,
-          can_manage_announcements_edit: false
+          can_manage_announcements_edit: false,
+          is_interviewer: liveIsInterviewer
         });
       }
 
@@ -339,27 +362,24 @@ export const usePermissions = () => {
     };
 
     loadPermissions();
-    // Re-load permissions when window gains focus (helps pickup changes made by admin from another tab/session)
-    const onFocus = () => {
+    
+    // Refresh permissions on profile update or auth state changes
+    const handleRefresh = () => {
+      console.log("Refreshing permissions due to auth/profile update");
       loadPermissions();
     };
 
-    // Also listen to storage events (useful if another tab updates auth or permissions)
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === 'auth_user' || e.key === 'permissions_updated') {
-        loadPermissions();
-      }
-    };
-
-    window.addEventListener('focus', onFocus);
-    window.addEventListener('storage', onStorage);
+    window.addEventListener('profileUpdated', handleRefresh);
+    window.addEventListener('authChanged', handleRefresh);
+    // Also listen to custom sm-auth-update if emitted
+    window.addEventListener('sm-auth-update', handleRefresh);
 
     return () => {
-      window.removeEventListener('focus', onFocus);
-      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('profileUpdated', handleRefresh);
+      window.removeEventListener('authChanged', handleRefresh);
+      window.removeEventListener('sm-auth-update', handleRefresh);
     };
   }, []);
 
   return { permissions, loading };
 };
-

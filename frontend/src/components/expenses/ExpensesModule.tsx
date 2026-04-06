@@ -19,12 +19,21 @@ type ExpenseRow = {
   folder_name?: string;
   expense_title: string;
   category: string;
-  grand_total: number;
+  grand_total?: number;
   created_at?: string;
   created_by?: number;
   created_by_name?: string;
   transport_from?: string | null;
   transport_to?: string | null;
+
+  // Component amounts (used to compute total when `grand_total` is not generated)
+  breakfast_amount?: number;
+  lunch_amount?: number;
+  dinner_amount?: number;
+  refreshment_amount?: number;
+  fuel_amount?: number;
+  accommodation_amount?: number;
+  other_expense?: number;
 };
 
 type FolderRow = {
@@ -84,6 +93,23 @@ export default function ExpensesModule({ eventId, folders, expenses, onRefresh }
   const currentUserId = user?.id;
 
   const canEdit = role === 'admin' || role === 'office_bearer';
+
+  // Some DB setups might not have `grand_total` as a generated column.
+  // Compute totals from component fields so amount never shows as 0 incorrectly.
+  const computeExpenseAmount = (e: ExpenseRow) => {
+    const breakfast = Number(e.breakfast_amount || 0);
+    const lunch = Number(e.lunch_amount || 0);
+    const dinner = Number(e.dinner_amount || 0);
+    const refreshment = Number(e.refreshment_amount || 0);
+    const fuel = Number(e.fuel_amount || 0);
+    const accommodation = Number(e.accommodation_amount || 0);
+    const other = Number(e.other_expense || 0);
+
+    const computed = breakfast + lunch + dinner + refreshment + fuel + accommodation + other;
+    // Prefer backend-provided grand_total if present and non-null.
+    const gt = e.grand_total;
+    return gt === null || gt === undefined ? computed : Number(gt) || computed;
+  };
 
   // Search + filter for expense items
   const [expenseSearch, setExpenseSearch] = useState('');
@@ -169,11 +195,11 @@ export default function ExpensesModule({ eventId, folders, expenses, onRefresh }
   }, [folders, visibleExpenses]);
 
   const totals = useMemo(() => {
-    const overall_total = visibleExpenses.reduce((sum, e) => sum + Number(e.grand_total || 0), 0);
+    const overall_total = visibleExpenses.reduce((sum, e) => sum + computeExpenseAmount(e), 0);
     const totals_by_category: Record<CategoryKey, number> = { food: 0, travel: 0, fuel: 0, stationary: 0, other: 0 };
     for (const e of visibleExpenses) {
       const key = toDisplayCategoryKey(e.category);
-      totals_by_category[key] += Number(e.grand_total || 0);
+      totals_by_category[key] += computeExpenseAmount(e);
     }
     return { overall_total, totals_by_category };
   }, [visibleExpenses]);
@@ -254,6 +280,7 @@ export default function ExpensesModule({ eventId, folders, expenses, onRefresh }
     setItemEditingId(null);
     setItemDialogFolderId(folderId);
     setExpenseForm({
+      // Backend requires `expense_title`. We auto-fill it on submit and keep this hidden.
       expense_title: '',
       category: 'food',
       amount: '',
@@ -272,7 +299,7 @@ export default function ExpensesModule({ eventId, folders, expenses, onRefresh }
     setExpenseForm({
       expense_title: expense.expense_title || '',
       category: toDisplayCategoryKey(expense.category),
-      amount: String(Number(expense.grand_total || 0).toFixed(2)),
+      amount: String(Number(computeExpenseAmount(expense)).toFixed(2)),
       date: dateValue,
       from_location: expense.transport_from || '',
       to_location: expense.transport_to || ''
@@ -288,10 +315,6 @@ export default function ExpensesModule({ eventId, folders, expenses, onRefresh }
       return;
     }
 
-    if (!expenseForm.expense_title.trim()) {
-      toast.error('Expense title is required');
-      return;
-    }
     const amountNum = parseFloat(expenseForm.amount);
     if (!Number.isFinite(amountNum) || amountNum <= 0) {
       toast.error('Please enter an amount greater than 0');
@@ -309,11 +332,15 @@ export default function ExpensesModule({ eventId, folders, expenses, onRefresh }
       }
     }
 
+    const derivedExpenseTitle =
+      expenseForm.expense_title.trim() ||
+      `${CATEGORY_META.find((c) => c.key === expenseForm.category)?.label || 'Expense'} Expense`;
+
     const payloadBase = {
       // Include these even for update so backend validation is satisfied
       event_id: eventId,
       folder_id: itemDialogFolderId,
-      expense_title: expenseForm.expense_title.trim(),
+      expense_title: derivedExpenseTitle,
       category: normalizeCategoryForAPI(expenseForm.category),
       amount: amountNum,
       date: chosenDate,
@@ -489,7 +516,7 @@ export default function ExpensesModule({ eventId, folders, expenses, onRefresh }
 
             const folderTotal = (Object.values(folderExpenses) as ExpenseRow[][])
               .flat()
-              .reduce((sum, e) => sum + Number(e.grand_total || 0), 0);
+              .reduce((sum, e) => sum + computeExpenseAmount(e), 0);
 
             return (
               <AccordionItem key={folder.id} value={String(folder.id)} className="border rounded-lg mb-4 overflow-hidden">
@@ -519,6 +546,66 @@ export default function ExpensesModule({ eventId, folders, expenses, onRefresh }
                           size="sm"
                           variant="ghost"
                           className="text-blue-600 hover:bg-blue-50"
+                          onClick={async () => {
+                            try {
+                              const token = auth.getToken();
+                              if (!token) throw new Error('Not authenticated');
+                              const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+                              const url = `${apiUrl}/finance/folder-report/excel/${folder.id}`;
+                              const response = await fetch(url, {
+                                headers: { Authorization: `Bearer ${token}` }
+                              });
+                              if (!response.ok) throw new Error(`Export failed (${response.status})`);
+                              const blob = await response.blob();
+                              const link = document.createElement('a');
+                              link.href = URL.createObjectURL(blob);
+                              link.download = `${folder.folder_name}_report.xlsx`;
+                              document.body.appendChild(link);
+                              link.click();
+                              link.remove();
+                              toast.success('Folder report (Excel) downloaded');
+                            } catch (err: any) {
+                              toast.error(err?.message || 'Excel export failed');
+                            }
+                          }}
+                          title="Export Excel"
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-green-600 hover:bg-green-50"
+                          onClick={async () => {
+                            try {
+                              const token = auth.getToken();
+                              if (!token) throw new Error('Not authenticated');
+                              const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+                              const url = `${apiUrl}/finance/folder-report/pdf/${folder.id}`;
+                              const response = await fetch(url, {
+                                headers: { Authorization: `Bearer ${token}` }
+                              });
+                              if (!response.ok) throw new Error(`Export failed (${response.status})`);
+                              const blob = await response.blob();
+                              const link = document.createElement('a');
+                              link.href = URL.createObjectURL(blob);
+                              link.download = `${folder.folder_name}_report.pdf`;
+                              document.body.appendChild(link);
+                              link.click();
+                              link.remove();
+                              toast.success('Folder report (PDF) downloaded');
+                            } catch (err: any) {
+                              toast.error(err?.message || 'PDF export failed');
+                            }
+                          }}
+                          title="Export PDF"
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-blue-600 hover:bg-blue-50"
                           onClick={() => openEditFolderDialog(folder)}
                           title="Edit folder"
                         >
@@ -539,7 +626,7 @@ export default function ExpensesModule({ eventId, folders, expenses, onRefresh }
                     <Accordion type="multiple" className="w-full">
                       {CATEGORY_META.map((cat) => {
                         const items = folderExpenses[cat.key] || [];
-                        const total = items.reduce((sum, e) => sum + Number(e.grand_total || 0), 0);
+                        const total = items.reduce((sum, e) => sum + computeExpenseAmount(e), 0);
                         return (
                           <AccordionItem key={`${folder.id}-${cat.key}`} value={`${folder.id}-${cat.key}`} className="border-b last:border-b-0">
                             <AccordionTrigger className="py-3 px-2 hover:no-underline">
@@ -581,7 +668,7 @@ export default function ExpensesModule({ eventId, folders, expenses, onRefresh }
                                               )}
                                             </TableCell>
                                             <TableCell className="text-sm text-muted-foreground">{formatDate(item.created_at)}</TableCell>
-                                            <TableCell className="font-semibold">{formatMoney(item.grand_total)}</TableCell>
+                                            <TableCell className="font-semibold">{formatMoney(computeExpenseAmount(item))}</TableCell>
                                             <TableCell>{item.created_by_name || '-'}</TableCell>
                                             <TableCell className="text-right">
                                               <div className="flex justify-end gap-2">
@@ -734,15 +821,6 @@ export default function ExpensesModule({ eventId, folders, expenses, onRefresh }
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={submitItemDialog} className="space-y-4">
-            <div>
-              <Label>Expense Title *</Label>
-              <Input
-                value={expenseForm.expense_title}
-                onChange={(e) => setExpenseForm({ ...expenseForm, expense_title: e.target.value })}
-                placeholder="e.g., Food for Event"
-              />
-            </div>
-
             <div>
               <Label>Category *</Label>
               <Select

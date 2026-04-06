@@ -4,20 +4,23 @@ import xlsx from 'xlsx';
 import { getDatabase } from '../database/init.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { logActivity } from '../utils/logger.js';
-import { sendEmail, getInterviewEmailTemplate, getInterviewOutcomeTemplate, getInterviewAssignmentTemplate } from '../utils/email.js';
+import { sendEmail } from '../utils/email.js';
+import { body, validationResult } from 'express-validator';
 
 const router = express.Router();
 
-// Multer setup for Excel files (in-memory storage)
+// Multer setup for CSV/XLSX files
 const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    limits: { fileSize: 5 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
-        if (
-            file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-            file.mimetype === 'text/csv' ||
-            file.mimetype === 'application/vnd.ms-excel'
-        ) {
+        const allowedTypes = [
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'text/csv',
+            'application/vnd.ms-excel',
+            'application/csv'
+        ];
+        if (allowedTypes.includes(file.mimetype)) {
             cb(null, true);
         } else {
             cb(new Error('Only .xlsx and .csv files are allowed!'), false);
@@ -25,10 +28,11 @@ const upload = multer({
     }
 });
 
-// Helper function to run DB queries with Promise wrapper
-const run = (db, query, params = []) => {
-    if (process.env.DB_TYPE === 'mysql') {
-        return db.run(query, params);
+// Helper functions for MySQL/SQLite compatibility
+const run = async (db, query, params = []) => {
+    if (db && typeof db.execute === 'function') {
+        const [result] = await db.execute(query, params);
+        return { lastID: result.insertId, changes: result.affectedRows };
     }
     return new Promise((resolve, reject) => {
         db.run(query, params, function (err) {
@@ -38,9 +42,10 @@ const run = (db, query, params = []) => {
     });
 };
 
-const get = (db, query, params = []) => {
-    if (process.env.DB_TYPE === 'mysql') {
-        return db.get(query, params);
+const get = async (db, query, params = []) => {
+    if (db && typeof db.execute === 'function') {
+        const [rows] = await db.execute(query, params);
+        return rows[0];
     }
     return new Promise((resolve, reject) => {
         db.get(query, params, (err, row) => {
@@ -50,9 +55,10 @@ const get = (db, query, params = []) => {
     });
 };
 
-const all = (db, query, params = []) => {
-    if (process.env.DB_TYPE === 'mysql') {
-        return db.all(query, params);
+const all = async (db, query, params = []) => {
+    if (db && typeof db.execute === 'function') {
+        const [rows] = await db.execute(query, params);
+        return rows;
     }
     return new Promise((resolve, reject) => {
         db.all(query, params, (err, rows) => {
@@ -62,234 +68,193 @@ const all = (db, query, params = []) => {
     });
 };
 
-const applyTemplateVars = (text, vars) => {
-    if (text === undefined || text === null) return '';
-    let out = String(text);
-    // Only required variables for this module
-    for (const [key, value] of Object.entries(vars)) {
-        const safeValue = value === undefined || value === null ? '' : String(value);
-        out = out.replace(new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g'), safeValue);
-    }
-    return out;
+// Email template for interview results
+const getInterviewResultTemplate = (name, isSelected) => {
+    const baseTemplate = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; background: #f9f9f9; }
+                .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+                .content { background: white; padding: 30px; border-radius: 0 0 8px 8px; }
+                .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+                .result-box { padding: 20px; border-radius: 8px; margin: 20px 0; }
+                .selected { background: #d4edda; border-left: 4px solid #28a745; }
+                .rejected { background: #f8d7da; border-left: 4px solid #dc3545; }
+                .btn { display: inline-block; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>SM Volunteers - Interview Result</h1>
+                </div>
+                <div class="content">
+                    <p>Dear <strong>{{name}}</strong>,</p>
+                    ${isSelected ? `
+                        <div class="result-box selected">
+                            <h2 style="color: #28a745; margin: 0;">🎉 Congratulations!</h2>
+                            <p>We are thrilled to have you selected for SM Volunteers! Your performance impressed our evaluation team.</p>
+                            <p><strong>Next Steps:</strong> Please check your email for further instructions and onboarding details.</p>
+                        </div>
+                    ` : `
+                        <div class="result-box rejected">
+                            <h2 style="color: #dc3545; margin: 0;">Application Update</h2>
+                            <p>Thank you for your interest in joining SM Volunteers. After careful evaluation, we regret to inform you that we cannot move forward with your application at this time.</p>
+                            <p>We appreciate your enthusiasm and encourage you to apply again in the future!</p>
+                        </div>
+                    `}
+                    <p>Best regards,<br><strong>SM Volunteers Team</strong></p>
+                </div>
+                <div class="footer">
+                    <p>&copy; 2024 SM Volunteers, K.S.Rangasamy College of Technology. All rights reserved.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+    `;
+    return baseTemplate.replace(/{{name}}/g, name);
 };
 
-const wrapBodyAsHtml = (body) => {
-    // If admin provides HTML, keep it. Otherwise treat as plain text.
-    if (!body) return '';
-    const s = String(body);
-    const looksLikeHtml = /<\/?[a-z][\s\S]*>/i.test(s);
-    if (looksLikeHtml) return s;
-    const escaped = s
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-    return `<div>${escaped.replace(/\n/g, '<br/>')}</div>`;
-};
-
-// GET /api/interviews - List all candidates
-router.get('/', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
+// ============================================
+// DEPARTMENTS & YEARS METADATA
+// ============================================
+router.get('/departments', authenticateToken, async (req, res) => {
     try {
         const db = getDatabase();
-        const candidates = await all(db, 'SELECT * FROM interview_candidates ORDER BY created_at DESC');
-        res.json({ success: true, candidates });
-    } catch (error) {
-        console.error('Get candidates error:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// GET /api/interviews/interviewers - List all assigned interviewers (only interviewers with assigned candidates)
-router.get('/interviewers', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
-    try {
-        const db = getDatabase();
-        // Get distinct interviewers from candidates who have been assigned interviewers
-        const interviewers = await all(db,
-            `SELECT DISTINCT u.id, u.name, u.email
-             FROM users u
-             WHERE u.id IN (
-                SELECT DISTINCT interviewer_id FROM interview_candidates WHERE interviewer_id IS NOT NULL
-             )
-             ORDER BY u.name ASC`,
-            []
+        
+        // First try to get departments from interview_candidates
+        const candidateDepts = await all(db, 
+            `SELECT DISTINCT dept 
+             FROM interview_candidates 
+             WHERE dept IS NOT NULL AND dept != '' 
+             ORDER BY dept ASC`
         );
-        res.json({ success: true, interviewers: interviewers || [] });
+        
+        // Then get from student_profiles
+        const profileDepts = await all(db,
+            `SELECT DISTINCT dept 
+             FROM student_profiles 
+             WHERE dept IS NOT NULL AND dept != '' 
+             ORDER BY dept ASC`
+        );
+        
+        // Combine and deduplicate
+        const allDepts = new Set();
+        candidateDepts?.forEach(d => allDepts.add(d.dept));
+        profileDepts?.forEach(d => allDepts.add(d.dept));
+        
+        // Default departments if none found in DB
+        const defaultDepts = [
+            'IT', 'CSE', 'ECE', 'Mech', 'Civil', 'EEE', 'Chemical',
+            'Biomedical', 'Science', 'Management'
+        ];
+        
+        const deptList = allDepts.size > 0 
+            ? Array.from(allDepts).sort() 
+            : defaultDepts;
+        
+        res.json({ success: true, departments: deptList });
     } catch (error) {
-        console.error('Get interviewers error:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
+        console.error('Get departments error:', error);
+        res.json({ 
+            success: true, 
+            departments: ['IT', 'CSE', 'ECE', 'Mech', 'Civil', 'EEE', 'Chemical', 'Biomedical', 'Science', 'Management']
+        });
     }
 });
 
-// POST /api/interviews/bulk-upload
-router.post('/bulk-upload', authenticateToken, requireRole('admin', 'office_bearer'), upload.single('file'), async (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ success: false, message: 'No file uploaded' });
+router.get('/years', authenticateToken, async (req, res) => {
+    try {
+        // Years are standardized as I, II, III, IV
+        const years = ['I', 'II', 'III', 'IV'];
+        res.json({ success: true, years });
+    } catch (error) {
+        console.error('Get years error:', error);
+        res.json({ success: true, years: ['I', 'II', 'III', 'IV'] });
+    }
+});
+
+// ============================================
+// 1. ADD CANDIDATE (Manual)
+// ============================================
+router.post('/candidates', [
+    authenticateToken,
+    (req, res, next) => {
+        if (['admin', 'office_bearer'].includes(req.user.role)) return next();
+        return res.status(403).json({ success: false, message: 'Management access required' });
+    },
+    body('name').notEmpty().trim(),
+    body('department').notEmpty(),
+    body('year').notEmpty(),
+    body('phone').notEmpty().trim().isString(),
+    body('email').isEmail().normalizeEmail()
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, errors: errors.array() });
     }
 
-    const db = getDatabase();
-    // Required columns in Excel
-    const validColumns = ['name', 'email', 'phone', 'department', 'year', 'register_no'];
+    let { name, department, year, phone, email } = req.body;
+    
+    // Clean phone number - remove non-digits
+    phone = phone.replace(/\D/g, '');
+    if (phone.length > 10 && phone.startsWith('91')) {
+        phone = phone.substring(2);
+    }
+    
+    if (phone.length !== 10) {
+        return res.status(400).json({
+            success: false,
+            message: 'Phone number must be 10 digits'
+        });
+    }
 
     try {
-        // Read buffer
-        const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        // Convert to JSON
-        const data = xlsx.utils.sheet_to_json(sheet);
+        const db = getDatabase();
 
-        if (!data.length) {
-            return res.status(400).json({ success: false, message: 'File is empty' });
-        }
+        // Check for duplicates (phone OR email)
+        const existing = await get(db,
+            'SELECT id FROM interview_candidates WHERE phone = ? OR email = ?',
+            [phone, email]
+        );
 
-        // Validate headers (check first row keys)
-        const firstRow = data[0];
-        const normalizedHeaders = {};
-        Object.keys(firstRow).forEach(key => {
-            normalizedHeaders[key.trim().toLowerCase()] = key;
-        });
-
-        const missingColumns = validColumns.filter(col => !normalizedHeaders[col]);
-
-        if (missingColumns.length > 0) {
-            return res.status(400).json({
-                success: false,
-                message: `Missing required columns: ${missingColumns.join(', ')}. Found: ${Object.keys(normalizedHeaders).join(', ')}`
+        if (existing) {
+            // Update existing candidate instead of failing
+            await run(db,
+                `UPDATE interview_candidates 
+                 SET name = ?, department = ?, year = ?, phone = ?, email = ?
+                 WHERE id = ?`,
+                [name, department, year, phone, email, existing.id]
+            );
+            return res.json({
+                success: true,
+                message: 'Candidate details updated (already existed)'
             });
         }
 
-        let successCount = 0;
-        let skippedCount = 0;
-        const skippedDetails = [];
-        const successfulCandidates = [];
+        // Validate phone and email format
+        // Redundant phone check removed, it's already handled above
 
-        for (const row of data) {
-            // Extract values using original keys found in map
-            const name = row[normalizedHeaders['name']];
-            const email = row[normalizedHeaders['email']];
-            const phone = row[normalizedHeaders['phone']];
-            const dept = row[normalizedHeaders['department']];
-            const year = row[normalizedHeaders['year']];
-            const register_no = row[normalizedHeaders['register_no']];
-
-            // Basic validation
-            if (!email || !register_no || !name) {
-                skippedCount++;
-                skippedDetails.push({ email: email || 'N/A', reason: 'Missing name, email or register_no' });
-                continue;
-            }
-
-            // Check for duplicate Email in interview_candidates (allow duplicates if different year? No, unique per candidate generally)
-            const existingEmail = await get(db, 'SELECT id FROM interview_candidates WHERE email = ?', [email]);
-            if (existingEmail) {
-                skippedCount++;
-                skippedDetails.push({ email, reason: 'Duplicate Email (Candidate exists)' });
-                continue;
-            }
-
-            // Check for duplicate Register No in interview_candidates
-            const existingRegNo = await get(db, 'SELECT id FROM interview_candidates WHERE register_no = ?', [register_no]);
-            if (existingRegNo) {
-                skippedCount++;
-                skippedDetails.push({ register_no, reason: 'Duplicate Register No' });
-                continue;
-            }
-
-            try {
-                // Find user by email to link user_id
-                const user = await get(db, 'SELECT id FROM users WHERE LOWER(TRIM(email)) = ?', [email.trim().toLowerCase()]);
-                const userId = user ? user.id : null;
-
-                // Insert Candidate
-                const result = await run(db,
-                    `INSERT INTO interview_candidates (name, email, phone, dept, year, register_no, status, marks, email_sent, user_id) 
-                 VALUES (?, ?, ?, ?, ?, ?, 'pending', 0, 0, ?)`,
-                    [name, email, phone, dept, year, register_no, userId]
-                );
-                const candidateId = result.lastID;
-
-                // Email will be sent manually by admin via the email management panel
-                // No auto email send - email_sent field defaults to 0 (false)
-
-                successfulCandidates.push({ name, email });
-                successCount++;
-
-            } catch (err) {
-                console.error('Row insert error:', err);
-                skippedCount++;
-                skippedDetails.push({ email, reason: 'Database Error: ' + err.message });
-            }
+        if (!(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid email format'
+            });
         }
 
-        // Send emails in background (or await if critical, user said "trigger mail", implies importance)
-        // To ensure response is fast, maybe fire and forget? But user might want to know if mails failed.
-        // Let's await them for now as batch size is likely manageable.
-
-
-        await logActivity(req.user.id, 'BULK_UPLOAD_CANDIDATES', {
-            total: data.length,
-            success: successCount,
-            skipped: skippedCount
-        }, req, {
-            action_type: 'CREATE',
-            module_name: 'interviews',
-            action_description: `Bulk uploaded ${successCount} candidates`,
-        });
-
-        res.json({
-            success: true,
-            message: 'Bulk upload processed successfully. Emails can be sent manually from the admin email management panel.',
-            stats: {
-                total: data.length,
-                success: successCount,
-                skipped: skippedCount,
-                skippedDetails // Frontend can display this list
-            }
-        });
-
-    } catch (error) {
-        console.error('Bulk upload error:', error);
-        res.status(500).json({ success: false, message: 'Server error processing file: ' + error.message });
-    }
-});
-
-// POST /api/interviews/add - Add single candidate
-router.post('/add', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
-    const { name, email, phone, dept, year, register_no, role = 'volunteer' } = req.body;
-
-    if (!name || !email || !register_no) {
-        return res.status(400).json({ success: false, message: 'Name, Email and Register No are required' });
-    }
-
-    if (!['volunteer', 'office_bearer'].includes(role)) {
-        return res.status(400).json({ success: false, message: 'Invalid role. Must be volunteer or office_bearer' });
-    }
-
-    const db = getDatabase();
-
-    try {
-        // Check duplicates
-        const existing = await get(db, 'SELECT id FROM interview_candidates WHERE email = ? OR register_no = ?', [email, register_no]);
-        if (existing) {
-            return res.status(400).json({ success: false, message: 'Candidate with this Email or Register No already exists' });
-        }
-
-        // Find user by email to link user_id
-        const user = await get(db, 'SELECT id FROM users WHERE LOWER(TRIM(email)) = ?', [email.trim().toLowerCase()]);
-        const userId = user ? user.id : null;
-
-        // Insert
+        // Insert candidate with default status 'pending'
+        // Auto-generate register_no if not provided
+        const register_no = `REG${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+        
         const result = await run(db,
-            `INSERT INTO interview_candidates (name, email, phone, dept, year, register_no, status, marks, email_sent, role, user_id) 
-             VALUES (?, ?, ?, ?, ?, ?, 'pending', 0, 0, ?, ?)`,
-            [name, email, phone, dept, year, register_no, role, userId]
+            `INSERT INTO interview_candidates 
+            (name, email, phone, dept, year, register_no, status, created_at) 
+            VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())`,
+            [name, email, phone, department, year, register_no]
         );
-
-        const candidateId = result.lastID;
-
-        // Email will be sent manually by admin via the email management panel
-        // No auto email send - email_sent field defaults to 0 (false)
 
         await logActivity(req.user.id, 'ADD_CANDIDATE', { name, email }, req, {
             action_type: 'CREATE',
@@ -297,7 +262,11 @@ router.post('/add', authenticateToken, requireRole('admin', 'office_bearer'), as
             action_description: `Added interview candidate: ${name}`
         });
 
-        res.json({ success: true, message: 'Candidate added successfully. Email can be sent manually from the admin email management panel.' });
+        res.json({
+            success: true,
+            message: 'Candidate added successfully',
+            candidateId: result.lastID
+        });
 
     } catch (error) {
         console.error('Add candidate error:', error);
@@ -305,709 +274,787 @@ router.post('/add', authenticateToken, requireRole('admin', 'office_bearer'), as
     }
 });
 
-// PUT /api/interviews/:id - Update candidate status/interviewer
-router.put('/:id', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
-    const { id } = req.params;
+// ============================================
+// 2. BULK UPLOAD CANDIDATES (CSV/XLSX)
+// ============================================
+router.post('/bulk-upload', authenticateToken, (req, res, next) => {
+        if (['admin', 'office_bearer'].includes(req.user.role)) return next();
+        return res.status(403).json({ success: false, message: 'Management access required' });
+    }, upload.single('file'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
 
-    const { status, interviewer, interviewer_email, interviewer_id, marks, interview_date, interview_time, remarks, decision, role, attendance, name, email, phone, dept, year, register_no } = req.body;
+    if (!['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv', 'application/vnd.ms-excel', 'application/csv'].includes(req.file.mimetype)) {
+        return res.status(400).json({ success: false, message: 'Only CSV and XLSX files are allowed' });
+    }
+
     const db = getDatabase();
 
     try {
-        const candidate = await get(db, 'SELECT * FROM interview_candidates WHERE id = ?', [id]);
-        if (!candidate) {
-            return res.status(404).json({ success: false, message: 'Candidate not found' });
-        }
+        let data = [];
 
-        const updates = [];
-        const params = [];
-
-        if (status) {
-            updates.push('status = ?');
-            params.push(status);
-        }
-        let interviewerInfo = null;
-
-        if (interviewer_id !== undefined) {
-            const interviewerIdParsed = parseInt(interviewer_id, 10) || null;
-            updates.push('interviewer_id = ?');
-            params.push(interviewerIdParsed);
-
-            if (interviewerIdParsed) {
-                interviewerInfo = await get(db, 'SELECT name, email FROM users WHERE id = ?', [interviewerIdParsed]);
-                // If interviewer is being assigned and no explicit status provided, mark candidate as assigned
-                if (status === undefined) {
-                    updates.push('status = ?');
-                    params.push('assigned');
-                }
+        if (req.file.mimetype === 'text/csv' || req.file.mimetype === 'application/csv') {
+            const lines = req.file.buffer.toString().split('\n');
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === '') continue;
+                const values = lines[i].split(',').map(v => v.trim());
+                const row = {};
+                headers.forEach((header, idx) => {
+                    row[header] = values[idx];
+                });
+                data.push(row);
             }
+        } else {
+            const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            data = xlsx.utils.sheet_to_json(sheet);
         }
 
-        if (interviewer !== undefined) {
-            updates.push('interviewer = ?');
-            params.push(interviewer);
-        } else if (interviewerInfo && interviewerInfo.name) {
-            updates.push('interviewer = ?');
-            params.push(interviewerInfo.name);
+        if (!data.length) {
+            return res.status(400).json({ success: false, message: 'File is empty' });
         }
 
-        if (interviewer_email !== undefined) {
-            updates.push('interviewer_email = ?');
-            params.push(interviewer_email ? interviewer_email.toLowerCase().trim() : interviewer_email);
-        } else if (interviewerInfo && interviewerInfo.email) {
-            updates.push('interviewer_email = ?');
-            params.push(interviewerInfo.email.toLowerCase().trim());
-        }
+        // Normalize headers
+        const normalizedHeaders = {};
+        Object.keys(data[0]).forEach(key => {
+            normalizedHeaders[key.trim().toLowerCase()] = key;
+        });
 
-        if (marks !== undefined) {
-            updates.push('marks = ?');
-            params.push(marks);
-        }
-        if (interview_date !== undefined) {
-            updates.push('interview_date = ?');
-            params.push(interview_date);
-        }
-        if (interview_time !== undefined) {
-            updates.push('interview_time = ?');
-            params.push(interview_time);
-        }
-        if (remarks !== undefined) {
-            updates.push('remarks = ?');
-            params.push(remarks);
-        }
-        if (decision !== undefined) {
-            updates.push('decision = ?');
-            params.push(decision);
-        }
-        if (role !== undefined) {
-            if (!['volunteer', 'office_bearer'].includes(role)) {
-                return res.status(400).json({ success: false, message: 'Invalid role. Must be "volunteer" or "office_bearer"' });
-            }
-            updates.push('role = ?');
-            params.push(role);
-        }
-        if (attendance !== undefined) {
-            if (!['present', 'absent'].includes(attendance)) {
-                return res.status(400).json({ success: false, message: 'Invalid attendance. Must be "present" or "absent"' });
-            }
-            updates.push('attendance = ?');
-            params.push(attendance);
-        }
-        if (email !== undefined) { updates.push('email = ?'); params.push(email); }
-        if (phone !== undefined) { updates.push('phone = ?'); params.push(phone); }
-        if (dept !== undefined) { updates.push('dept = ?'); params.push(dept); }
-        if (year !== undefined) { updates.push('year = ?'); params.push(year); }
-        if (register_no !== undefined) { updates.push('register_no = ?'); params.push(register_no); }
+        const requiredColumns = ['name', 'department', 'year', 'phone', 'email'];
+        const missingColumns = requiredColumns.filter(col => !normalizedHeaders[col]);
 
-        // If email is being updated and user_id is not set, try to find user
-        if (email !== undefined && !candidate.user_id) {
-            const user = await get(db, 'SELECT id FROM users WHERE LOWER(TRIM(email)) = ?', [email.trim().toLowerCase()]);
-            if (user) {
-                updates.push('user_id = ?');
-                params.push(user.id);
-            }
-        }
-
-        if (!updates.length) {
-            return res.json({ success: true, message: 'No changes made' });
-        }
-
-        const assignmentChanged = (mentor_id !== undefined || interviewer_email !== undefined);
-        const scheduleChanged = (interview_date !== undefined || interview_time !== undefined);
-
-        params.push(id);
-        await run(db, `UPDATE interview_candidates SET ${updates.join(', ')} WHERE id = ?`, params);
-
-        // If an interviewer has been assigned, ensure the assigned interviewer user is flagged for interviewer access
-        if (interviewer_id !== undefined && interviewer_id !== null) {
-            try {
-                await run(db, 'UPDATE users SET is_interviewer = 1 WHERE id = ?', [interviewer_id]);
-            } catch (err) {
-                console.error('Failed to mark interviewer as interviewer:', err.message);
-            }
-        }
-        if (interviewer_email !== undefined && interviewer_email) {
-            try {
-                await run(db, 'UPDATE users SET is_interviewer = 1 WHERE email = ?', [interviewer_email]);
-            } catch (err) {
-                console.error('Failed to mark interviewer email as interviewer:', err.message);
-            }
-        }
-
-        // (No assignment/schedule emails by default; only selected final result emails are sent from submit-marks)
-
-        // log activity if user object exists
-        if (req.user && req.user.id) {
-            await logActivity(req.user.id, 'UPDATE_CANDIDATE', { id, updates: req.body }, req, {
-                action_type: 'UPDATE',
-                module_name: 'interviews',
-                action_description: `Updated interview candidate: ${candidate.name} (${updates.join(', ')})`
+        if (missingColumns.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: `Missing required columns: ${missingColumns.join(', ')}`
             });
         }
 
-        res.json({ success: true, message: 'Candidate updated successfully' });
+        let successCount = 0;
+        let skippedCount = 0;
+        let failedCount = 0;
+        const details = {
+            skipped: [],
+            failed: []
+        };
+
+        for (const row of data) {
+            const name = row[normalizedHeaders['name']]?.trim();
+            const email = row[normalizedHeaders['email']]?.trim().toLowerCase();
+            const phone = row[normalizedHeaders['phone']]?.trim();
+            const dept = row[normalizedHeaders['department']]?.trim();
+            const year = row[normalizedHeaders['year']]?.trim();
+
+            // Validation
+            if (!name || !email || !phone || !dept || !year) {
+                failedCount++;
+                details.failed.push({
+                    row: `${name || 'N/A'} (${email || 'N/A'})`,
+                    reason: 'Missing required fields'
+                });
+                continue;
+            }
+
+            // Validate phone (10 digits)
+            if (!/^\d{10}$/.test(phone)) {
+                failedCount++;
+                details.failed.push({
+                    email,
+                    reason: 'Invalid phone format (must be 10 digits)'
+                });
+                continue;
+            }
+
+            // Validate email
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                failedCount++;
+                details.failed.push({
+                    email,
+                    reason: 'Invalid email format'
+                });
+                continue;
+            }
+
+            // Check for duplicates (SKIP without error - graceful handling)
+            const existing = await get(db,
+                'SELECT id FROM interview_candidates WHERE phone = ? OR email = ?',
+                [phone, email]
+            );
+
+            if (existing) {
+                skippedCount++;
+                details.skipped.push({
+                    email,
+                    phone,
+                    reason: 'Duplicate (phone or email already exists)'
+                });
+                continue;
+            }
+
+            // Insert candidate
+            try {
+                // Auto-generate register_no
+                const register_no = `REG${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+                
+                await run(db,
+                    `INSERT INTO interview_candidates 
+                    (name, email, phone, dept, year, register_no, status, created_at) 
+                    VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())`,
+                    [name, email, phone, dept, year, register_no]
+                );
+                successCount++;
+            } catch (err) {
+                failedCount++;
+                details.failed.push({
+                    email,
+                    reason: 'Database error: ' + err.message
+                });
+            }
+        }
+
+        await logActivity(req.user.id, 'BULK_UPLOAD_CANDIDATES', {
+            total: data.length,
+            success: successCount,
+            skipped: skippedCount,
+            failed: failedCount
+        }, req, {
+            action_type: 'CREATE',
+            module_name: 'interviews',
+            action_description: `Bulk uploaded candidates (${successCount} added, ${skippedCount} skipped, ${failedCount} failed)`
+        });
+
+        res.json({
+            success: true,
+            message: 'Bulk upload completed',
+            stats: {
+                total: data.length,
+                added: successCount,
+                skipped: skippedCount,
+                failed: failedCount
+            },
+            details: details
+        });
+
     } catch (error) {
-        console.error('Update candidate error:', error);
+        console.error('Bulk upload error:', error);
+        res.status(500).json({ success: false, message: 'Server error: ' + error.message });
+    }
+});
+
+// ============================================
+// 3. DOWNLOAD SAMPLE CSV
+// ============================================
+router.get('/sample', (req, res) => {
+    const sample = `Name,Department,Year,Phone,Email
+Naren,IT,2,9751673398,naren@gmail.com
+Arun,IT,2,9876543210,arun@gmail.com
+Priya,CSE,3,9988776655,priya@gmail.com`;
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="candidates_sample.csv"');
+    res.send(sample);
+});
+
+// ============================================
+// 4. LIST CANDIDATES (Role-based access)
+// ============================================
+router.get('/candidates', authenticateToken, async (req, res) => {
+    try {
+        const db = getDatabase();
+        let query = `SELECT * FROM interview_candidates`;
+        const params = [];
+
+        // Role-based access control
+        if (req.user.role === 'admin' || req.user.role === 'office_bearer') {
+            // Admin and office bearer see all candidates
+            query += ` ORDER BY created_at DESC`;
+        } else if (req.user.role === 'mentor' || req.user.is_interviewer) {
+            // Mentor or flagged interviewer sees ONLY assigned candidates
+            query += ` WHERE assigned_mentor_id = ? OR interviewer_id = ? ORDER BY created_at DESC`;
+            params.push(req.user.id, req.user.id);
+        } else {
+            // Other roles cannot access
+            return res.status(403).json({ success: false, message: 'Unauthorized' });
+        }
+
+        const candidates = await all(db, query, params);
+
+        res.json({
+            success: true,
+            candidates: candidates || []
+        });
+
+    } catch (error) {
+        console.error('List candidates error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
-// GET /api/interviews/my-status - Get interview status for logged in user
-router.get('/my-status', authenticateToken, async (req, res) => {
+// ============================================
+// 5. GET SINGLE CANDIDATE (Role-based)
+// ============================================
+router.get('/candidates/:id', authenticateToken, async (req, res) => {
     try {
-        if (!req.user?.is_interviewer) {
-            return res.status(403).json({ success: false, message: 'Access denied' });
-        }
-
         const db = getDatabase();
-        const user = await get(db, 'SELECT * FROM users WHERE id = ?', [req.user.id]);
-
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'User not found' });
-        }
-
-        // Normalize user details for robust matching
-        const userEmail = (user.email || '').trim().toLowerCase();
-        const userName = (user.name || '').trim().toLowerCase();
-
-        let candidate = null;
-
-        // First, try direct user_id match (most reliable)
-        if (req.user.id) {
-            candidate = await get(db, 'SELECT * FROM interview_candidates WHERE user_id = ?', [req.user.id]);
-        }
-
-        // If not found by user_id, try email
-        if (!candidate && userEmail) {
-            candidate = await get(db, 'SELECT * FROM interview_candidates WHERE LOWER(TRIM(email)) = ?', [userEmail]);
-        }
-
-        // If not found by email, try to find by register_no from profile
-        if (!candidate) {
-            const profile = await get(db, 'SELECT register_no FROM profiles WHERE user_id = ?', [req.user.id]);
-            if (profile && profile.register_no) {
-                candidate = await get(db, 'SELECT * FROM interview_candidates WHERE register_no = ?', [profile.register_no]);
-            }
-        }
-
-        // If still not found, try by name (in case email/register_no mismatch)
-        if (!candidate && userName) {
-            candidate = await get(db, 'SELECT * FROM interview_candidates WHERE LOWER(TRIM(name)) = ?', [userName]);
-        }
+        const candidate = await get(db,
+            'SELECT * FROM interview_candidates WHERE id = ?',
+            [req.params.id]
+        );
 
         if (!candidate) {
-            return res.json({ success: true, status: null });
+            return res.status(404).json({ success: false, message: 'Candidate not found' });
         }
 
-        // Normalize status for display
-        if (!candidate.status) {
-            candidate.status = 'pending';
+        // Access control: Admin, office bearer, or assigned mentor/interviewer
+        if (req.user.role === 'admin' || req.user.role === 'office_bearer') {
+            // Admin and office bearer can access
+        } else if ((req.user.role === 'mentor' || req.user.is_interviewer) && (candidate.assigned_mentor_id === req.user.id || candidate.interviewer_id === req.user.id)) {
+            // Mentor/Interviewer can access only if assigned
+        } else {
+            return res.status(403).json({ success: false, message: 'Unauthorized' });
         }
 
         res.json({ success: true, candidate });
+
     } catch (error) {
-        console.error('Get my interview status error:', error);
+        console.error('Get candidate error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
-// GET /api/interviews/my-candidates - Get candidates assigned to current mentor
+// ============================================
+// 6. ASSIGN MENTOR TO CANDIDATE (Admin only)
+// ============================================
+router.post('/candidates/:id/assign-mentor', [
+    authenticateToken,
+    (req, res, next) => {
+        if (['admin', 'office_bearer'].includes(req.user.role)) return next();
+        return res.status(403).json({ success: false, message: 'Management access required' });
+    },
+    body('mentor_id').isInt()
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    const { mentor_id } = req.body;
+
+    try {
+        const db = getDatabase();
+
+        // Verify candidate exists
+        const candidate = await get(db,
+            'SELECT * FROM interview_candidates WHERE id = ?',
+            [req.params.id]
+        );
+
+        if (!candidate) {
+            return res.status(404).json({ success: false, message: 'Candidate not found' });
+        }
+
+        // Verify mentor exists and has role='mentor' or admin
+        const mentor = await get(db,
+            "SELECT id, name, email FROM users WHERE id = ? AND (role = 'mentor' OR role = 'admin')",
+            [mentor_id]
+        );
+
+        if (!mentor) {
+            return res.status(400).json({ success: false, message: 'Invalid mentor (must have mentor role)' });
+        }
+
+        // Update assignment
+        await run(db,
+            `UPDATE interview_candidates 
+            SET assigned_mentor_id = ?, status = 'assigned' 
+            WHERE id = ?`,
+            [mentor_id, req.params.id]
+        );
+
+        // Send email to mentor about the assignment
+        try {
+            const mentorEmailHtml = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                        .container { max-width: 600px; margin: 0 auto; padding: 20px; background: #f9f9f9; }
+                        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+                        .content { background: white; padding: 30px; border-radius: 0 0 8px 8px; }
+                        .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+                        .candidate-card { background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #667eea; }
+                        .label { font-weight: bold; color: #667eea; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h1>New Interview Assignment</h1>
+                        </div>
+                        <div class="content">
+                            <p>Dear <strong>${mentor.name}</strong>,</p>
+                            <p>You have been assigned a new candidate for evaluation.</p>
+                            
+                            <div class="candidate-card">
+                                <p><span class="label">Candidate Name:</span> ${candidate.name}</p>
+                                <p><span class="label">Email:</span> ${candidate.email}</p>
+                                <p><span class="label">Phone:</span> ${candidate.phone}</p>
+                                <p><span class="label">Department:</span> ${candidate.dept}</p>
+                                <p><span class="label">Year:</span> ${candidate.year}</p>
+                            </div>
+
+                            <p>Please evaluate this candidate on:</p>
+                            <ul>
+                                <li>Technical Skills (0-10)</li>
+                                <li>Communication (0-10)</li>
+                                <li>Problem Solving (0-10)</li>
+                            </ul>
+
+                            <p><strong>Note:</strong> Total score of 15+ will result in selection, below 15 will be rejection.</p>
+                            <p>Please log in to the portal to submit your evaluation.</p>
+
+                            <p>Best regards,<br><strong>SM Volunteers Team</strong></p>
+                        </div>
+                        <div class="footer">
+                            <p>&copy; 2024 SM Volunteers, K.S.Rangasamy College of Technology. All rights reserved.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `;
+            
+            await sendEmail(
+                mentor.email,
+                'New Interview Candidate Assignment - SM Volunteers',
+                mentorEmailHtml
+            );
+        } catch (emailErr) {
+            console.error('Email to mentor error:', emailErr);
+            // Don't fail the assignment if email fails
+        }
+
+        await logActivity(req.user.id, 'ASSIGN_MENTOR', {
+            candidateId: req.params.id,
+            mentorId: mentor_id
+        }, req, {
+            action_type: 'UPDATE',
+            module_name: 'interviews',
+            action_description: `Assigned mentor ${mentor.name} to candidate ${candidate.name}`
+        });
+
+        res.json({
+            success: true,
+            message: `Candidate assigned to ${mentor.name}. Email notification sent to mentor.`
+        });
+
+    } catch (error) {
+        console.error('Assign mentor error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// ============================================
+// 7. ENTER MARKS (Mentor only, for assigned candidates)
+// ============================================
+router.post('/candidates/:id/marks', [
+    authenticateToken,
+    body('technical').isFloat({ min: 0, max: 10 }),
+    body('communication').isFloat({ min: 0, max: 10 }),
+    body('problem_solving').isFloat({ min: 0, max: 10 })
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
+    const { technical, communication, problem_solving } = req.body;
+
+    try {
+        const db = getDatabase();
+
+        // Get candidate
+        const candidate = await get(db,
+            'SELECT * FROM interview_candidates WHERE id = ?',
+            [req.params.id]
+        );
+
+        if (!candidate) {
+            return res.status(404).json({ success: false, message: 'Candidate not found' });
+        }
+
+        // Access control: Only assigned mentor can enter marks
+        if (req.user.role !== 'admin' && candidate.assigned_mentor_id !== req.user.id) {
+            return res.status(403).json({ success: false, message: 'Unauthorized (not assigned mentor)' });
+        }
+
+        // Calculate total
+        const total = parseFloat(technical) + parseFloat(communication) + parseFloat(problem_solving);
+
+        // Determine result based on total (>=15 = selected, <15 = rejected)
+        const status = total >= 15 ? 'selected' : 'rejected';
+
+        // Update marks
+        await run(db,
+            `UPDATE interview_candidates 
+            SET technical = ?, communication = ?, problem_solving = ?, total = ?, status = ?
+            WHERE id = ?`,
+            [technical, communication, problem_solving, total, status, req.params.id]
+        );
+
+        // Get updated candidate
+        const updatedCandidate = await get(db,
+            'SELECT * FROM interview_candidates WHERE id = ?',
+            [req.params.id]
+        );
+
+        // Send auto email
+        try {
+            const htmlContent = getInterviewResultTemplate(updatedCandidate.name, status === 'selected');
+            await sendEmail(
+                updatedCandidate.email,
+                'Interview Result - SM Volunteers',
+                htmlContent
+            );
+        } catch (emailErr) {
+            console.error('Email send error:', emailErr);
+            // Don't fail the entire operation if email fails
+        }
+
+        await logActivity(req.user.id, 'ENTER_MARKS', {
+            candidateId: req.params.id,
+            technical,
+            communication,
+            problem_solving,
+            total,
+            status
+        }, req, {
+            action_type: 'UPDATE',
+            module_name: 'interviews',
+            action_description: `Entered marks for ${candidate.name} (Total: ${total}, Status: ${status})`
+        });
+
+        res.json({
+            success: true,
+            message: `Marks submitted. Result: ${status.toUpperCase()}. Email sent to candidate.`,
+            candidate: updatedCandidate
+        });
+
+    } catch (error) {
+        console.error('Enter marks error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// ============================================
+// 8. GET CANDIDATES FOR MENTOR/INTERVIEWER
+// ============================================
 router.get('/my-candidates', authenticateToken, async (req, res) => {
     try {
-        if (!req.user?.is_interviewer) {
-            return res.status(403).json({ success: false, message: 'Access denied' });
-        }
-
         const db = getDatabase();
-        const user = await get(db, 'SELECT * FROM users WHERE id = ?', [req.user.id]);
 
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'User not found' });
+        // Allow admin, office_bearer, mentors, and users flagged as interviewers
+        const isPrivileged = req.user.role === 'admin' || req.user.role === 'office_bearer' || req.user.role === 'mentor' || req.user.is_interviewer;
+
+        if (!isPrivileged) {
+            // Fallback: check if any candidates are directly assigned to this user in the DB
+            // (handles case where is_interviewer flag wasn't synced after assignment)
+            const assignedCheck = await all(db,
+                `SELECT id FROM interview_candidates WHERE interviewer_id = ? OR assigned_mentor_id = ? LIMIT 1`,
+                [req.user.id, req.user.id]
+            );
+
+            if (!assignedCheck || assignedCheck.length === 0) {
+                return res.status(403).json({ success: false, message: 'Only interviewers can access this' });
+            }
+
+            // Auto-fix: set is_interviewer flag so future requests work correctly
+            await run(db, 'UPDATE users SET is_interviewer = 1 WHERE id = ?', [req.user.id]);
         }
 
-        // Get all candidates assigned to this interviewer (by interviewer_id or interviewer_email)
         const candidates = await all(db,
             `SELECT * FROM interview_candidates 
-             WHERE (interviewer_id = ?
-               OR LOWER(interviewer_email) = LOWER(TRIM(?))
-               OR LOWER(interviewer) = LOWER(TRIM(?)))
-               AND status != 'completed'
-             ORDER BY created_at DESC`,
-            [req.user.id, user.email || '', user.name || '']
+            WHERE assigned_mentor_id = ? OR interviewer_id = ?
+            ORDER BY status, created_at DESC`,
+            [req.user.id, req.user.id]
         );
 
         res.json({ success: true, candidates: candidates || [] });
+
     } catch (error) {
-        console.error('Get my candidates error:', error);
+        console.error('Get candidate assignments error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
-// POST /api/interviews/send-emails - Send emails to selected candidates
-router.post('/send-emails', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
-    const { candidateIds } = req.body;
-
-    if (!candidateIds || !Array.isArray(candidateIds) || candidateIds.length === 0) {
-        return res.status(400).json({ success: false, message: 'No candidates selected' });
-    }
-
-    const db = getDatabase();
-    let sentCount = 0;
-
+// ============================================
+// 9. GET DASHBOARD STATS
+// ============================================
+router.get('/stats', authenticateToken, async (req, res) => {
     try {
-        // Fetch candidates details
-        // SQLite doesn't support convenient array params for IN clause easily without placeholder gen
-        const placeholders = candidateIds.map(() => '?').join(',');
-        const candidates = await all(db, `SELECT * FROM interview_candidates WHERE id IN (${placeholders})`, candidateIds);
+        const db = getDatabase();
+        let query = `
+            SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN status = 'assigned' THEN 1 ELSE 0 END) as assigned,
+                SUM(CASE WHEN status = 'selected' THEN 1 ELSE 0 END) as selected,
+                SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected,
+                SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+                SUM(CASE WHEN status = 'interviewed' THEN 1 ELSE 0 END) as interviewed,
+                SUM(CASE WHEN status = 'waitlisted' THEN 1 ELSE 0 END) as waitlisted
+            FROM interview_candidates
+        `;
+        const params = [];
 
-        for (const candidate of candidates) {
-            const { id, name, email, register_no } = candidate;
-
-            const subject = "Interview Process Registration - SM Volunteers";
-            const html = getInterviewEmailTemplate(name, register_no);
-
-            try {
-                const sent = await sendEmail(email, subject, html);
-                if (sent) {
-                    await run(db, 'UPDATE interview_candidates SET email_sent = 1 WHERE id = ?', [id]);
-                    sentCount++;
-                }
-            } catch (err) {
-                console.error(`Failed to send email to ${email}:`, err);
-            }
+        if (req.user.role === 'mentor' || req.user.is_interviewer) {
+            query += ` WHERE assigned_mentor_id = ? OR interviewer_id = ?`;
+            params.push(req.user.id, req.user.id);
+        } else if (req.user.role !== 'admin') {
+            return res.status(403).json({ success: false, message: 'Unauthorized' });
         }
 
-        await logActivity(req.user.id, 'SEND_EMAILS', { count: sentCount, candidateIds }, req, {
-            action_type: 'UPDATE',
-            module_name: 'interviews',
-            action_description: `Sent interview registration emails to ${sentCount} candidates`
-        });
+        const stats = await get(db, query, params);
 
-        res.json({ success: true, message: `Emails sent successfully to ${sentCount} candidates`, sentCount });
+        res.json({ success: true, stats: stats || {} });
 
     } catch (error) {
-        console.error('Send emails error:', error);
-        res.status(500).json({ success: false, message: 'Server error sending emails' });
+        console.error('Get stats error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
-// POST /api/interviews/:id/submit-marks - Submit interview marks by mentor
-router.post('/:id/submit-marks', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
-    const { id } = req.params;
-    const { marks, remarks, decision } = req.body;
-
-    const db = getDatabase();
-
+// ============================================
+// 10. GET AVAILABLE MENTORS (For admin assignment)
+// ============================================
+router.get('/mentors/list', authenticateToken, (req, res, next) => {
+        if (['admin', 'office_bearer'].includes(req.user.role)) return next();
+        return res.status(403).json({ success: false, message: 'Management access required' });
+    }, async (req, res) => {
     try {
-        const candidate = await get(db, 'SELECT * FROM interview_candidates WHERE id = ?', [id]);
-        if (!candidate) {
-            return res.status(404).json({ success: false, message: 'Candidate not found' });
-        }
-
-        // Check if mentor has permission to submit marks for this candidate
-        if (candidate.mentor_id !== req.user.id && candidate.interviewer_email !== req.user.email && req.user.role !== 'admin') {
-            return res.status(403).json({ success: false, message: 'You do not have permission to submit marks for this candidate' });
-        }
-
-        const isAbsentSubmission = candidate.attendance === 'absent' || decision === 'retake' || decision === 'absent';
-
-        // For present submissions, apply auto decision from marks when not explicitly provided
-        let resolvedDecision = decision;
-
-        if (!isAbsentSubmission) {
-            if (marks === undefined || marks === null) {
-                return res.status(400).json({ success: false, message: 'Marks are required for present candidates' });
-            }
-
-            // Validate marks
-            const marksNum = parseFloat(marks);
-            if (isNaN(marksNum) || marksNum < 0 || marksNum > 10) {
-                return res.status(400).json({ success: false, message: 'Marks must be between 0 and 10' });
-            }
-
-            if (!resolvedDecision) {
-                if (marksNum <= 5) resolvedDecision = 'rejected';
-                else if (marksNum <= 7) resolvedDecision = 'waitlisted';
-                else resolvedDecision = 'selected';
-            }
-        }
-
-        if (isAbsentSubmission) {
-            resolvedDecision = 'retake';
-        }
-
-        // Update candidate with marks, remarks, decision, and set status to completed
-        const updates = ['status = ?'];
-        const params = ['completed'];
-
-        if (marks !== undefined && marks !== null) {
-            updates.push('marks = ?');
-            params.push(parseFloat(marks) || null);
-        }
-
-        if (remarks !== undefined) {
-            updates.push('remarks = ?');
-            params.push(remarks || null);
-        }
-
-        if (resolvedDecision !== undefined) {
-            updates.push('decision = ?');
-            params.push((resolvedDecision === 'absent' ? 'retake' : resolvedDecision) || null);
-        }
-
-        // Ensure absent submission sets attendance explicitly in DB
-        if (isAbsentSubmission) {
-            updates.push('attendance = ?');
-            params.push('absent');
-        }
-
-        params.push(id);
-
-        await run(db,
-            `UPDATE interview_candidates 
-             SET ${updates.join(', ')} 
-             WHERE id = ?`,
-            params
+        const db = getDatabase();
+        const mentors = await all(db,
+            "SELECT id, name, email FROM users WHERE role = 'mentor' OR role = 'admin' ORDER BY name"
         );
 
-        await logActivity(req.user.id, 'SUBMIT_INTERVIEW_MARKS', { id, marks, decision: resolvedDecision }, req, {
-            action_type: 'UPDATE',
-            module_name: 'interviews',
-            action_description: `Submitted interview marks (${isAbsentSubmission ? 'ABSENT / RETAKE' : (marks + '/10')}) for candidate: ${candidate.name}`
-        });
+        res.json({ success: true, mentors: mentors || [] });
 
-        // No auto email send for outcomes
-        // Admin can send result emails manually from the email management panel
-
-        res.json({ success: true, message: 'Interview marks submitted successfully' });
     } catch (error) {
-        console.error('Submit marks error:', error);
+        console.error('Get mentors error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 
-// DELETE /api/interviews/:id - remove candidate
-router.delete('/:id', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
+// ============================================
+// Get INTERVIEWERS (flagged users)
+// ============================================
+router.get('/interviewers', authenticateToken, async (req, res) => {
     try {
-        const { id } = req.params;
         const db = getDatabase();
-        const candidate = await get(db, 'SELECT * FROM interview_candidates WHERE id = ?', [id]);
+        const interviewers = await all(db,
+            "SELECT id, name, email FROM users WHERE is_interviewer = 1 OR role = 'mentor' OR role = 'admin' ORDER BY name"
+        );
+
+        res.json({ success: true, users: interviewers || [] });
+
+    } catch (error) {
+        console.error('Get interviewers error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// ============================================
+// 11. UPDATE CANDIDATE (Admin only)
+// ============================================
+router.put('/candidates/:id', authenticateToken, async (req, res) => {
+    try {
+        const db = getDatabase();
+        const candidateId = req.params.id;
+        
+        // Get existing candidate first
+        const candidate = await get(db,
+            'SELECT * FROM interview_candidates WHERE id = ?',
+            [candidateId]
+        );
+
         if (!candidate) {
             return res.status(404).json({ success: false, message: 'Candidate not found' });
         }
-        await run(db, 'DELETE FROM interview_candidates WHERE id = ?', [id]);
-        if (req.user && req.user.id) {
-            await logActivity(req.user.id, 'DELETE_CANDIDATE', { id }, req, {
-                action_type: 'DELETE',
-                module_name: 'interviews',
-                action_description: `Deleted interview candidate: ${candidate.name}`
-            });
+
+        // Authorization: Allow admin, office_bearer, or the assigned interviewer/mentor
+        // Check DB directly because the JWT token may have a stale is_interviewer flag
+        const isAdmin = req.user.role === 'admin';
+        const isOfficeBearerRole = req.user.role === 'office_bearer';
+        const isAssignedDirectly =
+            candidate.interviewer_id === req.user.id ||
+            candidate.assigned_mentor_id === req.user.id;
+        // Also check DB flag as fallback
+        const dbUser = await get(db, 'SELECT is_interviewer FROM users WHERE id = ?', [req.user.id]);
+        const isInterviewerInDb = dbUser && dbUser.is_interviewer === 1;
+        const isAssignedInterviewer = (req.user.is_interviewer || isInterviewerInDb) && isAssignedDirectly;
+
+        if (!isAdmin && !isOfficeBearerRole && !isAssignedInterviewer && !isAssignedDirectly) {
+            return res.status(403).json({ success: false, message: 'Not authorized to update this candidate' });
         }
-        res.json({ success: true, message: 'Candidate deleted successfully' });
+
+        const {
+            name,
+            email,
+            phone,
+            department,
+            register_no,
+            interviewer_id,
+            interviewer,
+            interviewer_email,
+            marks,
+            attendance,
+            status,
+            interview_date,
+            interview_time
+        } = req.body;
+
+        // Build update query dynamically
+        const updateFields = [];
+        const updateValues = [];
+
+        if (name !== undefined) {
+            updateFields.push('name = ?');
+            updateValues.push(name);
+        }
+        if (email !== undefined) {
+            updateFields.push('email = ?');
+            updateValues.push(email);
+        }
+        if (phone !== undefined) {
+            updateFields.push('phone = ?');
+            updateValues.push(phone);
+        }
+        if (department !== undefined) {
+            updateFields.push('dept = ?');
+            updateValues.push(department);
+        }
+        if (register_no !== undefined) {
+            updateFields.push('register_no = ?');
+            updateValues.push(register_no);
+        }
+        if (interviewer_id !== undefined) {
+            updateFields.push('interviewer_id = ?');
+            updateValues.push(interviewer_id);
+
+            // Automatically set the is_interviewer flag for the assigned user
+            if (interviewer_id !== null) {
+                await run(db, 'UPDATE users SET is_interviewer = 1 WHERE id = ?', [interviewer_id]);
+            }
+        }
+        if (interviewer !== undefined) {
+            updateFields.push('interviewer = ?');
+            updateValues.push(interviewer);
+        }
+        if (interviewer_email !== undefined) {
+            updateFields.push('interviewer_email = ?');
+            updateValues.push(interviewer_email);
+        }
+        if (marks !== undefined) {
+            updateFields.push('marks = ?');
+            updateValues.push(marks);
+        }
+        if (attendance !== undefined) {
+            updateFields.push('attendance = ?');
+            updateValues.push(attendance);
+        }
+        if (status !== undefined) {
+            updateFields.push('status = ?');
+            updateValues.push(status);
+        }
+        if (interview_date !== undefined) {
+            updateFields.push('interview_date = ?');
+            updateValues.push(interview_date);
+        }
+        if (interview_time !== undefined) {
+            updateFields.push('interview_time = ?');
+            updateValues.push(interview_time);
+        }
+
+        if (updateFields.length === 0) {
+            return res.status(400).json({ success: false, message: 'No fields to update' });
+        }
+
+        // Add candidate ID to values
+        updateValues.push(candidateId);
+
+        // Execute update
+        const query = `UPDATE interview_candidates SET ${updateFields.join(', ')} WHERE id = ?`;
+        await run(db, query, updateValues);
+
+        // Get updated candidate
+        const updatedCandidate = await get(db,
+            'SELECT * FROM interview_candidates WHERE id = ?',
+            [candidateId]
+        );
+
+        await logActivity(req.user.id, 'UPDATE_CANDIDATE', { candidateId }, req, {
+            action_type: 'UPDATE',
+            module_name: 'interviews',
+            action_description: `Updated interview candidate: ${candidate.name}`
+        });
+
+        res.json({
+            success: true,
+            message: 'Candidate updated successfully',
+            candidate: updatedCandidate
+        });
+
+    } catch (error) {
+        console.error('Update candidate error:', error);
+        res.status(500).json({ success: false, message: 'Server error: ' + error.message });
+    }
+});
+
+// ============================================
+// 12. DELETE CANDIDATE (Admin only)
+// ============================================
+router.delete('/candidates/:id', authenticateToken, (req, res, next) => {
+        if (['admin', 'office_bearer'].includes(req.user.role)) return next();
+        return res.status(403).json({ success: false, message: 'Management access required' });
+    }, async (req, res) => {
+    try {
+        const db = getDatabase();
+        const candidateId = req.params.id;
+
+        // Get candidate first
+        const candidate = await get(db,
+            'SELECT * FROM interview_candidates WHERE id = ?',
+            [candidateId]
+        );
+
+        if (!candidate) {
+            return res.status(404).json({ success: false, message: 'Candidate not found' });
+        }
+
+        // Delete candidate
+        await run(db,
+            'DELETE FROM interview_candidates WHERE id = ?',
+            [candidateId]
+        );
+
+        await logActivity(req.user.id, 'DELETE_CANDIDATE', { candidateId }, req, {
+            action_type: 'DELETE',
+            module_name: 'interviews',
+            action_description: `Deleted interview candidate: ${candidate.name}`
+        });
+
+        res.json({
+            success: true,
+            message: 'Candidate deleted successfully'
+        });
+
     } catch (error) {
         console.error('Delete candidate error:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// ======================== ADMIN EMAIL MANAGEMENT ENDPOINTS ========================
-
-// GET /api/interviews/admin/email-candidates - Get all candidates for email management
-router.get('/admin/email-candidates', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
-    try {
-        const db = getDatabase();
-        const { type = 'registration' } = req.query; // registration/outcome OR selected/rejected
-
-        // Manual outcome email logs use email_logs (keyed by candidate.user_id + type)
-        if (type === 'selected' || type === 'rejected') {
-            const decisionType = type;
-            const candidates = await all(
-                db,
-                `
-                SELECT
-                  ic.id,
-                  ic.name,
-                  ic.email,
-                  ic.user_id,
-                  ic.decision,
-                  ic.status,
-                  COALESCE(el.status, 'pending') AS email_status,
-                  el.sent_at
-                FROM interview_candidates ic
-                LEFT JOIN email_logs el
-                  ON el.user_id = ic.user_id
-                 AND el.type = ?
-                WHERE ic.status = 'completed'
-                  AND ic.decision = ?
-                ORDER BY ic.created_at DESC
-                `,
-                [decisionType, decisionType]
-            );
-
-            res.json({
-                success: true,
-                candidates: (candidates || []).map((c) => ({
-                    ...c,
-                    already_sent: c.email_status === 'sent'
-                })),
-                emailType: decisionType
-            });
-            return;
-        }
-
-        // Legacy behavior (registration/outcome template-based)
-        let candidates;
-        if (type === 'outcome') {
-            candidates = await all(db,
-                `SELECT id, name, email, marks, decision, status, email_sent, created_at
-                 FROM interview_candidates
-                 WHERE status = 'completed'
-                 ORDER BY created_at DESC`
-            );
-        } else {
-            candidates = await all(db,
-                `SELECT id, name, email, dept, year, register_no, status, email_sent, created_at
-                 FROM interview_candidates
-                 ORDER BY created_at DESC`
-            );
-        }
-
-        res.json({
-            success: true,
-            candidates: candidates || [],
-            emailType: type
-        });
-    } catch (error) {
-        console.error('Get email candidates error:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// POST /api/interviews/admin/preview-email - Get email preview
-router.post('/admin/preview-email', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
-    try {
-        const { candidateId, emailType = 'registration', type, subject, body } = req.body;
-
-        if (!candidateId) {
-            return res.status(400).json({ success: false, message: 'Candidate ID required' });
-        }
-
-        const db = getDatabase();
-        const candidate = await get(db, 'SELECT * FROM interview_candidates WHERE id = ?', [candidateId]);
-
-        if (!candidate) {
-            return res.status(404).json({ success: false, message: 'Candidate not found' });
-        }
-
-        let finalSubject = '';
-        let html = '';
-
-        // Manual compose with {{name}} and {{email}}
-        const hasManualCompose = (subject && String(subject).trim()) || (body && String(body).trim());
-        if (hasManualCompose) {
-            const vars = { name: candidate.name, email: candidate.email };
-            finalSubject = applyTemplateVars(subject || '', vars).trim() || 'Interview Update - SM Volunteers';
-            const replacedBody = applyTemplateVars(body || '', vars);
-            html = wrapBodyAsHtml(replacedBody);
-        } else if (emailType === 'outcome') {
-            // Outcome email preview (legacy template)
-            finalSubject = candidate.decision === 'selected'
-                ? '🎉 Congratulations! You are Selected'
-                : `Interview Result - ${candidate.decision || 'Pending'}`;
-
-            html = getInterviewOutcomeTemplate({
-                name: candidate.name,
-                decision: candidate.decision || 'pending',
-                interviewerName: candidate.interviewer || '',
-                interviewDate: candidate.interview_date || '',
-                interviewTime: candidate.interview_time || '',
-                marks: candidate.marks || '',
-                decisionLink: `${process.env.FRONTEND_URL || 'http://localhost:9000'}/my-interview`,
-            });
-        } else {
-            // Registration email preview (legacy template)
-            finalSubject = "Interview Process Registration - SM Volunteers";
-            html = getInterviewEmailTemplate(candidate.name, candidate.register_no);
-        }
-
-        res.json({
-            success: true,
-            preview: {
-                email: candidate.email,
-                name: candidate.name,
-                subject: finalSubject,
-                html,
-                emailType: type || emailType
-            }
-        });
-    } catch (error) {
-        console.error('Preview email error:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
-
-// POST /api/interviews/admin/send-outcome-emails - Send outcome emails (manual selected/rejected flow)
-router.post('/admin/send-outcome-emails', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
-    try {
-        const { candidateIds, emailType = 'outcome', type, subject, body } = req.body;
-
-        if (!candidateIds || !Array.isArray(candidateIds) || candidateIds.length === 0) {
-            return res.status(400).json({ success: false, message: 'No candidates selected' });
-        }
-
-        const db = getDatabase();
-        const targetType = type === 'selected' || type === 'rejected' ? type : null;
-
-        const useEmailLogs = !!targetType;
-
-        let sentCount = 0;
-        let skippedCount = 0;
-        let failedCount = 0;
-
-        const placeholders = candidateIds.map(() => '?').join(',');
-        const candidates = await all(
-            db,
-            `SELECT * FROM interview_candidates WHERE id IN (${placeholders})`,
-            candidateIds
-        );
-
-        for (const candidate of candidates) {
-            try {
-                const { id, name, email, decision, marks, interview_date, interview_time, interviewer, user_id, register_no } = candidate;
-
-                if (useEmailLogs) {
-                    if (candidate.status !== 'completed' || decision !== targetType) {
-                        skippedCount++;
-                        continue;
-                    }
-                    if (!user_id) {
-                        failedCount++;
-                        continue;
-                    }
-
-                    // Already sent?
-                    const existing = await get(
-                        db,
-                        'SELECT status FROM email_logs WHERE user_id = ? AND type = ?',
-                        [user_id, targetType]
-                    );
-                    if (existing?.status === 'sent') {
-                        skippedCount++;
-                        continue;
-                    }
-
-                    const vars = { name, email };
-                    const hasManualCompose = (subject && String(subject).trim()) || (body && String(body).trim());
-
-                    const finalSubject = hasManualCompose
-                        ? applyTemplateVars(subject || '', vars).trim() || `Interview Update - SM Volunteers`
-                        : (decision === 'selected'
-                            ? '🎉 Congratulations! You are Selected'
-                            : `Interview Result - ${decision || 'Pending'}`);
-
-                    const finalHtml = hasManualCompose
-                        ? wrapBodyAsHtml(applyTemplateVars(body || '', vars))
-                        : getInterviewOutcomeTemplate({
-                            name,
-                            decision: decision || 'pending',
-                            interviewerName: interviewer || '',
-                            interviewDate: interview_date || '',
-                            interviewTime: interview_time || '',
-                            marks: marks || '',
-                            decisionLink: `${process.env.FRONTEND_URL || 'http://localhost:9000'}/my-interview`,
-                        });
-
-                    // Ensure log row exists (pending)
-                    if (!existing) {
-                        await run(
-                            db,
-                            'INSERT INTO email_logs (user_id, type, status, sent_at) VALUES (?, ?, ?, ?)',
-                            [user_id, targetType, 'pending', null]
-                        );
-                    } else {
-                        await run(
-                            db,
-                            'UPDATE email_logs SET status = ?, sent_at = NULL WHERE user_id = ? AND type = ?',
-                            ['pending', user_id, targetType]
-                        );
-                    }
-
-                    const sent = await sendEmail(email, finalSubject, finalHtml);
-                    if (sent) {
-                        await run(
-                            db,
-                            'UPDATE email_logs SET status = ?, sent_at = CURRENT_TIMESTAMP WHERE user_id = ? AND type = ?',
-                            ['sent', user_id, targetType]
-                        );
-                        sentCount++;
-                    } else {
-                        // Keep as pending
-                        failedCount++;
-                    }
-                } else {
-                    // Legacy fallback: existing template-based flow
-                    let legacySubject = '';
-                    let legacyHtml = '';
-
-                    if (emailType === 'outcome') {
-                        legacySubject = decision === 'selected'
-                            ? '🎉 Congratulations! You are Selected'
-                            : `Interview Result - ${decision || 'Pending'}`;
-
-                        legacyHtml = getInterviewOutcomeTemplate({
-                            name,
-                            decision: decision || 'pending',
-                            interviewerName: interviewer || '',
-                            interviewDate: interview_date || '',
-                            interviewTime: interview_time || '',
-                            marks: marks || '',
-                            decisionLink: `${process.env.FRONTEND_URL || 'http://localhost:9000'}/my-interview`,
-                        });
-                    } else {
-                        legacySubject = "Interview Process Registration - SM Volunteers";
-                        legacyHtml = getInterviewEmailTemplate(name, register_no);
-                    }
-
-                    // Skip if already sent registration emails (legacy behavior)
-                    if (candidate.email_sent && emailType === 'registration') {
-                        skippedCount++;
-                        continue;
-                    }
-
-                    const sent = await sendEmail(email, legacySubject, legacyHtml);
-                    if (sent) {
-                        await run(db, 'UPDATE interview_candidates SET email_sent = 1 WHERE id = ?', [id]);
-                        sentCount++;
-                    } else {
-                        failedCount++;
-                    }
-                }
-            } catch (err) {
-                console.error(`Failed to send email for candidate id=${candidate?.id}:`, err);
-                failedCount++;
-            }
-        }
-
-        await logActivity(
-            req.user.id,
-            'SEND_OUTCOME_EMAILS_MANUAL',
-            { sentCount, skippedCount, failedCount, candidateIds, type: targetType || emailType },
-            req,
-            {
-                action_type: 'UPDATE',
-                module_name: 'interviews',
-                action_description: `Manual email send (${targetType || emailType}) - sent=${sentCount}, skipped=${skippedCount}, failed=${failedCount}`
-            }
-        );
-
-        res.json({
-            success: true,
-            sentCount,
-            skippedCount,
-            failedCount
-        });
-    } catch (error) {
-        console.error('Send outcome emails error:', error);
-        res.status(500).json({ success: false, message: 'Server error sending emails' });
+        res.status(500).json({ success: false, message: 'Server error: ' + error.message });
     }
 });
 

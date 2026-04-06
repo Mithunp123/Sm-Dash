@@ -5,6 +5,9 @@ import { logActivity } from '../utils/logger.js';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import PDFDocument from 'pdfkit';
+import xlsx from 'xlsx';
+import { numberToWords, formatCompactDate, formatDate } from '../utils/formatters.js';
 
 const router = express.Router();
 
@@ -862,21 +865,38 @@ router.get('/summary/:eventId', authenticateToken, allowFinance, async (req, res
     const db = getDatabase();
     const { eventId } = req.params;
 
-    const [totalFund, totalExpense] = await Promise.all([
-      get(
+    const totalFundParams = [eventId];
+    let totalFundQuery = `SELECT COALESCE(SUM(amount), 0) as total_fund_raised FROM fund_collections WHERE event_id = ?`;
+    if (req.user.role === 'student') {
+      totalFundQuery += ` AND received_by = ?`;
+      totalFundParams.push(req.user.id);
+    }
+
+    const [totalFund, expenseData] = await Promise.all([
+      get(db, totalFundQuery, totalFundParams),
+      all(
         db,
-        `SELECT COALESCE(SUM(amount), 0) as total_fund_raised FROM fund_collections WHERE event_id = ?`,
-        [eventId]
-      ),
-      get(
-        db,
-        `SELECT COALESCE(SUM(grand_total), 0) as total_expenses FROM expenses WHERE event_id = ?`,
+        `SELECT 
+          COALESCE(NULLIF(grand_total, 0),
+            COALESCE(breakfast_amount, 0) +
+            COALESCE(lunch_amount, 0) +
+            COALESCE(dinner_amount, 0) +
+            COALESCE(refreshment_amount, 0) +
+            COALESCE(accommodation_amount, 0) +
+            COALESCE(fuel_amount, 0) +
+            COALESCE(other_expense, 0)
+          ) as computed_amount
+        FROM expenses WHERE event_id = ?`,
         [eventId]
       )
     ]);
 
+    // Calculate total expenses using grand_total fallback for compatibility
+    const total_expenses = (expenseData || []).reduce((sum, expense) => {
+      return sum + Number(expense.computed_amount || 0);
+    }, 0);
+
     const total_fund_raised = totalFund?.total_fund_raised || 0;
-    const total_expenses = totalExpense?.total_expenses || 0;
 
     res.json({
       success: true,
@@ -889,6 +909,522 @@ router.get('/summary/:eventId', authenticateToken, allowFinance, async (req, res
   } catch (error) {
     console.error('Finance summary error:', error);
     res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * GET /finance/bills-report/pdf/:eventId
+ * Export bills report as PDF organized by folders
+ */
+router.get('/bills-report/pdf/:eventId', authenticateToken, allowFinance, async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { eventId } = req.params;
+
+    // Get all folders with their expenses
+    const folders = await all(
+      db,
+      `
+      SELECT 
+        bf.id,
+        bf.folder_name,
+        bf.description,
+        bf.created_at as folder_created_at
+      FROM bill_folders bf
+      WHERE bf.event_id = ?
+      ORDER BY bf.created_at DESC
+      `,
+      [eventId]
+    );
+
+    // For each folder, get all expenses
+    const foldersWithExpenses = [];
+    for (const folder of folders) {
+      const expenses = await all(
+        db,
+        `
+        SELECT 
+          e.*,
+          u.name as created_by_name
+        FROM expenses e
+        LEFT JOIN users u ON e.created_by = u.id
+        WHERE e.folder_id = ?
+        ORDER BY e.created_at DESC
+        `,
+        [folder.id]
+      );
+      
+      foldersWithExpenses.push({
+        ...folder,
+        expenses: expenses || []
+      });
+    }
+
+    const calcAmount = (r) =>
+      Number(r.breakfast_amount || 0) +
+      Number(r.lunch_amount || 0) +
+      Number(r.dinner_amount || 0) +
+      Number(r.refreshment_amount || 0) +
+      Number(r.accommodation_amount || 0) +
+      Number(r.fuel_amount || 0) +
+      Number(r.other_expense || 0);
+
+    const overallTotal = foldersWithExpenses.reduce((sum, folder) =>
+      sum + folder.expenses.reduce((fSum, exp) => fSum + calcAmount(exp), 0), 0
+    );
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="bills_report_${eventId}.pdf"`);
+
+    const doc = new PDFDocument({ margin: 30, size: 'A4' });
+    doc.pipe(res);
+
+    // Try to load logos
+    const rootDir = path.resolve(process.cwd());
+    const smLogoPath = path.join(rootDir, 'Images', 'Picsart_23-05-18_16-47-20-287-removebg-preview.png');
+    const ksrctLogoPath = path.join(rootDir, 'Images', 'Brand_logo.png');
+
+    const PAGE_WIDTH = doc.page.width;
+    const LOGO_SIZE = 50;
+    const TOP_MARGIN = 30;
+
+    // Header with logos
+    let currentY = TOP_MARGIN;
+    if (fs.existsSync(smLogoPath)) {
+      doc.image(smLogoPath, 30, currentY, { width: LOGO_SIZE, height: LOGO_SIZE });
+    }
+    if (fs.existsSync(ksrctLogoPath)) {
+      doc.image(ksrctLogoPath, PAGE_WIDTH - 30 - LOGO_SIZE, currentY, { width: LOGO_SIZE, height: LOGO_SIZE });
+    }
+
+    currentY += LOGO_SIZE + 10;
+    doc.y = currentY;
+
+    // Title
+    doc.fontSize(16).font('Helvetica-Bold').text('BILLS REPORT', { align: 'center' });
+    doc.moveDown(0.3);
+    doc.fontSize(10).font('Helvetica').text(`Event ID: ${eventId}`, { align: 'center' });
+    
+    // Date and Time on left side
+    const now = new Date();
+    const dateStr = now.toLocaleDateString();
+    const timeStr = now.toLocaleTimeString();
+    doc.fontSize(9).text(`Date: ${dateStr}`, 30);
+    doc.fontSize(9).text(`Time: ${timeStr}`, 30);
+    
+    doc.moveDown(0.5);
+
+    // Overall Total
+    doc.fontSize(11).font('Helvetica-Bold').text(`Overall Total: ₹${overallTotal.toFixed(2)}`, { align: 'left' });
+    doc.moveDown(1);
+
+    // For each folder, create a section
+    for (const folder of foldersWithExpenses) {
+      // Folder Header
+      doc.fontSize(12).font('Helvetica-Bold').text(`Folder: ${folder.folder_name}`, { align: 'left' });
+      if (folder.description) {
+        doc.fontSize(9).font('Helvetica').text(`Description: ${folder.description}`);
+      }
+      doc.moveDown(0.3);
+
+      // Folder expenses total
+      const folderTotal = folder.expenses.reduce((sum, exp) => sum + calcAmount(exp), 0);
+      doc.fontSize(10).font('Helvetica-Bold').text(`Folder Total: ₹${folderTotal.toFixed(2)}`);
+      doc.moveDown(0.3);
+
+      // Table Header
+      const col1 = 30;
+      const col2 = 110;
+      const col3 = 190;
+      const col4 = 270;
+      const col5 = 350;
+      const col6 = 420;
+
+      doc.fontSize(8).font('Helvetica-Bold');
+      doc.text('Date', col1, doc.y);
+      doc.text('Title', col2, doc.y);
+      doc.text('Category', col3, doc.y);
+      doc.text('Amount', col4, doc.y);
+      doc.text('Created By', col5, doc.y);
+      
+      doc.moveTo(30, doc.y).lineTo(PAGE_WIDTH - 30, doc.y).stroke();
+      doc.moveDown(0.3);
+
+      // Table Rows for this folder
+      doc.font('Helvetica').fontSize(7);
+      for (const exp of folder.expenses) {
+        const date = exp.created_at ? new Date(exp.created_at).toLocaleDateString() : '-';
+        const amount = calcAmount(exp);
+        const title = (exp.expense_title || '-').substring(0, 15);
+        const category = (exp.category || '-').substring(0, 10);
+        const creator = (exp.created_by_name || '-').substring(0, 12);
+
+        const rowY = doc.y;
+        doc.text(date, col1, rowY, { width: 70 });
+        doc.text(title, col2, rowY, { width: 70 });
+        doc.text(category, col3, rowY, { width: 70 });
+        doc.text(`₹${amount.toFixed(2)}`, col4, rowY, { width: 70, align: 'right' });
+        doc.text(creator, col5, rowY, { width: 70 });
+        
+        doc.moveDown(0.35);
+      }
+
+      // Add spacing between folders
+      doc.moveDown(1);
+      doc.moveTo(30, doc.y).lineTo(PAGE_WIDTH - 30, doc.y).stroke();
+      doc.moveDown(0.5);
+    }
+
+    doc.end();
+  } catch (err) {
+    console.error('Error generating bills PDF:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * GET /finance/folder-report/pdf/:folderId
+ * Export single folder report as PDF
+ */
+router.get('/folder-report/pdf/:folderId', authenticateToken, allowFinance, async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { folderId } = req.params;
+
+    const folder = await get(
+      db,
+      `SELECT * FROM bill_folders WHERE id = ?`,
+      [folderId]
+    );
+
+    if (!folder) {
+      return res.status(404).json({ success: false, message: 'Folder not found' });
+    }
+
+    const expenses = await all(
+      db,
+      `
+      SELECT 
+        e.*,
+        u.name as created_by_name
+      FROM expenses e
+      LEFT JOIN users u ON e.created_by = u.id
+      WHERE e.folder_id = ?
+      ORDER BY e.created_at DESC
+      `,
+      [folderId]
+    );
+
+    const calcAmount = (r) =>
+      Number(r.breakfast_amount || 0) +
+      Number(r.lunch_amount || 0) +
+      Number(r.dinner_amount || 0) +
+      Number(r.refreshment_amount || 0) +
+      Number(r.accommodation_amount || 0) +
+      Number(r.fuel_amount || 0) +
+      Number(r.other_expense || 0);
+
+    const folderTotal = (expenses || []).reduce((sum, exp) => sum + calcAmount(exp), 0);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${folder.folder_name}_report.pdf"`);
+
+    const doc = new PDFDocument({ margin: 30, size: 'A4' });
+    doc.pipe(res);
+
+    // Load Logos
+    const rootDir = path.resolve(process.cwd());
+    const smLogoPath = path.join(rootDir, 'Images', 'Picsart_23-05-18_16-47-20-287-removebg-preview.png');
+    const ksrctLogoPath = path.join(rootDir, 'Images', 'Brand_logo.png');
+
+    const MARGIN = 40;
+    const PAGE_WIDTH = doc.page.width;
+    const CONTENT_WIDTH = PAGE_WIDTH - (MARGIN * 2);
+
+    // Initial positioning
+    doc.y = MARGIN;
+
+    // College Header (Center)
+    doc.fontSize(11).font('Helvetica-Bold');
+    doc.text('K.S.Rangasamy College of Technology (Autonomous), Tiruchengode – 637 215', { align: 'center', width: CONTENT_WIDTH });
+    doc.moveDown(0.3);
+    
+    doc.fontSize(11).text('Consolidated Bill', { align: 'center' });
+    doc.moveDown(0.3);
+    
+    doc.fontSize(11).text('Service Motto Volunteers', { align: 'center' });
+    doc.moveDown(0.3);
+    
+    // Use Folder Name or Event Title as subheader
+    doc.fontSize(11).text(`${folder.folder_name}`, { align: 'center' });
+    doc.moveDown(1.5);
+
+    // Date (Top Right of table area)
+    const dateStr = formatDate(new Date());
+    doc.fontSize(10).font('Helvetica').text(`Date: ${dateStr}`, MARGIN, doc.y, { align: 'right', width: CONTENT_WIDTH });
+    doc.moveDown(0.5);
+
+    // Table Setup
+    const tableTop = doc.y;
+    const colWidths = [45, 280, 100, 90]; // SN, Particulars, Date, Amount
+    const colStarts = [MARGIN, MARGIN + colWidths[0], MARGIN + colWidths[0] + colWidths[1], MARGIN + colWidths[0] + colWidths[1] + colWidths[2]];
+    const headers = ['S.No.', 'Expense Particulars', 'Date', 'Amount (in Rs)'];
+
+    // Draw header row
+    const drawHeader = (y) => {
+        doc.font('Helvetica-Bold').fontSize(10);
+        headers.forEach((h, i) => {
+            doc.text(h, colStarts[i] + 5, y + 8, { width: colWidths[i] - 10, align: i === 3 ? 'center' : 'left' });
+        });
+        // Table frame
+        doc.rect(MARGIN, y, CONTENT_WIDTH, 25).stroke();
+        // Column dividers
+        for(let i=1; i<4; i++) {
+            doc.moveTo(colStarts[i], y).lineTo(colStarts[i], y + 25).stroke();
+        }
+        return y + 25;
+    };
+
+    let tableY = drawHeader(tableTop);
+
+    // Rows
+    let totalVal = 0;
+    doc.font('Helvetica').fontSize(9);
+
+    (expenses || []).forEach((exp, idx) => {
+        const itemAmount = calcAmount(exp);
+        totalVal += itemAmount;
+        const rowDate = formatCompactDate(exp.created_at);
+        
+        // Dynamic row height based on Particulars title
+        const titleText = exp.expense_title || '-';
+        const textHeight = doc.heightOfString(titleText, { width: colWidths[1] - 10 });
+        const rowHeight = Math.max(textHeight + 15, 25);
+
+        // Page break if row exceeds page
+        if (tableY + rowHeight > doc.page.height - 100) {
+            doc.addPage();
+            tableY = drawHeader(MARGIN);
+        }
+
+        // Draw cells
+        doc.text((idx + 1).toString() + '.', colStarts[0] + 15, tableY + (rowHeight/2 - 4.5));
+        doc.text(titleText, colStarts[1] + 5, tableY + (rowHeight/2 - 4.5), { width: colWidths[1] - 10 });
+        doc.text(rowDate, colStarts[2] + 25, tableY + (rowHeight/2 - 4.5));
+        doc.text(`${Math.floor(itemAmount)}/-`, colStarts[3], tableY + (rowHeight/2 - 4.5), { width: colWidths[3] - 5, align: 'right' });
+
+        // Borders
+        doc.rect(MARGIN, tableY, CONTENT_WIDTH, rowHeight).stroke();
+        for(let i=1; i<4; i++) {
+            doc.moveTo(colStarts[i], tableY).lineTo(colStarts[i], tableY + rowHeight).stroke();
+        }
+
+        tableY += rowHeight;
+    });
+
+    // Total Row
+    doc.font('Helvetica-Bold');
+    doc.text('Total', MARGIN + 220, tableY + 8);
+    doc.text(`${Math.floor(totalVal)}/-`, colStarts[3], tableY + 8, { width: colWidths[3] - 5, align: 'right' });
+    doc.rect(MARGIN, tableY, CONTENT_WIDTH, 25).stroke();
+    doc.moveTo(colStarts[3], tableY).lineTo(colStarts[3], tableY + 25).stroke();
+
+    tableY += 40;
+
+    // Amount in Words
+    const words = numberToWords(totalVal);
+    doc.font('Helvetica-BoldOblique').fontSize(10);
+    doc.text(`(Rupees ${words} Only)`, MARGIN, tableY, { align: 'center', width: CONTENT_WIDTH });
+
+    tableY += 60;
+
+    // Footer - Left side signatures as shown in image
+    doc.font('Helvetica-Bold').fontSize(10);
+    doc.text('Faculty Coordinator', MARGIN, tableY);
+    doc.moveDown(0.3);
+    doc.text('SM Volunteers', MARGIN, doc.y);
+
+    doc.end();
+
+  } catch (err) {
+    console.error('Error generating folder PDF:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * GET /finance/folder-report/excel/:folderId
+ * Export single folder report as Excel
+ */
+router.get('/folder-report/excel/:folderId', authenticateToken, allowFinance, async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { folderId } = req.params;
+
+    const folder = await get(
+      db,
+      `SELECT * FROM bill_folders WHERE id = ?`,
+      [folderId]
+    );
+
+    if (!folder) {
+      return res.status(404).json({ success: false, message: 'Folder not found' });
+    }
+
+    const expenses = await all(
+      db,
+      `
+      SELECT 
+        e.*,
+        u.name as created_by_name
+      FROM expenses e
+      LEFT JOIN users u ON e.created_by = u.id
+      WHERE e.folder_id = ?
+      ORDER BY e.created_at DESC
+      `,
+      [folderId]
+    );
+
+    const calcAmount = (r) =>
+      Number(r.breakfast_amount || 0) +
+      Number(r.lunch_amount || 0) +
+      Number(r.dinner_amount || 0) +
+      Number(r.refreshment_amount || 0) +
+      Number(r.accommodation_amount || 0) +
+      Number(r.fuel_amount || 0) +
+      Number(r.other_expense || 0);
+
+    const data = (expenses || []).map((exp) => ({
+      Date: exp.created_at ? new Date(exp.created_at).toLocaleDateString() : '',
+      Title: exp.expense_title || '',
+      Category: exp.category || '',
+      Amount: calcAmount(exp),
+      'Created By': exp.created_by_name || '',
+      'From Location': exp.transport_from || '',
+      'To Location': exp.transport_to || ''
+    }));
+
+    const folderTotal = data.reduce((sum, row) => sum + row.Amount, 0);
+    data.push({
+      Date: '',
+      Title: `${folder.folder_name} Total`,
+      Category: '',
+      Amount: folderTotal,
+      'Created By': '',
+      'From Location': '',
+      'To Location': ''
+    });
+
+    const worksheet = xlsx.utils.json_to_sheet(data);
+    const workbook = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(workbook, worksheet, folder.folder_name.substring(0, 31));
+
+    const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${folder.folder_name}_report.xlsx"`);
+    res.send(buffer);
+  } catch (err) {
+    console.error('Error generating folder Excel:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * GET /finance/bills-report/excel/:eventId
+ * Export bills report as Excel organized by folders
+ */
+router.get('/bills-report/excel/:eventId', authenticateToken, allowFinance, async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { eventId } = req.params;
+
+    // Get all folders with their expenses
+    const folders = await all(
+      db,
+      `
+      SELECT 
+        bf.id,
+        bf.folder_name,
+        bf.description
+      FROM bill_folders bf
+      WHERE bf.event_id = ?
+      ORDER BY bf.created_at DESC
+      `,
+      [eventId]
+    );
+
+    const calcAmount = (r) =>
+      Number(r.breakfast_amount || 0) +
+      Number(r.lunch_amount || 0) +
+      Number(r.dinner_amount || 0) +
+      Number(r.refreshment_amount || 0) +
+      Number(r.accommodation_amount || 0) +
+      Number(r.fuel_amount || 0) +
+      Number(r.other_expense || 0);
+
+    const workbook = xlsx.utils.book_new();
+    let overallTotal = 0;
+
+    // Create a sheet for each folder
+    for (const folder of folders) {
+      const expenses = await all(
+        db,
+        `
+        SELECT 
+          e.*,
+          u.name as created_by_name
+        FROM expenses e
+        LEFT JOIN users u ON e.created_by = u.id
+        WHERE e.folder_id = ?
+        ORDER BY e.created_at DESC
+        `,
+        [folder.id]
+      );
+
+      const data = (expenses || []).map((exp) => ({
+        Date: exp.created_at ? new Date(exp.created_at).toLocaleDateString() : '',
+        Title: exp.expense_title || '',
+        Category: exp.category || '',
+        Amount: calcAmount(exp),
+        'Created By': exp.created_by_name || '',
+        'From Location': exp.transport_from || '',
+        'To Location': exp.transport_to || ''
+      }));
+
+      const folderTotal = data.reduce((sum, row) => sum + row.Amount, 0);
+      overallTotal += folderTotal;
+
+      // Add folder summary at the end
+      data.push({
+        Date: '',
+        Title: `${folder.folder_name} Total`,
+        Category: '',
+        Amount: folderTotal,
+        'Created By': '',
+        'From Location': '',
+        'To Location': ''
+      });
+
+      const worksheet = xlsx.utils.json_to_sheet(data);
+      xlsx.utils.book_append_sheet(workbook, worksheet, folder.folder_name.substring(0, 31)); // Excel sheet name limit
+    }
+
+    // Add summary sheet
+    const summaryData = [
+      { Metric: 'Overall Total', Value: overallTotal }
+    ];
+    const summarySheet = xlsx.utils.json_to_sheet(summaryData);
+    xlsx.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+
+    const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="bills_report_${eventId}.xlsx"`);
+    res.send(buffer);
+  } catch (err) {
+    console.error('Error generating bills Excel:', err);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 

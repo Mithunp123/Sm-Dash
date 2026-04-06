@@ -28,21 +28,27 @@ const Footer = ({ className }: { className?: string }) => {
           </div>
 
           {/* Col 2: Address */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-white text- flex items-center gap-2">
-              <span className="w-1 h-6 bg-white-500/50 rounded-full"></span>
-              Address
-            </h3>
-            <div className="flex items-start gap-3 text-white group pt-2">
-              <div className="p-2 rounded-lg bg-slate-900 group-hover:bg-primary/20 group-hover:text-primary transition-colors shrink-0">
-                <MapPin className="w-5 h-5" />
-              </div>
-              <p className="text-sm leading-relaxed">
-                KSR Kalvi Nagar, Tiruchengode - 637 215,<br />
-                Namakkal District, Tamil Nadu, India.
-              </p>
-            </div>
-          </div>
+ <div className="space-y-4">
+  <h3 className="text-lg font-semibold text-flex items-center gap-2">
+    <span className="w-1 h-6 bg-blue-500 rounded-full"></span>
+    Address
+  </h3>
+
+  <div className="flex items-start gap-3 pt-2">
+    
+    {/* Icon */}
+    <div className="p-2 rounded-lg bg-slate-800 text-blue-500">
+      <MapPin className="w-5 h-5" />
+    </div>
+
+    {/* Address Text */}
+    <p className="text-sm leading-relaxed text">
+      KSR Kalvi Nagar, Tiruchengode - 637 215,<br />
+      Namakkal District, Tamil Nadu, India.
+    </p>
+
+  </div>
+</div>
 
           {/* Col 3: SM Volunteers Identity */}
           <div className="lg:border-l lg:border-r border-slate-800/50 lg:px-8 space-y-6">
@@ -75,11 +81,11 @@ const Footer = ({ className }: { className?: string }) => {
               </h3>
               <div className="flex flex-wrap gap-3">
                 {[
-                  { Icon: Instagram, href: "https://www.instagram.com/ksrct_official/", color: "hover:bg-pink-600" },
-                  { Icon: Facebook, href: "https://www.facebook.com/ksrctofficial/", color: "hover:bg-blue-600" },
-                  { Icon: Linkedin, href: "https://www.linkedin.com/school/ksrct/", color: "hover:bg-blue-700" },
+                  { Icon: Instagram, href: "https://www.instagram.com/ksrct1994/", color: "hover:bg-pink-600" },
+                  { Icon: Facebook, href: "https://www.facebook.com/ksrct1994/", color: "hover:bg-blue-600" },
+                  { Icon: Linkedin, href: "https://in.linkedin.com/school/ksrct1994/", color: "hover:bg-blue-700" },
                   { Icon: Youtube, href: "https://www.youtube.com/@ksrct1994", color: "hover:bg-red-600" },
-                  { Icon: Twitter, href: "https://twitter.com/ksrctofficial", color: "hover:bg-sky-500" },
+                  { Icon: Twitter, href: "https://x.com/ksrct1994", color: "hover:bg-sky-500" },
                 ].map(({ Icon, href, color }, i) => (
                   <a
                     key={i}

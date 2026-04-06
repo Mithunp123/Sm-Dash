@@ -54,8 +54,8 @@ const ManageInterviews = () => {
     const [officeBearers, setOfficeBearers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'candidates' | 'emails'>('candidates');
-    // Interviewers panel state
-    const [showInterviewersPanel, setShowInterviewersPanel] = useState(false);
+    // Interviewers panel state - EXPANDED BY DEFAULT
+    const [showInterviewersPanel, setShowInterviewersPanel] = useState(true);
     const [allUsers, setAllUsers] = useState<any[]>([]);
     const [interviewerSearch, setInterviewerSearch] = useState("");
     const [loadingInterviewers, setLoadingInterviewers] = useState(false);
@@ -127,6 +127,7 @@ const ManageInterviews = () => {
 
         loadCandidates();
         loadOfficeBearers();
+        loadAllUsersForInterviewerPanel(); // Load users for interviewer panel on init
     }, []);
 
     // Update date and time when dialog opens
@@ -504,10 +505,18 @@ const ManageInterviews = () => {
         switch (status) {
             case 'completed':
                 return <Badge className="bg-green-500 hover:bg-green-600 text-white">Completed</Badge>;
+            case 'selected':
+                return <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold">✓ Selected</Badge>;
+            case 'waitlisted':
+                return <Badge className="bg-amber-500 hover:bg-amber-600 text-white font-bold">⏳ Waitlisted</Badge>;
+            case 'rejected':
+                return <Badge className="bg-red-500 hover:bg-red-600 text-white font-bold">✗ Rejected</Badge>;
             case 'pending':
                 return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">Pending Interview</Badge>;
             case 'assigned':
                 return <Badge className="bg-blue-500 hover:bg-blue-600 text-white">Assigned</Badge>;
+            case 'interviewed':
+                return <Badge className="bg-purple-500 hover:bg-purple-600 text-white">Interviewed</Badge>;
             default:
                 return <Badge className="bg-slate-500 hover:bg-slate-600 text-white">Unassigned</Badge>;
         }
@@ -540,85 +549,66 @@ const ManageInterviews = () => {
 
                 </div>
 
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
+                {/* Header with Title and Action Buttons */}
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-10">
                     <div>
-                        <h1 className="page-title">Interview Candidates</h1>
-                        <p className="page-subtitle mt-2 ">Manage candidates and assign mentors for face-to-face interviews</p>
+                        <h1 className="text-2xl md:text-4xl font-black tracking-tight">
+                            INTERVIEW <span className="text-blue-500">CANDIDATES</span>
+                        </h1>
+                        <p className="text-sm text-muted-foreground mt-2">MANAGE AND EVALUATE INTERVIEW CANDIDATES</p>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto items-stretch sm:items-center">
-                        <MailSender />
-                        {selectedCandidateIds.length > 0 && (
-                            <Button
-                                onClick={handleOpenBulkAssignDialog}
-                                className="gap-2 h-10 rounded-md font-semibold text-sm px-4 bg-amber-500 hover:bg-amber-600 text-white animate-pulse"
-                            >
-                                <UserCheck className="w-4 h-4" />
-                                Bulk Assign ({selectedCandidateIds.length})
-                            </Button>
-                        )}
-                        <Button onClick={() => setShowAddDialog(true)} className="gap-2 h-10 rounded-md font-semibold text-sm px-4 bg-primary text-foreground">
+                    <div className="flex flex-wrap gap-2 justify-start md:justify-end">
+                        <Button onClick={() => setShowAddDialog(true)} className="gap-2 rounded-lg font-semibold text-sm px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white">
                             <Plus className="w-4 h-4" />
                             Add Candidate
                         </Button>
-                        <Button onClick={exportCandidates} variant="outline" className="gap-2 h-10 rounded-md font-semibold text-sm px-4 text-foreground">
-                            <Download className="w-4 h-4" />
-                            Export
-                        </Button>
-                        <Button onClick={downloadTemplate} variant="outline" className="gap-2 h-10 rounded-md font-semibold text-sm px-4 text-foreground">
-                            <Upload className="w-4 h-4" />
-                            Template
-                        </Button>
-                        <Button onClick={() => setShowBulkUploadDialog(true)} className="gap-2 h-10 rounded-md font-semibold text-sm px-4 bg-primary text-foreground">
+                        <Button onClick={() => setShowBulkUploadDialog(true)} variant="outline" className="gap-2 rounded-lg font-semibold text-sm px-4 py-2">
                             <Upload className="w-4 h-4" />
                             Bulk Upload
+                        </Button>
+                        <Button onClick={downloadTemplate} variant="outline" className="gap-2 rounded-lg font-semibold text-sm px-4 py-2">
+                            <Download className="w-4 h-4" />
+                            Sample
                         </Button>
                     </div>
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    <Card className="border-border/40 bg-card shadow-sm rounded-md hover:border-primary/20 transition-all">
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground font-medium">Total Candidates</p>
-                                    <p className="text-3xl font-black text-foreground tracking-tight mt-2">{candidates.length}</p>
-                                </div>
-                                <Activity className="w-8 h-8 text-primary opacity-20" />
-                            </div>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+                    <Card className="border border-border/40 bg-card/50 rounded-lg">
+                        <CardContent className="p-4">
+                            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Total</p>
+                            <p className="text-3xl font-black text-foreground mt-2">{candidates.length}</p>
                         </CardContent>
                     </Card>
-                    <Card className="border-border/40 bg-card shadow-sm rounded-md hover:border-orange-500/20 transition-all">
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground font-medium">Unassigned</p>
-                                    <p className="text-3xl font-black text-foreground tracking-tight mt-2">{unassignedCount}</p>
-                                </div>
-                                <UserX className="w-8 h-8 text-orange-500 opacity-30" />
-                            </div>
+                    <Card className="border border-border/40 bg-card/50 rounded-lg">
+                        <CardContent className="p-4">
+                            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Pending</p>
+                            <p className="text-3xl font-black text-foreground mt-2">{candidates.filter(c => c.status === 'pending').length}</p>
                         </CardContent>
                     </Card>
-                    <Card className="border-border/40 bg-card shadow-sm rounded-md hover:border-yellow-500/20 transition-all">
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground font-medium">Assigned / Pending</p>
-                                    <p className="text-3xl font-black text-foreground tracking-tight mt-2">{assignedCount}</p>
-                                </div>
-                                <Clock className="w-8 h-8 text-yellow-500 opacity-30" />
-                            </div>
+                    <Card className="border border-border/40 bg-card/50 rounded-lg">
+                        <CardContent className="p-4">
+                            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Assigned</p>
+                            <p className="text-3xl font-black text-foreground mt-2">{assignedCount}</p>
                         </CardContent>
                     </Card>
-                    <Card className="border-border/40 bg-card shadow-sm rounded-md hover:border-green-500/20 transition-all">
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground font-medium">Completed</p>
-                                    <p className="text-3xl font-black text-foreground tracking-tight mt-2">{completedCount}</p>
-                                </div>
-                                <CheckCircle2 className="w-8 h-8 text-green-500 opacity-30" />
-                            </div>
+                    <Card className="border border-border/40 bg-card/50 rounded-lg">
+                        <CardContent className="p-4">
+                            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Selected</p>
+                            <p className="text-3xl font-black text-emerald-500 mt-2">{candidates.filter(c => c.status === 'selected').length}</p>
+                        </CardContent>
+                    </Card>
+                    <Card className="border border-border/40 bg-card/50 rounded-lg">
+                        <CardContent className="p-4">
+                            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Waitlisted</p>
+                            <p className="text-3xl font-black text-amber-500 mt-2">{candidates.filter(c => c.status === 'waitlisted').length}</p>
+                        </CardContent>
+                    </Card>
+                    <Card className="border border-border/40 bg-card/50 rounded-lg">
+                        <CardContent className="p-4">
+                            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Rejected</p>
+                            <p className="text-3xl font-black text-red-400 mt-2">{candidates.filter(c => c.status === 'rejected').length}</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -778,6 +768,10 @@ const ManageInterviews = () => {
                                     <option value="">Unassigned</option>
                                     <option value="assigned">Assigned</option>
                                     <option value="pending">Pending Interview</option>
+                                    <option value="interviewed">Interviewed</option>
+                                    <option value="selected">✓ Selected</option>
+                                    <option value="waitlisted">⏳ Waitlisted</option>
+                                    <option value="rejected">✗ Rejected</option>
                                     <option value="completed">Completed</option>
                                 </select>
                             </div>

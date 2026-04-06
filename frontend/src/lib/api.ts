@@ -258,6 +258,22 @@ class ApiClient {
     return { success: true, users: [] };
   }
 
+  async searchUserByEmail(email: string) {
+    try {
+      const users = await this.getUsers();
+      if (users.success && users.users) {
+        const foundUser = users.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+        if (foundUser) {
+          return { success: true, user: foundUser };
+        }
+      }
+      return { success: false, message: 'User not found', user: null };
+    } catch (error) {
+      console.error('Search user by email error:', error);
+      return { success: false, message: 'Failed to search user', user: null };
+    }
+  }
+
   // Get only users flagged as interviewers (for interviewer assignment dropdown)
   async getInterviewers() {
     return this.request('/interviews/interviewers');
@@ -519,7 +535,12 @@ class ApiClient {
     });
   }
 
-
+  async updateEventAttendance(recordId: number, data: { status?: string; notes?: string }) {
+    return this.request(`/attendance/event/records/${recordId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
 
   // Profile field settings
   async getProfileFieldSettings() {
@@ -872,6 +893,27 @@ class ApiClient {
     });
   }
 
+  // ===== INTERVIEW CANDIDATE MANAGEMENT SYSTEM =====
+  
+  // Add single candidate
+  async addCandidate(data: { name: string; department: string; year: string; phone: string; email: string }) {
+    return this.request('/interviews/candidates', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Get all candidates (admin: all, mentor: only assigned)
+  async getCandidates() {
+    return this.request('/interviews/candidates');
+  }
+
+  // Get single candidate
+  async getCandidate(id: number) {
+    return this.request(`/interviews/candidates/${id}`);
+  }
+
+  // Bulk upload candidates (CSV/XLSX)
   async bulkUploadCandidates(file: File) {
     const formData = new FormData();
     formData.append('file', file);
@@ -881,28 +923,65 @@ class ApiClient {
     });
   }
 
-  async getCandidates() {
-    return this.request('/interviews');
+  // Download sample CSV
+  async downloadSampleCsv() {
+    const url = `${this.baseURL}/interviews/sample`;
+    window.location.href = url;
   }
 
-  async addCandidate(data: any) {
-    return this.request('/interviews/add', {
+  // Assign mentor to candidate (admin only)
+  async assignMentor(candidateId: number, mentorId: number) {
+    return this.request(`/interviews/candidates/${candidateId}/assign-mentor`, {
+      method: 'POST',
+      body: JSON.stringify({ mentor_id: mentorId }),
+    });
+  }
+
+  // Submit marks (mentor only, auto-triggers email)
+  async submitMarks(candidateId: number, data: { technical: number; communication: number; problem_solving: number }) {
+    return this.request(`/interviews/candidates/${candidateId}/marks`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async updateCandidate(id: number, data: any) {
-    return this.request(`/interviews/${id}`, {
+  // Get candidates assigned to current mentor
+  async getMyinterviewCandidates() {
+    return this.request('/interviews/my-candidates');
+  }
+
+  // Get dashboard stats
+  async getInterviewStats() {
+    return this.request('/interviews/stats');
+  }
+
+  // Get list of available mentors (admin only)
+  async getMentors() {
+    return this.request('/interviews/mentors/list');
+  }
+
+  // Get departments
+  async getDepartments() {
+    return this.request('/interviews/departments');
+  }
+
+  // Get years
+  async getYears() {
+    return this.request('/interviews/years');
+  }
+
+  // Update candidate (admin only, can update status, marks, etc.)
+  async updateCandidate(candidateId: number, data: any) {
+    return this.request(`/interviews/candidates/${candidateId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
-  async sendInterviewEmails(candidateIds: number[]) {
-    return this.request('/interviews/send-emails', {
-      method: 'POST',
-      body: JSON.stringify({ candidateIds }),
+  // Delete candidate (admin only)
+  async deleteCandidate(candidateId: number) {
+    return this.request(`/interviews/candidates/${candidateId}`, {
+      method: 'DELETE',
     });
   }
 
@@ -910,29 +989,9 @@ class ApiClient {
     return this.request('/interviews/my-status');
   }
 
-  // Get candidates assigned to current mentor/interviewer
+  // Get candidates assigned to current mentor/interviewer (old method, now redirects to new)
   async getMyInterviewCandidates() {
-    return this.request('/interviews/my-candidates');
-  }
-
-  // Submit interview marks (mentor only, one-time submission)
-  async submitInterviewMarks(candidateId: number, data: { marks?: number; remarks?: string; decision?: string }) {
-    return this.request(`/interviews/${candidateId}/submit-marks`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async deleteCandidate(id: number) {
-    return this.request(`/interviews/${id}`, { method: 'DELETE' });
-  }
-
-  // Assign mentor to candidate (admin only)
-  async assignInterviewMentor(candidateId: number, data: { mentor_id: number; mentor_name: string }) {
-    return this.request(`/interviews/${candidateId}/assign-mentor`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+    return this.getMyinterviewCandidates();
   }
 
   // Send bulk email via SMTP
@@ -1126,6 +1185,53 @@ class ApiClient {
     return this.request(`/events/${eventId}`, {
       method: 'DELETE',
     });
+  }
+
+  // Special days (calendar-only markers)
+  async getSpecialDays() {
+    try {
+      return await this.request('/events/special-days');
+    } catch (error: any) {
+      // Fallback if endpoint is nonstandard or path mapping changed
+      if (error.message && error.message.toLowerCase().includes('not found')) {
+        try {
+          return await this.request('/special-days');
+        } catch (innerError: any) {
+          console.warn('Special days fallback failed:', innerError.message || innerError);
+        }
+      }
+      console.warn('Special days fetch failed:', error.message || error);
+      return { success: false, specialDays: [] } as ApiResponse<{ specialDays: any[] }>;
+    }
+  }
+
+  async createSpecialDay(title: string, date: string, description?: string) {
+    try {
+      return await this.request('/events/special-days', {
+        method: 'POST',
+        body: JSON.stringify({ title, date, description }),
+      });
+    } catch (error: any) {
+      if (error.message && error.message.toLowerCase().includes('not found')) {
+        // Fallback: if special-days endpoint is not available, create as event-level special day
+        return this.createEvent(title, date, String(new Date(date).getFullYear()), description, true);
+      }
+      throw error;
+    }
+  }
+
+  async deleteSpecialDay(id: number) {
+    try {
+      return await this.request(`/events/special-days/${id}`, {
+        method: 'DELETE',
+      });
+    } catch (error: any) {
+      if (error.message && error.message.toLowerCase().includes('not found')) {
+        // Fallback: fallback to deleting from events if using events-based special day store
+        return this.deleteEvent(id);
+      }
+      throw error;
+    }
   }
 
   async markEventOD(eventId: number, userId: number, status: 'od' | 'absent' | 'permission', date?: string) {

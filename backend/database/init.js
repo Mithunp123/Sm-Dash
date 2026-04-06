@@ -385,7 +385,7 @@ export const initDatabase = async () => {
         hosteller_dayscholar TEXT,
         position TEXT,
         custom_fields TEXT,
-        interview_status TEXT DEFAULT 'Pending' CHECK(interview_status IN ('Pending', 'Selected', 'Rejected')),
+        interview_status TEXT DEFAULT 'Pending' CHECK(interview_status IN ('Pending', 'Selected', 'Waitlisted', 'Rejected')),
         interview_marks INTEGER DEFAULT NULL,
         mentor_id INTEGER DEFAULT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -791,7 +791,7 @@ export const initDatabase = async () => {
         dept TEXT,
         year TEXT,
         register_no TEXT UNIQUE NOT NULL,
-        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'assigned', 'interviewed', 'selected', 'rejected', 'completed')),
+        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'assigned', 'interviewed', 'waitlisted', 'selected', 'rejected', 'completed')),
         marks INTEGER DEFAULT 0,
         interviewer TEXT,
         interviewer_email TEXT,
@@ -824,7 +824,7 @@ export const initDatabase = async () => {
     await run(database, `
       CREATE TABLE IF NOT EXISTS email_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
+        user_id INTEGER NULL,
         type VARCHAR(20) NOT NULL,
         status VARCHAR(10) DEFAULT 'pending' CHECK(status IN ('pending', 'sent')),
         sent_at DATETIME,
@@ -895,6 +895,31 @@ export const initDatabase = async () => {
             `);
         // drop old table
         await run(database, "DROP TABLE _interview_candidates_old");
+      }
+    }
+
+    // Add new columns for the Interview Candidate Management System
+    // These columns support the mentor-based evaluation and marks system
+    await addColumnSafe(database, 'interview_candidates', 'assigned_mentor_id', 'INTEGER DEFAULT NULL');
+    await addColumnSafe(database, 'interview_candidates', 'technical', 'DECIMAL(5,2) DEFAULT 0');
+    await addColumnSafe(database, 'interview_candidates', 'communication', 'DECIMAL(5,2) DEFAULT 0');
+    await addColumnSafe(database, 'interview_candidates', 'problem_solving', 'DECIMAL(5,2) DEFAULT 0');
+    await addColumnSafe(database, 'interview_candidates', 'total', 'DECIMAL(5,2) DEFAULT 0');
+    
+    // Add foreign key reference for assigned_mentor_id if MySQL
+    if (database && typeof database.execute === 'function') {
+      try {
+        // Check if the foreign key exists, if not add it
+        await run(database, `
+          ALTER TABLE interview_candidates 
+          ADD CONSTRAINT fk_assigned_mentor_id 
+          FOREIGN KEY (assigned_mentor_id) REFERENCES users(id) ON DELETE SET NULL
+        `);
+      } catch (err) {
+        // Foreign key might already exist, which is fine
+        if (!err.message.includes('already exists') && !err.message.includes('Duplicate')) {
+          // console.error('Error adding foreign key:', err.message);
+        }
       }
     }
 
@@ -1361,6 +1386,20 @@ export const initDatabase = async () => {
         volunteer_registration_deadline DATETIME,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+      `);
+
+    // Special days table (calendar annotations only)
+    await run(database, `
+      CREATE TABLE IF NOT EXISTS special_days(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT DEFAULT 'Special Day',
+        date TEXT NOT NULL,
+        description TEXT,
+        created_by INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL
       )
       `);
 

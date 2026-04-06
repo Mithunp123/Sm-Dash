@@ -12,6 +12,7 @@ import { Megaphone, Trash2, History, Sparkles, ChevronRight, Send, Clock, Calend
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { formatDatetimeForInput } from "@/utils/dateTimeFormatter";
 
 const Announcements = () => {
     const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -97,7 +98,7 @@ const Announcements = () => {
             priority: announcement.priority || "normal",
             linkUrl: announcement.link_url || "",
             imageUrl: announcement.image_url || "",
-            deadline: announcement.deadline || ""
+            deadline: formatDatetimeForInput(announcement.deadline)
         });
         setEditingId(announcement.id);
         window.scrollTo({ top: 0, behavior: 'smooth' });

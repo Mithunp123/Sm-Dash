@@ -25,10 +25,40 @@ const EventFundsManagement = () => {
   const navigate = useNavigate();
   const { eventId } = useParams();
 
+  const departmentDisplayMap: Record<string, string> = {
+    'AI&DS': 'AI&DS',
+    'AIML': 'AIML',
+    'BT': 'BT',
+    'CSE': 'CSE',
+    'CSBS': 'CSBS',
+    'FT': 'FT',
+    'MECH': 'MECH',
+    'MCT': 'MCT',
+    'TXT': 'TXT',
+    'IT': 'IT',
+    'ECE': 'ECE',
+    'EEE': 'EEE',
+    'VLSI': 'VLSI',
+    'ENGLISH': 'ENGLISH',
+    'CHEMISTRY': 'CHEMISTRY',
+    'MATHS': 'MATHS',
+    'PHYSICS': 'PHYSICS',
+    'NON TEACHING': 'NON TEACHING',
+    // keep legacy values if they exist in DB
+    'CIVIL': 'CIVIL',
+    'OTHER': 'OTHER',
+    'none': 'None'
+  };
+
+  const getDepartmentDisplayName = (code: any) => {
+    const key = code === null || code === undefined ? '' : String(code);
+    return departmentDisplayMap[key] || (key ? key : 'N/A');
+  };
+
   // State
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState(auth.hasRole('student') ? 'fundraising' : 'overview');
+  const [activeTab, setActiveTab] = useState(auth.hasRole('student') || auth.hasRole('volunteer') ? 'fundraising' : 'overview');
   const [currentUserID, setCurrentUserID] = useState(null);
 
   // Fundraising state
@@ -86,6 +116,8 @@ const EventFundsManagement = () => {
   const [showQrUpload, setShowQrUpload] = useState(false);
   const [uploadingQR, setUploadingQR] = useState(false);
   const [updatingSettings, setUpdatingSettings] = useState(false);
+  const [isEditingEventName, setIsEditingEventName] = useState(false);
+  const [newEventName, setNewEventName] = useState('');
 
   // Check authentication
   useEffect(() => {
@@ -95,11 +127,12 @@ const EventFundsManagement = () => {
     }
 
     const role = auth.getRole();
-    if (role === 'volunteer') {
-      toast.error('Volunteers do not have access to finance modules');
-      navigate('/');
-      return;
-    }
+    // Note: Volunteers can now access the fundraising module
+    // if (role === 'volunteer') {
+    //   toast.error('Volunteers do not have access to finance modules');
+    //   navigate('/');
+    //   return;
+    // }
 
     // Set current user ID for filtering
     const userId = auth.user?.id || JSON.parse(localStorage.getItem('user') || '{}').id;
@@ -129,11 +162,27 @@ const EventFundsManagement = () => {
         setQrCodePath(statusRes.qr_code_path);
       }
 
-      // Only load if admin or if fundraising is enabled
-      if (auth.hasRole('admin') || fundraisingEnabledLocal) {
+      // Student requirement: only show entries received by the logged-in student.
+      // Use localStorage fallback because React state (`currentUserID`) may not be updated yet.
+      const userId =
+        auth.user?.id ??
+        JSON.parse(localStorage.getItem('user') || '{}').id ??
+        currentUserID;
+
+      // Only block admin controls when fundraising is disabled,
+      // but allow students and volunteers to view their received entries.
+      if (auth.hasRole('admin') || auth.hasRole('student') || auth.hasRole('volunteer') || fundraisingEnabledLocal) {
         const collectRes = await api.call('GET', `/fundraising/list/${eventId}`);
         if (collectRes.success) {
-          setCollections(collectRes.collections || []);
+          const fetched = collectRes.collections || [];
+          // Student requirement: show only entries received by the logged-in student
+          if (auth.hasRole('student') && userId) {
+            setCollections(
+              fetched.filter((c: any) => Number(c.received_by) === Number(userId))
+            );
+          } else {
+            setCollections(fetched);
+          }
         }
       }
 
@@ -189,16 +238,6 @@ const EventFundsManagement = () => {
       }
       if (!collectionFormData.payer_name || !collectionFormData.amount) {
         toast.error('Please fill in all required fields');
-        return;
-      }
-
-      // Students (Scan & Pay) don't need transaction_id in the UI.
-      if (
-        collectionFormData.payment_mode === 'online' &&
-        !auth.hasRole('student') &&
-        !collectionFormData.transaction_id.trim()
-      ) {
-        toast.error('Transaction ID is required for UPI payments');
         return;
       }
 
@@ -388,14 +427,38 @@ const EventFundsManagement = () => {
     }
   };
 
+  // Update Event Name
+  const handleUpdateEventName = async () => {
+    try {
+      if (!newEventName.trim()) {
+        toast.error('Event name cannot be empty');
+        return;
+      }
+      setUpdatingSettings(true);
+      const result = await api.call('PUT', `/events/${eventId}/title`, { title: newEventName.trim() });
+      if (result.success) {
+        toast.success('Event name updated successfully');
+        setIsEditingEventName(false);
+        loadEventData();
+      } else {
+        toast.error(result.message || 'Failed to update event name');
+      }
+    } catch (err) {
+      toast.error('Error updating event name');
+      console.error(err);
+    } finally {
+      setUpdatingSettings(false);
+    }
+  };
+
   // Edit collection
   const handleEditCollection = (collection) => {
     setCollectionFormData({
-      payer_name: collection.payer_name,
-      amount: collection.amount.toString(),
+      payer_name: collection.payer_name || '',
+      amount: collection.amount ? collection.amount.toString() : '',
       department: collection.department || '',
       contributor_type: collection.contributor_type || 'student',
-      payment_mode: collection.payment_mode,
+      payment_mode: collection.payment_mode || 'cash',
       transaction_id: collection.transaction_id || '',
       notes: collection.notes || ''
     });
@@ -448,8 +511,8 @@ const EventFundsManagement = () => {
       const rows = data.map(row => [
         row.payer_name,
         Number(row.amount).toFixed(2),
-        row.department || 'N/A',
-        row.payment_mode,
+        getDepartmentDisplayName(row.department),
+        row.payment_mode === 'cash' ? 'Cash' : 'UPI',
         row.received_by_name || 'N/A',
         new Date(row.created_at).toLocaleDateString()
       ]);
@@ -510,8 +573,8 @@ const EventFundsManagement = () => {
                   <tr>
                     <td>${row.payer_name}</td>
                     <td>₹${Number(row.amount).toFixed(2)}</td>
-                    <td>${row.department || 'N/A'}</td>
-                    <td>${row.payment_mode}</td>
+                    <td>${getDepartmentDisplayName(row.department)}</td>
+                    <td>${row.payment_mode === 'cash' ? 'Cash' : 'UPI'}</td>
                     <td>${row.received_by_name || 'N/A'}</td>
                     <td>${new Date(row.created_at).toLocaleDateString()}</td>
                   </tr>
@@ -546,8 +609,7 @@ const EventFundsManagement = () => {
       <main className="w-full px-4 md:px-6 lg:px-8 py-8 space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-4xl font-bold mb-2">Event Funds Management</h1>
-          <p className="text-muted-foreground">{event?.title || 'Event'}</p>
+          <h1 className="text-4xl font-bold">Event Funds Management</h1>
         </div>
 
         {/* Summary Cards - Hide for students */}
@@ -634,11 +696,93 @@ const EventFundsManagement = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Bills Report Section */}
+            {(auth.hasRole('admin') || auth.hasRole('office_bearer')) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Bills Report</CardTitle>
+                  <CardDescription>Export bills organized by folders</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          const token = auth.getToken();
+                          if (!token) throw new Error('Not authenticated');
+                          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+                          const url = `${apiUrl}/finance/bills-report/excel/${eventId}`;
+                          const response = await fetch(url, {
+                            headers: { Authorization: `Bearer ${token}` }
+                          });
+                          if (!response.ok) throw new Error(`Export failed (${response.status})`);
+                          const blob = await response.blob();
+                          const link = document.createElement('a');
+                          link.href = URL.createObjectURL(blob);
+                          link.download = `bills_report_${eventId}.xlsx`;
+                          document.body.appendChild(link);
+                          link.click();
+                          link.remove();
+                          toast.success('Bills report (Excel) downloaded');
+                        } catch (err: any) {
+                          toast.error(err?.message || 'Export failed');
+                        }
+                      }}
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Excel Report
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          const token = auth.getToken();
+                          if (!token) throw new Error('Not authenticated');
+                          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+                          const url = `${apiUrl}/finance/bills-report/pdf/${eventId}`;
+                          const response = await fetch(url, {
+                            headers: { Authorization: `Bearer ${token}` }
+                          });
+                          if (!response.ok) throw new Error(`Export failed (${response.status})`);
+                          const blob = await response.blob();
+                          const link = document.createElement('a');
+                          link.href = URL.createObjectURL(blob);
+                          link.download = `bills_report_${eventId}.pdf`;
+                          document.body.appendChild(link);
+                          link.click();
+                          link.remove();
+                          toast.success('Bills report (PDF) downloaded');
+                        } catch (err: any) {
+                          toast.error(err?.message || 'Export failed');
+                        }
+                      }}
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      PDF Report
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
-          {/* Fundraising Tab */}
+          {/* Fundraising Tab - Available for Students, Volunteers, Office Bearers, and Admin (with settings control) */}
           <TabsContent value="fundraising" className="space-y-6">
-            {!fundraisingEnabled && !auth.hasRole('admin') && !auth.hasRole('office_bearer') && !auth.hasRole('student') ? (
+            {/* Event Name Display */}
+            {event && (
+              <Card className="bg-primary/5 border-primary/20">
+                <CardContent className="pt-6">
+                  <p className="text-sm text-muted-foreground">Fundraising for</p>
+                  <p className="text-xl font-bold text-primary mt-1">{event.title || event.event_name || 'Event'}</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {!fundraisingEnabled && !auth.hasRole('admin') && !auth.hasRole('office_bearer') ? (
               <Card className="border-orange-200">
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-4">
@@ -651,8 +795,8 @@ const EventFundsManagement = () => {
               </Card>
             ) : (
               <>
-                {/* QR Code Display */}
-                {qrCodePath && (
+                {/* QR Code Display (ONLY for students scan/pay) */}
+                {auth.hasRole('student') && qrCodePath && (
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -717,7 +861,22 @@ const EventFundsManagement = () => {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                      <CardTitle>Fund Collections</CardTitle>
+                      <div className="flex flex-col gap-1 mt-1">
+                        <CardTitle className="text-xl">Fund Collections</CardTitle>
+                        {event && (
+                          <h2 
+                            className="text-lg font-semibold text-primary" 
+                            style={{ 
+                              whiteSpace: 'normal', 
+                              wordBreak: 'break-word', 
+                              overflow: 'visible', 
+                              textOverflow: 'unset' 
+                            }}
+                          >
+                            {event.title || event.event_name || 'Event'}
+                          </h2>
+                        )}
+                      </div>
                       {auth.hasRole('student') && (
                         <p className="text-lg font-bold text-green-600 mt-2">
                           Total Collected: ₹{Number(
@@ -772,10 +931,10 @@ const EventFundsManagement = () => {
                             <TableRow key={col.id}>
                               <TableCell>{col.payer_name}</TableCell>
                               <TableCell className="font-semibold">₹{Number(col.amount).toFixed(2)}</TableCell>
-                              <TableCell className="text-sm">{col.department || 'N/A'}</TableCell>
+                              <TableCell className="text-sm">{getDepartmentDisplayName(col.department)}</TableCell>
                               <TableCell>
                                 <Badge variant={col.payment_mode === 'cash' ? 'default' : 'secondary'}>
-                                  {col.payment_mode}
+                                  {col.payment_mode === 'cash' ? 'Cash' : 'UPI'}
                                 </Badge>
                               </TableCell>
                               <TableCell>{col.received_by_name || 'N/A'}</TableCell>
@@ -827,9 +986,57 @@ const EventFundsManagement = () => {
             />
           </TabsContent>
 
-          {/* Settings Tab (Admin Only) */}
-          {auth.hasRole('admin') && (
+          {/* Settings Tab (Admin and Office Bearer) */}
+          {(auth.hasRole('admin') || auth.hasRole('office_bearer')) && (
             <TabsContent value="settings" className="space-y-6">
+              {/* Event Name Display */}
+              {event && (
+                <Card className="bg-primary/5 border-primary/20">
+                  <CardContent className="pt-6">
+                    {isEditingEventName ? (
+                      <div className="flex gap-2 items-center">
+                        <Input 
+                          value={newEventName} 
+                          onChange={(e) => setNewEventName(e.target.value)} 
+                          placeholder="Event Name"
+                          className="max-w-md"
+                        />
+                        <Button 
+                          size="sm" 
+                          onClick={handleUpdateEventName}
+                          disabled={updatingSettings || !newEventName.trim()}
+                        >
+                          Save
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          onClick={() => setIsEditingEventName(false)}
+                          disabled={updatingSettings}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between items-center">
+                        <p className="text-2xl font-bold text-primary">{event.title || event.event_name || 'Event'}</p>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => {
+                            setNewEventName(event.title || event.event_name || '');
+                            setIsEditingEventName(true);
+                          }}
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit Event Name
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Fundraising Toggle */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -839,7 +1046,7 @@ const EventFundsManagement = () => {
                   <CardHeader>
                     <CardTitle>Fund Raising Status</CardTitle>
                     <CardDescription>
-                      Enable or disable fund raising for all events
+                      Enable or disable fund raising for students and volunteers
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -847,7 +1054,7 @@ const EventFundsManagement = () => {
                       <div>
                         <h3 className="font-semibold">Enable Fund Raising</h3>
                         <p className="text-sm text-muted-foreground mt-1">
-                          When enabled, office bearers can add fund collections
+                          When enabled, students and volunteers can add fund collections
                         </p>
                       </div>
                       <Switch
@@ -1015,6 +1222,9 @@ const EventFundsManagement = () => {
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{auth.hasRole('student') ? 'Entry' : 'Add Fund Collection Entry'}</DialogTitle>
+            <DialogDescription className="text-primary font-medium mt-1">
+              {event ? `For: ${event.title || event.event_name || 'Event'}` : ''}
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddCollection} className="space-y-4">
             <div>
@@ -1044,7 +1254,25 @@ const EventFundsManagement = () => {
             {auth.hasRole('student') ? (
               <div>
                 <Label>Mode *</Label>
-                <Input value="UPI" disabled />
+                <Select
+                  value={collectionFormData.payment_mode}
+                  onValueChange={(value) =>
+                    setCollectionFormData((prev) => ({
+                      ...prev,
+                      payment_mode: value,
+                      transaction_id: '',
+                      notes: ''
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="online">UPI</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             ) : (
               <div>
@@ -1109,31 +1337,29 @@ const EventFundsManagement = () => {
                 <SelectTrigger>
                   <SelectValue placeholder="Select Department" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  <SelectItem value="CSE">Computer Science & Engineering</SelectItem>
-                  <SelectItem value="ECE">Electronics & Communication</SelectItem>
-                  <SelectItem value="MECH">Mechanical Engineering</SelectItem>
-                  <SelectItem value="CIVIL">Civil Engineering</SelectItem>
-                  <SelectItem value="EEE">Electrical & Electronics</SelectItem>
-                  <SelectItem value="IT">Information Technology</SelectItem>
-                  <SelectItem value="OTHER">Other</SelectItem>
-                </SelectContent>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="AI&DS">AI&DS</SelectItem>
+                    <SelectItem value="AIML">AIML</SelectItem>
+                    <SelectItem value="BT">BT</SelectItem>
+                    <SelectItem value="CSE">CSE</SelectItem>
+                    <SelectItem value="CSBS">CSBS</SelectItem>
+                    <SelectItem value="FT">FT</SelectItem>
+                    <SelectItem value="MECH">MECH</SelectItem>
+                    <SelectItem value="MCT">MCT</SelectItem>
+                    <SelectItem value="TXT">TXT</SelectItem>
+                    <SelectItem value="IT">IT</SelectItem>
+                    <SelectItem value="ECE">ECE</SelectItem>
+                    <SelectItem value="EEE">EEE</SelectItem>
+                    <SelectItem value="VLSI">VLSI</SelectItem>
+                    <SelectItem value="ENGLISH">ENGLISH</SelectItem>
+                    <SelectItem value="CHEMISTRY">CHEMISTRY</SelectItem>
+                    <SelectItem value="MATHS">MATHS</SelectItem>
+                    <SelectItem value="PHYSICS">PHYSICS</SelectItem>
+                    <SelectItem value="NON TEACHING">NON TEACHING</SelectItem>
+                  </SelectContent>
               </Select>
             </div>
-
-            {!auth.hasRole('student') && (
-              <div>
-                <Label>Transaction ID *</Label>
-                <Input
-                  value={collectionFormData.transaction_id}
-                  onChange={(e) =>
-                    setCollectionFormData({ ...collectionFormData, transaction_id: e.target.value })
-                  }
-                  placeholder="Enter UPI transaction reference / ID"
-                />
-              </div>
-            )}
 
             <div className="flex gap-2 pt-4">
               <Button type="submit" className="flex-1">
@@ -1207,16 +1433,27 @@ const EventFundsManagement = () => {
                 <SelectTrigger>
                   <SelectValue placeholder="Select Department" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  <SelectItem value="CSE">Computer Science & Engineering</SelectItem>
-                  <SelectItem value="ECE">Electronics & Communication</SelectItem>
-                  <SelectItem value="MECH">Mechanical Engineering</SelectItem>
-                  <SelectItem value="CIVIL">Civil Engineering</SelectItem>
-                  <SelectItem value="EEE">Electrical & Electronics</SelectItem>
-                  <SelectItem value="IT">Information Technology</SelectItem>
-                  <SelectItem value="OTHER">Other</SelectItem>
-                </SelectContent>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                <SelectItem value="AI&DS">AI&DS</SelectItem>
+                <SelectItem value="AIML">AIML</SelectItem>
+                <SelectItem value="BT">BT</SelectItem>
+                <SelectItem value="CSE">CSE</SelectItem>
+                <SelectItem value="CSBS">CSBS</SelectItem>
+                <SelectItem value="FT">FT</SelectItem>
+                <SelectItem value="MECH">MECH</SelectItem>
+                <SelectItem value="MCT">MCT</SelectItem>
+                <SelectItem value="TXT">TXT</SelectItem>
+                <SelectItem value="IT">IT</SelectItem>
+                <SelectItem value="ECE">ECE</SelectItem>
+                <SelectItem value="EEE">EEE</SelectItem>
+                <SelectItem value="VLSI">VLSI</SelectItem>
+                <SelectItem value="ENGLISH">ENGLISH</SelectItem>
+                <SelectItem value="CHEMISTRY">CHEMISTRY</SelectItem>
+                <SelectItem value="MATHS">MATHS</SelectItem>
+                <SelectItem value="PHYSICS">PHYSICS</SelectItem>
+                <SelectItem value="NON TEACHING">NON TEACHING</SelectItem>
+              </SelectContent>
               </Select>
             </div>
 

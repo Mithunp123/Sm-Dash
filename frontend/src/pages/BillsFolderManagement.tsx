@@ -393,7 +393,7 @@ const BillsFolderManagement = () => {
                               size="sm"
                               variant="destructive"
                               onClick={() => handleDeleteFolder(folder.id)}
-                              className="gap-1"
+                              className="gap-1 bg-red-600 hover:bg-red-700 text-white"
                             >
                               <Trash2 className="w-4 h-4" />
                               Delete

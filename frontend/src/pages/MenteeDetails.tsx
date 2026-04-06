@@ -269,7 +269,17 @@ const MenteeDetails = () => {
                             {historyLoading ? (
                                 <div className="py-8 text-center flex justify-center"><Loader2 className="animate-spin w-6 h-6" /></div>
                             ) : historyData.length === 0 ? (
-                                <div className="py-8 text-center text-muted-foreground">No records found.</div>
+                                <div className="py-6 text-center space-y-3">
+                                    <p className="text-sm text-muted-foreground">No records found for {historyType === 'updates' ? 'updates' : 'attendance'}.</p>
+                                    {historyType === 'attendance' ? (
+                                        <div>
+                                            <p className="text-xs text-muted-foreground">Attendance is tracked via project mentor attendance. Add attendance from the project dashboard:</p>
+                                            <Button size="sm" variant="outline" onClick={() => navigate('/admin/attendance/projects')}>Go to Attendance Projects</Button>
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-muted-foreground">Add updates in the mentor dashboard to appear here.</p>
+                                    )}
+                                </div>
                             ) : (
                                 <div className="space-y-4">
                                     {historyType === 'updates' ? historyData.map((row: any) => (

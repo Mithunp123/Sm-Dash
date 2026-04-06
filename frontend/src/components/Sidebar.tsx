@@ -102,12 +102,17 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
 
   const isAuthenticated = auth.isAuthenticated();
   const user = auth.getUser();
+  const isInterviewer = !!permissions.is_interviewer || !!user?.is_interviewer || user?.role === 'admin' || user?.role === 'office_bearer';
+  
+  if (isInterviewer && user) {
+    console.log(`[Sidebar] User ${user.email} (${user.role}) has interviewer access enabled.`);
+  }
 
   useEffect(() => {
     const unsubscribe = auth.onAuthChange(() => {
       setAuthUpdate(prev => prev + 1);
     });
-    return unsubscribe;
+    return () => { unsubscribe(); };
   }, []);
 
   if (!isAuthenticated || !user) return null;
@@ -146,7 +151,6 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
         category: "People Management",
         items: [
           { icon: UserCheck, label: "Interview Candidates", path: "/admin/interviews" },
-          ...(user?.is_interviewer ? [{ icon: UserCheck, label: "My Interviews", path: "/mentor/interviews" }] : []),
           { icon: UsersRound, label: "Manage Office Bearers", path: "/admin/office-bearers" },
           { icon: UserCheck, label: "Mentor Management", path: "/admin/mentor-management" },
           { icon: UsersRound, label: "Teams", path: "/admin/teams" },
@@ -185,7 +189,7 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
       {
         category: "Account",
         items: [
-          { icon: UserCircle, label: "My Profile", path: "/office-bearer/profile" },
+          { icon: UserCircle, label: "Profile", path: "/office-bearer/profile" },
           { icon: Settings, label: "Settings", path: "/admin/settings" },
         ]
       }
@@ -200,19 +204,17 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
         isImportant: true,
         items: [
           { icon: LayoutDashboard, label: "Dashboard", path: "/office-bearer" },
-          { icon: Users, label: "Profile Management", path: "/admin/student-db" },
         ]
       },
       {
-        category: "Interviews",
+        category: "People Management",
         items: [
-          ...(user?.is_interviewer ? [{ icon: UserCheck, label: "My Interviews", path: "/mentor/interviews" }] : []),
+          { icon: UsersRound, label: "Teams", path: "/admin/teams" },
         ]
       },
       {
         category: "Planning & Projects",
         items: [
-          { icon: Briefcase, label: "Manage Projects", path: "/admin/projects" },
           { icon: Calendar, label: "Meetings", path: "/admin/meetings" },
           { icon: Calendar, label: "Events", path: "/admin/events" },
           { icon: FileText, label: "Minutes of Meeting", path: "/admin/minutes" },
@@ -223,9 +225,7 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
         items: [
           { icon: ClipboardCheck, label: "Attendance", path: "/admin/attendance" },
           { icon: BarChart3, label: "Finance", path: "/office-bearer/finance" },
-          { icon: FileText, label: "Resources", path: "/admin/resources" },
           { icon: FileBarChart, label: "Reports", path: "/admin/reports" },
-          { icon: UsersRound, label: "Teams", path: "/admin/teams" },
         ]
       },
       {
@@ -239,7 +239,7 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
       {
         category: "Account",
         items: [
-          { icon: UserCircle, label: "My Profile", path: "/office-bearer/profile" },
+          { icon: UserCircle, label: "Profile", path: "/office-bearer/profile" },
           { icon: Settings, label: "Settings", path: "/office-bearer/settings" },
         ]
       }
@@ -264,7 +264,7 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
           { icon: BarChart3, label: "Fund Raising", path: "/student/finance" },
           { icon: ClipboardCheck, label: "Attendance", path: "/student/attendance" },
           { icon: UsersRound, label: "Teams", path: "/student/teams" },
-          ...(user?.is_interviewer ? [{ icon: UserCheck, label: "My Interviews", path: "/mentor/interviews" }] : []),
+          ...(isInterviewer ? [{ icon: UserCheck, label: "My Interviews", path: "/interviews" }] : []),
         ]
       },
       {
@@ -289,7 +289,7 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
       {
         category: "Account",
         items: [
-          { icon: UserCircle, label: "My Profile", path: "/student/profile" },
+          { icon: UserCircle, label: "Profile", path: "/student/profile" },
           { icon: Settings, label: "Settings", path: "/student/settings" }
         ]
       }
@@ -367,7 +367,7 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
                     {/* Animated chevron */}
                     <span
                       className={cn(
-                        "flex items-center justify-center w-5 h-5 rounded-full transition-all duration-300",
+                        "flex items-center justify-center w-5 h-5 rounded-md transition-all duration-300",
                         isExpanded
                           ? "bg-primary/20 text-primary rotate-180"
                           : "text-muted-foreground/60 rotate-0 group-hover:text-muted-foreground"
@@ -425,6 +425,17 @@ const Sidebar = ({ className, onItemClick }: SidebarProps) => {
           })}
         </nav>
       </ScrollArea>
+
+      {/* Logout Button at Bottom */}
+      <div className="p-3 border-t border-border">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 text-destructive hover:bg-destructive/10 hover:text-destructive/90"
+        >
+          <LogOut className="w-4 h-4" />
+          <span>Log out</span>
+        </button>
+      </div>
     </div>
   );
 };
@@ -465,7 +476,7 @@ function SidebarItem({
       <span className="truncate">{label}</span>
 
       {active && (
-        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-foreground/80 shrink-0" />
+        <span className="ml-auto w-1 h-3 rounded-sm bg-primary-foreground/80 shrink-0" />
       )}
     </button>
   );

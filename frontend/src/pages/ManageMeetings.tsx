@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
 import CalendarMonth, { CalendarEvent } from "@/components/CalendarMonth";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { formatDatetimeForInput } from "@/utils/dateTimeFormatter";
 
 const getHolidays = (year: number): CalendarEvent[] => [
   { id: `h-ny-${year}`, title: 'New Year', date: `${year}-01-01T00:00:00`, type: 'important' as const },
@@ -31,10 +32,11 @@ const getHolidays = (year: number): CalendarEvent[] => [
 const ManageMeetings = () => {
   const navigate = useNavigate();
   const [meetings, setMeetings] = useState<any[]>([]);
-  const [events, setEvents] = useState<any[]>([]); // For important days
+  const [events, setEvents] = useState<any[]>([]); // For event-based context
+  const [specialDays, setSpecialDays] = useState<any[]>([]); // Calendar-only markers
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [showImportantDayDialog, setShowImportantDayDialog] = useState(false); // New dialog state
+  const [showImportantDayDialog, setShowImportantDayDialog] = useState(false);
   const [importantDayForm, setImportantDayForm] = useState({ title: "", date: "" }); // New form state
   const [showCalendar, setShowCalendar] = useState(true);
   const [viewDate, setViewDate] = useState(() => new Date());
@@ -73,21 +75,34 @@ const ManageMeetings = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [meetingsRes, eventsRes] = await Promise.all([
+      const results = await Promise.allSettled([
         api.getMeetings(),
-        api.getEvents(viewDate.getFullYear().toString())
+        api.getEvents(viewDate.getFullYear().toString()),
+        api.getSpecialDays()
       ]);
 
-      if (meetingsRes.success) {
-        setMeetings(meetingsRes.meetings || []);
+      const [meetingsRes, eventsRes, specialDaysRes] = results;
+
+      if (meetingsRes.status === 'fulfilled' && meetingsRes.value.success) {
+        setMeetings(meetingsRes.value.meetings || []);
+      } else if (meetingsRes.status === 'rejected') {
+        console.warn('Meetings load failed', meetingsRes.reason);
       }
-      if (eventsRes.success) {
-        // Filter only special days if needed, or take all events as important days/holidays
-        // Assuming user wants to see all 'Events' as Important Days
-        setEvents(eventsRes.events || []);
+
+      if (eventsRes.status === 'fulfilled' && eventsRes.value.success) {
+        setEvents(eventsRes.value.events || []);
+      } else if (eventsRes.status === 'rejected') {
+        console.warn('Events load failed', eventsRes.reason);
+      }
+
+      if (specialDaysRes.status === 'fulfilled' && specialDaysRes.value.success) {
+        setSpecialDays(specialDaysRes.value.specialDays || []);
+      } else {
+        console.warn('Special days load failed', specialDaysRes.status === 'rejected' ? specialDaysRes.reason : specialDaysRes.value?.message);
+        setSpecialDays([]);
       }
     } catch (error: any) {
-      toast.error("Failed to load data: " + error.message);
+      toast.error('Failed to load data: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -96,31 +111,31 @@ const ManageMeetings = () => {
   const handleAddImportantDay = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const formDataToSend = new FormData();
-      formDataToSend.append('title', importantDayForm.title);
-      formDataToSend.append('date', importantDayForm.date);
-      formDataToSend.append('year', new Date(importantDayForm.date).getFullYear().toString());
-      formDataToSend.append('is_special_day', 'true');
-
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/events`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${auth.getToken()}`
-        },
-        body: formDataToSend
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        toast.success("Important Day added successfully!");
+      const response = await api.createSpecialDay(importantDayForm.title || 'Special Day', importantDayForm.date, importantDayForm.title ? undefined : 'Marked as calendar special day');
+      if (response.success) {
+        toast.success('Important Day added successfully!');
         setShowImportantDayDialog(false);
-        setImportantDayForm({ title: "", date: "" });
+        setImportantDayForm({ title: '', date: '' });
         loadData();
       } else {
-        toast.error(data.message || "Failed to add");
+        toast.error(response.message || 'Failed to add');
       }
     } catch (error: any) {
-      toast.error("Error: " + error.message);
+      toast.error('Error: ' + error.message);
+    }
+  };
+
+  const handleDeleteSpecialDay = async (id: number) => {
+    try {
+      const response = await api.deleteSpecialDay(id);
+      if (response.success) {
+        toast.success('Special day removed');
+        loadData();
+      } else {
+        toast.error(response.message || 'Failed to remove special day');
+      }
+    } catch (error: any) {
+      toast.error('Error: ' + error.message);
     }
   };
 
@@ -180,7 +195,7 @@ const ManageMeetings = () => {
     setFormData({
       title: meeting.title,
       description: meeting.description || "",
-      date: meeting.date,
+      date: formatDatetimeForInput(meeting.date),
       location: meeting.location || ""
     });
     setShowAddDialog(true);
@@ -282,6 +297,7 @@ const ManageMeetings = () => {
 
           <div className="grid grid-cols-1 gap-6">
             {showCalendar ? (
+              <> 
               <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-xl rounded-3xl overflow-hidden mb-8">
                 <CardHeader className="p-4 md:p-6 bg-muted/30 border-b">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -351,6 +367,13 @@ const ManageMeetings = () => {
                           type: e.is_special_day ? 'holiday' : 'important'
                         })
                       ),
+                      ...(specialDays || []).map((sd: any): CalendarEvent => ({
+                        id: `special-day-${sd.id}`,
+                        title: sd.title || 'Special Day',
+                        date: sd.date,
+                        type: 'holiday',
+                        isSpecialDay: true
+                      })),
                       ...getHolidays(viewDate.getFullYear())
                     ]}
                     onDayClick={(iso) => {
@@ -363,6 +386,36 @@ const ManageMeetings = () => {
                   />
                 </CardContent>
               </Card>
+
+              <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-xl rounded-3xl overflow-hidden mb-8">
+                <CardHeader className="bg-muted/30 border-b border-border/40">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-xl font-black uppercase tracking-tight">Special Days</CardTitle>
+                      <CardDescription className="text-[10px] font-bold uppercase tracking-widest opacity-70">Marked days that only appear on calendar</CardDescription>
+                    </div>
+                    <Button onClick={() => setShowImportantDayDialog(true)} className="h-10 px-3 text-xs">Add Special Day</Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4">
+                  {specialDays.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No special days added yet.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {specialDays.map((sd) => (
+                        <div key={sd.id} className="flex justify-between items-center p-3 border rounded-lg bg-background">
+                          <div>
+                            <p className="font-bold">{sd.title || 'Special Day'}</p>
+                            <p className="text-xs text-muted-foreground">{new Date(sd.date).toLocaleDateString()}</p>
+                          </div>
+                          <Button variant="destructive" size="sm" onClick={() => handleDeleteSpecialDay(sd.id)}>Delete</Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              </>
             ) : (
               <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-xl rounded-3xl overflow-hidden mb-8">
                 <CardHeader className="bg-muted/30 border-b border-border/40">

@@ -28,6 +28,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
   const [projects, setProjects] = useState<any[]>([]);
   const [meetings, setMeetings] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
+  const [specialDays, setSpecialDays] = useState<any[]>([]);
   const [resources, setResources] = useState<any[]>([]);
   const [odHistory, setOdHistory] = useState<any>(null);
   const [notifiedIds, setNotifiedIds] = useState<(number | string)[]>([]);
@@ -93,23 +94,25 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
       const currentUser = auth.getUser();
       if (!currentUser) return;
 
-      const [projRes, meetRes, evRes, resRes, odRes, profileRes, interviewRes] = await Promise.all([
+      const [projRes, meetRes, evRes, specialDaysRes, resRes, odRes, profileRes] = await Promise.all([
         api.getUserProjects(currentUser.id),
         api.getMeetings(),
         api.getEvents(), // Fetch all events for the timeline
+        api.getSpecialDays(),
         api.getResources(),
         api.getStudentODHistory(currentUser.id),
         api.getStudentProfile(currentUser.id),
-        api.getMyInterviewStatus()
       ]);
 
       if (projRes.success) setProjects(projRes.projects || []);
       if (meetRes.success) setMeetings(meetRes.meetings || []);
       if (evRes.success) setEvents(evRes.events || []);
+      if (specialDaysRes.success) setSpecialDays(specialDaysRes.specialDays || []);
       if (resRes.success) setResources(resRes.resources || []);
       if (odRes.success) setOdHistory(odRes);
       if (profileRes.success) setProfileData(profileRes.profile);
-      if (interviewRes.success) setInterviewStatus(interviewRes.candidate);
+      // Interview status removed - use dedicated interview routes instead
+      setInterviewStatus(null);
 
     } catch (err: any) {
       console.error('Error loading dashboard data:', err);
@@ -167,7 +170,14 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
       type: e.is_special_day ? ('holiday' as const) : ('important' as const),
       isSpecialDay: e.is_special_day
     }));
-    return [...meetEvents, ...evEvents];
+    const sdEvents = (specialDays || []).filter(sd => sd && sd.date).map(sd => ({
+      id: `sd-${sd.id}`,
+      title: sd.title || 'Special Day',
+      date: sd.date,
+      type: 'holiday' as const,
+      isSpecialDay: true
+    }));
+    return [...meetEvents, ...evEvents, ...sdEvents];
   }, [meetings, events]);
 
   const handleLogout = () => {
@@ -182,9 +192,9 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
         {/* Welcome Section (admin-style gradient) */}
         <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-primary via-primary/95 to-primary/90 p-6 md:p-12 shadow-lg border border-primary/20 mb-4">
           <div className="relative z-10 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/20 text-white text-xs font-semibold backdrop-blur-sm mb-4 border border-white/30">
+            <div className="flex items-center gap-2 text-white/80 text-xs font-bold uppercase tracking-widest mb-4">
               <Star className="w-3 h-3 text-white" />
-              <span>Student Dashboard</span>
+              <span>Student Overview Portal</span>
             </div>
             <h1 className="page-title text-white mb-3">
               Welcome back, <span className="text-white font-extrabold">{auth.getUser()?.name || 'Volunteer'}</span>
@@ -214,7 +224,7 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
                 {[
                   { title: 'Projects', value: projects.length, icon: Briefcase, desc: "Active projects", color: "text-blue-500", bg: "bg-blue-500/10", border: 'border-blue-500/20' },
                   { title: 'OD Sessions', value: odHistory?.odCount || 0, icon: CheckCircle2, desc: "On-duty sessions", color: "text-emerald-500", bg: "bg-emerald-500/10", border: 'border-emerald-500/20' },
-                  { title: 'Meetings', value: meetings.length, icon: MessageSquare, desc: "Total meetings", color: "text-purple-500", bg: "bg-purple-500/10", border: 'border-purple-500/20' },
+                  { title: 'Messages', value: 0, icon: MessageSquare, desc: "Inbox", color: "text-purple-500", bg: "bg-purple-500/10", border: 'border-purple-500/20', onClick: () => navigate('/student/messages') },
                   { title: 'Resources', value: resources.length, icon: BookOpen, desc: "Shared materials", color: "text-orange-500", bg: "bg-orange-500/10", border: 'border-orange-500/20' },
                   { title: 'Events', value: events.length, icon: Calendar, desc: "Total events", color: "text-pink-500", bg: "bg-pink-500/10", border: 'border-pink-500/20', onClick: () => navigate('/student/events') }
                 ].map((stat, i) => (
@@ -251,9 +261,9 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
                 {interviewStatus && (interviewStatus.status !== 'unassigned') && (
                   <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-violet-600 to-indigo-600 p-8 text-white shadow-xl mb-6">
                     <div className="relative z-10">
-                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md mb-4 text-xs font-bold uppercase tracking-widest border border-white/10">
+                      <div className="flex items-center gap-2 text-white/80 text-xs font-bold uppercase tracking-widest mb-4">
                         <Briefcase className="w-3 h-3 text-white" />
-                        <span>Interview Update</span>
+                        <span>Interview Status Update</span>
                       </div>
                       <h2 className="section-title">
                         {interviewStatus.status === 'selected' ? 'Congratulations! You are Selected!' :

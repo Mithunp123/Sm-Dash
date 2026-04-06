@@ -4,6 +4,7 @@ import xlsx from 'xlsx';
 import { getDatabase } from '../database/init.js';
 import { authenticateToken, requirePermission } from '../middleware/auth.js';
 import { body, validationResult } from 'express-validator';
+import { sendEmail } from '../utils/email.js';
 import { logActivity } from '../utils/logger.js';
 
 
@@ -1198,13 +1199,13 @@ router.post('/:projectId/members', authenticateToken, requirePermission('can_man
     const db = getDatabase();
 
     // Check if project exists
-    const project = await get(db, 'SELECT id FROM projects WHERE id = ?', [projectId]);
+    const project = await get(db, 'SELECT id, title FROM projects WHERE id = ?', [projectId]);
     if (!project) {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
 
     // Check if user exists
-    const user = await get(db, 'SELECT id FROM users WHERE id = ?', [user_id]);
+    const user = await get(db, 'SELECT id, name, email FROM users WHERE id = ?', [user_id]);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
@@ -1218,7 +1219,59 @@ router.post('/:projectId/members', authenticateToken, requirePermission('can_man
     // Add as member
     await run(db, 'INSERT INTO project_members (project_id, user_id, role) VALUES (?, ?, ?)', [projectId, user_id, 'member']);
 
-    res.json({ success: true, message: 'Member added to project successfully' });
+    // Send email to new member
+    try {
+      const memberEmailHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; background: #f9f9f9; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background: white; padding: 30px; border-radius: 0 0 8px 8px; }
+            .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+            .project-card { background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #667eea; }
+            .label { font-weight: bold; color: #667eea; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Welcome to a New Project!</h1>
+            </div>
+            <div class="content">
+              <p>Dear <strong>${user.name}</strong>,</p>
+              <p>You have been added as a member to a new project.</p>
+              
+              <div class="project-card">
+                <p><span class="label">Project Name:</span> ${project.title}</p>
+              </div>
+
+              <p>You can now collaborate with other team members on this project. Log in to the portal to view details and start contributing.</p>
+
+              <p>Best regards,<br><strong>SM Volunteers Team</strong></p>
+            </div>
+            <div class="footer">
+              <p>&copy; 2024 SM Volunteers, K.S.Rangasamy College of Technology. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      await sendEmail(
+        user.email,
+        `You've been added to project: ${project.title}`,
+        memberEmailHtml,
+        true
+      );
+    } catch (emailErr) {
+      console.error('Email to new member error:', emailErr);
+      // Don't fail if email fails
+    }
+
+    res.json({ success: true, message: 'Member added to project successfully. Email notification sent.' });
   } catch (error) {
     console.error('Add project member error:', error);
     res.status(500).json({ success: false, message: 'Server error' });

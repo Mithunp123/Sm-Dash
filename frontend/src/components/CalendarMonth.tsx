@@ -17,6 +17,7 @@ export type CalendarMonthProps = {
   onDayClick?: (isoDate: string) => void;
   className?: string;
   showHeader?: boolean;
+  showDayNames?: boolean;
 };
 
 function startOfMonth(date: Date) {
@@ -46,7 +47,8 @@ export const CalendarMonth = ({
   events = [],
   onDayClick,
   className,
-  showHeader = true
+  showHeader = true,
+  showDayNames = true
 }: CalendarMonthProps) => {
   const todayISO = useMemo(() => formatISODate(new Date()), []);
 
@@ -132,14 +134,16 @@ export const CalendarMonth = ({
           </div>
         </div>
       )}
-      <div className="grid grid-cols-7 gap-0.5 md:gap-1 text-[10px] md:text-xs text-muted-foreground mb-2">
-        {weekdayLabelsFull.map((w, i) => (
-          <div key={w} className="px-1 py-2 text-center font-semibold">
-            <span className="hidden sm:inline">{w}</span>
-            <span className="sm:hidden">{weekdayLabelsShort[i]}</span>
-          </div>
-        ))}
-      </div>
+      {showDayNames && (
+        <div className="grid grid-cols-7 gap-0.5 md:gap-1 text-[10px] md:text-xs text-muted-foreground mb-2">
+          {weekdayLabelsFull.map((w, i) => (
+            <div key={w} className="px-1 py-2 text-center font-semibold">
+              <span className="hidden sm:inline">{w}</span>
+              <span className="sm:hidden">{weekdayLabelsShort[i]}</span>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="grid grid-cols-7 gap-0.5 md:gap-1">
         {gridDays.map(({ date, iso, inMonth }) => {
           const day = date.getDate();
@@ -158,7 +162,7 @@ export const CalendarMonth = ({
               )}
             >
               <div className="flex items-center justify-between mb-0.5 md:mb-1">
-                <span className="text-[8px] md:text-xs text-muted-foreground hidden sm:inline">{weekdayLabelsFull[date.getDay()]}</span>
+                {showDayNames && <span className="text-[8px] md:text-xs text-muted-foreground hidden sm:inline">{weekdayLabelsFull[date.getDay()]}</span>}
                 <span className={cn(
                   "text-[10px] md:text-sm font-semibold px-0.5 md:px-1 rounded flex items-center justify-center min-w-[16px]",
                   isToday && "bg-primary text-primary-foreground"

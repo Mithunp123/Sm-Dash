@@ -41,6 +41,7 @@ const OfficeBearerProfile = () => {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>("");
   const [isEditing, setIsEditing] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Calculate age from DOB (same logic as StudentProfile)
@@ -67,6 +68,11 @@ const OfficeBearerProfile = () => {
   }, []);
 
   const backPath = auth.getRole() === 'admin' ? '/admin' : '/office-bearer';
+  const isAdmin = auth.getRole() === 'admin';
+  const pageTitle = isAdmin ? 'Admin Profile' : 'Office Bearer Profile';
+  const pageSubtitle = isAdmin 
+    ? 'Manage your personal and academic details as an Administrator.' 
+    : 'Manage your personal and academic details as an Office Bearer.';
 
   const loadProfile = async () => {
     try {
@@ -76,6 +82,9 @@ const OfficeBearerProfile = () => {
         toast.error("Unable to load user info");
         return;
       }
+
+      // Check if user is new (hasn't changed password yet)
+      setIsNewUser(currentUser.must_change_password === 1);
 
       console.log(`📋 Loading office bearer profile for user ${currentUser.id}`);
 
@@ -265,6 +274,9 @@ const OfficeBearerProfile = () => {
         setIsEditing(false);
         console.log(`🔄 Reloading profile after save`);
         await loadProfile(); // Reload to get fresh data from server
+        
+        // Emit event to trigger header update
+        window.dispatchEvent(new Event('profileUpdated'));
       } else {
         throw new Error(data.message || 'Failed to update profile');
       }
@@ -284,9 +296,9 @@ const OfficeBearerProfile = () => {
         <div className="w-full">
           {/* page title */}
           <div className="mb-6">
-            <h1 className="page-title uppercase font-black">Office Bearer Profile</h1>
+            <h1 className="page-title uppercase font-black">{pageTitle}</h1>
             <p className="page-subtitle uppercase tracking-widest mt-1 text-muted-foreground">
-              Manage your personal and academic details as an Office Bearer.
+              {pageSubtitle}
             </p>
           </div>
 
@@ -422,13 +434,26 @@ const OfficeBearerProfile = () => {
             </div>
           )}
 
+          {/* Warning Banner for New Users */}
+          {isNewUser && (
+            <div className="mb-6 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900 rounded-lg p-4 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-orange-600 dark:text-orange-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-orange-900 dark:text-orange-200 mb-1">Profile Setup Restricted</h3>
+                <p className="text-sm text-orange-800 dark:text-orange-300">
+                  You must change your password first before you can create or update your profile. Please change your password and log in again.
+                </p>
+              </div>
+            </div>
+          )}
+
           <Card className="border border-border bg-white dark:bg-slate-900">
             <CardHeader className="bg-muted/30 border-b border-border">
               <CardTitle className="text-lg font-semibold text-foreground">
                 Profile Information
               </CardTitle>
               <CardDescription className="text-sm mt-1 text-muted-foreground">
-                Manage your personal and academic details as an Office Bearer.
+                {pageSubtitle}
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6">

@@ -55,14 +55,23 @@ const Resources = () => {
       const res = await fetch(`${API_BASE}/resources?${queryParams.toString()}`, {
         headers: { Authorization: `Bearer ${auth.getToken()}` }
       });
+      
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status}`);
+      }
+      
       const data = await res.json();
-      if (data.success) {
+      if (data.success && data.resources) {
         // Also filter out REPORT type on frontend as backup
         const filtered = (data.resources || []).filter((r: any) => r.resource_type !== 'REPORT');
         setFiles(filtered);
+      } else {
+        // Handle case where success is true but no resources returned
+        setFiles([]);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error loading resources:', err);
+      setFiles([]); // Set empty array on error so page doesn't stay in loading state
     } finally {
       setLoading(false);
     }
@@ -120,9 +129,9 @@ const Resources = () => {
                     </CardContent>
                   </Card>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 justify-center">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredFiles.map((f) => (
-                      <Card key={f.id} className="border-0 shadow-md hover:shadow-lg transition-all bg-white dark:bg-slate-800 max-w-lg mx-auto">
+                      <Card key={f.id} className="border-0 shadow-md hover:shadow-lg transition-all bg-white dark:bg-slate-800">
                         <CardHeader className="border-b border-border/10 pb-4">
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex items-start gap-3 flex-1 min-w-0">

@@ -625,43 +625,49 @@ const MinutesOfMeeting = () => {
               {saving ? '⏳ Generating...' : id ? '🔄 Refresh Report' : '📄 Create & Generate'}
             </Button>
             
-            {/* Download Buttons - only show if we have an ID */}
-            {id && (
-              <>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setSaving(true);
-                    const token = auth.getToken();
-                    let url = `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/mom/download/pdf/${id}`;
-                    if (token) url += `?token=${encodeURIComponent(token)}`;
-                    window.open(url, '_blank');
-                    toast.success('📥 PDF downloading...');
-                    setTimeout(() => setSaving(false), 2000);
-                  }}
-                  disabled={saving}
-                  className="gap-2"
-                >
-                  {saving ? '⏳' : '📄'} {saving ? 'Downloading...' : 'Download PDF'}
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setSaving(true);
-                    const token = auth.getToken();
-                    let url = `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/mom/download/docx/${id}`;
-                    if (token) url += `?token=${encodeURIComponent(token)}`;
-                    window.open(url, '_blank');
-                    toast.success('📥 DOCX downloading...');
-                    setTimeout(() => setSaving(false), 2000);
-                  }}
-                  disabled={saving}
-                  className="gap-2"
-                >
-                  {saving ? '⏳' : '📋'} {saving ? 'Downloading...' : 'Download DOCX'}
-                </Button>
-              </>
-            )}
+            {/* Download Buttons - always visible and active */}
+            <>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  if (!id) {
+                    toast.error('Please save/generate the report first to enable PDF downloads');
+                    return;
+                  }
+                  setSaving(true);
+                  const token = auth.getToken();
+                  let url = `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/mom/download/pdf/${id}`;
+                  if (token) url += `?token=${encodeURIComponent(token)}`;
+                  window.open(url, '_blank');
+                  toast.success('📥 PDF downloading...');
+                  setTimeout(() => setSaving(false), 2000);
+                }}
+                disabled={saving}
+                className="gap-2 bg-slate-100 hover:bg-slate-200 text-slate-900 border-slate-300"
+              >
+                {saving ? '⏳' : '📄'} {saving ? 'Downloading...' : 'Download PDF'}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  if (!id) {
+                    toast.error('Please save/generate the report first to enable DOCX downloads');
+                    return;
+                  }
+                  setSaving(true);
+                  const token = auth.getToken();
+                  let url = `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/mom/download/docx/${id}`;
+                  if (token) url += `?token=${encodeURIComponent(token)}`;
+                  window.open(url, '_blank');
+                  toast.success('📥 DOCX downloading...');
+                  setTimeout(() => setSaving(false), 2000);
+                }}
+                disabled={saving}
+                className="gap-2 bg-slate-100 hover:bg-slate-200 text-slate-900 border-slate-300"
+              >
+                {saving ? '⏳' : '📋'} {saving ? 'Downloading...' : 'Download DOCX'}
+              </Button>
+            </>
           </div>
         </div>
       </main>

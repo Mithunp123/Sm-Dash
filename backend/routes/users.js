@@ -110,7 +110,7 @@ router.get('/interviewers', authenticateToken, requireRole('admin'), async (req,
 });
 
 // Toggle interviewer flag (Admin only)
-router.patch('/:id/toggle-interviewer', authenticateToken, requireRole('admin'), async (req, res) => {
+router.patch('/:id/toggle-interviewer', authenticateToken, requireRole('admin', 'office_bearer'), async (req, res) => {
   try {
     const { id } = req.params;
     const db = getDatabase();
@@ -553,7 +553,12 @@ router.get('/:userId/profile', authenticateToken, async (req, res) => {
     }
 
     // First check unified profiles table
-    let profile = await get(db, 'SELECT * FROM profiles WHERE user_id = ?', [userId]);
+    let profile = await get(db, `
+      SELECT p.*, u.is_interviewer, u.role as user_role, u.name as user_name, u.email as user_email
+      FROM profiles p
+      JOIN users u ON p.user_id = u.id
+      WHERE p.user_id = ?
+    `, [userId]);
 
     // If not found in unified table, check role-specific tables for backward compatibility
     if (!profile) {
@@ -608,6 +613,22 @@ router.get('/:userId/profile', authenticateToken, async (req, res) => {
     if (!profile) {
       console.log(`⚠️ No profile found for user ${userId} (role: ${user.role})`);
       return res.json({ success: true, profile: null });
+    }
+
+    // Always merge in latest user-level flags/info from users table
+    try {
+      const userFull = await get(db, 'SELECT is_interviewer, role, name, email FROM users WHERE id = ?', [userId]);
+      if (userFull) {
+        profile = { 
+          ...profile, 
+          is_interviewer: userFull.is_interviewer,
+          user_role: userFull.role,
+          user_name: userFull.name,
+          user_email: userFull.email
+        };
+      }
+    } catch (e) {
+      console.warn("Failed to merge user flags into profile", e);
     }
 
     res.json({ success: true, profile });
@@ -681,19 +702,25 @@ router.put('/:userId/profile', authenticateToken, [
     const photoUrl = photo_url || photo; // Support both 'photo' and 'photo_url' for backward compatibility
     const db = getDatabase();
 
-    // Get user role
-    const user = await get(db, 'SELECT role FROM users WHERE id = ?', [userId]);
+    // Get user role and check if user is new (must_change_password = 1)
+    const user = await get(db, 'SELECT role, must_change_password FROM users WHERE id = ?', [userId]);
     if (!user) {
       console.error(`❌ User not found: ${userId}`);
       return res.status(404).json({ success: false, message: 'User not found' });
     }
-    console.log(`✅ User found: ${userId}, role: ${user.role}`);
+    console.log(`✅ User found: ${userId}, role: ${user.role}, must_change_password: ${user.must_change_password}`);
 
     // Students and office bearers can update all their profile fields directly
     // No need to check profile field settings
 
     // Check if profile exists in unified table
     let existing = await get(db, 'SELECT id, role FROM profiles WHERE user_id = ?', [userId]);
+
+    // Prevent new users from creating profiles - they can only update existing ones
+    if (!existing && user.must_change_password === 1) {
+      console.warn(`⚠️ New user ${userId} attempted to create a profile. Only existing users can create profiles.`);
+      return res.status(403).json({ success: false, message: 'New users must change their password before creating a profile. Please update your password first.' });
+    }
 
     // Build dynamic update query
     if (existing) {

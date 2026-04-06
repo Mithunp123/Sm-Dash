@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { auth } from "@/lib/auth";
-import { LogOut, Menu, User, ChevronDown, ArrowLeft } from "lucide-react";
+import { LogOut, Menu, User, ChevronDown, ArrowLeft, X, Image as ImageIcon } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +14,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import NotificationBell from "./NotificationBell";
 import { motion, AnimatePresence } from "framer-motion";
 import { buildImageUrl } from "@/utils/imageUtils";
@@ -33,9 +41,72 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
   const isAuthenticated = auth.isAuthenticated();
   const [user, setUser] = useState(auth.getUser());
   const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [showProfilePictureModal, setShowProfilePictureModal] = useState(false);
 
   const isLandingPage = location.pathname === '/' || location.pathname === '/home';
   const isLoginPage = location.pathname === '/login';
+  const [showAnnouncementBar, setShowAnnouncementBar] = useState(true);
+
+  const knownFrontEndPaths = [
+    // Admin routes
+    '/admin', '/admin/announcements', '/admin/users', '/admin/interviews', '/admin/meetings',
+    '/admin/minutes', '/admin/events', '/admin/finance', '/admin/bills', '/admin/analytics',
+    '/admin/students', '/admin/student-db', '/admin/projects', '/admin/office-bearers',
+    '/admin/attendance', '/admin/settings', '/admin/feedback', '/admin/volunteers',
+    '/admin/resources', '/admin/reports', '/admin/teams', '/admin/mentor-management',
+    '/admin/mentees', '/admin/messages', '/admin/awards', '/admin/activity-logs',
+    // Office Bearer routes
+    '/office-bearer', '/office-bearer/profile', '/office-bearer/settings', '/office-bearer/feedback',
+    '/office-bearer/events', '/office-bearer/finance', '/office-bearer/bills', '/office-bearer/mentees',
+    // Student routes
+    '/student', '/student/calendar', '/student/events', '/student/profile', '/student/attendance',
+    '/student/settings', '/student/feedback', '/student/teams', '/student/messages', '/student/finance',
+    '/student/projects', '/student/bills', '/student/reports', '/student/mentees',
+    // Mentor routes
+    '/mentor/interviews', '/mentor/mentees',
+    // Public routes
+    '/home', '/login', '/volunteer-registration', '/resources', '/'
+  ];
+
+  const handleAnnouncementClick = (a: any) => {
+    if (!a?.link_url || typeof a.link_url !== 'string') return;
+
+    const link = a.link_url.trim();
+    if (!link) return;
+
+    if (/^https?:\/\//i.test(link)) {
+      window.open(link, '_blank');
+      return;
+    }
+
+    // guard against invalid internal routes causing 404
+    if (!link.startsWith('/')) {
+      window.open(link, '_blank');
+      return;
+    }
+
+    // avoiding admin-only redirect for non-admin users
+    const role = auth.getUser()?.role;
+    if (link.startsWith('/admin') && role !== 'admin' && role !== 'office_bearer') {
+      toast.error('This announcement is for admin users only.');
+      return;
+    }
+
+    // Validate internal route - check if it matches known path or is a sub-route of known path
+    const isValidRoute = knownFrontEndPaths.some(p => link === p || link.startsWith(p + '/'));
+    
+    if (!isValidRoute) {
+      // Also allow common dynamic route patterns as fallback (e.g., /admin/students/:id, /bills/event/:eventId)
+      const isDynamicRoute = /^\/[a-z\-]+(?:\/[a-z\-]+)*(?:\/\d+)?(?:\/[a-z\-]+)?(?:\/\d+)?$/.test(link);
+      if (!isDynamicRoute) {
+        toast.error('Sorry, this announcement link is unavailable in this build.');
+        return;
+      }
+    }
+
+    navigate(link);
+  };
+
 
   // Listen for profile updates to refresh header
   useEffect(() => {
@@ -137,7 +208,7 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
     <>
       {/* Global Scrolling Update Bar - ONLY on Landing Page */}
       {/* Global Scrolling Update Bar - ONLY if announcements exist and on Landing/Home */}
-      {isLandingPage && announcements.length > 0 && (
+      {isLandingPage && announcements.length > 0 && showAnnouncementBar && (
         <div className="fixed top-0 left-0 right-0 z-[60] bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 h-9 flex items-center overflow-hidden">
           <div className="w-full h-full flex items-center gap-4 px-4 relative">
             <div className="flex-shrink-0 bg-orange-600 text-white px-4 py-1.5 rounded-sm text-[11px] font-black tracking-tighter flex items-center gap-2 shadow-md animate-pulse whitespace-nowrap">
@@ -145,37 +216,31 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
               UPDATES
             </div>
             <div className="flex-1 overflow-hidden h-full flex items-center pr-4">
-              <div
-                className="animate-marquee-running whitespace-nowrap flex gap-48 items-center text-slate-950 dark:text-white font-black text-sm uppercase tracking-tight"
-                style={{ animationDuration: '25s', width: 'max-content' }}
-              >
-                {announcements.length > 0 ? (
-                  // Single set for clean right-to-left flow
-                  announcements.map((a, i) => (
-                    <div
-                      key={`${a.id}-${i}`}
-                      className={`flex items-center gap-4 pointer-events-auto cursor-pointer group transition-colors ${a.link_url ? 'hover:text-orange-600' : ''}`}
-                      onClick={() => {
-                        if (a.link_url) {
-                          if (a.link_url.startsWith('http')) {
-                            window.open(a.link_url, '_blank');
-                          } else {
-                            navigate(a.link_url);
-                          }
-                        }
-                      }}
-                    >
-                      <span className="text-orange-600 font-black text-xl">•</span>
-                      <span className="flex items-center gap-2">
-                        <span className="text-slate-900 dark:text-white font-black">{a.title}</span>
-                        <span className="text-slate-700 dark:text-slate-300 font-bold">{a.content}</span>
-                      </span>
-                      {a.link_url && (
-                        <span className="ml-2 text-[10px] bg-orange-600 text-white px-2 py-0.5 rounded shadow-sm font-black transition-all">CLICK TO VIEW</span>
-                      )}
-                    </div>
-                  ))
-                ) : null}
+              <div className="relative w-full">
+
+                <div
+                  className="animate-marquee-running whitespace-nowrap flex gap-48 items-center text-slate-950 dark:text-white font-black text-sm uppercase tracking-tight"
+                  style={{ animationDuration: '25s', width: 'max-content' }}
+                >
+                  {announcements.length > 0 ? (
+                    announcements.map((a, i) => (
+                      <div
+                        key={`${a.id}-${i}`}
+                        className={`flex items-center gap-4 pointer-events-auto cursor-pointer group transition-colors ${a.link_url ? 'hover:text-orange-600' : ''}`}
+                        onClick={() => handleAnnouncementClick(a)}
+                      >
+                        <span className="text-orange-600 font-black text-xl">•</span>
+                        <span className="flex items-center gap-2">
+                          <span className="text-slate-900 dark:text-white font-black">{a.title}</span>
+                          <span className="text-slate-700 dark:text-slate-300 font-bold">{a.content}</span>
+                        </span>
+                        {a.link_url && (
+                          <span className="ml-2 text-[10px] bg-orange-600 text-white px-2 py-0.5 rounded shadow-sm font-black transition-all">CLICK TO VIEW</span>
+                        )}
+                      </div>
+                    ))
+                  ) : null}
+                </div>
               </div>
             </div>
           </div>
@@ -199,7 +264,7 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
             <div className="flex flex-row items-center justify-between gap-2 md:gap-4 py-3 md:py-6 md:px-10">
               {/* SM Logo (Left) */}
               <button
-                onClick={() => window.location.reload()}
+                onClick={() => navigate('/')}
                 className="hover:opacity-100 transition-opacity cursor-pointer relative group shrink-0"
               >
                 <div className="absolute -inset-2 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
@@ -232,7 +297,7 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
                       if (item.id === 'top') {
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       } else if (item.id === 'login') {
-                        window.location.href = '/login';
+                        navigate('/login');
                       } else {
                         document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       }
@@ -280,7 +345,7 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
                               if (item.id === 'top') {
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                               } else if (item.id === 'login') {
-                                window.location.href = '/login';
+                                navigate('/login');
                               } else {
                                 document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                               }
@@ -320,7 +385,7 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
             /* Landing Page when Logged In */
             <div className="flex flex-row items-center justify-between gap-2 md:gap-4 py-3 md:py-6 md:px-10">
               <button
-                onClick={() => window.location.reload()}
+                onClick={() => navigate('/')}
                 className="hover:opacity-100 transition-opacity cursor-pointer relative group shrink-0"
               >
                 <div className="absolute -inset-2 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
@@ -518,6 +583,13 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
+                          onClick={() => setShowProfilePictureModal(true)}
+                          className="cursor-pointer"
+                        >
+                          <ImageIcon className="mr-2 h-4 w-4" />
+                          <span>View Profile Picture</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
                           onClick={() => {
                             const role = user.role;
                             if (role === 'admin') navigate('/admin');
@@ -528,7 +600,7 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
                           className="cursor-pointer"
                         >
                           <User className="mr-2 h-4 w-4" />
-                          <span>Profile</span>
+                          <span>View Profile</span>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -547,6 +619,34 @@ const Header = ({ onMenuClick, showMenuTrigger = true, showBackButton = false, s
           )}
         </div>
       </header>
+
+      {/* Profile Picture Modal */}
+      <Dialog open={showProfilePictureModal} onOpenChange={setShowProfilePictureModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Profile Picture</DialogTitle>
+            <DialogDescription>
+              {user?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-8">
+            {user?.photo_url || (user as any)?.photo ? (
+              <img
+                src={buildImageUrl(user.photo_url || (user as any).photo) || undefined}
+                alt={user.name}
+                className="max-w-xs max-h-96 rounded-lg shadow-lg object-contain"
+              />
+            ) : (
+              <div className="flex items-center justify-center w-64 h-64 bg-muted rounded-lg">
+                <div className="text-center">
+                  <ImageIcon className="w-16 h-16 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-muted-foreground">No profile picture uploaded</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

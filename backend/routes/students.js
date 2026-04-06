@@ -53,7 +53,7 @@ const get = (db, query, params = []) => {
 };
 
 // POST /api/students/bulk-upload
-router.post('/bulk-upload', authenticateToken, requireRole('admin'), upload.single('file'), async (req, res) => {
+router.post('/bulk-upload', authenticateToken, requireRole('admin', 'office_bearer'), upload.single('file'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, message: 'No file uploaded' });
     }

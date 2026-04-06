@@ -508,7 +508,7 @@ const AdminResources = () => {
                           </div>
                           <div className="flex items-center gap-3">
                             <Button
-                              variant="outline"
+                              variant="default"
                               size="sm"
                               onClick={() => {
                                 const fileUrl = buildResourceUrl(file);
@@ -517,8 +517,9 @@ const AdminResources = () => {
                                   setShowPDFViewer(true);
                                 }
                               }}
-                              className="h-8 rounded-full px-4"
+                              className="h-9 rounded-md px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-md transition-all whitespace-nowrap"
                             >
+                              <Eye className="w-4 h-4 mr-2" />
                               View Resource
                             </Button>
                             {(auth.hasRole('admin') || permissions.can_manage_resources) && (

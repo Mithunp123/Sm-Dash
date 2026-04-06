@@ -105,6 +105,8 @@ const validateAddCollection = (body) => {
     notes
   } = body || {};
 
+  const paymentModeNormalized = payment_mode ? String(payment_mode).toLowerCase() : payment_mode;
+
   if (!event_id || !payer_name || amount === undefined || amount === null || !payment_mode) {
     return { ok: false, message: 'Missing required fields: event_id, payer_name, amount, payment_mode' };
   }
@@ -114,20 +116,19 @@ const validateAddCollection = (body) => {
     return { ok: false, message: 'amount must be a positive number' };
   }
 
-  if (!['cash', 'online'].includes(payment_mode)) {
-    return { ok: false, message: 'payment_mode must be either "cash" or "online"' };
+  if (!['cash', 'online', 'upi'].includes(paymentModeNormalized)) {
+    return { ok: false, message: 'payment_mode must be one of "cash", "online", "upi"' };
   }
 
   const normalizedContributorType = contributor_type || 'other';
 
-  // For UPI/Online payments, require a transaction id except for students
-  if (
-    payment_mode === 'online' &&
-    normalizedContributorType !== 'student' &&
-    (!transaction_id || !String(transaction_id).trim())
-  ) {
-    return { ok: false, message: 'transaction_id is required for online (UPI) payments' };
-  }
+  // DB check constraints may require `transaction_id` to be non-null for online/UPI.
+  // User requirement: transaction_id is not needed for QR flow, so we auto-fill a placeholder.
+  const cleanedTransactionId = (() => {
+    if (paymentModeNormalized === 'cash') return null;
+    const trimmed = transaction_id ? String(transaction_id).trim() : '';
+    return trimmed ? trimmed : 'QR';
+  })();
 
   if (contributor_type && !['staff', 'student', 'other'].includes(contributor_type)) {
     return { ok: false, message: 'contributor_type must be one of: staff, student, other' };
@@ -141,8 +142,8 @@ const validateAddCollection = (body) => {
       amount: parsedAmount,
       department: department ? String(department).trim() : null,
       contributor_type: normalizedContributorType,
-      payment_mode,
-      transaction_id: transaction_id ? String(transaction_id).trim() : null,
+      payment_mode: paymentModeNormalized,
+      transaction_id: cleanedTransactionId,
       notes: notes ? String(notes).trim() : null
     }
   };
@@ -206,26 +207,66 @@ router.post('/add', authenticateToken, allowFinance, async (req, res) => {
 
     const data = validated.data;
 
-    const result = await run(
-      db,
-      `
-      INSERT INTO fund_collections
-        (event_id, payer_name, amount, department, contributor_type, payment_mode, transaction_id, received_by, notes)
-      VALUES
-        (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-      [
-        data.event_id,
-        data.payer_name,
-        data.amount,
-        data.department,
-        data.contributor_type,
-        data.payment_mode,
-        data.transaction_id,
-        req.user.id,
-        data.notes
-      ]
-    );
+    const paymentModeToInsert = data.payment_mode;
+    let result;
+    try {
+      result = await run(
+        db,
+        `
+        INSERT INTO fund_collections
+          (event_id, payer_name, amount, department, contributor_type, payment_mode, transaction_id, received_by, notes)
+        VALUES
+          (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+        [
+          data.event_id,
+          data.payer_name,
+          data.amount,
+          data.department,
+          data.contributor_type,
+          paymentModeToInsert,
+          data.transaction_id,
+          req.user.id,
+          data.notes
+        ]
+      );
+    } catch (err) {
+      // If DB has different check constraint values for payment_mode (e.g. `online` vs `upi`),
+      // retry with the alternate value.
+      const isPaymentModeCheck =
+        err &&
+        typeof err.message === 'string' &&
+        err.message.toLowerCase().includes('fund_collections_chk');
+
+      if (
+        isPaymentModeCheck &&
+        (paymentModeToInsert === 'online' || paymentModeToInsert === 'upi')
+      ) {
+        const alternatePaymentMode = paymentModeToInsert === 'online' ? 'upi' : 'online';
+        result = await run(
+          db,
+          `
+          INSERT INTO fund_collections
+            (event_id, payer_name, amount, department, contributor_type, payment_mode, transaction_id, received_by, notes)
+          VALUES
+            (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `,
+          [
+            data.event_id,
+            data.payer_name,
+            data.amount,
+            data.department,
+            data.contributor_type,
+            alternatePaymentMode,
+            data.transaction_id,
+            req.user.id,
+            data.notes
+          ]
+        );
+      } else {
+        throw err;
+      }
+    }
 
     await logActivity(req.user.id, 'ADD_FUND_COLLECTION', { event_id: data.event_id, payer_name: data.payer_name, amount: data.amount }, req, {
       action_type: 'CREATE',
@@ -268,8 +309,14 @@ router.get('/list/:eventId', authenticateToken, allowFinance, async (req, res) =
     const params = [eventId];
 
     if (payment_mode) {
-      query += ` AND fc.payment_mode = ?`;
-      params.push(payment_mode);
+      // Backward/forward compatibility if DB stores either `online` or `upi`
+      if (payment_mode === 'online') {
+        query += ` AND fc.payment_mode IN ('online', 'upi')`;
+        params.push('online', 'upi');
+      } else {
+        query += ` AND fc.payment_mode = ?`;
+        params.push(payment_mode);
+      }
     }
 
     if (start_date && end_date) {
@@ -278,7 +325,10 @@ router.get('/list/:eventId', authenticateToken, allowFinance, async (req, res) =
     }
 
     // Only admin can filter by received_by
-    if (req.user.role === 'admin' && received_by) {
+    if (req.user.role === 'student') {
+      query += ` AND fc.received_by = ?`;
+      params.push(req.user.id);
+    } else if (req.user.role === 'admin' && received_by) {
       query += ` AND fc.received_by = ?`;
       params.push(received_by);
     }
@@ -318,7 +368,7 @@ router.get('/summary/:eventId', authenticateToken, allowFinance, async (req, res
           COUNT(*) as entry_count,
           SUM(amount) as daily_total,
           SUM(CASE WHEN payment_mode = 'cash' THEN amount ELSE 0 END) as cash_total,
-          SUM(CASE WHEN payment_mode = 'online' THEN amount ELSE 0 END) as online_total
+          SUM(CASE WHEN payment_mode IN ('online', 'upi') THEN amount ELSE 0 END) as online_total
         FROM fund_collections
         WHERE event_id = ?
         GROUP BY DATE(created_at)
@@ -417,6 +467,13 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Payer name and amount are required' });
     }
 
+    const paymentModeNormalized = payment_mode ? String(payment_mode).toLowerCase() : 'cash';
+    const cleanedTransactionId = (() => {
+      if (paymentModeNormalized === 'cash') return null;
+      const trimmed = transaction_id ? String(transaction_id).trim() : '';
+      return trimmed ? trimmed : 'QR';
+    })();
+
     const updateQuery = `
       UPDATE fund_collections 
       SET payer_name = ?, amount = ?, payment_mode = ?, department = ?, 
@@ -424,16 +481,41 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
       WHERE id = ?
     `;
 
-    const result = await run(db, updateQuery, [
-      payer_name,
-      parseFloat(amount),
-      payment_mode || 'cash',
-      department || null,
-      contributor_type || 'student',
-      transaction_id || null,
-      notes || null,
-      id
-    ]);
+    let result;
+    try {
+      result = await run(db, updateQuery, [
+        payer_name,
+        parseFloat(amount),
+        paymentModeNormalized,
+        department || null,
+        contributor_type || 'student',
+        cleanedTransactionId,
+        notes || null,
+        id
+      ]);
+    } catch (err) {
+      // If DB expects `upi` instead of `online` (or vice-versa), retry once.
+      const isPaymentModeCheck =
+        err &&
+        typeof err.message === 'string' &&
+        err.message.toLowerCase().includes('fund_collections_chk');
+
+      if (isPaymentModeCheck && (paymentModeNormalized === 'online' || paymentModeNormalized === 'upi')) {
+        const alternatePaymentMode = paymentModeNormalized === 'online' ? 'upi' : 'online';
+        result = await run(db, updateQuery, [
+          payer_name,
+          parseFloat(amount),
+          alternatePaymentMode,
+          department || null,
+          contributor_type || 'student',
+          cleanedTransactionId,
+          notes || null,
+          id
+        ]);
+      } else {
+        throw err;
+      }
+    }
 
     if (result.changes === 0) {
       return res.status(404).json({ success: false, message: 'Collection entry not found' });

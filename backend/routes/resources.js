@@ -22,28 +22,11 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowed = [
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.ms-powerpoint',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'text/plain',
-    'image/jpeg',
-    'image/png',
-    'image/gif'
-  ];
-  if (allowed.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    console.warn(`File rejected: ${file.originalname} with mimetype ${file.mimetype}`);
-    cb(new Error(`File type not allowed. Supported: PDF, Word, PowerPoint, Excel, Text, Images`));
-  }
+  // Allow all files as requested - 'unlimited'
+  cb(null, true);
 };
 
-const upload = multer({ storage, fileFilter, limits: { fileSize: 10 * 1024 * 1024 } });
+const upload = multer({ storage, fileFilter, limits: { fileSize: 100 * 1024 * 1024 } });
 
 const all = (db, query, params = []) => new Promise((resolve, reject) => db.all(query, params, (err, rows) => err ? reject(err) : resolve(rows)));
 const run = (db, query, params = []) => new Promise((resolve, reject) => db.run(query, params, function (err) { if (err) reject(err); else resolve({ lastID: this.lastID, changes: this.changes }); }));
@@ -158,12 +141,12 @@ router.get('/', authenticateToken, requirePermission('can_manage_resources', { a
       params.push(excludeResourceType);
     }
     if (yearFilter) {
-      conditions.push("strftime('%Y', COALESCE(upload_date, created_at)) = ?");
+      conditions.push("YEAR(COALESCE(upload_date, created_at)) = ?");
       params.push(yearFilter);
     }
     if (monthFilter) {
-      conditions.push("strftime('%m', COALESCE(upload_date, created_at)) = ?");
-      params.push(monthFilter.padStart(2, '0'));
+      conditions.push("MONTH(COALESCE(upload_date, created_at)) = ?");
+      params.push(monthFilter);
     }
     if (showRootOnly) {
       conditions.push('(folder_id IS NULL OR folder_id = 0)');

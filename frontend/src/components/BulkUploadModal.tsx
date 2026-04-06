@@ -22,6 +22,7 @@ export function BulkUploadModal({ isOpen, onClose, onSuccess, uploadFn, title, d
     const [file, setFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [result, setResult] = useState<any>(null);
+    const isForInterviews = title?.toLowerCase().includes('interview');
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -40,7 +41,7 @@ export function BulkUploadModal({ isOpen, onClose, onSuccess, uploadFn, title, d
 
         setIsUploading(true);
         try {
-            const upload = uploadFn || api.bulkUploadStudents;
+            const upload = uploadFn ? uploadFn : (f: File) => api.bulkUploadStudents(f);
             const response = await upload(file);
             if (response.success) {
                 setResult(response.stats); // { total, success, skipped, skippedDetails }
@@ -52,9 +53,17 @@ export function BulkUploadModal({ isOpen, onClose, onSuccess, uploadFn, title, d
                 toast.error(response.message || "Upload failed");
             }
         } catch (error: any) {
-            toast.error(error.message || "Upload failed");
+            toast.error(error?.message || "Upload failed");
         } finally {
             setIsUploading(false);
+        }
+    };
+
+    const handleDownloadSample = () => {
+        if (isForInterviews) {
+            downloadInterviewSample();
+        } else {
+            downloadSample();
         }
     };
 
@@ -80,6 +89,28 @@ export function BulkUploadModal({ isOpen, onClose, onSuccess, uploadFn, title, d
         XLSX.writeFile(workbook, "bulk_upload_sample.xlsx");
     };
 
+    const downloadInterviewSample = () => {
+        const sampleData = [{
+            name: "John Doe",
+            email: "john@example.com",
+            phone: "9876543210",
+            dept: "CSE",
+            year: "3",
+            register_no: "21CS001"
+        }, {
+            name: "Jane Smith",
+            email: "jane@example.com",
+            phone: "9876543211",
+            dept: "ECE",
+            year: "2",
+            register_no: "22EC002"
+        }];
+        const worksheet = XLSX.utils.json_to_sheet(sampleData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Interview Candidates");
+        XLSX.writeFile(workbook, "interview_candidates_sample.xlsx");
+    };
+
     const reset = () => {
         setFile(null);
         setResult(null);
@@ -96,7 +127,7 @@ export function BulkUploadModal({ isOpen, onClose, onSuccess, uploadFn, title, d
                 <DialogHeader>
                     <DialogTitle className="flex justify-between items-center pr-6">
                         <span>{title || "Bulk Student Upload"}</span>
-                        <Button variant="outline" size="sm" onClick={downloadSample} className="h-8 gap-2 text-xs font-semibold text-primary hover:bg-primary/5 border-primary/20">
+                        <Button variant="outline" size="sm" onClick={handleDownloadSample} className="h-8 gap-2 text-xs font-semibold text-primary hover:bg-primary/5 border-primary/20">
                             <Download className="w-3.5 h-3.5" /> Sample
                         </Button>
                     </DialogTitle>

@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -457,17 +456,7 @@ const ManageStudents = () => {
                               >
                                 Project
                               </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => {
-                                  setSelectedStudent(student);
-                                  setShowDeleteDialog(true);
-                                }}
-                                className="h-9 w-9 rounded-md p-0 flex items-center justify-center"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
+
                             </div>
                           </CardContent>
                         </Card>
@@ -534,17 +523,6 @@ const ManageStudents = () => {
                                 >
                                   Project
                                 </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    setSelectedStudent(student);
-                                    setShowDeleteDialog(true);
-                                  }}
-                                  className="h-8 text-destructive hover:bg-destructive/10 rounded-lg"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -571,26 +549,22 @@ const ManageStudents = () => {
           </DialogHeader>
           <form onSubmit={handleSaveAssignment} className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="projectSlider">Project</Label>
+              <Label htmlFor="projectSelect">Project</Label>
               {projects.length === 0 ? (
                 <div className="text-sm text-muted-foreground">No projects available</div>
               ) : (
-                <div>
-                  <div className="mb-2 text-sm font-medium text-foreground slider-value">
-                    Selected: {assignIndex !== null && projects[assignIndex] ? `${projects[assignIndex].title}${projects[assignIndex].ngo_name ? ` (${projects[assignIndex].ngo_name})` : ''}` : 'None'}
-                  </div>
-                  <Slider
-                    id="projectSlider"
-                    value={assignIndex !== null ? [assignIndex] : [0]}
-                    min={0}
-                    max={Math.max(0, projects.length - 1)}
-                    step={1}
-                    onValueChange={(val) => setAssignIndex(val[0])}
-                  />
-                  <div className="text-xs text-muted-foreground mt-2">
-                    Slide to choose a project. The label above shows which project the student is currently in (if any).
-                  </div>
-                </div>
+                <Select value={assignIndex !== null ? assignIndex.toString() : ''} onValueChange={(val) => setAssignIndex(parseInt(val))}>
+                  <SelectTrigger id="projectSelect">
+                    <SelectValue placeholder="Choose a project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects.map((project, idx) => (
+                      <SelectItem key={idx} value={idx.toString()}>
+                        {project.title}{project.ngo_name ? ` (${project.ngo_name})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
             </div>
             <div className="flex gap-2 justify-end">
@@ -622,26 +596,22 @@ const ManageStudents = () => {
           </DialogHeader>
           <form onSubmit={handleSaveEventAssignment} className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="eventSlider">Event</Label>
+              <Label htmlFor="eventSelect">Event</Label>
               {events.length === 0 ? (
                 <div className="text-sm text-muted-foreground">No events available</div>
               ) : (
-                <div>
-                  <div className="mb-2 text-sm font-medium text-foreground slider-value">
-                    Selected: {assignEventIndex !== null && events[assignEventIndex] ? `${events[assignEventIndex].name}` : 'None'}
-                  </div>
-                  <Slider
-                    id="eventSlider"
-                    value={assignEventIndex !== null ? [assignEventIndex] : [0]}
-                    min={0}
-                    max={Math.max(0, events.length - 1)}
-                    step={1}
-                    onValueChange={(val) => setAssignEventIndex(val[0])}
-                  />
-                  <div className="text-xs text-muted-foreground mt-2">
-                    Slide to choose an event. The label above shows which event the student is currently assigned to (if any).
-                  </div>
-                </div>
+                <Select value={assignEventIndex !== null ? assignEventIndex.toString() : ''} onValueChange={(val) => setAssignEventIndex(parseInt(val))}>
+                  <SelectTrigger id="eventSelect">
+                    <SelectValue placeholder="Choose an event" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {events.map((event, idx) => (
+                      <SelectItem key={idx} value={idx.toString()}>
+                        {event.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
             </div>
             <div className="flex gap-2 justify-end">

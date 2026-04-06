@@ -39,6 +39,8 @@ const FinanceHome = () => {
           navigate(`/office-bearer/events/${firstEventId}/funds`);
         } else if (auth.hasRole("student")) {
           navigate(`/student/events/${firstEventId}/funds`);
+        } else if (auth.hasRole("volunteer")) {
+          navigate(`/volunteer/events/${firstEventId}/funds`);
         }
       } else {
         toast.error("No events found");
