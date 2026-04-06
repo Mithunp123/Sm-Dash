@@ -448,7 +448,7 @@ router.put('/mentees/:assignmentId/attendance/:attendanceId', authenticateToken,
 });
 
 // DELETE attendance record
-router.delete('/mentees/:assignmentId/attendance/:attendanceId', (req, res) => {
+router.delete('/mentees/:assignmentId/attendance/:attendanceId', authenticateToken, (req, res) => {
   const { assignmentId, attendanceId } = req.params;
   const attendId = parseInt(attendanceId);
   const db = getDatabase();

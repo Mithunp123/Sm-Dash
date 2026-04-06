@@ -1066,8 +1066,6 @@ router.get('/student/:studentId/details', authenticateToken, async (req, res, ne
   }
 });
 
-export default router;
-
 // Get best performers across events in a date range
 // Query parameters: startDate (YYYY-MM-DD), endDate (YYYY-MM-DD), limit
 // Returns list of users with total_events, present_count, percent
@@ -1089,7 +1087,7 @@ router.get('/best-performers', authenticateToken, async (req, res) => {
     }
 
     const rows = await all(db, `
-      SELECT 
+      SELECT
         ea.user_id,
         u.name,
         u.email,
@@ -1121,3 +1119,4 @@ router.get('/best-performers', authenticateToken, async (req, res) => {
   }
 });
 
+export default router;

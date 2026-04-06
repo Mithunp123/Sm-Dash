@@ -41,7 +41,7 @@ const Analytics = () => {
     try {
       setLoading(true);
       const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-      const token = localStorage.getItem('auth_token');
+      const token = sessionStorage.getItem('auth_token');
 
       const [usersRes, meetingsRes, billsRes, timeRes, projectsRes, teamsRes, attendanceRes] = await Promise.all([
         api.getUsers(),

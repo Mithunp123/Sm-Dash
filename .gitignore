@@ -32,3 +32,6 @@ dist-ssr
 backend/database/database.db
 *.db
 *.sqlite
+# Ignore
+docs
+scripts

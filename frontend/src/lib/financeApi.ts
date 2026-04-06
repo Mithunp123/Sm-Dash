@@ -1,221 +1,214 @@
 /**
  * Finance API Helper
- * Add these methods to your existing api object
+ * Provides typed API calls for fundraising, expenses, and finance settings
  */
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+const getToken = (): string | null => {
+  return sessionStorage.getItem('auth_token');
+};
+
+const getHeaders = (includeContentType = true): HeadersInit => {
+  const headers: HeadersInit = {};
+  const token = getToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  if (includeContentType) {
+    headers['Content-Type'] = 'application/json';
+  }
+  return headers;
+};
+
+// Type definitions
+interface FundCollection {
+  id?: number;
+  event_id: number;
+  donor_name: string;
+  amount: number;
+  payment_mode: string;
+  reference_number?: string;
+  remarks?: string;
+}
+
+interface Expense {
+  id?: number;
+  event_id: number;
+  folder_id: number;
+  description: string;
+  amount: number;
+  category?: string;
+  bill_number?: string;
+  vendor_name?: string;
+}
+
+interface BillFolder {
+  id?: number;
+  event_id: number;
+  folder_name: string;
+  description?: string;
+}
+
 // Fundraising APIs
-const fundraisingAPI = {
-  /**
-   * Get fundraising status
-   */
+export const fundraisingAPI = {
   getFundraisingStatus: async () => {
     const response = await fetch(`${API_BASE}/fundraising/status`, {
-      headers: { Authorization: `Bearer ${getToken()}` }
+      headers: getHeaders(false)
     });
     return response.json();
   },
 
-  /**
-   * Add a fund collection
-   */
-  addFundCollection: async (eventId, data) => {
+  addFundCollection: async (eventId: number, data: Partial<FundCollection>) => {
     const response = await fetch(`${API_BASE}/fundraising/add`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${getToken()}`
-      },
+      headers: getHeaders(),
       body: JSON.stringify({ event_id: eventId, ...data })
     });
     return response.json();
   },
 
-  /**
-   * Get fund collections for event
-   */
-  getFundCollections: async (eventId, filters = {}) => {
+  getFundCollections: async (eventId: number, filters: Record<string, string> = {}) => {
     const params = new URLSearchParams(filters);
     const response = await fetch(`${API_BASE}/fundraising/list/${eventId}?${params}`, {
-      headers: { Authorization: `Bearer ${getToken()}` }
+      headers: getHeaders(false)
     });
     return response.json();
   },
 
-  /**
-   * Get fundraising summary
-   */
-  getFundraisingSummary: async (eventId) => {
+  getFundraisingSummary: async (eventId: number) => {
     const response = await fetch(`${API_BASE}/fundraising/summary/${eventId}`, {
-      headers: { Authorization: `Bearer ${getToken()}` }
+      headers: getHeaders(false)
     });
     return response.json();
   },
 
-  /**
-   * Delete a fund collection
-   */
-  deleteFundCollection: async (collectionId) => {
+  updateFundCollection: async (id: number, data: Partial<FundCollection>) => {
+    const response = await fetch(`${API_BASE}/fundraising/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return response.json();
+  },
+
+  deleteFundCollection: async (collectionId: number) => {
     const response = await fetch(`${API_BASE}/fundraising/${collectionId}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${getToken()}` }
+      headers: getHeaders(false)
     });
     return response.json();
   }
 };
 
 // Expense APIs
-const expenseAPI = {
-  /**
-   * Create a bill folder
-   */
-  createBillFolder: async (eventId, data) => {
+export const expenseAPI = {
+  createBillFolder: async (eventId: number, data: Partial<BillFolder>) => {
     const response = await fetch(`${API_BASE}/expenses/folder/add`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${getToken()}`
-      },
+      headers: getHeaders(),
       body: JSON.stringify({ event_id: eventId, ...data })
     });
     return response.json();
   },
 
-  /**
-   * Get bill folders
-   */
-  getBillFolders: async (eventId) => {
+  getBillFolders: async (eventId: number) => {
     const response = await fetch(`${API_BASE}/expenses/folders/${eventId}`, {
-      headers: { Authorization: `Bearer ${getToken()}` }
+      headers: getHeaders(false)
     });
     return response.json();
   },
 
-  /**
-   * Get folder with expenses
-   */
-  getFolderWithExpenses: async (folderId) => {
+  getFolderWithExpenses: async (folderId: number) => {
     const response = await fetch(`${API_BASE}/expenses/folder/${folderId}`, {
-      headers: { Authorization: `Bearer ${getToken()}` }
+      headers: getHeaders(false)
     });
     return response.json();
   },
 
-  /**
-   * Add an expense
-   */
-  addExpense: async (eventId, folderId, data) => {
+  addExpense: async (eventId: number, folderId: number, data: Partial<Expense>) => {
     const response = await fetch(`${API_BASE}/expenses/add`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${getToken()}`
-      },
+      headers: getHeaders(),
       body: JSON.stringify({ event_id: eventId, folder_id: folderId, ...data })
     });
     return response.json();
   },
 
-  /**
-   * Get expenses for event
-   */
-  getExpenses: async (eventId) => {
+  getExpenses: async (eventId: number) => {
     const response = await fetch(`${API_BASE}/expenses/list/${eventId}`, {
-      headers: { Authorization: `Bearer ${getToken()}` }
+      headers: getHeaders(false)
     });
     return response.json();
   },
 
-  /**
-   * Delete an expense
-   */
-  deleteExpense: async (expenseId) => {
+  updateExpense: async (id: number, data: Partial<Expense>) => {
+    const response = await fetch(`${API_BASE}/expenses/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return response.json();
+  },
+
+  deleteExpense: async (expenseId: number) => {
     const response = await fetch(`${API_BASE}/expenses/${expenseId}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${getToken()}` }
+      headers: getHeaders(false)
     });
     return response.json();
   },
 
-  /**
-   * Get expense summary by category
-   */
-  getExpensesByCategory: async (eventId) => {
+  getExpensesByCategory: async (eventId: number) => {
     const response = await fetch(`${API_BASE}/expenses/event/${eventId}/by-category`, {
-      headers: { Authorization: `Bearer ${getToken()}` }
+      headers: getHeaders(false)
     });
     return response.json();
   }
 };
 
 // Finance Settings APIs
-const financeSettingsAPI = {
-  /**
-   * Get finance settings
-   */
+export const financeSettingsAPI = {
   getSettings: async () => {
     const response = await fetch(`${API_BASE}/finance/settings`, {
-      headers: { Authorization: `Bearer ${getToken()}` }
+      headers: getHeaders(false)
     });
     return response.json();
   },
 
-  /**
-   * Toggle fundraising
-   */
-  toggleFundraising: async (enabled) => {
+  toggleFundraising: async (enabled: boolean) => {
     const response = await fetch(`${API_BASE}/finance/settings/fundraising/toggle`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${getToken()}`
-      },
+      headers: getHeaders(),
       body: JSON.stringify({ enabled })
     });
     return response.json();
   },
 
-  /**
-   * Upload QR code
-   */
-  uploadQRCode: async (file) => {
+  uploadQRCode: async (file: File) => {
     const formData = new FormData();
     formData.append('qr_code', file);
 
     const response = await fetch(`${API_BASE}/finance/settings/qrcode/upload`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${getToken()}`
-      },
+      headers: { Authorization: `Bearer ${getToken()}` },
       body: formData
     });
     return response.json();
   },
 
-  /**
-   * Delete QR code
-   */
   deleteQRCode: async () => {
     const response = await fetch(`${API_BASE}/finance/settings/qrcode/delete`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${getToken()}` }
+      headers: getHeaders(false)
     });
     return response.json();
   },
 
-  /**
-   * Get financial summary for event
-   */
-  getFinancialSummary: async (eventId) => {
+  getFinancialSummary: async (eventId: number) => {
     const response = await fetch(`${API_BASE}/finance/summary/${eventId}`, {
-      headers: { Authorization: `Bearer ${getToken()}` }
+      headers: getHeaders(false)
     });
     return response.json();
   }
 };
-
-// Add these methods to your api object in api.js:
-// api.fundraising = fundraisingAPI;
-// api.expenses = expenseAPI;
-// api.financeSettings = financeSettingsAPI;
-
-export { fundraisingAPI, expenseAPI, financeSettingsAPI };
