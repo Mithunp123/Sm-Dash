@@ -108,8 +108,8 @@ const Footer = ({ className }: { className?: string }) => {
         <div className="pt-8 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-medium text-slate-500">
           <p>© {new Date().getFullYear()} K.S.Rangasamy College of Technology. All rights reserved.</p>
           <div className="flex items-center gap-6">
-            <span className="hover:text-primary cursor-pointer transition-colors">Privacy Policy</span>
-            <span className="hover:text-primary cursor-pointer transition-colors">Terms of Service</span>
+            <span className="text-slate-500">Privacy Policy</span>
+            <span className="text-slate-500">Terms of Service</span>
             <p className="flex items-center gap-1 bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
               Dev by <span className="text-primary font-bold">Narendhar D</span>
             </p>

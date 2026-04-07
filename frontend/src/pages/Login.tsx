@@ -505,13 +505,6 @@ const Login = () => {
                   </span>
                 </motion.button>
 
-                {/* Compliance agreement */}
-                <p className="text-center text-[11px] text-slate-500 mt-2 leading-relaxed">
-                  By logging in, you agree to our{" "}
-                  <a href="/terms" className="text-orange-400 hover:text-orange-300 underline underline-offset-2 transition-colors">Terms of Service</a>
-                  {" "}and{" "}
-                  <a href="/privacy" className="text-orange-400 hover:text-orange-300 underline underline-offset-2 transition-colors">Privacy Policy</a>.
-                </p>
               </form>
 
               {/* Divider */}

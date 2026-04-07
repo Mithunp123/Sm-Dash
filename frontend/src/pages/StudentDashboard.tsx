@@ -65,6 +65,11 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
     }
   };
 
+  const uniqueById = (items: any[]) => {
+    if (!Array.isArray(items)) return [];
+    return Array.from(new Map(items.filter(Boolean).map((item: any) => [item.id, item])).values());
+  };
+
   useEffect(() => {
     setActiveTab(initialTab || "dashboard");
   }, [initialTab]);
@@ -104,11 +109,11 @@ const StudentDashboard = ({ initialTab }: StudentDashboardProps) => {
         api.getStudentProfile(currentUser.id),
       ]);
 
-      if (projRes.success) setProjects(projRes.projects || []);
-      if (meetRes.success) setMeetings(meetRes.meetings || []);
-      if (evRes.success) setEvents(evRes.events || []);
-      if (specialDaysRes.success) setSpecialDays(specialDaysRes.specialDays || []);
-      if (resRes.success) setResources(resRes.resources || []);
+      if (projRes.success) setProjects(uniqueById(projRes.projects || []));
+      if (meetRes.success) setMeetings(uniqueById(meetRes.meetings || []));
+      if (evRes.success) setEvents(uniqueById(evRes.events || []));
+      if (specialDaysRes.success) setSpecialDays(uniqueById(specialDaysRes.specialDays || []));
+      if (resRes.success) setResources(uniqueById(resRes.resources || []));
       if (odRes.success) setOdHistory(odRes);
       if (profileRes.success) setProfileData(profileRes.profile);
       // Interview status removed - use dedicated interview routes instead

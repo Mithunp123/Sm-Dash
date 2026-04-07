@@ -39,8 +39,13 @@ import fundraisingRoutes from './routes/fundraising.js';
 import expenseRoutes from './routes/expenses.js';
 import { initDatabase } from './database/init.js';
 
-// Load .env from backend directory
-dotenv.config();
+// Load root-level .env so backend uses the same OAuth and app settings as the frontend
+const rootEnvPath = path.resolve(__dirname, '../.env');
+if (fs.existsSync(rootEnvPath)) {
+  dotenv.config({ path: rootEnvPath });
+} else {
+  dotenv.config();
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
